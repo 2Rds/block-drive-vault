@@ -13,7 +13,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
     { id: 'documents', name: 'Documents', icon: FileText, count: 18, color: 'text-purple-400' },
     { id: 'images', name: 'Images', icon: Image, count: 12, color: 'text-blue-300' },
     { id: 'videos', name: 'Videos', icon: Video, count: 8, color: 'text-purple-300' },
-    { id: 'archived', name: 'Archived', icon: Archive, count: 4, color: 'text-blue-200' },
+    { id: 'archived', name: 'Archived', icon: Archive, count: 4, color: 'text-gray-400' },
   ];
 
   const stats = [
@@ -23,12 +23,12 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
   ];
 
   return (
-    <aside className="w-64 bg-black/20 backdrop-blur-sm border-r border-blue-800/30 h-screen fixed left-0 top-16 overflow-y-auto">
+    <aside className="w-64 bg-gray-800/40 backdrop-blur-sm border-r border-gray-700 h-screen fixed left-0 top-16 overflow-y-auto">
       <div className="p-6 space-y-8">
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-white">Folders</h2>
-            <button className="text-blue-300 hover:text-white hover:bg-blue-800/30 p-2 rounded-lg transition-colors">
+            <button className="text-gray-400 hover:text-white hover:bg-gray-700/50 p-2 rounded-lg transition-colors">
               <FolderPlus className="w-5 h-5" />
             </button>
           </div>
@@ -39,8 +39,8 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
                 onClick={() => onFolderSelect(folder.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                   selectedFolder === folder.id
-                    ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-400/30'
-                    : 'text-blue-200 hover:bg-blue-800/30 hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-300 border border-blue-500/30'
+                    : 'text-gray-300 hover:bg-gray-700/30 hover:text-white'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -49,8 +49,8 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   selectedFolder === folder.id 
-                    ? 'bg-blue-500/20 text-blue-300' 
-                    : 'bg-blue-900/30 text-blue-300'
+                    ? 'bg-blue-600/20 text-blue-300' 
+                    : 'bg-gray-700/50 text-gray-400'
                 }`}>
                   {folder.count}
                 </span>
@@ -63,12 +63,12 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           <h3 className="text-sm font-semibold text-white mb-4">Storage Overview</h3>
           <div className="space-y-4">
             {stats.map((stat, index) => (
-              <div key={index} className="bg-blue-900/20 rounded-xl p-4 border border-blue-700/30">
+              <div key={index} className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/50">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20`}>
+                  <div className={`p-2 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20`}>
                     <stat.icon className={`w-4 h-4 ${stat.color}`} />
                   </div>
-                  <span className="text-xs font-medium text-blue-200">{stat.label}</span>
+                  <span className="text-xs font-medium text-gray-300">{stat.label}</span>
                 </div>
                 <div className="text-xl font-bold text-white">{stat.value}</div>
               </div>
@@ -76,9 +76,9 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-blue-400/30">
+        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-4 border border-blue-500/30">
           <div className="text-sm font-semibold text-white mb-1">Pro Tip</div>
-          <div className="text-xs text-blue-200">
+          <div className="text-xs text-gray-300">
             Upload files securely with blockchain-verified ownership tokens.
           </div>
         </div>

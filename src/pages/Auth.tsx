@@ -69,19 +69,19 @@ const Auth = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <header className="border-b border-blue-800/30 bg-black/20 backdrop-blur-sm">
+      <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
               <Database className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
           </div>
           <Button 
             variant="outline" 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-blue-500 hover:border-purple-500 rounded-xl px-6"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-blue-600 hover:border-purple-600 rounded-xl px-6"
           >
             <Wallet className="w-4 h-4 mr-2" />
             Connect Wallet
@@ -99,30 +99,30 @@ const Auth = () => {
                 Without Slippage
               </span>
             </h2>
-            <p className="text-blue-200 text-lg">
+            <p className="text-gray-300 text-lg">
               BlockDrive creates a secure environment for storing your files with blockchain-verified ownership tokens.
             </p>
           </div>
 
-          <Card className="bg-black/40 backdrop-blur-sm border-blue-800/30 shadow-2xl">
+          <Card className="bg-gray-800/60 backdrop-blur-sm border-gray-700 shadow-2xl">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-xl font-semibold text-white">Get Started</CardTitle>
-              <CardDescription className="text-blue-200">
+              <CardDescription className="text-gray-300">
                 Create your account and Web3 wallet
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-blue-900/30 p-1 rounded-xl">
+                <TabsList className="grid w-full grid-cols-2 bg-gray-700/50 p-1 rounded-xl">
                   <TabsTrigger 
                     value="signin" 
-                    className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-blue-200"
+                    className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white text-gray-300"
                   >
                     Sign In
                   </TabsTrigger>
                   <TabsTrigger 
                     value="signup" 
-                    className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-blue-200"
+                    className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white text-gray-300"
                   >
                     Sign Up
                   </TabsTrigger>
@@ -136,7 +136,7 @@ const Auth = () => {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="h-12 bg-blue-900/20 border-blue-700/50 text-white placeholder-blue-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                        className="h-12 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
                         required
                       />
                     </div>
@@ -146,14 +146,14 @@ const Auth = () => {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="h-12 bg-blue-900/20 border-blue-700/50 text-white placeholder-blue-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-12"
+                        className="h-12 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-12"
                         required
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-0 top-0 h-12 px-3 text-blue-300 hover:text-blue-100"
+                        className="absolute right-0 top-0 h-12 px-3 text-gray-400 hover:text-gray-200"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -161,7 +161,7 @@ const Auth = () => {
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium"
+                      className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium"
                       disabled={isLoading}
                     >
                       {isLoading ? 'Signing In...' : 'Explore Order Book →'}
@@ -177,7 +177,7 @@ const Auth = () => {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="h-12 bg-blue-900/20 border-blue-700/50 text-white placeholder-blue-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                        className="h-12 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
                         required
                       />
                     </div>
@@ -187,7 +187,7 @@ const Auth = () => {
                         placeholder="Choose a username"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        className="h-12 bg-blue-900/20 border-blue-700/50 text-white placeholder-blue-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                        className="h-12 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
                         required
                       />
                     </div>
@@ -197,14 +197,14 @@ const Auth = () => {
                         placeholder="Create a password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="h-12 bg-blue-900/20 border-blue-700/50 text-white placeholder-blue-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-12"
+                        className="h-12 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-12"
                         required
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-0 top-0 h-12 px-3 text-blue-300 hover:text-blue-100"
+                        className="absolute right-0 top-0 h-12 px-3 text-gray-400 hover:text-gray-200"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -214,17 +214,17 @@ const Auth = () => {
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-white">Select Blockchain</label>
                       <Select value={formData.blockchainType} onValueChange={(value: any) => setFormData({ ...formData, blockchainType: value })}>
-                        <SelectTrigger className="h-12 bg-blue-900/20 border-blue-700/50 text-white focus:border-blue-500 focus:ring-blue-500 rounded-xl">
+                        <SelectTrigger className="h-12 bg-gray-700/50 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500 rounded-xl">
                           <SelectValue placeholder="Choose blockchain" />
                         </SelectTrigger>
-                        <SelectContent className="bg-blue-900/90 border-blue-700/50 rounded-xl">
+                        <SelectContent className="bg-gray-800 border-gray-600 rounded-xl">
                           {blockchainOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value} className="text-white hover:bg-blue-800/50 rounded-lg m-1">
+                            <SelectItem key={option.value} value={option.value} className="text-white hover:bg-gray-700 rounded-lg m-1">
                               <div className="flex items-center space-x-3">
                                 <span className="text-lg">{option.icon}</span>
                                 <div>
                                   <div className="font-medium text-white">{option.label}</div>
-                                  <div className="text-xs text-blue-300">{option.description}</div>
+                                  <div className="text-xs text-gray-400">{option.description}</div>
                                 </div>
                               </div>
                             </SelectItem>
@@ -233,21 +233,21 @@ const Auth = () => {
                       </Select>
                     </div>
 
-                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4">
+                    <div className="bg-gray-700/30 border border-gray-600 rounded-xl p-4">
                       <div className="flex items-start space-x-3">
-                        <div className="p-1 bg-purple-500/20 rounded-lg">
+                        <div className="p-1 bg-purple-600/20 rounded-lg">
                           <Sparkles className="w-4 h-4 text-purple-400" />
                         </div>
                         <div className="text-sm">
                           <p className="font-medium text-white mb-1">Automatic Wallet Creation</p>
-                          <p className="text-blue-200">A secure Web3 wallet will be automatically generated for your account on the selected blockchain.</p>
+                          <p className="text-gray-300">A secure Web3 wallet will be automatically generated for your account on the selected blockchain.</p>
                         </div>
                       </div>
                     </div>
 
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium"
+                      className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium"
                       disabled={isLoading}
                     >
                       {isLoading ? 'Creating Account...' : 'Create Trade'}

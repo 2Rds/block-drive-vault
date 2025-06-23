@@ -12,7 +12,7 @@ const Index = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800">
+    <div className="min-h-screen bg-gray-900">
       <Header />
       <div className="flex">
         <Sidebar selectedFolder={selectedFolder} onFolderSelect={setSelectedFolder} />
@@ -21,7 +21,7 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-white">Your Files</h1>
-                <p className="text-blue-200 mt-1">Secure Web3 decentralized storage</p>
+                <p className="text-gray-300 mt-1">Secure Web3 decentralized storage</p>
               </div>
             </div>
             <WalletInfo />
