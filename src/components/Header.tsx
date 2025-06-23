@@ -1,13 +1,32 @@
 
 import React, { useState } from 'react';
-import { Search, Bell, User, Wallet, Database } from 'lucide-react';
+import { Search, Bell, User, Wallet, Database, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
-  const [walletConnected, setWalletConnected] = useState(false);
+  const { user, signOut } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const connectWallet = () => {
-    setWalletConnected(!walletConnected);
+  const handleSignOut = async () => {
+    setIsLoading(true);
+    const { error } = await signOut();
+    
+    if (error) {
+      toast.error('Failed to sign out');
+    } else {
+      toast.success('Successfully signed out');
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -39,20 +58,40 @@ export const Header = () => {
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
             <Bell className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
-            <User className="w-5 h-5" />
-          </Button>
-          <Button
-            onClick={connectWallet}
-            className={`flex items-center space-x-2 ${
-              walletConnected
-                ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-purple-600 hover:bg-purple-700'
-            }`}
-          >
-            <Wallet className="w-4 h-4" />
-            <span>{walletConnected ? 'Connected' : 'Connect Wallet'}</span>
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                <User className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-slate-800 border-white/20" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none text-white">
+                    {user?.user_metadata?.username || 'User'}
+                  </p>
+                  <p className="text-xs leading-none text-gray-400">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/20" />
+              <DropdownMenuItem
+                className="text-white hover:bg-white/10 cursor-pointer"
+                onClick={handleSignOut}
+                disabled={isLoading}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{isLoading ? 'Signing out...' : 'Log out'}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex items-center space-x-2 bg-green-600/20 border border-green-500/30 rounded-lg px-3 py-2">
+            <Wallet className="w-4 h-4 text-green-400" />
+            <span className="text-green-300 text-sm font-medium">Wallet Connected</span>
+          </div>
         </div>
       </div>
     </header>

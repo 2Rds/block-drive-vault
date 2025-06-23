@@ -9,7 +9,145 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      blockchain_tokens: {
+        Row: {
+          blockchain_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          token_id: string
+          token_metadata: Json | null
+          wallet_id: string
+        }
+        Insert: {
+          blockchain_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          token_id: string
+          token_metadata?: Json | null
+          wallet_id: string
+        }
+        Update: {
+          blockchain_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          token_id?: string
+          token_metadata?: Json | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockchain_tokens_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_path: string
+          file_size: number | null
+          filename: string
+          id: string
+          is_encrypted: boolean
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          filename: string
+          id?: string
+          is_encrypted?: boolean
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          filename?: string
+          id?: string
+          is_encrypted?: boolean
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          blockchain_type: string
+          created_at: string
+          id: string
+          private_key_encrypted: string
+          public_key: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          blockchain_type?: string
+          created_at?: string
+          id?: string
+          private_key_encrypted: string
+          public_key: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          blockchain_type?: string
+          created_at?: string
+          id?: string
+          private_key_encrypted?: string
+          public_key?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
