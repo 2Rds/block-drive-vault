@@ -9,7 +9,7 @@ export const StatsCards = () => {
       value: '2.4 GB',
       subtitle: 'of 10 GB',
       icon: Database,
-      color: 'from-purple-500 to-purple-600',
+      color: 'from-blue-500 to-blue-600',
       percentage: 24,
     },
     {
@@ -17,7 +17,7 @@ export const StatsCards = () => {
       value: '12',
       subtitle: '+3 from yesterday',
       icon: Upload,
-      color: 'from-blue-500 to-blue-600',
+      color: 'from-purple-500 to-purple-600',
       percentage: 0,
     },
     {
@@ -25,7 +25,7 @@ export const StatsCards = () => {
       value: '47',
       subtitle: '+15% from last week',
       icon: Download,
-      color: 'from-green-500 to-green-600',
+      color: 'from-blue-400 to-purple-400',
       percentage: 0,
     },
     {
@@ -33,7 +33,7 @@ export const StatsCards = () => {
       value: '156',
       subtitle: 'Total confirmations',
       icon: Archive,
-      color: 'from-orange-500 to-orange-600',
+      color: 'from-purple-400 to-blue-400',
       percentage: 0,
     },
   ];
@@ -43,7 +43,7 @@ export const StatsCards = () => {
       {stats.map((stat, index) => (
         <div
           key={index}
-          className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:bg-slate-700/50 transition-all duration-300"
+          className="bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-blue-800/30 hover:bg-blue-900/20 transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
@@ -51,12 +51,12 @@ export const StatsCards = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-medium text-slate-400">{stat.title}</h3>
+            <h3 className="text-sm font-medium text-blue-200">{stat.title}</h3>
             <div className="text-2xl font-bold text-white">{stat.value}</div>
-            <p className="text-xs text-slate-500">{stat.subtitle}</p>
+            <p className="text-xs text-blue-300">{stat.subtitle}</p>
             {stat.percentage > 0 && (
               <div className="mt-3">
-                <div className="w-full bg-slate-700 rounded-full h-2">
+                <div className="w-full bg-blue-900/30 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full bg-gradient-to-r ${stat.color}`}
                     style={{ width: `${stat.percentage}%` }}
