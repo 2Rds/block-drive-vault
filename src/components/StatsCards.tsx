@@ -43,7 +43,7 @@ export const StatsCards = () => {
       {stats.map((stat, index) => (
         <div
           key={index}
-          className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300"
+          className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 hover:bg-slate-700/50 transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
@@ -51,12 +51,12 @@ export const StatsCards = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-medium text-gray-400">{stat.title}</h3>
+            <h3 className="text-sm font-medium text-slate-400">{stat.title}</h3>
             <div className="text-2xl font-bold text-white">{stat.value}</div>
-            <p className="text-xs text-gray-500">{stat.subtitle}</p>
+            <p className="text-xs text-slate-500">{stat.subtitle}</p>
             {stat.percentage > 0 && (
               <div className="mt-3">
-                <div className="w-full bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-slate-700 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full bg-gradient-to-r ${stat.color}`}
                     style={{ width: `${stat.percentage}%` }}
