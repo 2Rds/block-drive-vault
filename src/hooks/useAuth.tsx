@@ -99,71 +99,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Found valid token:', authToken.id);
 
-      // Check if user account already exists for this email
-      const { data: existingUser, error: userCheckError } = await supabase.auth.admin.getUserByEmail(authToken.email);
-      
-      if (userCheckError && userCheckError.message !== 'User not found') {
-        console.error('Error checking existing user:', userCheckError);
-        return { error: { message: 'Authentication system error. Please try again.' } };
-      }
-
-      if (existingUser?.user) {
-        // User exists, try to sign in with magic link
-        const { error: signInError } = await supabase.auth.signInWithOtp({
-          email: authToken.email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/home`,
-            data: {
-              wallet_address: walletAddress,
-              blockchain_type: blockchainType,
-              auth_token_id: authToken.id,
-              full_name: authToken.full_name
-            }
+      // Try to sign up with magic link (this will work for both new and existing users)
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: authToken.email,
+        password: `wallet_${walletAddress}_${authToken.id}`,
+        options: {
+          emailRedirectTo: `${window.location.origin}/home`,
+          data: {
+            wallet_address: walletAddress,
+            blockchain_type: blockchainType,
+            auth_token_id: authToken.id,
+            full_name: authToken.full_name,
+            email: authToken.email
           }
-        });
-
-        if (signInError) {
-          console.error('Magic link error:', signInError);
-          return { error: { message: 'Failed to send magic link. Please try again.' } };
         }
+      });
 
-        toast.success('Magic link sent! Check your email to complete authentication.');
-        return { error: null };
-      } else {
-        // User doesn't exist, create account with magic link
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: authToken.email,
-          password: `wallet_${walletAddress}_${authToken.id}`,
-          options: {
-            emailRedirectTo: `${window.location.origin}/home`,
-            data: {
-              wallet_address: walletAddress,
-              blockchain_type: blockchainType,
-              auth_token_id: authToken.id,
-              full_name: authToken.full_name,
-              email: authToken.email
+      if (signUpError) {
+        // If sign up fails because user already exists, try sign in with magic link
+        if (signUpError.message.includes('already registered')) {
+          const { error: signInError } = await supabase.auth.signInWithOtp({
+            email: authToken.email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/home`,
+              data: {
+                wallet_address: walletAddress,
+                blockchain_type: blockchainType,
+                auth_token_id: authToken.id,
+                full_name: authToken.full_name
+              }
             }
-          }
-        });
+          });
 
-        if (signUpError) {
+          if (signInError) {
+            console.error('Magic link error:', signInError);
+            return { error: { message: 'Failed to send magic link. Please try again.' } };
+          }
+
+          toast.success('Magic link sent! Check your email to complete authentication.');
+          return { error: null };
+        } else {
           console.error('Sign up error:', signUpError);
           return { error: { message: 'Failed to create account. Please try again.' } };
         }
-
-        // Mark token as used
-        const { error: updateError } = await supabase
-          .from('auth_tokens')
-          .update({ is_used: true })
-          .eq('id', authToken.id);
-
-        if (updateError) {
-          console.error('Error marking token as used:', updateError);
-        }
-
-        toast.success('Account created! Check your email for the confirmation link to complete authentication.');
-        return { error: null };
       }
+
+      // Mark token as used
+      const { error: updateError } = await supabase
+        .from('auth_tokens')
+        .update({ is_used: true })
+        .eq('id', authToken.id);
+
+      if (updateError) {
+        console.error('Error marking token as used:', updateError);
+      }
+
+      toast.success('Magic link sent! Check your email to complete authentication.');
+      return { error: null };
     } catch (error: any) {
       console.error('Connect wallet error:', error);
       return { error: { message: error.message || 'Failed to connect wallet' } };
