@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,28 +10,21 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 interface WalletOption {
   id: string;
   name: string;
   icon: string;
   blockchain: 'solana' | 'ethereum' | 'ton';
 }
-
 const Auth = () => {
-  const { user, connectWallet } = useAuth();
+  const {
+    user,
+    connectWallet
+  } = useAuth();
   const navigate = useNavigate();
   const [showQRCode, setShowQRCode] = useState(false);
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
-
   const form = useForm({
     defaultValues: {
       email: '',
@@ -40,24 +32,52 @@ const Auth = () => {
       organization: ''
     }
   });
-
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
-
-  const walletOptions: WalletOption[] = [
-    { id: 'phantom', name: 'Phantom', icon: '👻', blockchain: 'solana' },
-    { id: 'solflare', name: 'Solflare', icon: '🔥', blockchain: 'solana' },
-    { id: 'metamask', name: 'MetaMask', icon: '🦊', blockchain: 'ethereum' },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: '🔵', blockchain: 'ethereum' },
-    { id: 'trust', name: 'Trust Wallet', icon: '🛡️', blockchain: 'ethereum' },
-    { id: 'exodus', name: 'Exodus', icon: '🚀', blockchain: 'ethereum' },
-    { id: 'okx', name: 'OKX Wallet', icon: '⭕', blockchain: 'ethereum' },
-    { id: 'ledger', name: 'Ledger', icon: '🔒', blockchain: 'ethereum' }
-  ];
-
+  const walletOptions: WalletOption[] = [{
+    id: 'phantom',
+    name: 'Phantom',
+    icon: '👻',
+    blockchain: 'solana'
+  }, {
+    id: 'solflare',
+    name: 'Solflare',
+    icon: '🔥',
+    blockchain: 'solana'
+  }, {
+    id: 'metamask',
+    name: 'MetaMask',
+    icon: '🦊',
+    blockchain: 'ethereum'
+  }, {
+    id: 'coinbase',
+    name: 'Coinbase Wallet',
+    icon: '🔵',
+    blockchain: 'ethereum'
+  }, {
+    id: 'trust',
+    name: 'Trust Wallet',
+    icon: '🛡️',
+    blockchain: 'ethereum'
+  }, {
+    id: 'exodus',
+    name: 'Exodus',
+    icon: '🚀',
+    blockchain: 'ethereum'
+  }, {
+    id: 'okx',
+    name: 'OKX Wallet',
+    icon: '⭕',
+    blockchain: 'ethereum'
+  }, {
+    id: 'ledger',
+    name: 'Ledger',
+    icon: '🔒',
+    blockchain: 'ethereum'
+  }];
   const detectWallet = (walletId: string) => {
     switch (walletId) {
       case 'phantom':
@@ -80,12 +100,10 @@ const Auth = () => {
         return false;
     }
   };
-
   const connectToWallet = async (walletId: string, blockchain: 'solana' | 'ethereum' | 'ton') => {
     try {
       let walletAddress = '';
       let signature = 'demo_signature';
-
       switch (walletId) {
         case 'phantom':
           if ((window as any).phantom?.solana) {
@@ -95,7 +113,6 @@ const Auth = () => {
             throw new Error('Phantom wallet not found');
           }
           break;
-
         case 'solflare':
           if ((window as any).solflare) {
             await (window as any).solflare.connect();
@@ -104,7 +121,6 @@ const Auth = () => {
             throw new Error('Solflare wallet not found');
           }
           break;
-
         case 'metamask':
         case 'coinbase':
         case 'trust':
@@ -120,36 +136,35 @@ const Auth = () => {
             throw new Error(`${walletId} wallet not found`);
           }
           break;
-
         default:
           throw new Error('Unsupported wallet');
       }
-
       if (!walletAddress) {
         throw new Error('Failed to get wallet address');
       }
-
-      return { walletAddress, signature };
+      return {
+        walletAddress,
+        signature
+      };
     } catch (error: any) {
       throw new Error(error.message || `Failed to connect to ${walletId}`);
     }
   };
-
   const handleWalletConnect = async (wallet: WalletOption) => {
     const walletDetected = detectWallet(wallet.id);
-    
     if (!walletDetected && wallet.id !== 'ledger') {
       toast.error(`${wallet.name} wallet not detected. Please install it first.`);
       return;
     }
-
     setIsConnecting(wallet.id);
-    
     try {
-      const { walletAddress, signature } = await connectToWallet(wallet.id, wallet.blockchain);
-      
-      const { error } = await connectWallet(walletAddress, signature, wallet.blockchain);
-      
+      const {
+        walletAddress,
+        signature
+      } = await connectToWallet(wallet.id, wallet.blockchain);
+      const {
+        error
+      } = await connectWallet(walletAddress, signature, wallet.blockchain);
       if (error) {
         toast.error(error.message);
       } else {
@@ -158,17 +173,13 @@ const Auth = () => {
     } catch (error: any) {
       toast.error(error.message || `Failed to connect ${wallet.name}`);
     }
-    
     setIsConnecting(null);
   };
-
   const onSubmit = (data: any) => {
     toast.success('Sign-up request submitted! You will receive your solbound access token via email.');
     console.log('Sign-up data:', data);
   };
-
-  return (
-    <div className="min-h-screen bg-gray-950">
+  return <div className="min-h-screen bg-gray-950">
       {/* Header with Connect Wallet Button */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
@@ -196,17 +207,10 @@ const Auth = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-600" />
                 
-                {walletOptions.map((wallet) => {
-                  const isDetected = detectWallet(wallet.id) || wallet.id === 'ledger';
-                  const isConnectingWallet = isConnecting === wallet.id;
-                  
-                  return (
-                    <DropdownMenuItem
-                      key={wallet.id}
-                      className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg"
-                      onClick={() => handleWalletConnect(wallet)}
-                      disabled={isConnectingWallet}
-                    >
+                {walletOptions.map(wallet => {
+                const isDetected = detectWallet(wallet.id) || wallet.id === 'ledger';
+                const isConnectingWallet = isConnecting === wallet.id;
+                return <DropdownMenuItem key={wallet.id} className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" onClick={() => handleWalletConnect(wallet)} disabled={isConnectingWallet}>
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center space-x-3">
                           <span className="text-lg">{wallet.icon}</span>
@@ -216,27 +220,19 @@ const Auth = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {!isDetected && wallet.id !== 'ledger' && (
-                            <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">
+                          {!isDetected && wallet.id !== 'ledger' && <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">
                               Not Installed
-                            </span>
-                          )}
-                          {isDetected && (
-                            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+                            </span>}
+                          {isDetected && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
                               {wallet.id === 'ledger' ? 'Hardware' : 'Detected'}
-                            </span>
-                          )}
+                            </span>}
                         </div>
                       </div>
-                    </DropdownMenuItem>
-                  );
-                })}
+                    </DropdownMenuItem>;
+              })}
                 
                 <DropdownMenuSeparator className="bg-gray-600" />
-                <DropdownMenuItem
-                  className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg"
-                  onClick={() => setShowQRCode(!showQRCode)}
-                >
+                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" onClick={() => setShowQRCode(!showQRCode)}>
                   <QrCode className="w-4 h-4 mr-3" />
                   <span>Scan QR Code</span>
                 </DropdownMenuItem>
@@ -247,8 +243,7 @@ const Auth = () => {
       </header>
 
       {/* QR Code Modal */}
-      {showQRCode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {showQRCode && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="bg-gray-900 border-gray-700 max-w-md w-full">
             <CardHeader className="text-center">
               <CardTitle className="text-white">Scan with Your Wallet</CardTitle>
@@ -263,17 +258,12 @@ const Auth = () => {
               <p className="text-gray-400 text-sm text-center">
                 Supported by most mobile wallet apps including Trust Wallet, MetaMask Mobile, and Phantom Mobile
               </p>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowQRCode(false)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
+              <Button variant="outline" onClick={() => setShowQRCode(false)} className="border-gray-600 text-gray-300 hover:bg-gray-700">
                 Close
               </Button>
             </CardContent>
           </Card>
-        </div>
-      )}
+        </div>}
 
       <div className="flex items-center justify-center p-8 min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -305,67 +295,37 @@ const Auth = () => {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="fullName" render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel className="text-gray-300">Full Name</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="Enter your full name"
-                              className="bg-gray-800 border-gray-700 text-white"
-                              {...field}
-                            />
+                            <Input placeholder="Enter your full name" className="bg-gray-800 border-gray-700 text-white" {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                     
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="email" render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel className="text-gray-300">Email Address</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="email"
-                              placeholder="Enter your email"
-                              className="bg-gray-800 border-gray-700 text-white"
-                              {...field}
-                            />
+                            <Input type="email" placeholder="Enter your email" className="bg-gray-800 border-gray-700 text-white" {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
 
-                    <FormField
-                      control={form.control}
-                      name="organization"
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="organization" render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel className="text-gray-300">Organization (Optional)</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="Company or organization"
-                              className="bg-gray-800 border-gray-700 text-white"
-                              {...field}
-                            />
+                            <Input placeholder="Company or organization" className="bg-gray-800 border-gray-700 text-white" {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
 
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
-                    >
-                      Request Solbound Token
-                    </Button>
+                    <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0">Request Authentication Token</Button>
                   </form>
                 </Form>
               </CardContent>
@@ -431,8 +391,6 @@ const Auth = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
