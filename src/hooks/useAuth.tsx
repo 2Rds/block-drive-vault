@@ -104,31 +104,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error marking token as used:', updateError);
       }
 
-      // Create a session using anonymous auth with wallet metadata
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-      
-      if (authError) {
-        console.error('Anonymous auth error:', authError);
-        return { error: authError };
-      }
-
-      console.log('Anonymous auth successful:', authData.user?.id);
-
-      // Update the auth user with wallet information
-      const { error: updateUserError } = await supabase.auth.updateUser({
-        data: {
-          wallet_address: walletAddress,
-          blockchain_type: blockchainType,
-          auth_token_id: authToken.id,
-          full_name: authToken.full_name,
-          email: authToken.email
+      // Create user account with email from the token using signUp
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: authToken.email,
+        password: `wallet_${walletAddress}_${Date.now()}`, // Generate a secure password
+        options: {
+          data: {
+            wallet_address: walletAddress,
+            blockchain_type: blockchainType,
+            auth_token_id: authToken.id,
+            full_name: authToken.full_name,
+            email: authToken.email
+          }
         }
       });
+      
+      if (authError) {
+        // If user already exists, try to sign them in
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+          console.log('User already exists, attempting sign in...');
+          
+          // Try to sign in with the email and generated password
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: authToken.email,
+            password: `wallet_${walletAddress}_${Date.now()}`
+          });
 
-      if (updateUserError) {
-        console.error('Error updating user:', updateUserError);
-        return { error: updateUserError };
+          if (signInError) {
+            // If password doesn't work, reset it
+            console.log('Password sign in failed, using OTP...');
+            const { error: otpError } = await supabase.auth.signInWithOtp({
+              email: authToken.email,
+              options: {
+                shouldCreateUser: false
+              }
+            });
+
+            if (otpError) {
+              console.error('OTP sign in error:', otpError);
+              return { error: otpError };
+            }
+
+            toast.success('Check your email for a sign-in link.');
+            return { error: null };
+          }
+        } else {
+          console.error('Sign up error:', authError);
+          return { error: authError };
+        }
       }
+
+      console.log('Authentication successful:', authData?.user?.id);
 
       // Set wallet data
       setWalletData({
