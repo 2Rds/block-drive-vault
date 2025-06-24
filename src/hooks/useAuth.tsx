@@ -36,6 +36,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             loadWalletData(session.user.id);
           }, 0);
         }
+
+        // Redirect to home after successful authentication
+        if (event === 'SIGNED_IN' && session?.user && window.location.pathname === '/auth') {
+          window.location.href = '/home';
+        }
       }
     );
 
@@ -104,54 +109,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error marking token as used:', updateError);
       }
 
-      // Create user account with email from the token using signUp
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: authToken.email,
-        password: `wallet_${walletAddress}_${Date.now()}`, // Generate a secure password
-        options: {
-          data: {
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType,
-            auth_token_id: authToken.id,
-            full_name: authToken.full_name,
-            email: authToken.email
-          }
-        }
-      });
+      // Try to sign in first with email/password
+      const password = `wallet_${walletAddress}_${authToken.id}`;
+      let authData;
       
-      if (authError) {
-        // If user already exists, try to sign them in
-        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
-          console.log('User already exists, attempting sign in...');
-          
-          // Try to sign in with the email and generated password
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: authToken.email,
+        password: password
+      });
+
+      if (signInError) {
+        // If sign in fails, create new account
+        console.log('Sign in failed, creating new account');
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: authToken.email,
+          password: password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/home`,
+            data: {
+              wallet_address: walletAddress,
+              blockchain_type: blockchainType,
+              auth_token_id: authToken.id,
+              full_name: authToken.full_name,
+              email: authToken.email
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.error('Sign up error:', signUpError);
+          return { error: signUpError };
+        }
+
+        authData = signUpData;
+
+        // For wallet-based auth, we'll manually confirm the user to bypass email confirmation
+        if (authData.user && !authData.user.email_confirmed_at) {
+          // Use admin API to confirm user
+          const { error: confirmError } = await supabase.auth.admin.updateUserById(
+            authData.user.id,
+            { email_confirm: true }
+          );
+
+          if (confirmError) {
+            console.log('Could not auto-confirm user, but continuing...');
+          }
+
+          // Try to sign in again after confirmation
+          const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
             email: authToken.email,
-            password: `wallet_${walletAddress}_${Date.now()}`
+            password: password
           });
 
-          if (signInError) {
-            // If password doesn't work, reset it
-            console.log('Password sign in failed, using OTP...');
-            const { error: otpError } = await supabase.auth.signInWithOtp({
-              email: authToken.email,
-              options: {
-                shouldCreateUser: false
-              }
-            });
-
-            if (otpError) {
-              console.error('OTP sign in error:', otpError);
-              return { error: otpError };
-            }
-
-            toast.success('Check your email for a sign-in link.');
-            return { error: null };
+          if (!retryError) {
+            authData = retrySignIn;
           }
-        } else {
-          console.error('Sign up error:', authError);
-          return { error: authError };
         }
+      } else {
+        authData = signInData;
       }
 
       console.log('Authentication successful:', authData?.user?.id);

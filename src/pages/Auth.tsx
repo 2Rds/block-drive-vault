@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,8 +45,8 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('User authenticated, redirecting to dashboard');
-      navigate('/');
+      console.log('User authenticated, redirecting to home dashboard');
+      navigate('/home');
     }
   }, [user, navigate]);
   
@@ -194,7 +193,7 @@ const Auth = () => {
         setShowSignupForm(true);
         toast.info(`${wallet.name} connected! Please complete signup to receive your authentication token.`);
       } else {
-        console.log('Authentication successful, user should be redirected');
+        console.log('Authentication successful, user should be redirected to /home');
         // Authentication successful - user will be redirected by useEffect
       }
     } catch (error: any) {
