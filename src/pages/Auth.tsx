@@ -288,9 +288,7 @@ const Auth = () => {
                   <UserPlus className="w-5 h-5 mr-2" />
                   Request Access
                 </CardTitle>
-                <CardDescription className="text-gray-300">
-                  Sign up to receive your personalized solbound token
-                </CardDescription>
+                <CardDescription className="text-gray-300">Sign up to receive your personalized authentication token</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
