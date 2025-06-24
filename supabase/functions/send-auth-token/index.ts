@@ -131,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
             <h2 style="margin: 0 0 15px 0; font-size: 24px;">Hello ${fullName}!</h2>
-            <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your solbound authentication token has been generated and linked to your wallet.</p>
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your solbound authentication token has been generated and linked to your wallet. When you connect your wallet, a unique NFT will be minted as your authentication key.</p>
           </div>
 
           <div style="background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
@@ -144,12 +144,12 @@ const handler = async (req: Request): Promise<Response> => {
 
           <div style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
             <h4 style="color: #059669; margin: 0 0 10px 0; display: flex; align-items: center;">
-              🔗 Wallet Association
+              🔗 Wallet Association & NFT Minting
             </h4>
             <p style="color: #065f46; margin: 0; font-size: 14px;">
               <strong>Wallet Address:</strong> ${walletAddress}<br>
               <strong>Blockchain:</strong> ${blockchainType.toUpperCase()}<br>
-              This token is permanently linked to your wallet for secure authentication.
+              When you connect your wallet, a unique solbound NFT will be automatically minted and airdropped to your wallet as your authentication key.
             </p>
           </div>
 
@@ -159,7 +159,8 @@ const handler = async (req: Request): Promise<Response> => {
               <li>Visit the BlockDrive platform</li>
               <li>Click "Connect Wallet" in the top right</li>
               <li>Connect the same wallet you used during signup</li>
-              <li>Your token will automatically authenticate you</li>
+              <li>Your solbound NFT will be automatically minted if it doesn't exist</li>
+              <li>The NFT will authenticate you and grant access to BlockDrive</li>
             </ol>
           </div>
 
@@ -168,11 +169,11 @@ const handler = async (req: Request): Promise<Response> => {
               🔒 Security Features
             </h4>
             <ul style="color: #065f46; margin: 0; padding-left: 20px;">
-              <li>Non-transferable solbound NFT</li>
+              <li>Non-transferable solbound NFT authentication</li>
               <li>Blockchain-verified ownership</li>
-              <li>Wallet-specific authentication</li>
-              <li>No passwords to remember</li>
-              <li>Decentralized authentication</li>
+              <li>Wallet-specific authentication key</li>
+              <li>Automatic NFT minting on first login</li>
+              <li>Decentralized authentication system</li>
             </ul>
           </div>
 
@@ -197,7 +198,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Authentication token sent successfully and linked to your wallet!",
+      message: "Authentication token sent successfully! When you connect your wallet, a solbound NFT will be minted as your authentication key.",
       emailId: emailResponse.data?.id,
       tokenId: tokenData.id
     }), {
