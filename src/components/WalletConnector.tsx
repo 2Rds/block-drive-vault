@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -240,13 +239,13 @@ export const WalletConnector = () => {
           <div className="grid gap-3">
             {wallets.map((wallet) => {
               const isDetected = detectWallet(wallet.id) || wallet.isHardware;
-              const isConnecting = isConnecting === wallet.id;
+              const isConnectingWallet = isConnecting === wallet.id;
 
               return (
                 <Card 
                   key={wallet.id}
                   className="bg-gray-800/60 backdrop-blur-sm border-gray-700 hover:bg-gray-700/40 transition-all duration-300 cursor-pointer"
-                  onClick={() => !isConnecting && handleWalletConnect(wallet)}
+                  onClick={() => !isConnectingWallet && handleWalletConnect(wallet)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -292,14 +291,14 @@ export const WalletConnector = () => {
                           </Button>
                         )}
                         <Button
-                          disabled={isConnecting || (!isDetected && !wallet.isHardware)}
+                          disabled={isConnectingWallet || (!isDetected && !wallet.isHardware)}
                           className={`bg-gradient-to-r ${blockchainColors[wallet.blockchain]} hover:opacity-90 text-white border-0`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleWalletConnect(wallet);
                           }}
                         >
-                          {isConnecting ? 'Connecting...' : 'Connect'}
+                          {isConnectingWallet ? 'Connecting...' : 'Connect'}
                         </Button>
                       </div>
                     </div>
