@@ -32,6 +32,7 @@ const Auth = () => {
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<{address: string, blockchain: string} | null>(null);
+  const [showSignupForm, setShowSignupForm] = useState(false);
   
   const form = useForm({
     defaultValues: {
@@ -45,6 +46,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('User authenticated, redirecting to dashboard');
       navigate('/');
     }
   }, [user, navigate]);
@@ -178,12 +180,23 @@ const Auth = () => {
         signature
       } = await connectToWallet(wallet.id, wallet.blockchain);
       
-      // Set connected wallet info for the signup form
-      setConnectedWallet({ address: walletAddress, blockchain: wallet.blockchain });
-      form.setValue('walletAddress', walletAddress);
-      form.setValue('blockchainType', wallet.blockchain);
+      console.log('Wallet connected, attempting authentication...');
       
-      toast.success(`${wallet.name} connected! You can now request your authentication token.`);
+      // Try to authenticate with the connected wallet
+      const { error } = await connectWallet(walletAddress, signature, wallet.blockchain);
+      
+      if (error) {
+        console.log('Authentication failed, showing signup form');
+        // If authentication fails, show the signup form with wallet info
+        setConnectedWallet({ address: walletAddress, blockchain: wallet.blockchain });
+        form.setValue('walletAddress', walletAddress);
+        form.setValue('blockchainType', wallet.blockchain);
+        setShowSignupForm(true);
+        toast.info(`${wallet.name} connected! Please complete signup to receive your authentication token.`);
+      } else {
+        console.log('Authentication successful, user should be redirected');
+        // Authentication successful - user will be redirected by useEffect
+      }
     } catch (error: any) {
       toast.error(error.message || `Failed to connect ${wallet.name}`);
     }
@@ -218,9 +231,10 @@ const Auth = () => {
       }
 
       if (response?.success) {
-        toast.success('Authentication token sent! Check your email for your solbound access token.');
+        toast.success('Authentication token sent! Check your email and then reconnect your wallet to access BlockDrive.');
         form.reset();
         setConnectedWallet(null);
+        setShowSignupForm(false);
       } else {
         toast.error(response?.error || 'Failed to send authentication token');
       }
@@ -232,7 +246,8 @@ const Auth = () => {
     }
   };
   
-  return <div className="min-h-screen bg-gray-950">
+  return (
+    <div className="min-h-screen bg-gray-950">
       {/* Header with Connect Wallet Button */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
@@ -251,7 +266,7 @@ const Auth = () => {
               <DropdownMenuTrigger asChild>
                 <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0">
                   <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
+                  {connectedWallet ? 'Reconnect Wallet' : 'Connect Wallet'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-80 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end">
@@ -261,9 +276,15 @@ const Auth = () => {
                 <DropdownMenuSeparator className="bg-gray-600" />
                 
                 {walletOptions.map(wallet => {
-                const isDetected = detectWallet(wallet.id) || wallet.id === 'ledger';
-                const isConnectingWallet = isConnecting === wallet.id;
-                return <DropdownMenuItem key={wallet.id} className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" onClick={() => handleWalletConnect(wallet)} disabled={isConnectingWallet}>
+                  const isDetected = detectWallet(wallet.id) || wallet.id === 'ledger';
+                  const isConnectingWallet = isConnecting === wallet.id;
+                  return (
+                    <DropdownMenuItem 
+                      key={wallet.id} 
+                      className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" 
+                      onClick={() => handleWalletConnect(wallet)} 
+                      disabled={isConnectingWallet}
+                    >
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center space-x-3">
                           <span className="text-lg">{wallet.icon}</span>
@@ -273,19 +294,27 @@ const Auth = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {!isDetected && wallet.id !== 'ledger' && <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">
+                          {!isDetected && wallet.id !== 'ledger' && (
+                            <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">
                               Not Installed
-                            </span>}
-                          {isDetected && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+                            </span>
+                          )}
+                          {isDetected && (
+                            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
                               {wallet.id === 'ledger' ? 'Hardware' : 'Detected'}
-                            </span>}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    </DropdownMenuItem>;
-              })}
+                    </DropdownMenuItem>
+                  );
+                })}
                 
                 <DropdownMenuSeparator className="bg-gray-600" />
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" onClick={() => setShowQRCode(!showQRCode)}>
+                <DropdownMenuItem 
+                  className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" 
+                  onClick={() => setShowQRCode(!showQRCode)}
+                >
                   <QrCode className="w-4 h-4 mr-3" />
                   <span>Scan QR Code</span>
                 </DropdownMenuItem>
@@ -296,7 +325,8 @@ const Auth = () => {
       </header>
 
       {/* QR Code Modal */}
-      {showQRCode && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {showQRCode && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="bg-gray-900 border-gray-700 max-w-md w-full">
             <CardHeader className="text-center">
               <CardTitle className="text-white">Scan with Your Wallet</CardTitle>
@@ -311,27 +341,35 @@ const Auth = () => {
               <p className="text-gray-400 text-sm text-center">
                 Supported by most mobile wallet apps including Trust Wallet, MetaMask Mobile, and Phantom Mobile
               </p>
-              <Button variant="outline" onClick={() => setShowQRCode(false)} className="border-gray-600 text-gray-300 hover:bg-gray-700">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowQRCode(false)} 
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
                 Close
               </Button>
             </CardContent>
           </Card>
-        </div>}
+        </div>
+      )}
 
       <div className="flex items-center justify-center p-8 min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* Left Side - Sign Up Form */}
+          {/* Left Side - Authentication Status / Sign Up Form */}
           <div className="space-y-6">
             <div className="text-center lg:text-left">
               <h2 className="text-4xl font-bold text-white mb-4">
-                Join BlockDrive
+                {showSignupForm ? 'Complete Your Signup' : 'Welcome to BlockDrive'}
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   Web3 Storage Revolution
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Connect your wallet and get your unique solbound access token for secure, passwordless authentication.
+                {showSignupForm 
+                  ? 'Your wallet is connected. Complete your signup to receive your authentication token.'
+                  : 'Connect your wallet to access your decentralized storage dashboard or sign up for a new account.'
+                }
               </p>
             </div>
 
@@ -354,72 +392,101 @@ const Auth = () => {
               </Card>
             )}
 
-            <Card className="bg-gray-900/60 backdrop-blur-sm border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  Request Access
-                </CardTitle>
-                <CardDescription className="text-gray-300">
-                  {connectedWallet 
-                    ? "Complete your signup to receive your authentication token" 
-                    : "Connect your wallet first, then provide your details to receive your personalized authentication token"
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    {!connectedWallet && (
-                      <div className="p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-                        <p className="text-blue-300 text-sm flex items-center">
-                          <Wallet className="w-4 h-4 mr-2" />
-                          Please connect your wallet using the "Connect Wallet" button above before proceeding.
-                        </p>
-                      </div>
-                    )}
+            {showSignupForm && (
+              <Card className="bg-gray-900/60 backdrop-blur-sm border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Request Access Token
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Complete your details to receive your personalized authentication token
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField 
+                        control={form.control} 
+                        name="fullName" 
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">Full Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter your full name" 
+                                className="bg-gray-800 border-gray-700 text-white" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} 
+                      />
+                      
+                      <FormField 
+                        control={form.control} 
+                        name="email" 
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">Email Address</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="Enter your email" 
+                                className="bg-gray-800 border-gray-700 text-white" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} 
+                      />
 
-                    <FormField control={form.control} name="fullName" render={({
-                    field
-                  }) => <FormItem>
-                          <FormLabel className="text-gray-300">Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your full name" className="bg-gray-800 border-gray-700 text-white" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>} />
-                    
-                    <FormField control={form.control} name="email" render={({
-                    field
-                  }) => <FormItem>
-                          <FormLabel className="text-gray-300">Email Address</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="Enter your email" className="bg-gray-800 border-gray-700 text-white" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>} />
+                      <FormField 
+                        control={form.control} 
+                        name="organization" 
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">Organization (Optional)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Company or organization" 
+                                className="bg-gray-800 border-gray-700 text-white" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} 
+                      />
 
-                    <FormField control={form.control} name="organization" render={({
-                    field
-                  }) => <FormItem>
-                          <FormLabel className="text-gray-300">Organization (Optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Company or organization" className="bg-gray-800 border-gray-700 text-white" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>} />
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmittingRequest}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
+                      >
+                        {isSubmittingRequest ? 'Sending...' : 'Request Authentication Token'}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
 
-                    <Button 
-                      type="submit" 
-                      disabled={isSubmittingRequest || !connectedWallet}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
-                    >
-                      {isSubmittingRequest ? 'Sending...' : 'Request Authentication Token'}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+            {!showSignupForm && (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
+                <p className="text-gray-400 text-sm mb-4">
+                  If you already have a solbound authentication token, simply connect your wallet using the button above. 
+                  If you're new to BlockDrive, connect your wallet and we'll guide you through the signup process.
+                </p>
+                <div className="flex items-center space-x-2 text-xs text-blue-400">
+                  <Shield className="w-4 h-4" />
+                  <span>Secure • Decentralized • Passwordless</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Side - Features */}
@@ -481,7 +548,8 @@ const Auth = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default Auth;

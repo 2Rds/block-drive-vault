@@ -2,6 +2,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -39,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -72,6 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => {
     try {
+      console.log('Attempting to connect wallet:', walletAddress, blockchainType);
+      
       // Check if there's a valid auth token for this wallet
       const { data: authToken, error: tokenError } = await supabase
         .from('auth_tokens')
@@ -83,8 +88,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (tokenError || !authToken) {
+        console.error('No valid token found:', tokenError);
         return { error: { message: 'No valid authentication token found for this wallet. Please sign up first to receive your token.' } };
       }
+
+      console.log('Found valid token:', authToken.id);
 
       // Mark token as used
       const { error: updateError } = await supabase
@@ -100,8 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       
       if (authError) {
+        console.error('Anonymous auth error:', authError);
         return { error: authError };
       }
+
+      console.log('Anonymous auth successful:', authData.user?.id);
 
       // Update the auth user with wallet information
       const { error: updateUserError } = await supabase.auth.updateUser({
@@ -115,6 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (updateUserError) {
+        console.error('Error updating user:', updateUserError);
         return { error: updateUserError };
       }
 
@@ -125,8 +137,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         auth_token: authToken
       });
 
+      toast.success('Wallet connected successfully! Welcome to BlockDrive.');
       return { error: null };
     } catch (error: any) {
+      console.error('Connect wallet error:', error);
       return { error: { message: error.message || 'Failed to connect wallet' } };
     }
   };
@@ -135,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.auth.signOut();
     if (!error) {
       setWalletData(null);
+      toast.success('Signed out successfully');
     }
     return { error };
   };
