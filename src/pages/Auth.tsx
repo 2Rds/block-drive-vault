@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface WalletOption {
   id: string;
@@ -29,12 +31,15 @@ const Auth = () => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [connectedWallet, setConnectedWallet] = useState<{address: string, blockchain: string} | null>(null);
   
   const form = useForm({
     defaultValues: {
       email: '',
       fullName: '',
-      organization: ''
+      organization: '',
+      walletAddress: '',
+      blockchainType: ''
     }
   });
 
@@ -172,14 +177,13 @@ const Auth = () => {
         walletAddress,
         signature
       } = await connectToWallet(wallet.id, wallet.blockchain);
-      const {
-        error
-      } = await connectWallet(walletAddress, signature, wallet.blockchain);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success(`${wallet.name} connected successfully!`);
-      }
+      
+      // Set connected wallet info for the signup form
+      setConnectedWallet({ address: walletAddress, blockchain: wallet.blockchain });
+      form.setValue('walletAddress', walletAddress);
+      form.setValue('blockchainType', wallet.blockchain);
+      
+      toast.success(`${wallet.name} connected! You can now request your authentication token.`);
     } catch (error: any) {
       toast.error(error.message || `Failed to connect ${wallet.name}`);
     }
@@ -187,6 +191,11 @@ const Auth = () => {
   };
   
   const onSubmit = async (data: any) => {
+    if (!connectedWallet) {
+      toast.error('Please connect your wallet first to receive your authentication token.');
+      return;
+    }
+
     setIsSubmittingRequest(true);
     
     try {
@@ -196,7 +205,9 @@ const Auth = () => {
         body: {
           email: data.email,
           fullName: data.fullName,
-          organization: data.organization || undefined
+          organization: data.organization || undefined,
+          walletAddress: connectedWallet.address,
+          blockchainType: connectedWallet.blockchain
         }
       });
 
@@ -209,6 +220,7 @@ const Auth = () => {
       if (response?.success) {
         toast.success('Authentication token sent! Check your email for your solbound access token.');
         form.reset();
+        setConnectedWallet(null);
       } else {
         toast.error(response?.error || 'Failed to send authentication token');
       }
@@ -319,9 +331,28 @@ const Auth = () => {
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Get your unique solbound access token and experience secure, passwordless authentication.
+                Connect your wallet and get your unique solbound access token for secure, passwordless authentication.
               </p>
             </div>
+
+            {/* Wallet Connection Status */}
+            {connectedWallet && (
+              <Card className="bg-green-900/20 border-green-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-600/20 rounded-lg flex items-center justify-center">
+                      <Wallet className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-green-400 font-medium">Wallet Connected</p>
+                      <p className="text-green-300 text-sm">
+                        {connectedWallet.address.slice(0, 6)}...{connectedWallet.address.slice(-4)} ({connectedWallet.blockchain})
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="bg-gray-900/60 backdrop-blur-sm border-gray-800">
               <CardHeader>
@@ -329,11 +360,25 @@ const Auth = () => {
                   <UserPlus className="w-5 h-5 mr-2" />
                   Request Access
                 </CardTitle>
-                <CardDescription className="text-gray-300">Sign up to receive your personalized authentication token</CardDescription>
+                <CardDescription className="text-gray-300">
+                  {connectedWallet 
+                    ? "Complete your signup to receive your authentication token" 
+                    : "Connect your wallet first, then provide your details to receive your personalized authentication token"
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    {!connectedWallet && (
+                      <div className="p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
+                        <p className="text-blue-300 text-sm flex items-center">
+                          <Wallet className="w-4 h-4 mr-2" />
+                          Please connect your wallet using the "Connect Wallet" button above before proceeding.
+                        </p>
+                      </div>
+                    )}
+
                     <FormField control={form.control} name="fullName" render={({
                     field
                   }) => <FormItem>
@@ -366,7 +411,7 @@ const Auth = () => {
 
                     <Button 
                       type="submit" 
-                      disabled={isSubmittingRequest}
+                      disabled={isSubmittingRequest || !connectedWallet}
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
                     >
                       {isSubmittingRequest ? 'Sending...' : 'Request Authentication Token'}
@@ -388,7 +433,7 @@ const Auth = () => {
                   <div>
                     <h3 className="font-semibold text-white mb-2">Solbound Authentication</h3>
                     <p className="text-gray-300 text-sm">
-                      Your unique non-transferable token provides secure access without passwords or private keys to manage.
+                      Your unique non-transferable token is tied to your specific wallet address, providing secure access without passwords.
                     </p>
                   </div>
                 </div>

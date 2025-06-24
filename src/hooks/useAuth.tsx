@@ -72,28 +72,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => {
     try {
-      // Find wallet and token by address
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select(`
-          *,
-          blockchain_tokens (*)
-        `)
+      // Check if there's a valid auth token for this wallet
+      const { data: authToken, error: tokenError } = await supabase
+        .from('auth_tokens')
+        .select('*')
         .eq('wallet_address', walletAddress)
         .eq('blockchain_type', blockchainType)
+        .eq('is_used', false)
+        .gte('expires_at', new Date().toISOString())
         .single();
 
-      if (walletError || !wallet) {
-        return { error: { message: 'Wallet not found. Please ensure you have an account with this wallet address.' } };
+      if (tokenError || !authToken) {
+        return { error: { message: 'No valid authentication token found for this wallet. Please sign up first to receive your token.' } };
       }
 
-      // Verify the wallet has an active token
-      if (!wallet.blockchain_tokens || wallet.blockchain_tokens.length === 0) {
-        return { error: { message: 'No access token found for this wallet.' } };
+      // Mark token as used
+      const { error: updateError } = await supabase
+        .from('auth_tokens')
+        .update({ is_used: true })
+        .eq('id', authToken.id);
+
+      if (updateError) {
+        console.error('Error marking token as used:', updateError);
       }
 
-      // Create a session using the wallet's user_id
-      // In a real implementation, you would verify the signature here
+      // Create a session using anonymous auth with wallet metadata
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       
       if (authError) {
@@ -101,19 +104,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Update the auth user with wallet information
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { error: updateUserError } = await supabase.auth.updateUser({
         data: {
           wallet_address: walletAddress,
           blockchain_type: blockchainType,
-          wallet_id: wallet.id
+          auth_token_id: authToken.id,
+          full_name: authToken.full_name,
+          email: authToken.email
         }
       });
 
-      if (updateError) {
-        return { error: updateError };
+      if (updateUserError) {
+        return { error: updateUserError };
       }
 
-      setWalletData(wallet);
+      // Set wallet data
+      setWalletData({
+        wallet_address: walletAddress,
+        blockchain_type: blockchainType,
+        auth_token: authToken
+      });
+
       return { error: null };
     } catch (error: any) {
       return { error: { message: error.message || 'Failed to connect wallet' } };

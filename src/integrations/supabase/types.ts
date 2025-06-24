@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      auth_tokens: {
+        Row: {
+          blockchain_type: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          full_name: string
+          id: string
+          is_used: boolean
+          organization: string | null
+          token: string
+          wallet_address: string | null
+        }
+        Insert: {
+          blockchain_type?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          full_name: string
+          id?: string
+          is_used?: boolean
+          organization?: string | null
+          token: string
+          wallet_address?: string | null
+        }
+        Update: {
+          blockchain_type?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          is_used?: boolean
+          organization?: string | null
+          token?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
       blockchain_tokens: {
         Row: {
           blockchain_type: string
