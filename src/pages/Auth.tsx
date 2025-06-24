@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -193,8 +194,8 @@ const Auth = () => {
         setShowSignupForm(true);
         toast.info(`${wallet.name} connected! Please complete signup to receive your authentication token.`);
       } else {
-        console.log('Authentication successful, user should be redirected to /home');
-        // Authentication successful - user will be redirected by useEffect
+        console.log('Magic link sent, user should check email');
+        // Magic link sent - user will complete authentication via email
       }
     } catch (error: any) {
       toast.error(error.message || `Failed to connect ${wallet.name}`);
@@ -230,7 +231,7 @@ const Auth = () => {
       }
 
       if (response?.success) {
-        toast.success('Authentication token sent! Check your email and then reconnect your wallet to access BlockDrive.');
+        toast.success('Authentication token sent! Now connect your wallet again to receive a magic link for access.');
         form.reset();
         setConnectedWallet(null);
         setShowSignupForm(false);
@@ -366,8 +367,8 @@ const Auth = () => {
               </h2>
               <p className="text-gray-300 text-lg">
                 {showSignupForm 
-                  ? 'Your wallet is connected. Complete your signup to receive your authentication token.'
-                  : 'Connect your wallet to access your decentralized storage dashboard or sign up for a new account.'
+                  ? 'Your wallet is connected. Complete your signup to receive your authentication token, then reconnect your wallet to get a magic link.'
+                  : 'Connect your wallet to access your decentralized storage dashboard via magic link authentication.'
                 }
               </p>
             </div>
@@ -396,10 +397,10 @@ const Auth = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <UserPlus className="w-5 h-5 mr-2" />
-                    Request Access Token
+                    Request Authentication Token
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Complete your details to receive your personalized authentication token
+                    Complete your details to receive your authentication token
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -465,7 +466,7 @@ const Auth = () => {
                         disabled={isSubmittingRequest}
                         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
                       >
-                        {isSubmittingRequest ? 'Sending...' : 'Request Authentication Token'}
+                        {isSubmittingRequest ? 'Sending...' : 'Get Authentication Token'}
                       </Button>
                     </form>
                   </Form>
@@ -477,12 +478,12 @@ const Auth = () => {
               <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                 <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  If you already have a solbound authentication token, simply connect your wallet using the button above. 
-                  If you're new to BlockDrive, connect your wallet and we'll guide you through the signup process.
+                  If you already have an authentication token, connect your wallet above and we'll send you a magic link. 
+                  If you're new to BlockDrive, connect your wallet and complete the signup process.
                 </p>
                 <div className="flex items-center space-x-2 text-xs text-blue-400">
                   <Shield className="w-4 h-4" />
-                  <span>Secure • Decentralized • Passwordless</span>
+                  <span>Secure • Magic Link • Passwordless</span>
                 </div>
               </div>
             )}
@@ -497,9 +498,9 @@ const Auth = () => {
                     <Shield className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-2">Solbound Authentication</h3>
+                    <h3 className="font-semibold text-white mb-2">Magic Link Authentication</h3>
                     <p className="text-gray-300 text-sm">
-                      Your unique non-transferable token is tied to your specific wallet address, providing secure access without passwords.
+                      Secure, passwordless login via email magic links. No need to remember passwords or manage keys.
                     </p>
                   </div>
                 </div>
@@ -539,9 +540,9 @@ const Auth = () => {
             </Card>
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
-              <h4 className="font-semibold text-white mb-2 text-sm">Already have a solbound token?</h4>
+              <h4 className="font-semibold text-white mb-2 text-sm">Already have an authentication token?</h4>
               <p className="text-gray-400 text-xs mb-3">
-                Use the "Connect Wallet" button above to authenticate with your existing token.
+                Connect your wallet above and we'll send you a magic link to your registered email.
               </p>
             </div>
           </div>

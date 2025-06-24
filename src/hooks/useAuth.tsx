@@ -78,53 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const checkForSolboundNFT = async (walletAddress: string, blockchainType: string) => {
-    try {
-      const { data: nft, error } = await supabase
-        .from('blockchain_tokens')
-        .select('*')
-        .eq('wallet_id', walletAddress)
-        .eq('blockchain_type', blockchainType)
-        .eq('is_active', true)
-        .single();
-
-      return { nft, error };
-    } catch (error) {
-      return { nft: null, error };
-    }
-  };
-
-  const mintSolboundNFT = async (walletAddress: string, blockchainType: string, authToken: any) => {
-    try {
-      console.log('Minting solbound NFT for wallet:', walletAddress);
-      
-      const { data: response, error } = await supabase.functions.invoke('mint-solbound-nft', {
-        body: {
-          walletAddress,
-          blockchainType,
-          authTokenId: authToken.id,
-          userEmail: authToken.email,
-          fullName: authToken.full_name
-        }
-      });
-
-      if (error) {
-        console.error('Error minting NFT:', error);
-        return { success: false, error: error.message };
-      }
-
-      if (response?.success) {
-        console.log('NFT minted successfully:', response.nft);
-        return { success: true, nft: response.nft };
-      } else {
-        return { success: false, error: response?.error || 'Failed to mint NFT' };
-      }
-    } catch (error: any) {
-      console.error('Mint NFT error:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
   const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => {
     try {
       console.log('Attempting to connect wallet:', walletAddress, blockchainType);
@@ -146,80 +99,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Found valid token:', authToken.id);
 
-      // Check for existing solbound NFT
-      const { nft: existingNFT } = await checkForSolboundNFT(walletAddress, blockchainType);
+      // Check if user account already exists for this email
+      const { data: existingUser, error: userCheckError } = await supabase.auth.admin.getUserByEmail(authToken.email);
       
-      if (!existingNFT) {
-        console.log('No solbound NFT found, minting new one...');
-        toast.info('Creating your solbound authentication NFT...');
-        
-        const mintResult = await mintSolboundNFT(walletAddress, blockchainType, authToken);
-        
-        if (!mintResult.success) {
-          return { error: { message: `Failed to create authentication NFT: ${mintResult.error}` } };
-        }
-        
-        toast.success('Solbound NFT created successfully!');
-      } else {
-        console.log('Found existing solbound NFT:', existingNFT.id);
+      if (userCheckError && userCheckError.message !== 'User not found') {
+        console.error('Error checking existing user:', userCheckError);
+        return { error: { message: 'Authentication system error. Please try again.' } };
       }
 
-      // Mark token as used
-      const { error: updateError } = await supabase
-        .from('auth_tokens')
-        .update({ is_used: true })
-        .eq('id', authToken.id);
-
-      if (updateError) {
-        console.error('Error marking token as used:', updateError);
-      }
-
-      // Create user account with the auth token details
-      const password = `wallet_${walletAddress}_${authToken.id}`;
-      
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: authToken.email,
-        password: password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/home`,
-          data: {
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType,
-            auth_token_id: authToken.id,
-            full_name: authToken.full_name,
-            email: authToken.email,
-            email_confirm: true
-          }
-        }
-      });
-
-      if (signUpError) {
-        // If user already exists, try to sign in
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      if (existingUser?.user) {
+        // User exists, try to sign in with magic link
+        const { error: signInError } = await supabase.auth.signInWithOtp({
           email: authToken.email,
-          password: password
+          options: {
+            emailRedirectTo: `${window.location.origin}/home`,
+            data: {
+              wallet_address: walletAddress,
+              blockchain_type: blockchainType,
+              auth_token_id: authToken.id,
+              full_name: authToken.full_name
+            }
+          }
         });
 
         if (signInError) {
-          console.error('Authentication error:', signInError);
-          return { error: { message: 'Authentication failed. Please try again.' } };
+          console.error('Magic link error:', signInError);
+          return { error: { message: 'Failed to send magic link. Please try again.' } };
         }
 
-        console.log('User signed in successfully');
+        toast.success('Magic link sent! Check your email to complete authentication.');
+        return { error: null };
       } else {
-        console.log('User account created successfully');
+        // User doesn't exist, create account with magic link
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: authToken.email,
+          password: `wallet_${walletAddress}_${authToken.id}`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/home`,
+            data: {
+              wallet_address: walletAddress,
+              blockchain_type: blockchainType,
+              auth_token_id: authToken.id,
+              full_name: authToken.full_name,
+              email: authToken.email
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.error('Sign up error:', signUpError);
+          return { error: { message: 'Failed to create account. Please try again.' } };
+        }
+
+        // Mark token as used
+        const { error: updateError } = await supabase
+          .from('auth_tokens')
+          .update({ is_used: true })
+          .eq('id', authToken.id);
+
+        if (updateError) {
+          console.error('Error marking token as used:', updateError);
+        }
+
+        toast.success('Account created! Check your email for the confirmation link to complete authentication.');
+        return { error: null };
       }
-
-      // Set wallet data
-      setWalletData({
-        wallet_address: walletAddress,
-        blockchain_type: blockchainType,
-        auth_token: authToken,
-        solbound_nft: existingNFT
-      });
-
-      toast.success('Wallet connected successfully! Welcome to BlockDrive.');
-      return { error: null };
     } catch (error: any) {
       console.error('Connect wallet error:', error);
       return { error: { message: error.message || 'Failed to connect wallet' } };

@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (existingToken) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'This wallet is already registered. Please check your email for your existing token.' 
+        error: 'This wallet is already registered. Please check your email for your existing token or connect your wallet to receive a magic link.' 
       }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -121,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BlockDrive <onboarding@resend.dev>",
       to: [email],
-      subject: "Your BlockDrive Solbound Authentication Token",
+      subject: "Your BlockDrive Authentication Token - Magic Link Setup Complete",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
@@ -131,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
             <h2 style="margin: 0 0 15px 0; font-size: 24px;">Hello ${fullName}!</h2>
-            <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your solbound authentication token has been generated and linked to your wallet. When you connect your wallet, a unique NFT will be minted as your authentication key.</p>
+            <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your authentication token has been created and linked to your wallet. When you connect your wallet, we'll send you a magic link for passwordless authentication.</p>
           </div>
 
           <div style="background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
@@ -139,28 +139,29 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 15px; font-family: monospace; font-size: 14px; word-break: break-all; color: #1f2937;">
               ${authToken}
             </div>
-            <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">Keep this token secure - it's your key to accessing BlockDrive</p>
+            <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">This token links your wallet to your account</p>
           </div>
 
           <div style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
             <h4 style="color: #059669; margin: 0 0 10px 0; display: flex; align-items: center;">
-              🔗 Wallet Association & NFT Minting
+              🔗 Wallet Association & Magic Link Authentication
             </h4>
             <p style="color: #065f46; margin: 0; font-size: 14px;">
               <strong>Wallet Address:</strong> ${walletAddress}<br>
               <strong>Blockchain:</strong> ${blockchainType.toUpperCase()}<br>
-              When you connect your wallet, a unique solbound NFT will be automatically minted and airdropped to your wallet as your authentication key.
+              When you connect your wallet, we'll send a magic link to this email for secure, passwordless authentication.
             </p>
           </div>
 
           <div style="margin-bottom: 30px;">
-            <h3 style="color: #1f2937; margin: 0 0 15px 0;">What's Next?</h3>
+            <h3 style="color: #1f2937; margin: 0 0 15px 0;">How to Access BlockDrive:</h3>
             <ol style="color: #4b5563; line-height: 1.6;">
               <li>Visit the BlockDrive platform</li>
               <li>Click "Connect Wallet" in the top right</li>
               <li>Connect the same wallet you used during signup</li>
-              <li>Your solbound NFT will be automatically minted if it doesn't exist</li>
-              <li>The NFT will authenticate you and grant access to BlockDrive</li>
+              <li>Check your email for the magic link</li>
+              <li>Click the magic link to complete authentication</li>
+              <li>You'll be automatically signed in to BlockDrive</li>
             </ol>
           </div>
 
@@ -169,10 +170,10 @@ const handler = async (req: Request): Promise<Response> => {
               🔒 Security Features
             </h4>
             <ul style="color: #065f46; margin: 0; padding-left: 20px;">
-              <li>Non-transferable solbound NFT authentication</li>
-              <li>Blockchain-verified ownership</li>
-              <li>Wallet-specific authentication key</li>
-              <li>Automatic NFT minting on first login</li>
+              <li>Magic link authentication (no passwords needed)</li>
+              <li>Blockchain-verified wallet ownership</li>
+              <li>Wallet-specific authentication tokens</li>
+              <li>Secure email-based verification</li>
               <li>Decentralized authentication system</li>
             </ul>
           </div>
@@ -198,7 +199,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Authentication token sent successfully! When you connect your wallet, a solbound NFT will be minted as your authentication key.",
+      message: "Authentication token created successfully! When you connect your wallet, we'll send you a magic link for secure authentication.",
       emailId: emailResponse.data?.id,
       tokenId: tokenData.id
     }), {
