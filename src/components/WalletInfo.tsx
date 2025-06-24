@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserWallet } from '@/services/walletService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, Shield, Copy, Eye, EyeOff } from 'lucide-react';
@@ -9,27 +8,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export const WalletInfo = () => {
-  const { user } = useAuth();
-  const [walletData, setWalletData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { walletData, user } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      loadWalletData();
-    }
-  }, [user]);
-
-  const loadWalletData = async () => {
-    try {
-      const wallet = await getUserWallet(user!.id);
-      setWalletData(wallet);
-    } catch (error) {
-      console.error('Error loading wallet:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -40,33 +20,23 @@ export const WalletInfo = () => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
-  if (loading) {
-    return (
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-6">
-          <div className="text-white">Loading wallet information...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (!walletData) {
     return (
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+      <Card className="bg-gray-800/40 backdrop-blur-md border-gray-700">
         <CardContent className="p-6">
-          <div className="text-white">No wallet found</div>
+          <div className="text-white">Wallet not connected</div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+    <Card className="bg-gray-800/40 backdrop-blur-md border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2 text-white">
           <Wallet className="w-5 h-5" />
-          <span>Wallet Information</span>
-          <Badge variant="outline" className="ml-auto border-purple-500 text-purple-300">
+          <span>Connected Wallet</span>
+          <Badge variant="outline" className="ml-auto border-purple-500 text-purple-300 bg-purple-500/10">
             {walletData.blockchain_type.toUpperCase()}
           </Badge>
         </CardTitle>
@@ -100,10 +70,10 @@ export const WalletInfo = () => {
         </div>
 
         {walletData.blockchain_tokens && walletData.blockchain_tokens.length > 0 && (
-          <div className="border-t border-white/10 pt-4">
+          <div className="border-t border-gray-600 pt-4">
             <div className="flex items-center space-x-2 mb-2">
               <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-medium text-white">Access Token</span>
+              <span className="text-sm font-medium text-white">Access Token (Solbound NFT)</span>
             </div>
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
               <div className="text-xs text-green-300 mb-1">Token ID</div>
@@ -121,11 +91,24 @@ export const WalletInfo = () => {
                 </Button>
               </div>
               <div className="text-xs text-green-400 mt-2">
-                This unique token provides secure access to your files
+                This unique NFT provides secure, passwordless access to your files
               </div>
             </div>
           </div>
         )}
+
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <div className="flex items-center space-x-2">
+            <Shield className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-blue-300">Security Benefits</span>
+          </div>
+          <ul className="text-xs text-blue-200 mt-2 space-y-1">
+            <li>• No passwords to steal or forget</li>
+            <li>• Blockchain-verified ownership</li>
+            <li>• Decentralized authentication</li>
+            <li>• Immune to credential stuffing attacks</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );

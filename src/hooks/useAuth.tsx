@@ -7,8 +7,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, username: string, blockchainType: 'solana' | 'ethereum' | 'ton') => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  walletData: any;
+  connectWallet: (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
 }
 
@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [walletData, setWalletData] = useState<any>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -26,6 +27,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Load wallet data when user is authenticated
+        if (session?.user) {
+          setTimeout(() => {
+            loadWalletData(session.user.id);
+          }, 0);
+        }
       }
     );
 
@@ -34,40 +42,89 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session?.user) {
+        loadWalletData(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, username: string, blockchainType: 'solana' | 'ethereum' | 'ton') => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          username,
-          blockchainType
-        }
+  const loadWalletData = async (userId: string) => {
+    try {
+      const { data: wallet, error } = await supabase
+        .from('wallets')
+        .select(`
+          *,
+          blockchain_tokens (*)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (!error && wallet) {
+        setWalletData(wallet);
       }
-    });
-    
-    return { error };
+    } catch (error) {
+      console.error('Error loading wallet data:', error);
+    }
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    return { error };
+  const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => {
+    try {
+      // Find wallet and token by address
+      const { data: wallet, error: walletError } = await supabase
+        .from('wallets')
+        .select(`
+          *,
+          blockchain_tokens (*)
+        `)
+        .eq('wallet_address', walletAddress)
+        .eq('blockchain_type', blockchainType)
+        .single();
+
+      if (walletError || !wallet) {
+        return { error: { message: 'Wallet not found. Please ensure you have an account with this wallet address.' } };
+      }
+
+      // Verify the wallet has an active token
+      if (!wallet.blockchain_tokens || wallet.blockchain_tokens.length === 0) {
+        return { error: { message: 'No access token found for this wallet.' } };
+      }
+
+      // Create a session using the wallet's user_id
+      // In a real implementation, you would verify the signature here
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      
+      if (authError) {
+        return { error: authError };
+      }
+
+      // Update the auth user with wallet information
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          wallet_address: walletAddress,
+          blockchain_type: blockchainType,
+          wallet_id: wallet.id
+        }
+      });
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      setWalletData(wallet);
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to connect wallet' } };
+    }
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setWalletData(null);
+    }
     return { error };
   };
 
@@ -76,8 +133,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       session,
       loading,
-      signUp,
-      signIn,
+      walletData,
+      connectWallet,
       signOut
     }}>
       {children}
