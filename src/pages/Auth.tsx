@@ -11,12 +11,15 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { supabase } from '@/integrations/supabase/client';
+
 interface WalletOption {
   id: string;
   name: string;
   icon: string;
   blockchain: 'solana' | 'ethereum' | 'ton';
 }
+
 const Auth = () => {
   const {
     user,
@@ -25,6 +28,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const [showQRCode, setShowQRCode] = useState(false);
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  
   const form = useForm({
     defaultValues: {
       email: '',
@@ -32,11 +37,13 @@ const Auth = () => {
       organization: ''
     }
   });
+
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
+  
   const walletOptions: WalletOption[] = [{
     id: 'phantom',
     name: 'Phantom',
@@ -78,6 +85,7 @@ const Auth = () => {
     icon: '🔒',
     blockchain: 'ethereum'
   }];
+  
   const detectWallet = (walletId: string) => {
     switch (walletId) {
       case 'phantom':
@@ -100,6 +108,7 @@ const Auth = () => {
         return false;
     }
   };
+  
   const connectToWallet = async (walletId: string, blockchain: 'solana' | 'ethereum' | 'ton') => {
     try {
       let walletAddress = '';
@@ -150,6 +159,7 @@ const Auth = () => {
       throw new Error(error.message || `Failed to connect to ${walletId}`);
     }
   };
+  
   const handleWalletConnect = async (wallet: WalletOption) => {
     const walletDetected = detectWallet(wallet.id);
     if (!walletDetected && wallet.id !== 'ledger') {
@@ -175,10 +185,41 @@ const Auth = () => {
     }
     setIsConnecting(null);
   };
-  const onSubmit = (data: any) => {
-    toast.success('Sign-up request submitted! You will receive your solbound access token via email.');
-    console.log('Sign-up data:', data);
+  
+  const onSubmit = async (data: any) => {
+    setIsSubmittingRequest(true);
+    
+    try {
+      console.log('Submitting access request:', data);
+      
+      const { data: response, error } = await supabase.functions.invoke('send-auth-token', {
+        body: {
+          email: data.email,
+          fullName: data.fullName,
+          organization: data.organization || undefined
+        }
+      });
+
+      if (error) {
+        console.error('Error calling function:', error);
+        toast.error('Failed to send request. Please try again.');
+        return;
+      }
+
+      if (response?.success) {
+        toast.success('Authentication token sent! Check your email for your solbound access token.');
+        form.reset();
+      } else {
+        toast.error(response?.error || 'Failed to send authentication token');
+      }
+    } catch (error: any) {
+      console.error('Error submitting request:', error);
+      toast.error('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmittingRequest(false);
+    }
   };
+  
   return <div className="min-h-screen bg-gray-950">
       {/* Header with Connect Wallet Button */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
@@ -323,7 +364,13 @@ const Auth = () => {
                           <FormMessage />
                         </FormItem>} />
 
-                    <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0">Request Authentication Token</Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmittingRequest}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
+                    >
+                      {isSubmittingRequest ? 'Sending...' : 'Request Authentication Token'}
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
@@ -391,4 +438,5 @@ const Auth = () => {
       </div>
     </div>;
 };
+
 export default Auth;
