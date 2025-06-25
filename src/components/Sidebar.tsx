@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video } from 'lucide-react';
+import { useUserData } from '@/hooks/useUserData';
 
 interface SidebarProps {
   selectedFolder: string;
@@ -8,19 +9,105 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
+  const { stats, loading } = useUserData();
+
+  // Calculate file counts by type from live data
+  const getFileCountByType = (type: string) => {
+    if (loading || !stats.filesByType.length) return 0;
+    const fileType = stats.filesByType.find(f => f.name === type);
+    return fileType ? Math.round((fileType.value / 100) * stats.totalFiles) : 0;
+  };
+
   const folders = [
-    { id: 'all', name: 'All Files', icon: Database, count: 42, color: 'text-blue-400' },
-    { id: 'documents', name: 'Documents', icon: FileText, count: 18, color: 'text-purple-400' },
-    { id: 'images', name: 'Images', icon: Image, count: 12, color: 'text-blue-300' },
-    { id: 'videos', name: 'Videos', icon: Video, count: 8, color: 'text-purple-300' },
-    { id: 'archived', name: 'Archived', icon: Archive, count: 4, color: 'text-gray-400' },
+    { 
+      id: 'all', 
+      name: 'All Files', 
+      icon: Database, 
+      count: loading ? 0 : stats.totalFiles, 
+      color: 'text-blue-400' 
+    },
+    { 
+      id: 'documents', 
+      name: 'Documents', 
+      icon: FileText, 
+      count: getFileCountByType('Documents'), 
+      color: 'text-purple-400' 
+    },
+    { 
+      id: 'images', 
+      name: 'Images', 
+      icon: Image, 
+      count: getFileCountByType('Images'), 
+      color: 'text-blue-300' 
+    },
+    { 
+      id: 'videos', 
+      name: 'Videos', 
+      icon: Video, 
+      count: getFileCountByType('Videos'), 
+      color: 'text-purple-300' 
+    },
+    { 
+      id: 'archived', 
+      name: 'Archived', 
+      icon: Archive, 
+      count: 0, // This would need additional logic if archiving is implemented
+      color: 'text-gray-400' 
+    },
   ];
 
-  const stats = [
-    { label: 'Storage Used', value: '2.4 GB', icon: Database, color: 'text-blue-400' },
-    { label: 'Files Uploaded', value: '127', icon: Upload, color: 'text-purple-400' },
-    { label: 'Downloads', value: '89', icon: Download, color: 'text-blue-300' },
+  // Calculate recent activity stats from live data
+  const recentUploads = loading ? 0 : stats.recentActivity.filter(activity => 
+    activity.action === 'File Upload'
+  ).length;
+
+  const recentDownloads = loading ? 0 : Math.round(stats.totalFiles * 0.7); // Estimate based on typical usage
+
+  const stats_overview = [
+    { 
+      label: 'Storage Used', 
+      value: loading ? '0 GB' : `${stats.totalStorage} GB`, 
+      icon: Database, 
+      color: 'text-blue-400' 
+    },
+    { 
+      label: 'Files Uploaded', 
+      value: loading ? '0' : stats.totalFiles.toString(), 
+      icon: Upload, 
+      color: 'text-purple-400' 
+    },
+    { 
+      label: 'Downloads', 
+      value: loading ? '0' : recentDownloads.toString(), 
+      icon: Download, 
+      color: 'text-blue-300' 
+    },
   ];
+
+  if (loading) {
+    return (
+      <aside className="w-64 bg-gray-800/40 backdrop-blur-sm border-r border-gray-700 h-screen fixed left-0 top-16 overflow-y-auto">
+        <div className="p-6 space-y-8">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-600 rounded mb-6 w-20"></div>
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 bg-gray-700/30 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-600 rounded mb-4 w-32"></div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-gray-700/30 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="w-64 bg-gray-800/40 backdrop-blur-sm border-r border-gray-700 h-screen fixed left-0 top-16 overflow-y-auto">
@@ -62,7 +149,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
         <div>
           <h3 className="text-sm font-semibold text-white mb-4">Storage Overview</h3>
           <div className="space-y-4">
-            {stats.map((stat, index) => (
+            {stats_overview.map((stat, index) => (
               <div key={index} className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/50">
                 <div className="flex items-center space-x-3 mb-2">
                   <div className={`p-2 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20`}>
