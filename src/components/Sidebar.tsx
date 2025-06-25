@@ -6,9 +6,10 @@ import { useUserData } from '@/hooks/useUserData';
 interface SidebarProps {
   selectedFolder: string;
   onFolderSelect: (folder: string) => void;
+  userFolders?: string[];
 }
 
-export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
+export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: SidebarProps) => {
   const { stats, loading } = useUserData();
 
   // Calculate file counts by type from live data
@@ -18,7 +19,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
     return fileType ? Math.round((fileType.value / 100) * stats.totalFiles) : 0;
   };
 
-  const folders = [
+  const defaultFolders = [
     { 
       id: 'all', 
       name: 'All Files', 
@@ -51,17 +52,28 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
       id: 'archived', 
       name: 'Archived', 
       icon: Archive, 
-      count: 0, // This would need additional logic if archiving is implemented
+      count: 0, 
       color: 'text-gray-400' 
     },
   ];
+
+  // Add user-created folders to the list
+  const userCreatedFolders = userFolders.map((folderName, index) => ({
+    id: `user_${folderName.toLowerCase().replace(/\s+/g, '_')}`,
+    name: folderName,
+    icon: Folder,
+    count: 0, // New folders start empty
+    color: 'text-blue-400'
+  }));
+
+  const allFolders = [...defaultFolders, ...userCreatedFolders];
 
   // Calculate recent activity stats from live data
   const recentUploads = loading ? 0 : stats.recentActivity.filter(activity => 
     activity.action === 'File Upload'
   ).length;
 
-  const recentDownloads = loading ? 0 : Math.round(stats.totalFiles * 0.7); // Estimate based on typical usage
+  const recentDownloads = loading ? 0 : Math.round(stats.totalFiles * 0.7);
 
   const stats_overview = [
     { 
@@ -120,7 +132,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
             </button>
           </div>
           <nav className="space-y-2">
-            {folders.map((folder) => (
+            {allFolders.map((folder) => (
               <button
                 key={folder.id}
                 onClick={() => onFolderSelect(folder.id)}

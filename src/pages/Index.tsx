@@ -25,7 +25,11 @@ const Index = () => {
     <div className="min-h-screen bg-gray-900">
       <Header />
       <div className="flex">
-        <Sidebar selectedFolder={selectedFolder} onFolderSelect={setSelectedFolder} />
+        <Sidebar 
+          selectedFolder={selectedFolder} 
+          onFolderSelect={setSelectedFolder}
+          userFolders={userFolders}
+        />
         <main className="flex-1 p-8 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
