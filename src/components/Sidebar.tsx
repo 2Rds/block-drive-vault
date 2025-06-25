@@ -1,15 +1,22 @@
-
 import React from 'react';
-import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video } from 'lucide-react';
+import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video, ChevronRight, ChevronDown } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
 interface SidebarProps {
   selectedFolder: string;
   onFolderSelect: (folder: string) => void;
   userFolders?: string[];
+  onFolderClick?: (folderPath: string) => void;
+  openFolders?: string[];
 }
 
-export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: SidebarProps) => {
+export const Sidebar = ({ 
+  selectedFolder, 
+  onFolderSelect, 
+  userFolders = [], 
+  onFolderClick,
+  openFolders = []
+}: SidebarProps) => {
   const { stats, loading } = useUserData();
 
   // Calculate file counts by type from live data
@@ -25,35 +32,45 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
       name: 'All Files', 
       icon: Database, 
       count: loading ? 0 : stats.totalFiles, 
-      color: 'text-gray-400' 
+      color: 'text-gray-400',
+      isExpandable: true,
+      path: '/'
     },
     { 
       id: 'documents', 
       name: 'Documents', 
       icon: FileText, 
       count: getFileCountByType('Documents'), 
-      color: 'text-gray-400' 
+      color: 'text-gray-400',
+      isExpandable: true,
+      path: '/documents'
     },
     { 
       id: 'images', 
       name: 'Images', 
       icon: Image, 
       count: getFileCountByType('Images'), 
-      color: 'text-gray-400' 
+      color: 'text-gray-400',
+      isExpandable: true,
+      path: '/images'
     },
     { 
       id: 'videos', 
       name: 'Videos', 
       icon: Video, 
       count: getFileCountByType('Videos'), 
-      color: 'text-gray-400' 
+      color: 'text-gray-400',
+      isExpandable: true,
+      path: '/videos'
     },
     { 
       id: 'archived', 
       name: 'Archived', 
       icon: Archive, 
       count: 0, 
-      color: 'text-gray-400' 
+      color: 'text-gray-400',
+      isExpandable: false,
+      path: '/archived'
     },
   ];
 
@@ -62,11 +79,22 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
     id: `user_${folderName.toLowerCase().replace(/\s+/g, '_')}`,
     name: folderName,
     icon: Folder,
-    count: 0, // New folders start empty
-    color: 'text-gray-400'
+    count: 0,
+    color: 'text-gray-400',
+    isExpandable: true,
+    path: `/${folderName.toLowerCase().replace(/\s+/g, '_')}`
   }));
 
   const allFolders = [...defaultFolders, ...userCreatedFolders];
+
+  const handleFolderClick = (folder: any) => {
+    // If it's expandable and we have a click handler, expand the folder
+    if (folder.isExpandable && onFolderClick) {
+      onFolderClick(folder.path);
+    }
+    // Always select the folder for filtering
+    onFolderSelect(folder.id);
+  };
 
   // Calculate recent activity stats from live data
   const recentUploads = loading ? 0 : stats.recentActivity.filter(activity => 
@@ -135,8 +163,8 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
             {allFolders.map((folder) => (
               <button
                 key={folder.id}
-                onClick={() => onFolderSelect(folder.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
+                onClick={() => handleFolderClick(folder)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all hover:scale-[1.02] ${
                   selectedFolder === folder.id
                     ? 'bg-blue-600/20 text-white border border-blue-600/50'
                     : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
@@ -146,13 +174,24 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
                   <folder.icon className={`w-5 h-5 ${selectedFolder === folder.id ? 'text-blue-400' : folder.color}`} />
                   <span className="text-sm font-medium">{folder.name}</span>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  selectedFolder === folder.id 
-                    ? 'bg-blue-600/30 text-blue-200' 
-                    : 'bg-gray-700/50 text-gray-400'
-                }`}>
-                  {folder.count}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    selectedFolder === folder.id 
+                      ? 'bg-blue-600/30 text-blue-200' 
+                      : 'bg-gray-700/50 text-gray-400'
+                  }`}>
+                    {folder.count}
+                  </span>
+                  {folder.isExpandable && (
+                    <div className="text-gray-400">
+                      {openFolders.includes(folder.path) ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </div>
+                  )}
+                </div>
               </button>
             ))}
           </nav>
@@ -178,7 +217,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
         <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
           <div className="text-sm font-semibold text-white mb-1">Pro Tip</div>
           <div className="text-xs text-gray-300">
-            Upload files securely with blockchain-verified ownership tokens.
+            Click on folders to expand and view files. Click on files to preview and download.
           </div>
         </div>
       </div>

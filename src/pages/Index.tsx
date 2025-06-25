@@ -7,19 +7,51 @@ import { IPFSUploadArea } from '@/components/IPFSUploadArea';
 import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
+import { FileViewer } from '@/components/FileViewer';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Files, Upload, Slack } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
+import { useFolderNavigation } from '@/hooks/useFolderNavigation';
+import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 
 const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files'); // Default to files to show IPFS upload
+  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files');
   const [userFolders, setUserFolders] = useState<string[]>([]);
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
+  
+  const {
+    currentPath,
+    openFolders,
+    selectedFile,
+    showFileViewer,
+    navigateToFolder,
+    toggleFolder,
+    selectFile,
+    closeFileViewer,
+    goBack
+  } = useFolderNavigation();
+
+  const { downloadFromIPFS } = useIPFSUpload();
 
   const handleCreateFolder = (folderName: string) => {
     setUserFolders(prev => [...prev, folderName]);
     console.log('User folders updated:', [...userFolders, folderName]);
+  };
+
+  const handleFolderClick = (folderPath: string) => {
+    console.log('Folder clicked:', folderPath);
+    toggleFolder(folderPath);
+    navigateToFolder(folderPath);
+  };
+
+  const handleFileSelect = (file: any) => {
+    console.log('File selected:', file);
+    selectFile(file);
+  };
+
+  const handleDownloadFile = async (file: any) => {
+    await downloadFromIPFS(file.cid, file.filename);
   };
 
   return (
@@ -30,6 +62,8 @@ const Index = () => {
           selectedFolder={selectedFolder} 
           onFolderSelect={setSelectedFolder}
           userFolders={userFolders}
+          onFolderClick={handleFolderClick}
+          openFolders={openFolders}
         />
         <main className="flex-1 p-8 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -92,12 +126,27 @@ const Index = () => {
                   onCreateFolder={handleCreateFolder}
                   selectedFolder={selectedFolder}
                 />
-                <IPFSFileGrid selectedFolder={selectedFolder} userFolders={userFolders} />
+                <IPFSFileGrid 
+                  selectedFolder={selectedFolder} 
+                  userFolders={userFolders}
+                  currentPath={currentPath}
+                  onGoBack={goBack}
+                  onFileSelect={handleFileSelect}
+                />
               </>
             )}
           </div>
         </main>
       </div>
+
+      {/* File Viewer Modal */}
+      {showFileViewer && selectedFile && (
+        <FileViewer
+          file={selectedFile}
+          onClose={closeFileViewer}
+          onDownload={handleDownloadFile}
+        />
+      )}
 
       <SlackIntegration
         isOpen={showSlackIntegration}

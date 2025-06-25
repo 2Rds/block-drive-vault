@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { File, Folder, Download, Archive, Database, Globe, ExternalLink } from 'lucide-react';
+import { File, Folder, Download, Archive, Database, Globe, ExternalLink, ArrowLeft, Eye } from 'lucide-react';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { IPFSFile } from '@/types/ipfs';
@@ -9,9 +9,18 @@ import { Button } from '@/components/ui/button';
 interface IPFSFileGridProps {
   selectedFolder: string;
   userFolders?: string[];
+  currentPath?: string;
+  onGoBack?: () => void;
+  onFileSelect?: (file: IPFSFile) => void;
 }
 
-export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridProps) => {
+export const IPFSFileGrid = ({ 
+  selectedFolder, 
+  userFolders = [], 
+  currentPath = '/',
+  onGoBack,
+  onFileSelect
+}: IPFSFileGridProps) => {
   const { user } = useAuth();
   const { userFiles, loadUserFiles, downloading, downloadFromIPFS, deleteFromIPFS } = useIPFSUpload();
 
@@ -21,9 +30,13 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
     }
   }, [user]);
 
-  // Filter files based on selected folder
+  // Filter files based on selected folder and current path
   const filteredFiles = selectedFolder === 'all' 
-    ? userFiles 
+    ? userFiles.filter(file => {
+        if (currentPath === '/') return true;
+        const folderPath = file.folderPath || '/';
+        return folderPath.startsWith(currentPath);
+      })
     : userFiles.filter(file => {
         const folderPath = file.folderPath || '/';
         if (selectedFolder === 'documents') {
@@ -87,6 +100,12 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
     window.open(ipfsUrl, '_blank');
   };
 
+  const handleFileClick = (file: IPFSFile) => {
+    if (onFileSelect) {
+      onFileSelect(file);
+    }
+  };
+
   if (!user) {
     return (
       <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
@@ -104,10 +123,28 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-          <Globe className="w-5 h-5 text-blue-400" />
-          {selectedFolder === 'all' ? 'BlockDrive IPFS Storage' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
-        </h2>
+        <div className="flex items-center space-x-4">
+          {currentPath !== '/' && onGoBack && (
+            <Button
+              onClick={onGoBack}
+              variant="outline"
+              size="sm"
+              className="bg-gray-600/20 border-gray-600/50 text-gray-400 hover:bg-gray-600/30"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-400" />
+            {selectedFolder === 'all' ? 'BlockDrive IPFS Storage' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
+            {currentPath !== '/' && (
+              <span className="text-sm text-gray-400 font-normal">
+                {currentPath}
+              </span>
+            )}
+          </h2>
+        </div>
         <div className="flex items-center space-x-2 text-sm text-gray-400">
           <span>{filteredFiles.length} files</span>
           <Button
@@ -130,20 +167,37 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
             return (
               <div
                 key={file.id}
-                className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group"
+                className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group cursor-pointer"
+                onClick={() => handleFileClick(file)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <IconComponent className={`w-8 h-8 ${iconColor}`} />
                   <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
-                      onClick={() => handleViewOnIPFS(file)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileClick(file);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      title="View File"
+                    >
+                      <Eye className="w-4 h-4 text-blue-400" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewOnIPFS(file);
+                      }}
                       className="p-1 rounded hover:bg-white/10"
                       title="View on IPFS"
                     >
                       <ExternalLink className="w-4 h-4 text-blue-400" />
                     </button>
                     <button 
-                      onClick={() => handleDownload(file)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
                       className="p-1 rounded hover:bg-white/10"
                       title="Download from IPFS"
                       disabled={downloading}
@@ -168,7 +222,10 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
                       <span className="text-xs text-gray-400">IPFS Pinned</span>
                     </div>
                     <button
-                      onClick={() => handleDelete(file)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(file);
+                      }}
                       className="text-xs text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       Delete
