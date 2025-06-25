@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { Upload, Plus, Globe, Shield, Zap, AlertCircle } from 'lucide-react';
+import { Upload, Plus, Globe, Shield, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CreateFolderModal } from './CreateFolderModal';
@@ -16,6 +16,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const { uploading, uploadProgress, uploadToIPFS } = useIPFSUpload();
   const { user, session } = useAuth();
@@ -23,8 +24,24 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
+    setUploadStatus('idle');
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
-    await uploadToIPFS(files, folderPath);
+    
+    try {
+      const result = await uploadToIPFS(files, folderPath);
+      if (result && result.length > 0) {
+        setUploadStatus('success');
+        // Reset status after 3 seconds
+        setTimeout(() => setUploadStatus('idle'), 3000);
+      } else {
+        setUploadStatus('error');
+        setTimeout(() => setUploadStatus('idle'), 5000);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus('error');
+      setTimeout(() => setUploadStatus('idle'), 5000);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -107,12 +124,16 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
 
   return (
     <>
-      <div className={`bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center ${
+      <div className={`bg-gradient-to-br backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center ${
         dragOver 
-          ? 'border-blue-400/70 bg-blue-900/30 scale-105' 
+          ? 'border-blue-400/70 bg-blue-900/30 scale-105 from-blue-900/30 to-purple-900/30' 
           : uploading 
-            ? 'border-green-400/50 bg-green-900/20'
-            : 'border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-900/25'
+            ? 'border-green-400/50 bg-green-900/20 from-green-900/20 to-blue-900/20'
+            : uploadStatus === 'success'
+              ? 'border-green-400/70 bg-green-900/30 from-green-900/30 to-blue-900/30'
+              : uploadStatus === 'error'
+                ? 'border-red-400/70 bg-red-900/30 from-red-900/30 to-purple-900/30'
+                : 'border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-900/25 from-blue-900/20 to-purple-900/20'
       }`}>
         <div
           className="space-y-6"
@@ -124,10 +145,18 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
             <div className={`p-4 rounded-full transition-all duration-300 ${
               uploading 
                 ? 'bg-green-600/20 animate-pulse' 
-                : 'bg-blue-600/20 hover:bg-blue-600/30'
+                : uploadStatus === 'success'
+                  ? 'bg-green-600/30'
+                  : uploadStatus === 'error'
+                    ? 'bg-red-600/30'
+                    : 'bg-blue-600/20 hover:bg-blue-600/30'
             }`}>
               {uploading ? (
-                <Zap className="w-8 h-8 text-green-400" />
+                <Zap className="w-8 h-8 text-green-400 animate-pulse" />
+              ) : uploadStatus === 'success' ? (
+                <CheckCircle className="w-8 h-8 text-green-400" />
+              ) : uploadStatus === 'error' ? (
+                <AlertCircle className="w-8 h-8 text-red-400" />
               ) : (
                 <Upload className="w-8 h-8 text-blue-400" />
               )}
@@ -137,10 +166,14 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
           <div>
             <h3 className="text-2xl font-bold text-white mb-3 flex items-center justify-center gap-2">
               <Globe className="w-6 h-6 text-blue-400" />
-              Upload to IPFS Network
+              {uploadStatus === 'success' ? 'Upload Successful!' : 
+               uploadStatus === 'error' ? 'Upload Failed' :
+               uploading ? 'Uploading to IPFS...' : 'Upload to IPFS Network'}
             </h3>
             <p className="text-gray-300 mb-2">
-              Decentralized, immutable storage on the InterPlanetary File System
+              {uploadStatus === 'success' ? 'Your files have been successfully stored on IPFS!' :
+               uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
+               'Decentralized, immutable storage on the InterPlanetary File System'}
             </p>
             <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
               <span className="flex items-center gap-1">
@@ -160,14 +193,14 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
             {uploading ? (
               <div className="space-y-4">
                 <div className="text-lg font-semibold text-green-400">
-                  Uploading to IPFS Network...
+                  Processing your files...
                 </div>
                 <Progress value={uploadProgress} className="w-full max-w-md mx-auto h-2" />
                 <div className="text-sm text-gray-400">
                   {uploadProgress.toFixed(0)}% complete
                 </div>
               </div>
-            ) : (
+            ) : uploadStatus === 'idle' ? (
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => fileInputRef.current?.click()}
@@ -186,6 +219,19 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
                   Create Folder
                 </Button>
               </div>
+            ) : (
+              <div className="flex justify-center space-x-4">
+                <Button
+                  onClick={() => {
+                    setUploadStatus('idle');
+                    fileInputRef.current?.click();
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Upload More Files
+                </Button>
+              </div>
             )}
           </div>
           
@@ -198,7 +244,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
             accept="*/*"
           />
           
-          {!uploading && (
+          {!uploading && uploadStatus === 'idle' && (
             <div className="border-t border-gray-600/30 pt-4 mt-6">
               <p className="text-sm text-gray-400">
                 Drag and drop files here, or click "Choose Files" to browse
