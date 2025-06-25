@@ -20,18 +20,43 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
   const [channels, setChannels] = useState<SlackChannel[]>([]);
   const [slackFiles, setSlackFiles] = useState<SlackFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [teamInfo, setTeamInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Check if we have a stored access token
+    initializeConnection();
+    handleOAuthCallback();
+  }, []);
+
+  const initializeConnection = async () => {
     const storedToken = localStorage.getItem('slack_access_token');
     if (storedToken) {
-      setAccessToken(storedToken);
-      setIsConnected(true);
-      loadChannels(storedToken);
-      loadSlackFiles(storedToken);
+      setLoading(true);
+      try {
+        // Verify token is still valid
+        const isValid = await blockdriveSlack.isTokenValid(storedToken);
+        if (isValid) {
+          setAccessToken(storedToken);
+          setIsConnected(true);
+          await Promise.all([
+            loadTeamInfo(storedToken),
+            loadChannels(storedToken),
+            loadSlackFiles(storedToken)
+          ]);
+        } else {
+          // Token expired, clear it
+          localStorage.removeItem('slack_access_token');
+          toast.error('Slack connection expired. Please reconnect.');
+        }
+      } catch (error) {
+        console.error('Error verifying token:', error);
+        localStorage.removeItem('slack_access_token');
+      } finally {
+        setLoading(false);
+      }
     }
+  };
 
-    // Handle OAuth callback
+  const handleOAuthCallback = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
@@ -43,15 +68,15 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     }
 
     if (code) {
-      handleOAuthCallback(code);
+      await processOAuthCode(code);
     }
-  }, []);
+  };
 
-  const handleOAuthCallback = async (code: string) => {
+  const processOAuthCode = async (code: string) => {
     try {
       setLoading(true);
       const redirectUri = window.location.origin + window.location.pathname;
-      console.log('Using redirect URI:', redirectUri);
+      console.log('Processing OAuth with redirect URI:', redirectUri);
       
       const tokenData = await blockdriveSlack.exchangeCodeForToken(code, redirectUri);
       console.log('Token exchange response:', tokenData);
@@ -60,19 +85,23 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
         setAccessToken(tokenData.access_token);
         localStorage.setItem('slack_access_token', tokenData.access_token);
         setIsConnected(true);
-        await loadChannels(tokenData.access_token);
-        await loadSlackFiles(tokenData.access_token);
-        toast.success('Successfully connected to Slack!');
+        
+        await Promise.all([
+          loadTeamInfo(tokenData.access_token),
+          loadChannels(tokenData.access_token),
+          loadSlackFiles(tokenData.access_token)
+        ]);
+        
+        toast.success('Successfully connected to Slack workspace!');
         
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        console.error('Token exchange failed:', tokenData);
-        toast.error(`Failed to connect to Slack: ${tokenData.error || 'Unknown error'}`);
+        throw new Error(tokenData.error || 'Unknown error during token exchange');
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
-      toast.error('Failed to connect to Slack');
+      toast.error('Failed to connect to Slack. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,17 +109,28 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
 
   const connectToSlack = async () => {
     try {
+      setLoading(true);
       const redirectUri = window.location.origin + window.location.pathname;
       console.log('Initiating OAuth with redirect URI:', redirectUri);
       
-      const authUrl = await blockdriveSlack.getAuthUrl(redirectUri);
-      console.log('Auth URL:', authUrl);
+      const authUrl = await blockdriveSlack.getAuthUrl(redirectUri, 'blockdrive-integration');
+      console.log('Redirecting to auth URL:', authUrl);
       
-      // Open in same window to handle the OAuth flow
       window.location.href = authUrl;
     } catch (error) {
       console.error('Error connecting to Slack:', error);
       toast.error('Failed to initiate Slack connection');
+      setLoading(false);
+    }
+  };
+
+  const loadTeamInfo = async (token: string) => {
+    try {
+      const team = await blockdriveSlack.getTeamInfo(token);
+      setTeamInfo(team);
+      console.log('Connected to workspace:', team?.name);
+    } catch (error) {
+      console.error('Error loading team info:', error);
     }
   };
 
@@ -98,6 +138,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     try {
       const channelList = await blockdriveSlack.getChannels(token);
       setChannels(channelList);
+      console.log('Loaded channels:', channelList.length);
     } catch (error) {
       console.error('Error loading channels:', error);
       toast.error('Failed to load Slack channels');
@@ -109,6 +150,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       const files = await blockdriveSlack.getFiles(token);
       setSlackFiles(files);
+      console.log('Loaded files:', files.length);
     } catch (error) {
       console.error('Error loading Slack files:', error);
       toast.error('Failed to load Slack files');
@@ -129,18 +171,19 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
         accessToken,
         file,
         [channelId],
-        file.name
+        file.name,
+        `Uploaded from BlockDrive`
       );
 
       if (result.ok) {
         toast.success('File uploaded to Slack successfully!');
         await loadSlackFiles(accessToken);
       } else {
-        toast.error('Failed to upload file to Slack');
+        throw new Error(result.error || 'Upload failed');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload file to Slack');
+      toast.error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -151,11 +194,10 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       const blob = await blockdriveSlack.downloadFileFromSlack(accessToken, file.url_private);
       
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = file.name;
+      a.download = file.name || 'download';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -175,7 +217,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     
     try {
       setLoading(true);
-      await blockdriveSlack.syncSlackFiles(accessToken, 'current-user-id'); // Replace with actual user ID
+      await blockdriveSlack.syncSlackFiles(accessToken, 'current-user-id');
       await loadSlackFiles(accessToken);
       toast.success('Files synced successfully!');
     } catch (error) {
@@ -192,6 +234,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     setIsConnected(false);
     setChannels([]);
     setSlackFiles([]);
+    setTeamInfo(null);
     toast.success('Disconnected from Slack');
   };
 
@@ -202,6 +245,11 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
           <DialogTitle className="text-white flex items-center gap-2">
             <Slack className="w-6 h-6 text-blue-500" />
             Slack Integration
+            {teamInfo && (
+              <span className="text-sm font-normal text-gray-400">
+                - {teamInfo.name}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
