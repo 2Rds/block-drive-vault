@@ -13,10 +13,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [walletData, setWalletData] = useState<any>(null);
 
   useEffect(() => {
+    // Check for custom wallet session first
+    const checkWalletSession = () => {
+      const storedSession = localStorage.getItem('sb-supabase-auth-token');
+      if (storedSession) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          console.log('Found stored wallet session:', sessionData.user?.id);
+          
+          // Check if session is still valid
+          if (sessionData.expires_at > Date.now()) {
+            setSession(sessionData as Session);
+            setUser(sessionData.user as User);
+            setLoading(false);
+            return true;
+          } else {
+            // Session expired, remove it
+            localStorage.removeItem('sb-supabase-auth-token');
+          }
+        } catch (error) {
+          console.error('Error parsing stored session:', error);
+          localStorage.removeItem('sb-supabase-auth-token');
+        }
+      }
+      return false;
+    };
+
     // Get initial session
     const getInitialSession = async () => {
+      // First check for wallet session
+      if (checkWalletSession()) {
+        return;
+      }
+
+      // Then check for regular Supabase session
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Initial session check:', session?.user?.id);
+      console.log('Initial Supabase session check:', session?.user?.id);
       
       if (session?.user) {
         setSession(session);
@@ -29,10 +61,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     getInitialSession();
 
-    // Set up auth state listener
+    // Listen for wallet authentication events
+    const handleWalletAuth = (event: CustomEvent) => {
+      console.log('Wallet auth success event received:', event.detail);
+      const sessionData = event.detail;
+      setSession(sessionData);
+      setUser(sessionData.user);
+      setLoading(false);
+    };
+
+    window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+
+    // Set up auth state listener for regular Supabase auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
+        console.log('Supabase auth state changed:', event, session?.user?.id);
+        
+        // Don't override wallet sessions
+        const hasWalletSession = localStorage.getItem('sb-supabase-auth-token');
+        if (hasWalletSession && event !== 'SIGNED_OUT') {
+          return;
+        }
         
         if (session?.user) {
           setSession(session);
@@ -61,22 +110,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        // Handle token refresh
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed');
-        }
-
         // Handle sign out
         if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setSession(null);
           setUser(null);
           setWalletData(null);
+          localStorage.removeItem('sb-supabase-auth-token');
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+    };
   }, []);
 
   const loadWalletData = async (userId: string) => {

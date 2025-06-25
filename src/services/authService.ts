@@ -28,7 +28,7 @@ export class AuthService {
     try {
       console.log('Attempting to authenticate Solana wallet:', walletAddress);
       
-      // Use the new secure authentication endpoint
+      // Use the secure authentication endpoint
       const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
         body: {
           walletAddress,
@@ -44,15 +44,41 @@ export class AuthService {
         return { error: { message: 'Failed to authenticate wallet. Please try again.' } };
       }
 
-      if (data?.success) {
+      if (data?.success && data?.authToken) {
+        console.log('Wallet authentication successful, creating session...');
+        
+        // Create a custom session using the auth token
+        // This is a simplified approach - in production you'd want proper JWT handling
+        const sessionData = {
+          user: {
+            id: data.authToken,
+            email: `${walletAddress}@blockdrive.wallet`,
+            user_metadata: {
+              wallet_address: walletAddress,
+              blockchain_type: blockchainType
+            }
+          },
+          access_token: data.authToken,
+          refresh_token: data.authToken,
+          expires_at: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+          token_type: 'bearer'
+        };
+
+        // Store session in localStorage for persistence
+        localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
+        
+        // Trigger auth state change manually
+        window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
+          detail: sessionData 
+        }));
+
         if (data.isFirstTime) {
           toast.success('Wallet registered successfully! Welcome to BlockDrive!');
         } else {
           toast.success('Wallet authenticated successfully! Welcome back!');
         }
         
-        // For now, we'll create a simple session (in production, implement proper JWT handling)
-        return { error: null, data };
+        return { error: null, data: sessionData };
       } else {
         return { error: { message: 'Wallet authentication failed' } };
       }
@@ -63,6 +89,9 @@ export class AuthService {
   }
 
   static async signOut() {
+    // Clear custom session
+    localStorage.removeItem('sb-supabase-auth-token');
+    
     const { error } = await supabase.auth.signOut();
     if (!error) {
       toast.success('Signed out successfully');

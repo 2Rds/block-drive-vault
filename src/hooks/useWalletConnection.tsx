@@ -147,9 +147,16 @@ export const useWalletConnection = () => {
         onSignupRequired(walletInfo);
         toast.info(`${wallet.name} connected! Please complete signup to register your wallet.`);
       } else {
-        console.log('Authentication successful');
+        console.log('Authentication successful, redirecting to dashboard...');
         toast.success(`${wallet.name} authenticated successfully!`);
-        // User should be redirected by the auth state change
+        
+        // Set connected wallet state
+        setConnectedWallet({ address: walletAddress, blockchain: wallet.blockchain });
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = '/index';
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Wallet connection error:', error);
