@@ -1,14 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { blockdriveSlack, SlackChannel, SlackFile } from '@/services/blockdrive_slack';
 import { toast } from 'sonner';
-import { Slack, Upload, Download, RefreshCw } from 'lucide-react';
+import { Slack } from 'lucide-react';
+import { SlackConnectionStatus } from './slack/SlackConnectionStatus';
+import { SlackFileUpload } from './slack/SlackFileUpload';
+import { SlackFileList } from './slack/SlackFileList';
+import { SlackConnectButton } from './slack/SlackConnectButton';
 
 interface SlackIntegrationProps {
   isOpen: boolean;
@@ -19,10 +18,8 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
   const [isConnected, setIsConnected] = useState(false);
   const [accessToken, setAccessToken] = useState<string>('');
   const [channels, setChannels] = useState<SlackChannel[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [slackFiles, setSlackFiles] = useState<SlackFile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     // Check if we have a stored access token
@@ -120,9 +117,9 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     }
   };
 
-  const handleFileUpload = async () => {
-    if (!selectedFile || !selectedChannel || !accessToken) {
-      toast.error('Please select a file and channel');
+  const handleFileUpload = async (file: File, channelId: string) => {
+    if (!accessToken) {
+      toast.error('Please connect to Slack first');
       return;
     }
 
@@ -130,15 +127,14 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       const result = await blockdriveSlack.uploadFileToSlack(
         accessToken,
-        selectedFile,
-        [selectedChannel],
-        selectedFile.name
+        file,
+        [channelId],
+        file.name
       );
 
       if (result.ok) {
         toast.success('File uploaded to Slack successfully!');
         await loadSlackFiles(accessToken);
-        setSelectedFile(null);
       } else {
         toast.error('Failed to upload file to Slack');
       }
@@ -211,138 +207,21 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
 
         <div className="space-y-6">
           {!isConnected ? (
-            <Card className="p-6 bg-gray-800 border-gray-700">
-              <div className="text-center space-y-4">
-                <Slack className="w-16 h-16 text-blue-500 mx-auto" />
-                <h3 className="text-xl font-semibold text-white">Connect to Slack</h3>
-                <p className="text-gray-400">
-                  Connect your Slack workspace to share files seamlessly between BlockDrive and Slack channels.
-                </p>
-                <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-lg p-4 mb-4">
-                  <p className="text-yellow-400 text-sm">
-                    <strong>Setup Required:</strong> Make sure to add the following redirect URI to your Slack app settings:
-                  </p>
-                  <code className="block mt-2 p-2 bg-gray-800 rounded text-green-400 text-xs">
-                    {window.location.origin + window.location.pathname}
-                  </code>
-                  <p className="text-yellow-400 text-xs mt-2">
-                    Go to your Slack app settings → OAuth & Permissions → Redirect URLs
-                  </p>
-                </div>
-                <Button 
-                  onClick={connectToSlack}
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {loading ? 'Connecting...' : 'Connect to Slack'}
-                </Button>
-              </div>
-            </Card>
+            <SlackConnectButton loading={loading} onConnect={connectToSlack} />
           ) : (
             <div className="space-y-6">
-              {/* Connection Status */}
-              <Card className="p-4 bg-gray-800 border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-white">Connected to Slack</span>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={disconnect}
-                    className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              </Card>
-
-              {/* File Upload Section */}
-              <Card className="p-6 bg-gray-800 border-gray-700">
-                <h3 className="text-lg font-semibold text-white mb-4">Upload File to Slack</h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-white">Select Channel</Label>
-                    <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                        <SelectValue placeholder="Choose a channel" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
-                        {channels.map((channel) => (
-                          <SelectItem key={channel.id} value={channel.id}>
-                            #{channel.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-white">Select File</Label>
-                    <Input
-                      type="file"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={handleFileUpload}
-                    disabled={!selectedFile || !selectedChannel || loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload to Slack
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Slack Files Section */}
-              <Card className="p-6 bg-gray-800 border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Slack Files</h3>
-                  <Button 
-                    onClick={syncFiles}
-                    disabled={loading}
-                    variant="outline"
-                    className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Sync Files
-                  </Button>
-                </div>
-                
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {slackFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{file.title || file.name}</p>
-                        <p className="text-gray-400 text-sm">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.mimetype}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => handleFileDownload(file)}
-                        disabled={loading}
-                        variant="outline"
-                        size="sm"
-                        className="bg-gray-600 border-gray-500 text-white hover:bg-gray-500"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  
-                  {slackFiles.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-400">No files found in your Slack workspace</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
+              <SlackConnectionStatus isConnected={isConnected} onDisconnect={disconnect} />
+              <SlackFileUpload 
+                channels={channels} 
+                loading={loading} 
+                onFileUpload={handleFileUpload} 
+              />
+              <SlackFileList 
+                files={slackFiles} 
+                loading={loading} 
+                onFileDownload={handleFileDownload} 
+                onSyncFiles={syncFiles} 
+              />
             </div>
           )}
         </div>
