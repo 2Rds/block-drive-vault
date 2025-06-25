@@ -79,7 +79,7 @@ export const useWalletConnection = () => {
       
       // Use Supabase Sign in with Solana
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'solana',
+        provider: 'solana' as any,
         options: {
           redirectTo: `${window.location.origin}/index`,
           queryParams: {

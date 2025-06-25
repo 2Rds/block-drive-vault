@@ -30,7 +30,7 @@ export class AuthService {
       
       // Use Supabase Sign in with Solana instead of magic link
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'solana',
+        provider: 'solana' as any,
         options: {
           redirectTo: `${window.location.origin}/index`,
           queryParams: {

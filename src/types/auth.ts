@@ -6,6 +6,6 @@ export interface AuthContextType {
   session: Session | null;
   loading: boolean;
   walletData: any;
-  connectWallet: (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum' | 'ton') => Promise<{ error: any }>;
+  connectWallet: (walletAddress: string, signature: string, blockchainType: 'solana') => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
 }

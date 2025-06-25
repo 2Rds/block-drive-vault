@@ -4,7 +4,7 @@ import { generateWallet, encryptPrivateKey, generateUniqueTokenId } from '@/util
 
 export const createWalletForUser = async (
   userId: string, 
-  blockchainType: 'solana' | 'ethereum' | 'ton',
+  blockchainType: 'solana',
   userPassword: string
 ) => {
   try {
