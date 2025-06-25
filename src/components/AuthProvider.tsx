@@ -176,6 +176,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return await AuthService.connectWallet(walletAddress, signature, blockchainType);
   };
 
+  const disconnectWallet = async () => {
+    // Clear wallet data and sign out
+    setWalletData(null);
+    const result = await AuthService.signOut();
+    return result;
+  };
+
   const signOut = async () => {
     const result = await AuthService.signOut();
     if (!result.error) {
@@ -192,6 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       walletData,
       setWalletData,
       connectWallet,
+      disconnectWallet,
       signOut
     }}>
       {children}
