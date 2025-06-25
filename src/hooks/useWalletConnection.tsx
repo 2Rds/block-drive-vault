@@ -1,23 +1,32 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"
 import { PublicKey } from '@solana/web3.js';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import { useAuth } from './useAuth';
+import { useNavigate } from 'react-router-dom';
 
-interface WalletData {
-  address: string | null;
-  publicKey: PublicKey | null;
-  adapter: PhantomWalletAdapter | SolflareWalletAdapter | null;
-  connected: boolean;
-  autoConnect: boolean;
-  id: string | null;
+declare global {
+  interface Window {
+    phantom?: {
+      solana?: any;
+    };
+    solflare?: any;
+  }
+}
+
+interface ConnectedWallet {
+  address: string;
+  blockchain: string;
 }
 
 export const useWalletConnection = () => {
   const { setWalletData, walletData } = useAuth();
   const [connecting, setConnecting] = useState(false);
-  const { toast } = useToast()
+  const [connectedWallet, setConnectedWallet] = useState<ConnectedWallet | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedWalletType = localStorage.getItem('selectedWallet');
@@ -42,6 +51,7 @@ export const useWalletConnection = () => {
       autoConnect: false,
       id: null
     });
+    setConnectedWallet(null);
     localStorage.removeItem('selectedWallet');
     toast({
       title: "Wallet Disconnected",
@@ -80,7 +90,7 @@ export const useWalletConnection = () => {
       // Sign a message to verify ownership
       const message = 'Sign this message to verify your BlockDrive account.';
       const encodedMessage = new TextEncoder().encode(message);
-      const signature = await adapter.signMessage(encodedMessage);
+      const signature = await adapter.signMessage!(encodedMessage);
       
       // Convert signature to hex string
       const signatureHex = Array.from(signature)
@@ -99,11 +109,17 @@ export const useWalletConnection = () => {
           autoConnect,
           id: 'phantom'
         });
+        setConnectedWallet({ address, blockchain: 'solana' });
         localStorage.setItem('selectedWallet', 'phantom');
         toast({
           title: "Phantom Wallet Connected",
           description: `Wallet address: ${address}`,
-        })
+        });
+        
+        // Navigate to index after successful connection
+        if (!autoConnect) {
+          navigate('/index');
+        }
       } else {
         console.error('Signature verification failed');
       }
@@ -132,7 +148,7 @@ export const useWalletConnection = () => {
       // Sign a message to verify ownership
       const message = 'Sign this message to verify your BlockDrive account.';
       const encodedMessage = new TextEncoder().encode(message);
-      const signature = await adapter.signMessage(encodedMessage);
+      const signature = await adapter.signMessage!(encodedMessage);
       
       // Convert signature to hex string  
       const signatureHex = Array.from(signature)
@@ -151,11 +167,17 @@ export const useWalletConnection = () => {
           autoConnect,
           id: 'solflare'
         });
+        setConnectedWallet({ address, blockchain: 'solana' });
         localStorage.setItem('selectedWallet', 'solflare');
         toast({
           title: "Solflare Wallet Connected",
           description: `Wallet address: ${address}`,
-        })
+        });
+        
+        // Navigate to index after successful connection
+        if (!autoConnect) {
+          navigate('/index');
+        }
       } else {
         console.error('Signature verification failed');
       }
@@ -171,5 +193,30 @@ export const useWalletConnection = () => {
     }
   };
 
-  return { connectPhantom, connectSolflare, connecting, disconnectWallet };
+  const handleWalletConnect = (wallet: any, callback?: (walletInfo: ConnectedWallet) => void) => {
+    if (wallet.id === 'phantom') {
+      connectPhantom().then(() => {
+        if (callback && connectedWallet) {
+          callback(connectedWallet);
+        }
+      });
+    } else if (wallet.id === 'solflare') {
+      connectSolflare().then(() => {
+        if (callback && connectedWallet) {
+          callback(connectedWallet);
+        }
+      });
+    }
+  };
+
+  return { 
+    connectPhantom, 
+    connectSolflare, 
+    connecting, 
+    disconnectWallet,
+    isConnecting: connecting,
+    connectedWallet,
+    setConnectedWallet,
+    handleWalletConnect
+  };
 };
