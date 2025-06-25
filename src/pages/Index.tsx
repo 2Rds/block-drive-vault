@@ -14,6 +14,12 @@ const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
   const [activeView, setActiveView] = useState<'dashboard' | 'files'>('dashboard');
+  const [userFolders, setUserFolders] = useState<string[]>([]);
+
+  const handleCreateFolder = (folderName: string) => {
+    setUserFolders(prev => [...prev, folderName]);
+    console.log('User folders updated:', [...userFolders, folderName]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -69,8 +75,12 @@ const Index = () => {
             ) : (
               <>
                 <StatsCards />
-                <UploadArea isUploading={isUploading} setIsUploading={setIsUploading} />
-                <FileGrid selectedFolder={selectedFolder} />
+                <UploadArea 
+                  isUploading={isUploading} 
+                  setIsUploading={setIsUploading}
+                  onCreateFolder={handleCreateFolder}
+                />
+                <FileGrid selectedFolder={selectedFolder} userFolders={userFolders} />
               </>
             )}
           </div>

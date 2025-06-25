@@ -1,12 +1,14 @@
+
 import React from 'react';
 import { File, Folder, Download, Archive, Database } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
 interface FileGridProps {
   selectedFolder: string;
+  userFolders?: string[];
 }
 
-export const FileGrid = ({ selectedFolder }: FileGridProps) => {
+export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) => {
   const { stats, loading } = useUserData();
 
   // Generate mock files based on real user data
@@ -15,6 +17,18 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
     
     const files = [];
     const fileTypes = stats.filesByType || [];
+    
+    // Add user-created folders first
+    userFolders.forEach((folderName, index) => {
+      files.push({
+        id: `user_folder_${index}`,
+        name: folderName,
+        type: 'folder',
+        size: '—',
+        modified: 'Just now',
+        category: 'folder'
+      });
+    });
     
     // Generate files based on file type distribution
     fileTypes.forEach((fileType, index) => {
@@ -67,7 +81,7 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
       }
     });
     
-    return files.slice(0, stats.totalFiles); // Ensure we don't exceed total files
+    return files;
   };
 
   const files = generateFilesFromUserData();
@@ -151,9 +165,11 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
             >
               <div className="flex items-start justify-between mb-3">
                 <IconComponent className={`w-8 h-8 ${iconColor}`} />
-                <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Download className="w-4 h-4 text-blue-600 hover:text-blue-400" />
-                </button>
+                {file.type !== 'folder' && (
+                  <button className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Download className="w-4 h-4 text-blue-600 hover:text-blue-400" />
+                  </button>
+                )}
               </div>
               
               <div className="space-y-1">
