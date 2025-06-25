@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,8 +45,8 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('User authenticated, redirecting to home dashboard');
-      navigate('/home');
+      console.log('User authenticated, redirecting to index dashboard');
+      navigate('/index');
     }
   }, [user, navigate]);
   

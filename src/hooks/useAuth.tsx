@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,9 +87,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('User signed in successfully');
           toast.success('Welcome to BlockDrive!');
           
-          // Redirect to home if on auth page
+          // Redirect to index if on auth page
           if (window.location.pathname === '/auth') {
-            window.location.href = '/home';
+            window.location.href = '/index';
           }
         }
 
@@ -154,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: authToken.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/home`,
+          emailRedirectTo: `${window.location.origin}/index`,
           data: {
             wallet_address: walletAddress,
             blockchain_type: blockchainType,
@@ -170,7 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: authToken.email,
           password: `wallet_${walletAddress}_${authToken.id}`,
           options: {
-            emailRedirectTo: `${window.location.origin}/home`,
+            emailRedirectTo: `${window.location.origin}/index`,
             data: {
               wallet_address: walletAddress,
               blockchain_type: blockchainType,
