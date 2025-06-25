@@ -29,35 +29,10 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
+import { useUserData } from '@/hooks/useUserData';
 
 export const DataDashboard = () => {
-  // Sample data for charts
-  const storageUsageData = [
-    { month: 'Jan', storage: 1.2, uploads: 45, downloads: 67 },
-    { month: 'Feb', storage: 1.8, uploads: 52, downloads: 89 },
-    { month: 'Mar', storage: 2.1, uploads: 61, downloads: 94 },
-    { month: 'Apr', storage: 2.4, uploads: 58, downloads: 102 },
-    { month: 'May', storage: 2.8, uploads: 71, downloads: 115 },
-    { month: 'Jun', storage: 3.2, uploads: 83, downloads: 128 },
-  ];
-
-  const fileTypeData = [
-    { name: 'Documents', value: 45, color: '#8B5CF6' },
-    { name: 'Images', value: 30, color: '#06B6D4' },
-    { name: 'Videos', value: 15, color: '#10B981' },
-    { name: 'Audio', value: 7, color: '#F59E0B' },
-    { name: 'Other', value: 3, color: '#EF4444' },
-  ];
-
-  const blockchainActivityData = [
-    { day: 'Mon', transactions: 12, confirmations: 11, failed: 1 },
-    { day: 'Tue', transactions: 15, confirmations: 14, failed: 1 },
-    { day: 'Wed', transactions: 8, confirmations: 8, failed: 0 },
-    { day: 'Thu', transactions: 22, confirmations: 20, failed: 2 },
-    { day: 'Fri', transactions: 18, confirmations: 17, failed: 1 },
-    { day: 'Sat', transactions: 25, confirmations: 23, failed: 2 },
-    { day: 'Sun', transactions: 14, confirmations: 13, failed: 1 },
-  ];
+  const { stats, loading } = useUserData();
 
   const networkStatsData = [
     { network: 'Solana', uptime: 99.8, speed: 'Fast', cost: 'Low' },
@@ -92,6 +67,27 @@ export const DataDashboard = () => {
     },
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="bg-gray-800/40 border-gray-700/50 animate-pulse">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 bg-gray-600 rounded w-20"></div>
+                <div className="h-6 w-6 bg-gray-600 rounded"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-600 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-600 rounded w-24"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Key Metrics Cards */}
@@ -102,10 +98,10 @@ export const DataDashboard = () => {
             <HardDrive className="h-4 w-4 text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">3.2 GB</div>
+            <div className="text-2xl font-bold text-white">{stats.totalStorage} GB</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline h-3 w-3 mr-1" />
-              +12% from last month
+              {stats.totalFiles > 0 ? 'Active storage' : 'No files yet'}
             </p>
           </CardContent>
         </Card>
@@ -116,10 +112,10 @@ export const DataDashboard = () => {
             <Database className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">1,247</div>
+            <div className="text-2xl font-bold text-white">{stats.totalFiles}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline h-3 w-3 mr-1" />
-              +156 this week
+              {stats.totalFiles > 0 ? 'Files stored' : 'Start uploading'}
             </p>
           </CardContent>
         </Card>
@@ -130,10 +126,10 @@ export const DataDashboard = () => {
             <Activity className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">892</div>
+            <div className="text-2xl font-bold text-white">{stats.totalTransactions}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline h-3 w-3 mr-1" />
-              98.5% success rate
+              {stats.totalTransactions > 0 ? '100% success rate' : 'No transactions yet'}
             </p>
           </CardContent>
         </Card>
@@ -144,7 +140,7 @@ export const DataDashboard = () => {
             <Shield className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">99.7%</div>
+            <div className="text-2xl font-bold text-white">{stats.networkHealth}%</div>
             <p className="text-xs text-gray-400">
               <Zap className="inline h-3 w-3 mr-1" />
               All systems operational
@@ -160,12 +156,12 @@ export const DataDashboard = () => {
           <CardHeader>
             <CardTitle className="text-white">Storage Usage Trends</CardTitle>
             <CardDescription className="text-gray-400">
-              Monthly storage consumption and activity
+              Your storage consumption over time
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-80">
-              <AreaChart data={storageUsageData}>
+              <AreaChart data={stats.storageUsageData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="month" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
@@ -187,26 +183,32 @@ export const DataDashboard = () => {
           <CardHeader>
             <CardTitle className="text-white">File Type Distribution</CardTitle>
             <CardDescription className="text-gray-400">
-              Breakdown of stored file types
+              Breakdown of your stored file types
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-80">
-              <PieChart>
-                <Pie
-                  data={fileTypeData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {fileTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </PieChart>
+              {stats.filesByType.length > 0 ? (
+                <PieChart>
+                  <Pie
+                    data={stats.filesByType}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {stats.filesByType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-400">
+                  No files uploaded yet
+                </div>
+              )}
             </ChartContainer>
           </CardContent>
         </Card>
@@ -216,12 +218,12 @@ export const DataDashboard = () => {
           <CardHeader>
             <CardTitle className="text-white">Upload & Download Activity</CardTitle>
             <CardDescription className="text-gray-400">
-              File transfer activity over time
+              Your file transfer activity over time
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-80">
-              <LineChart data={storageUsageData}>
+              <LineChart data={stats.storageUsageData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="month" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
@@ -250,12 +252,12 @@ export const DataDashboard = () => {
           <CardHeader>
             <CardTitle className="text-white">Blockchain Transaction Activity</CardTitle>
             <CardDescription className="text-gray-400">
-              Daily blockchain transaction status
+              Your blockchain transaction status
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-80">
-              <BarChart data={blockchainActivityData}>
+              <BarChart data={stats.blockchainActivityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="day" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
@@ -313,44 +315,34 @@ export const DataDashboard = () => {
         <CardHeader>
           <CardTitle className="text-white">Recent Activity</CardTitle>
           <CardDescription className="text-gray-400">
-            Latest file operations and blockchain transactions
+            Your latest file operations and blockchain transactions
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { action: 'File Upload', file: 'project-docs.pdf', time: '2 minutes ago', status: 'completed' },
-              { action: 'Blockchain Confirmation', file: 'image-gallery.zip', time: '5 minutes ago', status: 'confirmed' },
-              { action: 'File Download', file: 'presentation.pptx', time: '12 minutes ago', status: 'completed' },
-              { action: 'File Upload', file: 'video-demo.mp4', time: '18 minutes ago', status: 'processing' },
-              { action: 'Blockchain Confirmation', file: 'contract-data.json', time: '25 minutes ago', status: 'confirmed' },
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-700/30">
-                <div className="flex items-center space-x-3">
-                  {activity.action.includes('Upload') ? (
+            {stats.recentActivity.length > 0 ? (
+              stats.recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-700/30">
+                  <div className="flex items-center space-x-3">
                     <Upload className="w-5 h-5 text-blue-400" />
-                  ) : activity.action.includes('Download') ? (
-                    <Download className="w-5 h-5 text-green-400" />
-                  ) : (
-                    <Shield className="w-5 h-5 text-purple-400" />
-                  )}
-                  <div>
-                    <p className="text-white font-medium">{activity.action}</p>
-                    <p className="text-gray-400 text-sm">{activity.file}</p>
+                    <div>
+                      <p className="text-white font-medium">{activity.action}</p>
+                      <p className="text-gray-400 text-sm">{activity.file}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-400 text-sm">{activity.time}</p>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-600/20 text-green-400">
+                      {activity.status}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-gray-400 text-sm">{activity.time}</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    activity.status === 'completed' || activity.status === 'confirmed'
-                      ? 'bg-green-600/20 text-green-400'
-                      : 'bg-yellow-600/20 text-yellow-400'
-                  }`}>
-                    {activity.status}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                No recent activity. Start uploading files to see your activity here.
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
