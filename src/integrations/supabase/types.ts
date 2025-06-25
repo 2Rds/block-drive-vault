@@ -177,15 +177,7 @@ export type Database = {
           user_id?: string
           wallet_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "files_wallet_id_fkey"
-            columns: ["wallet_id"]
-            isOneToOne: false
-            referencedRelation: "wallets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
