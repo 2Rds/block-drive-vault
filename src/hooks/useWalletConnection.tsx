@@ -88,7 +88,7 @@ export const useWalletConnection = () => {
             const encodedMessage = new TextEncoder().encode(message);
             console.log('Requesting signature from Phantom...');
             const signedMessage = await (window as any).phantom.solana.signMessage(encodedMessage);
-            // Convert Uint8Array signature to hex string
+            // Convert Uint8Array signature to hex string properly
             signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
           }
           break;
@@ -97,7 +97,7 @@ export const useWalletConnection = () => {
             const encodedMessage = new TextEncoder().encode(message);
             console.log('Requesting signature from Solflare...');
             const signedMessage = await (window as any).solflare.signMessage(encodedMessage);
-            // Convert Uint8Array signature to hex string
+            // Convert Uint8Array signature to hex string properly
             signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
           }
           break;
