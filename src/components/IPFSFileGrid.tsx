@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { File, Folder, Download, Archive, Database, Globe, ExternalLink } from 'lucide-react';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
@@ -76,13 +75,15 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
   };
 
   const handleDelete = async (file: IPFSFile) => {
-    if (confirm(`Are you sure you want to delete ${file.filename}?`)) {
+    if (confirm(`Are you sure you want to delete ${file.filename} from BlockDrive IPFS Workspace?`)) {
       await deleteFromIPFS(file.id, file.cid);
     }
   };
 
   const handleViewOnIPFS = (file: IPFSFile) => {
-    window.open(file.ipfsUrl, '_blank');
+    // Use the BlockDrive IPFS Workspace gateway
+    const blockdriveUrl = `https://${file.cid}.ipfs.w3s.link`;
+    window.open(blockdriveUrl, '_blank');
   };
 
   if (!user) {
@@ -92,7 +93,7 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
           <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-400 mb-2">Connect Your Wallet</h3>
           <p className="text-gray-500">
-            Please connect your wallet to view your IPFS files
+            Please connect your wallet to view your BlockDrive IPFS Workspace files
           </p>
         </div>
       </div>
@@ -104,7 +105,7 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Globe className="w-5 h-5 text-blue-400" />
-          {selectedFolder === 'all' ? 'All IPFS Files' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
+          {selectedFolder === 'all' ? 'BlockDrive IPFS Workspace' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
         </h2>
         <div className="flex items-center space-x-2 text-sm text-gray-400">
           <span>{filteredFiles.length} files</span>
@@ -136,14 +137,14 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
                     <button 
                       onClick={() => handleViewOnIPFS(file)}
                       className="p-1 rounded hover:bg-white/10"
-                      title="View on IPFS"
+                      title="View in BlockDrive IPFS Workspace"
                     >
                       <ExternalLink className="w-4 h-4 text-blue-400" />
                     </button>
                     <button 
                       onClick={() => handleDownload(file)}
                       className="p-1 rounded hover:bg-white/10"
-                      title="Download"
+                      title="Download from BlockDrive IPFS Workspace"
                       disabled={downloading}
                     >
                       <Download className="w-4 h-4 text-green-400" />
@@ -163,7 +164,7 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-gray-400">IPFS</span>
+                      <span className="text-xs text-gray-400">BlockDrive IPFS</span>
                     </div>
                     <button
                       onClick={() => handleDelete(file)}
@@ -185,11 +186,11 @@ export const IPFSFileGrid = ({ selectedFolder, userFolders = [] }: IPFSFileGridP
       ) : (
         <div className="text-center py-12">
           <Globe className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No IPFS files found</h3>
+          <h3 className="text-lg font-medium text-gray-400 mb-2">No files in BlockDrive IPFS Workspace</h3>
           <p className="text-gray-500">
             {selectedFolder === 'all' 
-              ? 'Upload some files to IPFS to get started'
-              : `No ${selectedFolder} files found in IPFS storage`
+              ? 'Upload some files to your BlockDrive IPFS Workspace to get started'
+              : `No ${selectedFolder} files found in your BlockDrive IPFS Workspace`
             }
           </p>
         </div>

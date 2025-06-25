@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Upload, Plus, Globe, Shield, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -91,7 +90,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               Connect Your Wallet
             </h3>
             <p className="text-gray-500">
-              Please connect your Web3 wallet to start uploading files to IPFS
+              Please connect your Web3 wallet to start uploading files to BlockDrive IPFS Workspace
             </p>
           </div>
         </div>
@@ -173,32 +172,32 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               <Globe className="w-6 h-6 text-blue-400" />
               {uploadStatus === 'success' ? 'Upload Successful!' : 
                uploadStatus === 'error' ? 'Upload Failed' :
-               uploading ? 'Uploading to IPFS...' : 'Upload to IPFS Network'}
+               uploading ? 'Uploading to BlockDrive IPFS Workspace...' : 'Upload to BlockDrive IPFS Workspace'}
             </h3>
             <p className="text-gray-300 mb-2">
-              {uploadStatus === 'success' ? 'Your files have been successfully stored on IPFS!' :
+              {uploadStatus === 'success' ? 'Your files have been successfully stored in BlockDrive IPFS Workspace!' :
                uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
-               'Decentralized, immutable storage on the InterPlanetary File System'}
+               'Secure, decentralized storage powered by Web3.Storage and IPFS'}
             </p>
             <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
               <span className="flex items-center gap-1">
                 <Shield className="w-4 h-4" />
-                Encrypted
+                DID Authenticated
               </span>
               <span className="flex items-center gap-1">
                 <Globe className="w-4 h-4" />
-                Decentralized
+                IPFS Network
               </span>
               <span className="flex items-center gap-1">
                 <Zap className="w-4 h-4" />
-                Fast Access
+                Workspace Ready
               </span>
             </div>
             
             {uploading ? (
               <div className="space-y-4">
                 <div className="text-lg font-semibold text-green-400">
-                  Processing your files...
+                  Uploading to BlockDrive IPFS Workspace...
                 </div>
                 <Progress value={uploadProgress} className="w-full max-w-md mx-auto h-2" />
                 <div className="text-sm text-gray-400">
@@ -255,7 +254,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                 Drag and drop files here, or click "Choose Files" to browse
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Files are stored on IPFS and referenced by content hash (CID)
+                Files are stored in your BlockDrive IPFS Workspace (DID: z6Mkhy...efoe)
               </p>
             </div>
           )}

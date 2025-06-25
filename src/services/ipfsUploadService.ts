@@ -12,7 +12,8 @@ export class IPFSUploadService {
     folderPath?: string,
     onProgress?: (progress: number) => void
   ): Promise<IPFSFile[]> {
-    console.log(`Uploading ${files.length} files to IPFS...`);
+    console.log(`Uploading ${files.length} files to BlockDrive IPFS Workspace...`);
+    console.log(`Using DID: ${IPFSService.getDIDKey()}`);
     
     const uploadedFiles: IPFSFile[] = [];
     
@@ -23,20 +24,20 @@ export class IPFSUploadService {
       const file = files[i];
       onProgress?.(((i + 1) / files.length) * 50); // First 50% for IPFS upload
       
-      console.log(`Processing file ${i + 1}/${files.length}: ${file.name}`);
+      console.log(`Processing file ${i + 1}/${files.length} for BlockDrive IPFS Workspace: ${file.name}`);
       
-      // Upload to IPFS
+      // Upload to BlockDrive IPFS Workspace
       const ipfsResult = await IPFSService.uploadFile(file);
       if (!ipfsResult) {
-        throw new Error(`Failed to upload ${file.name} to IPFS`);
+        throw new Error(`Failed to upload ${file.name} to BlockDrive IPFS Workspace`);
       }
       
-      console.log('IPFS upload result:', ipfsResult);
+      console.log('BlockDrive IPFS Workspace upload result:', ipfsResult);
       
-      // Pin the file to ensure availability
+      // Pin the file to ensure availability in BlockDrive IPFS Workspace
       await IPFSService.pinFile(ipfsResult.cid);
       
-      // Store metadata in Supabase
+      // Store metadata in Supabase with BlockDrive IPFS Workspace reference
       const dbFile = await FileDatabaseService.saveFileMetadata(
         user.id,
         walletData.id,
@@ -62,16 +63,17 @@ export class IPFSUploadService {
       onProgress?.(50 + ((i + 1) / files.length) * 50); // Second 50% for database save
     }
     
-    console.log('All files uploaded successfully:', uploadedFiles);
+    console.log('All files uploaded successfully to BlockDrive IPFS Workspace:', uploadedFiles);
+    toast.success(`Successfully uploaded ${files.length} file(s) to BlockDrive IPFS Workspace!`);
     return uploadedFiles;
   }
 
   static async downloadFile(cid: string, filename: string) {
-    console.log(`Downloading file from IPFS: ${cid}`);
+    console.log(`Downloading file from BlockDrive IPFS Workspace: ${cid}`);
     
     const blob = await IPFSService.retrieveFile(cid);
     if (!blob) {
-      throw new Error('Failed to retrieve file from IPFS');
+      throw new Error('Failed to retrieve file from BlockDrive IPFS Workspace');
     }
     
     // Create download link
@@ -84,18 +86,18 @@ export class IPFSUploadService {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    toast.success(`Downloaded ${filename} successfully!`);
+    toast.success(`Downloaded ${filename} from BlockDrive IPFS Workspace!`);
   }
 
   static async deleteFile(fileId: string, cid: string, userId: string) {
-    console.log(`Deleting file: ${fileId} (CID: ${cid})`);
+    console.log(`Deleting file from BlockDrive IPFS Workspace: ${fileId} (CID: ${cid})`);
     
     // Remove from database
     await FileDatabaseService.deleteFile(fileId, userId);
     
-    // Unpin from IPFS (in production, this would remove it from your pinning service)
+    // Unpin from BlockDrive IPFS Workspace
     await IPFSService.unpinFile(cid);
     
-    toast.success('File deleted successfully!');
+    toast.success('File deleted from BlockDrive IPFS Workspace successfully!');
   }
 }
