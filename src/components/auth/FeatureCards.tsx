@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Database, Lock } from 'lucide-react';
-
 export const FeatureCards = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card className="bg-gray-900/40 border-gray-800">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
@@ -13,7 +10,7 @@ export const FeatureCards = () => {
               <Shield className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-white mb-2">Web3 Wallet Authentication</h3>
+              <h3 className="font-semibold text-white mb-2">Sign in with Solana Authentication</h3>
               <p className="text-gray-300 text-sm">Secure, passwordless login using your Web3 wallet signature. No passwords to remember or manage.</p>
             </div>
           </div>
@@ -58,6 +55,5 @@ export const FeatureCards = () => {
           Connect your Web3 wallet above and we'll authenticate you using your wallet signature.
         </p>
       </div>
-    </div>
-  );
+    </div>;
 };
