@@ -120,24 +120,27 @@ serve(async (req) => {
 
       // Create user profile for first-time users
       try {
+        const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
+        const email = `${walletAddress}@blockdrive.wallet`
+
         const { error: profileError } = await supabaseClient
           .from('profiles')
           .insert({
             id: authToken,
-            email: `${walletAddress}@blockdrive.wallet`,
-            username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`,
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType,
+            email: email,
+            username: username,
             created_at: new Date().toISOString()
           })
 
         if (profileError) {
           console.log('Profile creation failed (may already exist):', profileError)
+          // Don't fail the auth process if profile creation fails
         } else {
           console.log(`Created user profile for ${blockchainType} wallet:`, walletAddress)
         }
       } catch (profileErr) {
         console.log('Error creating profile:', profileErr)
+        // Don't fail the auth process if profile creation fails
       }
 
     } else {
