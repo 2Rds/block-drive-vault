@@ -24,35 +24,35 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
       name: 'All Files', 
       icon: Database, 
       count: loading ? 0 : stats.totalFiles, 
-      color: 'text-blue-400' 
+      color: 'text-slate-400' 
     },
     { 
       id: 'documents', 
       name: 'Documents', 
       icon: FileText, 
       count: getFileCountByType('Documents'), 
-      color: 'text-purple-400' 
+      color: 'text-slate-400' 
     },
     { 
       id: 'images', 
       name: 'Images', 
       icon: Image, 
       count: getFileCountByType('Images'), 
-      color: 'text-blue-300' 
+      color: 'text-slate-400' 
     },
     { 
       id: 'videos', 
       name: 'Videos', 
       icon: Video, 
       count: getFileCountByType('Videos'), 
-      color: 'text-purple-300' 
+      color: 'text-slate-400' 
     },
     { 
       id: 'archived', 
       name: 'Archived', 
       icon: Archive, 
       count: 0, // This would need additional logic if archiving is implemented
-      color: 'text-gray-400' 
+      color: 'text-slate-400' 
     },
   ];
 
@@ -68,19 +68,19 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
       label: 'Storage Used', 
       value: loading ? '0 GB' : `${stats.totalStorage} GB`, 
       icon: Database, 
-      color: 'text-blue-400' 
+      color: 'text-slate-400' 
     },
     { 
       label: 'Files Uploaded', 
       value: loading ? '0' : stats.totalFiles.toString(), 
       icon: Upload, 
-      color: 'text-purple-400' 
+      color: 'text-slate-400' 
     },
     { 
       label: 'Downloads', 
       value: loading ? '0' : recentDownloads.toString(), 
       icon: Download, 
-      color: 'text-blue-300' 
+      color: 'text-slate-400' 
     },
   ];
 
@@ -124,19 +124,19 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
               <button
                 key={folder.id}
                 onClick={() => onFolderSelect(folder.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
                   selectedFolder === folder.id
-                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-300 border border-blue-500/30'
-                    : 'text-gray-300 hover:bg-gray-700/30 hover:text-white'
+                    ? 'bg-slate-700/60 text-white border border-slate-600/50'
+                    : 'text-gray-300 hover:bg-slate-700/30 hover:text-white'
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <folder.icon className={`w-5 h-5 ${selectedFolder === folder.id ? 'text-blue-400' : folder.color}`} />
+                  <folder.icon className={`w-5 h-5 ${selectedFolder === folder.id ? 'text-slate-300' : folder.color}`} />
                   <span className="text-sm font-medium">{folder.name}</span>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   selectedFolder === folder.id 
-                    ? 'bg-blue-600/20 text-blue-300' 
+                    ? 'bg-slate-600/50 text-slate-200' 
                     : 'bg-gray-700/50 text-gray-400'
                 }`}>
                   {folder.count}
@@ -150,9 +150,9 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           <h3 className="text-sm font-semibold text-white mb-4">Storage Overview</h3>
           <div className="space-y-4">
             {stats_overview.map((stat, index) => (
-              <div key={index} className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/50">
+              <div key={index} className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20`}>
+                  <div className="p-2 rounded-lg bg-slate-600/40">
                     <stat.icon className={`w-4 h-4 ${stat.color}`} />
                   </div>
                   <span className="text-xs font-medium text-gray-300">{stat.label}</span>
@@ -163,7 +163,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-4 border border-blue-500/30">
+        <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/30">
           <div className="text-sm font-semibold text-white mb-1">Pro Tip</div>
           <div className="text-xs text-gray-300">
             Upload files securely with blockchain-verified ownership tokens.
