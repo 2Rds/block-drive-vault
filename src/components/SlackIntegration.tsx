@@ -37,6 +37,14 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     // Handle OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const error = urlParams.get('error');
+    
+    if (error) {
+      console.error('OAuth error:', error);
+      toast.error(`Slack connection failed: ${error}`);
+      return;
+    }
+
     if (code) {
       handleOAuthCallback(code);
     }
@@ -45,10 +53,13 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
   const handleOAuthCallback = async (code: string) => {
     try {
       setLoading(true);
-      const redirectUri = `${window.location.origin}${window.location.pathname}`;
-      const tokenData = await blockdriveSlack.exchangeCodeForToken(code, redirectUri);
+      const redirectUri = window.location.origin + window.location.pathname;
+      console.log('Using redirect URI:', redirectUri);
       
-      if (tokenData.access_token) {
+      const tokenData = await blockdriveSlack.exchangeCodeForToken(code, redirectUri);
+      console.log('Token exchange response:', tokenData);
+      
+      if (tokenData.ok && tokenData.access_token) {
         setAccessToken(tokenData.access_token);
         localStorage.setItem('slack_access_token', tokenData.access_token);
         setIsConnected(true);
@@ -59,7 +70,8 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        toast.error('Failed to connect to Slack');
+        console.error('Token exchange failed:', tokenData);
+        toast.error(`Failed to connect to Slack: ${tokenData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -71,8 +83,13 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
 
   const connectToSlack = async () => {
     try {
-      const redirectUri = `${window.location.origin}${window.location.pathname}`;
+      const redirectUri = window.location.origin + window.location.pathname;
+      console.log('Initiating OAuth with redirect URI:', redirectUri);
+      
       const authUrl = await blockdriveSlack.getAuthUrl(redirectUri);
+      console.log('Auth URL:', authUrl);
+      
+      // Open in same window to handle the OAuth flow
       window.location.href = authUrl;
     } catch (error) {
       console.error('Error connecting to Slack:', error);
@@ -201,6 +218,17 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
                 <p className="text-gray-400">
                   Connect your Slack workspace to share files seamlessly between BlockDrive and Slack channels.
                 </p>
+                <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-lg p-4 mb-4">
+                  <p className="text-yellow-400 text-sm">
+                    <strong>Setup Required:</strong> Make sure to add the following redirect URI to your Slack app settings:
+                  </p>
+                  <code className="block mt-2 p-2 bg-gray-800 rounded text-green-400 text-xs">
+                    {window.location.origin + window.location.pathname}
+                  </code>
+                  <p className="text-yellow-400 text-xs mt-2">
+                    Go to your Slack app settings → OAuth & Permissions → Redirect URLs
+                  </p>
+                </div>
                 <Button 
                   onClick={connectToSlack}
                   disabled={loading}

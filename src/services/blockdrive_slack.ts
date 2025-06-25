@@ -20,7 +20,7 @@ export interface SlackChannel {
 
 export class BlockDriveSlack {
   private clientId = "7000743189300.9094403349587";
-  private appToken = "xapp-1-A092SBVA9H9-9087091029207-c53b2f4026ce3b9cebdf84fdb37754e63c83ab6aea110c528d453b2992d6b269";
+  private clientSecret = "27eac3369ca9e7bd0184c6f1b0ab1ec5";
   private baseUrl = "https://slack.com/api";
 
   async getAuthUrl(redirectUri: string, state?: string): Promise<string> {
@@ -36,6 +36,7 @@ export class BlockDriveSlack {
       client_id: this.clientId,
       scope: scopes,
       redirect_uri: redirectUri,
+      response_type: "code",
       ...(state && { state })
     });
 
@@ -46,11 +47,11 @@ export class BlockDriveSlack {
     const response = await fetch(`${this.baseUrl}/oauth.v2.access`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Bearer ${this.appToken}`
+        "Content-Type": "application/x-www-form-urlencoded"
       },
       body: new URLSearchParams({
         client_id: this.clientId,
+        client_secret: this.clientSecret,
         code,
         redirect_uri: redirectUri
       })
