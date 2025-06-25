@@ -40,10 +40,8 @@ export const FeatureCards = () => {
               <Lock className="w-6 h-6 text-green-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-white mb-2">Privacy-First Authentication</h3>
-              <p className="text-gray-300 text-sm">
-                Your Web3 wallet provides authentication without BlockDrive collecting any personal data. We never store or expose your private information to the web.
-              </p>
+              <h3 className="font-semibold text-white mb-2">Next Generation Multifactor Authentication</h3>
+              <p className="text-gray-300 text-sm">After creating your new account, you will be airdropped a non transferrable BlockDrive NFT. Once received, that NFT will allow you to create a blockdrive.sol subdomain. These two tokens will be used as a 2FA to authenticate your wallet going forward.</p>
             </div>
           </div>
         </CardContent>
