@@ -14,6 +14,8 @@ interface WalletAuthRequest {
   nonce?: string
   timestamp?: number
   blockchainType?: 'solana' | 'ethereum'
+  createWalletOnly?: boolean
+  userId?: string
 }
 
 serve(async (req) => {
@@ -27,13 +29,57 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { walletAddress, signature, message, nonce, timestamp, blockchainType = 'ethereum' }: WalletAuthRequest = await req.json()
+    const { 
+      walletAddress, 
+      signature, 
+      message, 
+      nonce, 
+      timestamp, 
+      blockchainType = 'ethereum',
+      createWalletOnly = false,
+      userId
+    }: WalletAuthRequest = await req.json()
 
     // Validate required fields
     if (!walletAddress || !signature || !message) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: walletAddress, signature, message' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Handle wallet creation only request
+    if (createWalletOnly && userId) {
+      console.log('Creating wallet for user:', userId)
+      
+      // Use service role to bypass RLS
+      const { data: newWallet, error: createWalletError } = await supabaseClient
+        .from('wallets')
+        .insert({
+          user_id: userId,
+          wallet_address: walletAddress,
+          public_key: '',
+          private_key_encrypted: '',
+          blockchain_type: blockchainType
+        })
+        .select('id')
+        .single()
+
+      if (createWalletError) {
+        console.error('Failed to create wallet:', createWalletError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create wallet' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          walletId: newWallet.id,
+          message: 'Wallet created successfully'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -117,6 +163,31 @@ serve(async (req) => {
       }
 
       console.log(`Created new authentication for ${blockchainType} wallet:`, walletAddress)
+
+      // Create wallet record for first-time users using service role
+      try {
+        const { data: newWallet, error: walletError } = await supabaseClient
+          .from('wallets')
+          .insert({
+            user_id: authToken,
+            wallet_address: walletAddress,
+            public_key: '',
+            private_key_encrypted: '',
+            blockchain_type: blockchainType
+          })
+          .select('id')
+          .single()
+
+        if (walletError) {
+          console.error('Failed to create wallet record:', walletError)
+          // Don't fail the auth process if wallet creation fails
+        } else {
+          console.log(`Created wallet record for ${blockchainType} wallet:`, walletAddress)
+        }
+      } catch (walletErr) {
+        console.log('Error creating wallet record:', walletErr)
+        // Don't fail the auth process if wallet creation fails
+      }
 
       // Create user profile for first-time users
       try {
