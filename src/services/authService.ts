@@ -28,13 +28,14 @@ export class AuthService {
     try {
       console.log('Attempting to authenticate Solana wallet:', walletAddress);
       
-      // Call our edge function to handle wallet authentication
-      const { data, error } = await supabase.functions.invoke('authenticate-wallet', {
+      // Use the new secure authentication endpoint
+      const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
         body: {
           walletAddress,
           signature,
           message: 'Sign this message to authenticate with BlockDrive',
-          blockchainType
+          timestamp: Date.now(),
+          nonce: crypto.randomUUID()
         }
       });
 
@@ -50,8 +51,8 @@ export class AuthService {
           toast.success('Wallet authenticated successfully! Welcome back!');
         }
         
-        // The edge function handles the authentication, so the user should be logged in now
-        return { error: null };
+        // For now, we'll create a simple session (in production, implement proper JWT handling)
+        return { error: null, data };
       } else {
         return { error: { message: 'Wallet authentication failed' } };
       }
