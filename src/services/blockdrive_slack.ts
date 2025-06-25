@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SlackFile {
@@ -36,6 +35,8 @@ export class BlockDriveSlack {
   private baseUrl = "https://slack.com/api";
 
   async getAuthUrl(redirectUri: string, state?: string): Promise<string> {
+    console.log('Generating OAuth URL with:', { redirectUri, state });
+    
     const scopes = [
       "channels:read",
       "files:read",
@@ -53,10 +54,14 @@ export class BlockDriveSlack {
       ...(state && { state })
     });
 
-    return `https://slack.com/oauth/v2/authorize?${params.toString()}`;
+    const authUrl = `https://slack.com/oauth/v2/authorize?${params.toString()}`;
+    console.log('Generated OAuth URL:', authUrl);
+    return authUrl;
   }
 
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<any> {
+    console.log('Exchanging OAuth code for token...');
+    
     try {
       const response = await fetch(`${this.baseUrl}/oauth.v2.access`, {
         method: "POST",
@@ -71,10 +76,19 @@ export class BlockDriveSlack {
         })
       });
 
+      console.log('Token exchange response status:', response.status);
       const data = await response.json();
+      console.log('Token exchange response:', { 
+        ok: data.ok, 
+        error: data.error,
+        warning: data.warning,
+        hasAccessToken: !!data.access_token 
+      });
       
-      if (!response.ok) {
-        throw new Error(`OAuth exchange failed: ${data.error || 'Unknown error'}`);
+      if (!response.ok || !data.ok) {
+        const errorMsg = `OAuth exchange failed: ${data.error || data.warning || 'Unknown error'}`;
+        console.error(errorMsg, data);
+        throw new Error(errorMsg);
       }
 
       return data;
@@ -85,6 +99,8 @@ export class BlockDriveSlack {
   }
 
   async verifyConnection(accessToken: string): Promise<boolean> {
+    console.log('Verifying Slack connection...');
+    
     try {
       const response = await fetch(`${this.baseUrl}/auth.test`, {
         headers: {
@@ -94,6 +110,7 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
+      console.log('Connection verification result:', { ok: data.ok, error: data.error });
       return data.ok === true;
     } catch (error) {
       console.error('Connection verification failed:', error);
@@ -102,6 +119,8 @@ export class BlockDriveSlack {
   }
 
   async getTeamInfo(accessToken: string): Promise<SlackTeamInfo | null> {
+    console.log('Fetching team info...');
+    
     try {
       const response = await fetch(`${this.baseUrl}/team.info`, {
         headers: {
@@ -111,7 +130,14 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
-      return data.ok ? data.team : null;
+      console.log('Team info response:', { ok: data.ok, error: data.error });
+      
+      if (!data.ok) {
+        console.error('Failed to fetch team info:', data.error);
+        return null;
+      }
+      
+      return data.team;
     } catch (error) {
       console.error('Error fetching team info:', error);
       return null;
@@ -119,6 +145,8 @@ export class BlockDriveSlack {
   }
 
   async getChannels(accessToken: string): Promise<SlackChannel[]> {
+    console.log('Fetching channels...');
+    
     try {
       const response = await fetch(`${this.baseUrl}/conversations.list?types=public_channel,private_channel`, {
         headers: {
@@ -128,6 +156,7 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
+      console.log('Channels response:', { ok: data.ok, error: data.error, count: data.channels?.length || 0 });
       
       if (!data.ok) {
         throw new Error(`Failed to fetch channels: ${data.error}`);
@@ -141,6 +170,8 @@ export class BlockDriveSlack {
   }
 
   async getFiles(accessToken: string, limit: number = 100): Promise<SlackFile[]> {
+    console.log('Fetching files...');
+    
     try {
       const response = await fetch(`${this.baseUrl}/files.list?count=${limit}`, {
         headers: {
@@ -150,6 +181,7 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
+      console.log('Files response:', { ok: data.ok, error: data.error, count: data.files?.length || 0 });
       
       if (!data.ok) {
         throw new Error(`Failed to fetch files: ${data.error}`);
@@ -163,6 +195,8 @@ export class BlockDriveSlack {
   }
 
   async uploadFileToSlack(accessToken: string, file: File, channels: string[], title?: string, initialComment?: string): Promise<any> {
+    console.log('Uploading file to Slack:', { fileName: file.name, channels, title });
+    
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -179,6 +213,7 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
+      console.log('File upload response:', { ok: data.ok, error: data.error });
       
       if (!data.ok) {
         throw new Error(`Upload failed: ${data.error}`);
@@ -192,6 +227,8 @@ export class BlockDriveSlack {
   }
 
   async downloadFileFromSlack(accessToken: string, fileUrl: string): Promise<Blob> {
+    console.log('Downloading file from Slack:', fileUrl);
+    
     try {
       const response = await fetch(fileUrl, {
         headers: {
@@ -211,8 +248,11 @@ export class BlockDriveSlack {
   }
 
   async syncSlackFiles(accessToken: string, userId: string): Promise<void> {
+    console.log('Syncing Slack files to Supabase...');
+    
     try {
       const files = await this.getFiles(accessToken);
+      console.log('Files to sync:', files.length);
       
       for (const file of files) {
         const { error } = await supabase
@@ -232,6 +272,8 @@ export class BlockDriveSlack {
           console.error("Error syncing file:", error);
         }
       }
+      
+      console.log('File sync completed');
     } catch (error) {
       console.error("Error syncing Slack files:", error);
       throw error;
@@ -239,6 +281,8 @@ export class BlockDriveSlack {
   }
 
   async postMessage(accessToken: string, channel: string, text: string, blocks?: any[]): Promise<any> {
+    console.log('Posting message to Slack:', { channel, text: text.substring(0, 50) + '...' });
+    
     try {
       const payload: any = {
         channel,
@@ -259,6 +303,7 @@ export class BlockDriveSlack {
       });
 
       const data = await response.json();
+      console.log('Message post response:', { ok: data.ok, error: data.error });
       
       if (!data.ok) {
         throw new Error(`Failed to post message: ${data.error}`);
@@ -271,7 +316,6 @@ export class BlockDriveSlack {
     }
   }
 
-  // Helper method to handle rate limiting
   private async handleRateLimit(response: Response): Promise<void> {
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After');
@@ -281,7 +325,6 @@ export class BlockDriveSlack {
     }
   }
 
-  // Utility method to check if token is still valid
   async isTokenValid(accessToken: string): Promise<boolean> {
     return this.verifyConnection(accessToken);
   }
