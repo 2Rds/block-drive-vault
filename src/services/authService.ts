@@ -24,7 +24,7 @@ export class AuthService {
     }
   }
 
-  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') => {
+  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') {
     try {
       console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
       
@@ -36,7 +36,7 @@ export class AuthService {
           message: 'Sign this message to authenticate with BlockDrive',
           timestamp: Date.now(),
           nonce: crypto.randomUUID(),
-          blockchainType // Pass the blockchain type
+          blockchainType
         }
       });
 
@@ -62,16 +62,28 @@ export class AuthService {
           },
           access_token: data.authToken,
           refresh_token: data.authToken,
-          expires_at: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+          expires_at: Date.now() + (24 * 60 * 60 * 1000),
           token_type: 'bearer'
         };
 
         // Store session in localStorage for persistence
         localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
         
+        // Set wallet data immediately for UI consistency
+        const walletData = {
+          address: walletAddress,
+          publicKey: null,
+          adapter: null,
+          connected: true,
+          autoConnect: false,
+          id: blockchainType,
+          wallet_address: walletAddress,
+          blockchain_type: blockchainType
+        };
+        
         // Trigger auth state change manually with wallet data
         window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
-          detail: sessionData 
+          detail: { ...sessionData, walletData }
         }));
 
         if (data.isFirstTime) {
