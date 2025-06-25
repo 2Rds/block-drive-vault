@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from './useAuth';
@@ -40,7 +41,7 @@ export const useWalletConnection = () => {
     // Set wallet data
     setWalletData({
       address: walletInfo.address,
-      publicKey: walletId === 'phantom' ? phantomService.getAdapter()?.publicKey : solflareService.getAdapter()?.publicKey,
+      publicKey: walletId === 'phantom' ? phantomService.getAdapter()?.publicKey?.toBase58() : solflareService.getAdapter()?.publicKey?.toBase58(),
       adapter: walletId === 'phantom' ? phantomService.getAdapter() : solflareService.getAdapter(),
       connected: true,
       autoConnect: false,
