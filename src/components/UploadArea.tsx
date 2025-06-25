@@ -29,15 +29,15 @@ export const UploadArea = ({ isUploading, setIsUploading }: UploadAreaProps) => 
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl border-2 border-dashed border-white/30 p-8 text-center hover:border-purple-500/50 transition-colors">
+    <div className="bg-white/10 backdrop-blur-md rounded-xl border-2 border-dashed border-white/30 p-8 text-center hover:border-blue-500/50 transition-colors">
       <div
         className="space-y-4"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
         <div className="flex justify-center">
-          <div className="p-4 bg-purple-600/20 rounded-full">
-            <Upload className="w-8 h-8 text-purple-400" />
+          <div className="p-4 bg-blue-600/20 rounded-full">
+            <Upload className="w-8 h-8 text-blue-600" />
           </div>
         </div>
         <div>
@@ -50,7 +50,7 @@ export const UploadArea = ({ isUploading, setIsUploading }: UploadAreaProps) => 
           <div className="flex justify-center space-x-4">
             <Button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
               disabled={isUploading}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -71,7 +71,7 @@ export const UploadArea = ({ isUploading, setIsUploading }: UploadAreaProps) => 
         {isUploading && (
           <div className="mt-4">
             <div className="w-full bg-gray-700 rounded-full h-2">
-              <div className="h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse w-1/2"></div>
+              <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full animate-pulse w-1/2"></div>
             </div>
             <p className="text-sm text-gray-400 mt-2">Uploading to blockchain...</p>
           </div>

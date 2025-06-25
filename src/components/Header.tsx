@@ -1,20 +1,18 @@
+
 import React, { useState } from 'react';
 import { Search, Bell, User, Wallet, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 export const Header = () => {
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
   const handleSignOut = async () => {
     setIsLoading(true);
-    const {
-      error
-    } = await signOut();
+    const { error } = await signOut();
     if (error) {
       toast.error('Failed to sign out');
     } else {
@@ -22,7 +20,9 @@ export const Header = () => {
     }
     setIsLoading(false);
   };
-  return <header className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
+
+  return (
+    <header className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
       <div className="flex items-center justify-between px-8 py-4">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
@@ -31,7 +31,6 @@ export const Header = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              
             </div>
           </div>
         </div>
@@ -51,7 +50,7 @@ export const Header = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl px-3 py-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-medium">{user?.user_metadata?.username || 'User'}</span>
@@ -76,11 +75,12 @@ export const Header = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-600/30 rounded-xl px-4 py-2">
-            <Wallet className="w-4 h-4 text-blue-400" />
+          <div className="flex items-center space-x-2 bg-blue-600/20 border border-blue-600/30 rounded-xl px-4 py-2">
+            <Wallet className="w-4 h-4 text-blue-600" />
             <span className="text-gray-300 text-sm font-medium">Connected</span>
           </div>
         </div>
       </div>
-    </header>;
+    </header>
+  );
 };
