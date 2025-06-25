@@ -17,10 +17,17 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
     console.log('Thirdweb login params:', params);
     
     try {
-      // Extract wallet information from params
-      const walletAddress = params.address;
+      // Extract wallet information from params - Thirdweb passes these directly
+      const walletAddress = params.address || params.payload?.address;
       const signature = params.signature;
-      const message = params.payload?.statement || 'Sign this message to authenticate with BlockDrive';
+      
+      console.log('Extracted wallet address:', walletAddress);
+      console.log('Extracted signature:', signature);
+      
+      if (!walletAddress || !signature) {
+        console.error('Missing wallet address or signature:', { walletAddress, signature });
+        throw new Error('Missing wallet address or signature from Thirdweb');
+      }
       
       // Determine blockchain type based on address format (chain agnostic approach)
       let blockchainType: 'solana' | 'ethereum' = 'ethereum';
@@ -30,6 +37,8 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
       if (walletAddress && !walletAddress.startsWith('0x') && walletAddress.length >= 32) {
         blockchainType = 'solana';
       }
+
+      console.log('Determined blockchain type:', blockchainType);
 
       // Authenticate with our backend
       const authResult = await connectWallet(walletAddress, signature, blockchainType);
@@ -41,10 +50,11 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
             address: walletAddress,
             blockchain: blockchainType,
             signature,
-            message
+            message: params.payload?.statement || 'Authentication successful'
           });
         }
       } else {
+        console.error('Authentication failed:', authResult.error);
         toast.error('Failed to authenticate wallet. Please try again.');
         throw new Error('Authentication failed');
       }
