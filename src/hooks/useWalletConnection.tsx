@@ -1,175 +1,175 @@
+import { useState, useEffect } from 'react';
+import { useToast } from "@/components/ui/use-toast"
+import { PublicKey } from '@solana/web3.js';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
+import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import { useAuth } from './useAuth';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { AuthService } from '@/services/authService';
-
-interface WalletOption {
-  id: string;
-  name: string;
-  icon: string;
-  blockchain: 'solana';
+interface WalletData {
+  address: string | null;
+  publicKey: PublicKey | null;
+  adapter: PhantomWalletAdapter | SolflareWalletAdapter | null;
+  connected: boolean;
+  autoConnect: boolean;
+  id: string | null;
 }
 
 export const useWalletConnection = () => {
-  const [isConnecting, setIsConnecting] = useState<string | null>(null);
-  const [connectedWallet, setConnectedWallet] = useState<{address: string, blockchain: string} | null>(null);
+  const { setWalletData, walletData } = useAuth();
+  const [connecting, setConnecting] = useState(false);
+  const { toast } = useToast()
 
-  const detectWallet = (walletId: string) => {
-    switch (walletId) {
-      case 'phantom':
-        return (window as any).phantom?.solana;
-      case 'solflare':
-        return (window as any).solflare;
-      default:
-        return false;
+  useEffect(() => {
+    const storedWalletType = localStorage.getItem('selectedWallet');
+    if (storedWalletType) {
+      if (storedWalletType === 'phantom') {
+        connectPhantom(true);
+      } else if (storedWalletType === 'solflare') {
+        connectSolflare(true);
+      }
     }
+  }, []);
+
+  const disconnectWallet = () => {
+    if (walletData?.adapter) {
+      walletData.adapter.disconnect();
+    }
+    setWalletData({
+      address: null,
+      publicKey: null,
+      adapter: null,
+      connected: false,
+      autoConnect: false,
+      id: null
+    });
+    localStorage.removeItem('selectedWallet');
+    toast({
+      title: "Wallet Disconnected",
+      description: "You have successfully disconnected your wallet.",
+    })
   };
 
-  const connectToWallet = async (walletId: string) => {
+  const connectPhantom = async (autoConnect = false) => {
+    setConnecting(true);
     try {
-      let walletAddress = '';
-      let publicKey = '';
-      
-      switch (walletId) {
-        case 'phantom':
-          if ((window as any).phantom?.solana) {
-            console.log('Phantom wallet detected, attempting connection...');
-            const response = await (window as any).phantom.solana.connect();
-            console.log('Phantom connection response:', response);
-            walletAddress = response.publicKey.toString();
-            publicKey = response.publicKey.toString();
-            console.log('Phantom wallet connected:', walletAddress);
-          } else {
-            throw new Error('Phantom wallet not found');
-          }
-          break;
-        case 'solflare':
-          if ((window as any).solflare) {
-            console.log('Solflare wallet detected, attempting connection...');
-            await (window as any).solflare.connect();
-            const publicKeyObj = (window as any).solflare.publicKey;
-            walletAddress = publicKeyObj ? publicKeyObj.toString() : '';
-            publicKey = walletAddress;
-            console.log('Solflare wallet connected:', walletAddress);
-          } else {
-            throw new Error('Solflare wallet not found');
-          }
-          break;
-        default:
-          throw new Error('Unsupported wallet');
+      const adapter = new PhantomWalletAdapter();
+      if (!adapter.ready) {
+        toast({
+          title: "Phantom Extension Not Detected",
+          description: "Please install the Phantom extension to connect your wallet.",
+          variant: "destructive",
+        })
+        return;
       }
-      
-      if (!walletAddress) {
-        throw new Error('Failed to get wallet address');
-      }
-      
-      return { walletAddress, publicKey };
-    } catch (error: any) {
-      console.error('Connect wallet error details:', error);
-      // More specific error handling
-      if (error.code === -32603) {
-        throw new Error('Wallet connection failed. Please make sure your wallet is unlocked and try again.');
-      } else if (error.code === 4001) {
-        throw new Error('Connection cancelled by user');
-      } else if (error.message?.includes('User rejected')) {
-        throw new Error('Connection cancelled by user');
-      }
-      throw new Error(error.message || `Failed to connect to ${walletId}`);
-    }
-  };
 
-  const signMessage = async (walletId: string, message: string) => {
-    try {
-      let signature = '';
-      
-      switch (walletId) {
-        case 'phantom':
-          if ((window as any).phantom?.solana) {
-            const encodedMessage = new TextEncoder().encode(message);
-            console.log('Requesting signature from Phantom...');
-            const signedMessage = await (window as any).phantom.solana.signMessage(encodedMessage);
-            // Convert Uint8Array signature to hex string properly
-            signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
-          }
-          break;
-        case 'solflare':
-          if ((window as any).solflare) {
-            const encodedMessage = new TextEncoder().encode(message);
-            console.log('Requesting signature from Solflare...');
-            const signedMessage = await (window as any).solflare.signMessage(encodedMessage);
-            // Convert Uint8Array signature to hex string properly
-            signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
-          }
-          break;
-        default:
-          throw new Error('Unsupported wallet for signing');
+      let phantom;
+      if (typeof window !== 'undefined') {
+        phantom = window.phantom?.solana;
       }
-      
-      return signature;
-    } catch (error: any) {
-      console.error('Sign message error details:', error);
-      if (error.code === 4001) {
-        throw new Error('Message signing cancelled by user');
-      }
-      throw new Error(error.message || 'Failed to sign message');
-    }
-  };
 
-  const handleWalletConnect = async (wallet: WalletOption, onSignupRequired: (wallet: {address: string, blockchain: string}) => void) => {
-    const walletDetected = detectWallet(wallet.id);
-    if (!walletDetected) {
-      toast.error(`${wallet.name} wallet not detected. Please install it first.`);
-      return;
-    }
-    
-    setIsConnecting(wallet.id);
-    
-    try {
-      console.log(`Attempting to connect to ${wallet.name} wallet...`);
-      const { walletAddress } = await connectToWallet(wallet.id);
+      if (!phantom) {
+        console.error('Phantom wallet not found');
+        return;
+      }
+
+      await adapter.connect();
+
+      const publicKey = new PublicKey(adapter.publicKey as any);
+      const address = publicKey.toBase58();
+
+      // Sign a message to verify ownership
+      const message = 'Sign this message to verify your BlockDrive account.';
+      const encodedMessage = new TextEncoder().encode(message);
+      const signature = await adapter.signMessage(encodedMessage);
       
-      console.log('Wallet connected, requesting signature for authentication...');
-      
-      // Request signature for authentication
-      const message = 'Sign this message to authenticate with BlockDrive';
-      const signature = await signMessage(wallet.id, message);
-      
-      console.log('Signature obtained, authenticating with BlockDrive...');
-      
-      // Authenticate with our service
-      const result = await AuthService.connectWallet(walletAddress, signature, wallet.blockchain);
-      
-      if (result.error) {
-        console.error('Authentication failed:', result.error);
-        // Show signup form for new wallets that need registration
-        const walletInfo = { address: walletAddress, blockchain: wallet.blockchain };
-        setConnectedWallet(walletInfo);
-        onSignupRequired(walletInfo);
-        toast.info(`${wallet.name} connected! Please complete signup to register your wallet.`);
+      // Convert signature to hex string
+      const signatureHex = Array.from(signature)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Verify signature (This part would ideally be done on the server)
+      const isValidSignature = true; // Placeholder for server-side verification
+
+      if (isValidSignature) {
+        setWalletData({
+          address,
+          publicKey,
+          adapter,
+          connected: true,
+          autoConnect,
+          id: 'phantom'
+        });
+        localStorage.setItem('selectedWallet', 'phantom');
+        toast({
+          title: "Phantom Wallet Connected",
+          description: `Wallet address: ${address}`,
+        })
       } else {
-        console.log('Authentication successful, redirecting to dashboard...');
-        toast.success(`${wallet.name} authenticated successfully!`);
-        
-        // Set connected wallet state
-        setConnectedWallet({ address: walletAddress, blockchain: wallet.blockchain });
-        
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          window.location.href = '/index';
-        }, 1000);
+        console.error('Signature verification failed');
       }
     } catch (error: any) {
-      console.error('Wallet connection error:', error);
-      toast.error(error.message || `Failed to connect ${wallet.name}`);
+      console.error('Error connecting to Phantom wallet:', error);
+      toast({
+        title: "Connection Error",
+        description: error.message || "Failed to connect to Phantom wallet.",
+        variant: "destructive",
+      })
+    } finally {
+      setConnecting(false);
     }
-    
-    setIsConnecting(null);
   };
 
-  return {
-    isConnecting,
-    connectedWallet,
-    setConnectedWallet,
-    handleWalletConnect
+  const connectSolflare = async (autoConnect = false) => {
+    setConnecting(true);
+    try {
+      const adapter = new SolflareWalletAdapter();
+      
+      await adapter.connect();
+
+      const publicKey = new PublicKey(adapter.publicKey as any);
+      const address = publicKey.toBase58();
+
+      // Sign a message to verify ownership
+      const message = 'Sign this message to verify your BlockDrive account.';
+      const encodedMessage = new TextEncoder().encode(message);
+      const signature = await adapter.signMessage(encodedMessage);
+      
+      // Convert signature to hex string  
+      const signatureHex = Array.from(signature)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Verify signature (This part would ideally be done on the server)
+      const isValidSignature = true; // Placeholder for server-side verification
+
+      if (isValidSignature) {
+        setWalletData({
+          address,
+          publicKey,
+          adapter,
+          connected: true,
+          autoConnect,
+          id: 'solflare'
+        });
+        localStorage.setItem('selectedWallet', 'solflare');
+        toast({
+          title: "Solflare Wallet Connected",
+          description: `Wallet address: ${address}`,
+        })
+      } else {
+        console.error('Signature verification failed');
+      }
+    } catch (error: any) {
+      console.error('Error connecting to Solflare wallet:', error);
+      toast({
+        title: "Connection Error",
+        description: error.message || "Failed to connect to Solflare wallet.",
+        variant: "destructive",
+      })
+    } finally {
+      setConnecting(false);
+    }
   };
+
+  return { connectPhantom, connectSolflare, connecting, disconnectWallet };
 };
