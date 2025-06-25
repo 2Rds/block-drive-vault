@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana') => {
+  const connectWallet = async (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') => {
     return await AuthService.connectWallet(walletAddress, signature, blockchainType);
   };
 
