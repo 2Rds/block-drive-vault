@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -52,35 +51,83 @@ serve(async (req) => {
     if (createWalletOnly && userId) {
       console.log('Creating wallet for user:', userId)
       
-      // Use service role to bypass RLS
-      const { data: newWallet, error: createWalletError } = await supabaseClient
-        .from('wallets')
-        .insert({
-          user_id: userId,
-          wallet_address: walletAddress,
-          public_key: '',
-          private_key_encrypted: '',
-          blockchain_type: blockchainType
-        })
-        .select('id')
-        .single()
+      try {
+        // First, ensure the user profile exists
+        const { data: existingProfile, error: profileCheckError } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle()
 
-      if (createWalletError) {
-        console.error('Failed to create wallet:', createWalletError)
+        if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+          console.error('Error checking profile:', profileCheckError)
+        }
+
+        if (!existingProfile) {
+          // Create user profile first
+          const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
+          const email = `${walletAddress}@blockdrive.wallet`
+
+          const { error: profileError } = await supabaseClient
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: email,
+              username: username
+            })
+
+          if (profileError) {
+            console.error('Failed to create profile:', profileError)
+            // Continue anyway, as the profile might already exist
+          } else {
+            console.log('Created user profile for wallet:', walletAddress)
+          }
+        }
+
+        // Now create the wallet record using service role to bypass RLS
+        const { data: newWallet, error: createWalletError } = await supabaseClient
+          .from('wallets')
+          .insert({
+            user_id: userId,
+            wallet_address: walletAddress,
+            public_key: '',
+            private_key_encrypted: '',
+            blockchain_type: blockchainType
+          })
+          .select('id')
+          .single()
+
+        if (createWalletError) {
+          console.error('Failed to create wallet:', createWalletError)
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to create wallet',
+              details: createWalletError.message 
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Successfully created wallet:', newWallet)
         return new Response(
-          JSON.stringify({ error: 'Failed to create wallet' }),
+          JSON.stringify({
+            success: true,
+            walletId: newWallet.id,
+            message: 'Wallet created successfully'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+
+      } catch (walletCreationError) {
+        console.error('Wallet creation process failed:', walletCreationError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Wallet creation failed',
+            details: walletCreationError.message 
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          walletId: newWallet.id,
-          message: 'Wallet created successfully'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
     // Validate wallet address format based on blockchain type
@@ -164,6 +211,30 @@ serve(async (req) => {
 
       console.log(`Created new authentication for ${blockchainType} wallet:`, walletAddress)
 
+      // Create user profile for first-time users
+      try {
+        const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
+        const email = `${walletAddress}@blockdrive.wallet`
+
+        const { error: profileError } = await supabaseClient
+          .from('profiles')
+          .insert({
+            id: authToken,
+            email: email,
+            username: username
+          })
+
+        if (profileError) {
+          console.log('Profile creation failed (may already exist):', profileError)
+          // Don't fail the auth process if profile creation fails
+        } else {
+          console.log(`Created user profile for ${blockchainType} wallet:`, walletAddress)
+        }
+      } catch (profileErr) {
+        console.log('Error creating profile:', profileErr)
+        // Don't fail the auth process if profile creation fails
+      }
+
       // Create wallet record for first-time users using service role
       try {
         const { data: newWallet, error: walletError } = await supabaseClient
@@ -187,31 +258,6 @@ serve(async (req) => {
       } catch (walletErr) {
         console.log('Error creating wallet record:', walletErr)
         // Don't fail the auth process if wallet creation fails
-      }
-
-      // Create user profile for first-time users
-      try {
-        const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
-        const email = `${walletAddress}@blockdrive.wallet`
-
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .insert({
-            id: authToken,
-            email: email,
-            username: username,
-            created_at: new Date().toISOString()
-          })
-
-        if (profileError) {
-          console.log('Profile creation failed (may already exist):', profileError)
-          // Don't fail the auth process if profile creation fails
-        } else {
-          console.log(`Created user profile for ${blockchainType} wallet:`, walletAddress)
-        }
-      } catch (profileErr) {
-        console.log('Error creating profile:', profileErr)
-        // Don't fail the auth process if profile creation fails
       }
 
     } else {
