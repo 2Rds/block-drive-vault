@@ -10,9 +10,10 @@ import { useAuth } from '@/hooks/useAuth';
 interface IPFSUploadAreaProps {
   onCreateFolder?: (folderName: string) => void;
   selectedFolder?: string;
+  onUploadComplete?: () => void;
 }
 
-export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAreaProps) => {
+export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplete }: IPFSUploadAreaProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -31,6 +32,10 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
       const result = await uploadToIPFS(files, folderPath);
       if (result && result.length > 0) {
         setUploadStatus('success');
+        // Call the callback to refresh the file grid
+        if (onUploadComplete) {
+          onUploadComplete();
+        }
         // Reset status after 3 seconds
         setTimeout(() => setUploadStatus('idle'), 3000);
       } else {

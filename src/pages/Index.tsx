@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
-import { FileGrid } from '@/components/FileGrid';
+import { IPFSFileGrid } from '@/components/IPFSFileGrid';
 import { IPFSUploadArea } from '@/components/IPFSUploadArea';
 import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
@@ -92,7 +92,7 @@ const Index = () => {
                   onCreateFolder={handleCreateFolder}
                   selectedFolder={selectedFolder}
                 />
-                <FileGrid selectedFolder={selectedFolder} userFolders={userFolders} />
+                <IPFSFileGrid selectedFolder={selectedFolder} userFolders={userFolders} />
               </>
             )}
           </div>
