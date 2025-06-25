@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from './useAuth';
 import { IPFSService } from '@/services/ipfsService';
@@ -66,7 +67,7 @@ export const useIPFSUpload = () => {
         // Pin the file to ensure availability
         await IPFSService.pinFile(ipfsResult.cid);
         
-        // First, get or create the user's wallet record
+        // First, get or create the user's wallet record using the Web3 authentication token
         let { data: walletData, error: walletError } = await supabase
           .from('wallets')
           .select('id')
@@ -83,6 +84,8 @@ export const useIPFSUpload = () => {
           const walletAddress = user.wallet_address || 
                                user.user_metadata?.wallet_address || 
                                user.id;
+          
+          console.log('Creating new wallet for user:', user.id, 'with address:', walletAddress);
           
           const { data: newWallet, error: createWalletError } = await supabase
             .from('wallets')
