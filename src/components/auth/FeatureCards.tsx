@@ -13,9 +13,9 @@ export const FeatureCards = () => {
               <Shield className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-white mb-2">Magic Link Authentication</h3>
+              <h3 className="font-semibold text-white mb-2">Web3 Wallet Authentication</h3>
               <p className="text-gray-300 text-sm">
-                Secure, passwordless login via email magic links. No need to remember passwords or manage keys.
+                Secure, passwordless login using your Solana wallet signature. No passwords to remember or manage.
               </p>
             </div>
           </div>
@@ -45,9 +45,9 @@ export const FeatureCards = () => {
               <Sparkles className="w-6 h-6 text-green-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-white mb-2">Multi-Wallet Support</h3>
+              <h3 className="font-semibold text-white mb-2">Solana Wallet Support</h3>
               <p className="text-gray-300 text-sm">
-                Connect with Phantom, MetaMask, Trust Wallet, Ledger, and more. Works across Solana, Ethereum, and TON networks.
+                Connect with popular Solana wallets including Phantom and Solflare for seamless Web3 authentication.
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export const FeatureCards = () => {
       <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
         <h4 className="font-semibold text-white mb-2 text-sm">Already have an authentication token?</h4>
         <p className="text-gray-400 text-xs mb-3">
-          Connect your wallet above and we'll send you a magic link to your registered email.
+          Connect your Solana wallet above and we'll authenticate you using your wallet signature.
         </p>
       </div>
     </div>

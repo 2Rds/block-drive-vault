@@ -79,7 +79,7 @@ const Auth = () => {
       }
 
       if (response?.success) {
-        toast.success('Authentication token sent! Now connect your wallet again to receive a magic link for access.');
+        toast.success('Authentication token sent! Now connect your wallet again to authenticate using your wallet signature.');
         form.reset();
         setConnectedWallet(null);
         setShowSignupForm(false);
@@ -145,8 +145,8 @@ const Auth = () => {
               </h2>
               <p className="text-gray-300 text-lg">
                 {showSignupForm 
-                  ? 'Your wallet is connected. Complete your signup to receive your authentication token, then reconnect your wallet to get a magic link.'
-                  : 'Connect your wallet to access your decentralized storage dashboard via magic link authentication.'
+                  ? 'Your wallet is connected. Complete your signup to receive your authentication token, then reconnect your wallet to authenticate using your wallet signature.'
+                  : 'Connect your Solana wallet to access your decentralized storage dashboard via secure Web3 authentication.'
                 }
               </p>
             </div>
@@ -166,12 +166,12 @@ const Auth = () => {
               <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                 <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  If you already have an authentication token, connect your wallet above and we'll send you a magic link. 
+                  If you already have an authentication token, connect your wallet above and we'll authenticate you using your wallet signature. 
                   If you're new to BlockDrive, connect your wallet and complete the signup process.
                 </p>
                 <div className="flex items-center space-x-2 text-xs text-blue-400">
                   <Shield className="w-4 h-4" />
-                  <span>Secure • Magic Link • Passwordless</span>
+                  <span>Secure • Web3 Authentication • Passwordless</span>
                 </div>
               </div>
             )}

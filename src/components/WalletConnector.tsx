@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -122,7 +121,7 @@ export const WalletConnector = () => {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success(`${wallet.name} connected successfully! Authenticating with Solana...`);
+        toast.success(`${wallet.name} connected successfully! Authenticating with Web3...`);
       }
     } catch (error: any) {
       toast.error(error.message || `Failed to connect ${wallet.name}`);
@@ -136,7 +135,7 @@ export const WalletConnector = () => {
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">Connect Your Solana Wallet</h2>
         <p className="text-gray-300">
-          Choose your preferred Solana wallet to authenticate securely
+          Choose your preferred Solana wallet to authenticate securely with Web3
         </p>
       </div>
 
@@ -222,14 +221,14 @@ export const WalletConnector = () => {
             <Shield className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h4 className="font-semibold text-white mb-2">Secure Solana Authentication</h4>
+            <h4 className="font-semibold text-white mb-2">Secure Web3 Authentication</h4>
             <p className="text-gray-300 text-sm mb-3">
-              Connect your Solana wallet to authenticate securely using Supabase's Sign in with Solana feature. 
-              No passwords needed - your wallet signature provides secure authentication.
+              Connect your Solana wallet to authenticate securely using Supabase's Web3 authentication. 
+              Your wallet signature provides secure, passwordless authentication without storing private keys.
             </p>
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Passwordless, secure, decentralized authentication</span>
+              <span className="text-purple-300 text-sm">Passwordless, secure, decentralized Web3 authentication</span>
             </div>
           </div>
         </div>
