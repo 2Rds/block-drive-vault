@@ -59,6 +59,7 @@ export const useWalletConnection = () => {
       
       return { walletAddress, publicKey };
     } catch (error: any) {
+      console.error('Connect wallet error details:', error);
       throw new Error(error.message || `Failed to connect to ${walletId}`);
     }
   };
@@ -88,6 +89,7 @@ export const useWalletConnection = () => {
       
       return signature;
     } catch (error: any) {
+      console.error('Sign message error details:', error);
       throw new Error(error.message || 'Failed to sign message');
     }
   };
@@ -102,6 +104,7 @@ export const useWalletConnection = () => {
     setIsConnecting(wallet.id);
     
     try {
+      console.log(`Attempting to connect to ${wallet.name} wallet...`);
       const { walletAddress } = await connectToWallet(wallet.id);
       
       console.log('Wallet connected, requesting signature for authentication...');
