@@ -24,6 +24,7 @@ interface WalletOption {
 const Auth = () => {
   const {
     user,
+    session,
     connectWallet
   } = useAuth();
   const navigate = useNavigate();
@@ -43,12 +44,16 @@ const Auth = () => {
     }
   });
 
+  // Check if we're in development mode
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
+
   useEffect(() => {
-    if (user) {
-      console.log('User authenticated, redirecting to index dashboard');
+    // Only redirect if we have a real authenticated session (not just a mock user in development)
+    if (user && session && !isDevelopment) {
+      console.log('User authenticated with real session, redirecting to index dashboard');
       navigate('/index');
     }
-  }, [user, navigate]);
+  }, [user, session, navigate, isDevelopment]);
   
   const walletOptions: WalletOption[] = [{
     id: 'phantom',
@@ -261,6 +266,11 @@ const Auth = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            {isDevelopment && user && (
+              <div className="text-yellow-400 text-sm bg-yellow-400/20 px-3 py-1 rounded-lg">
+                Development Mode - Mock User Active
+              </div>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0">
