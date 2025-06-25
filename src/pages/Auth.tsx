@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,15 +11,16 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { WalletConnectionStatus } from '@/components/auth/WalletConnectionStatus';
 import { ThirdwebWalletConnector } from '@/components/auth/ThirdwebWalletConnector';
 import { ThirdwebProvider } from "thirdweb/react";
-
 const Auth = () => {
-  const { user, session } = useAuth();
+  const {
+    user,
+    session
+  } = useAuth();
   const navigate = useNavigate();
   const [showQRCode, setShowQRCode] = useState(false);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  
   const form = useForm({
     defaultValues: {
       email: '',
@@ -30,7 +30,6 @@ const Auth = () => {
       blockchainType: 'ethereum'
     }
   });
-
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (user && session) {
@@ -38,7 +37,6 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
-
   const onWalletConnected = (walletInfo: any) => {
     console.log('Wallet connected:', walletInfo);
     setConnectedWallet(walletInfo);
@@ -46,7 +44,6 @@ const Auth = () => {
     form.setValue('blockchainType', walletInfo.blockchain);
     setShowSignupForm(true);
   };
-
   const onSubmit = async (data: any) => {
     if (!connectedWallet) {
       toast.error('Please connect your wallet first to register.');
@@ -55,7 +52,10 @@ const Auth = () => {
     setIsSubmittingRequest(true);
     try {
       console.log('Submitting wallet registration:', data);
-      const { data: response, error } = await supabase.functions.invoke('send-auth-token', {
+      const {
+        data: response,
+        error
+      } = await supabase.functions.invoke('send-auth-token', {
         body: {
           email: data.email,
           fullName: data.fullName,
@@ -84,9 +84,7 @@ const Auth = () => {
       setIsSubmittingRequest(false);
     }
   };
-
-  return (
-    <ThirdwebProvider>
+  return <ThirdwebProvider>
       <div className="min-h-screen bg-gray-950">
         {/* Header */}
         <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
@@ -119,10 +117,7 @@ const Auth = () => {
                   </span>
                 </h2>
                 <p className="text-gray-300 text-lg">
-                  {showSignupForm 
-                    ? 'Your wallet is connected. Complete your registration to get started with BlockDrive.' 
-                    : 'Connect your Web3 wallet to access your decentralized storage dashboard. Supports both Ethereum and Solana ecosystems.'
-                  }
+                  {showSignupForm ? 'Your wallet is connected. Complete your registration to get started with BlockDrive.' : 'Connect your Web3 wallet to access your decentralized storage dashboard. Supports both Ethereum and Solana ecosystems.'}
                 </p>
               </div>
 
@@ -130,28 +125,21 @@ const Auth = () => {
               <WalletConnectionStatus connectedWallet={connectedWallet} />
 
               {/* Thirdweb Wallet Connector */}
-              {!showSignupForm && (
-                <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+              {!showSignupForm && <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                   <h4 className="font-semibold text-white mb-4 text-center">Connect Your Web3 Wallet</h4>
                   <ThirdwebWalletConnector onWalletConnected={onWalletConnected} />
-                </div>
-              )}
+                </div>}
 
               {showSignupForm && <SignupForm form={form} onSubmit={onSubmit} isSubmitting={isSubmittingRequest} />}
 
-              {!showSignupForm && (
-                <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+              {!showSignupForm && <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                   <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
-                  <p className="text-gray-400 text-sm mb-4">
-                    Connect your Web3 wallet above to authenticate. Supports both Ethereum and Solana networks. 
-                    If this is your first time using BlockDrive, you'll be prompted to register your wallet for secure access.
-                  </p>
+                  <p className="text-gray-400 text-sm mb-4">Connect your Web3 wallet above to authenticate. If this is your first time using BlockDrive, you'll be prompted to register your wallet for secure access.</p>
                   <div className="flex items-center space-x-2 text-xs text-blue-400">
                     <Shield className="w-4 h-4" />
                     <span>Secure • Multi-Chain Web3 Authentication • Wallet Signature Based</span>
                   </div>
-                </div>
-              )}
+                </div>}
             </div>
 
             {/* Right Side - Features */}
@@ -159,8 +147,6 @@ const Auth = () => {
           </div>
         </div>
       </div>
-    </ThirdwebProvider>
-  );
+    </ThirdwebProvider>;
 };
-
 export default Auth;
