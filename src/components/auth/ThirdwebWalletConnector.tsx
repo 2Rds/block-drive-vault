@@ -2,7 +2,7 @@
 import React from 'react';
 import { ConnectButton } from "thirdweb/react";
 import { thirdwebClient, supportedWallets } from '@/config/thirdweb';
-import { ethereum, solana } from "thirdweb/chains";
+import { ethereum } from "thirdweb/chains";
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -22,17 +22,20 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
       const signature = params.signature;
       const message = params.payload?.statement || 'Sign this message to authenticate with BlockDrive';
       
-      // Determine blockchain type based on wallet or chain
+      // Determine blockchain type based on address format (chain agnostic approach)
       let blockchainType: 'solana' | 'ethereum' = 'ethereum';
-      if (params.chainId === solana.id || params.walletId?.includes('phantom') || params.walletId?.includes('solflare')) {
+      
+      // Simple heuristic: Solana addresses are typically 32-44 chars and base58 encoded
+      // Ethereum addresses are 42 chars and hex encoded (0x...)
+      if (walletAddress && !walletAddress.startsWith('0x') && walletAddress.length >= 32) {
         blockchainType = 'solana';
       }
 
       // Authenticate with our backend
-      const authResult = await connectWallet(walletAddress, signature, blockchainType as 'solana');
+      const authResult = await connectWallet(walletAddress, signature, blockchainType);
       
       if (!authResult.error) {
-        toast.success(`${blockchainType === 'solana' ? 'Solana' : 'Ethereum'} wallet connected successfully!`);
+        toast.success(`Wallet connected successfully!`);
         if (onWalletConnected) {
           onWalletConnected({
             address: walletAddress,
@@ -109,14 +112,14 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
       
       <div className="text-center">
         <p className="text-gray-400 text-sm mb-2">
-          Supports Ethereum & Solana wallets including:
+          Supports Web3 wallets including:
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
           <span className="bg-gray-800/40 px-2 py-1 rounded">MetaMask</span>
           <span className="bg-gray-800/40 px-2 py-1 rounded">Coinbase</span>
-          <span className="bg-gray-800/40 px-2 py-1 rounded">Phantom</span>
-          <span className="bg-gray-800/40 px-2 py-1 rounded">Solflare</span>
+          <span className="bg-gray-800/40 px-2 py-1 rounded">WalletConnect</span>
           <span className="bg-gray-800/40 px-2 py-1 rounded">Trust Wallet</span>
+          <span className="bg-gray-800/40 px-2 py-1 rounded">Phantom</span>
           <span className="bg-gray-800/40 px-2 py-1 rounded">+ more</span>
         </div>
       </div>
