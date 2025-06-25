@@ -1,26 +1,96 @@
 
 import React from 'react';
 import { File, Folder, Download, Archive, Database } from 'lucide-react';
+import { useUserData } from '@/hooks/useUserData';
 
 interface FileGridProps {
   selectedFolder: string;
 }
 
 export const FileGrid = ({ selectedFolder }: FileGridProps) => {
-  const files = [
-    { id: 1, name: 'Project Proposal.pdf', type: 'file', size: '2.4 MB', modified: '2 hours ago', category: 'documents' },
-    { id: 2, name: 'Team Photos', type: 'folder', size: '12 files', modified: '1 day ago', category: 'images' },
-    { id: 3, name: 'Presentation.pptx', type: 'file', size: '8.1 MB', modified: '3 days ago', category: 'documents' },
-    { id: 4, name: 'Marketing Video.mp4', type: 'file', size: '156 MB', modified: '1 week ago', category: 'videos' },
-    { id: 5, name: 'Blockchain Data', type: 'folder', size: '24 files', modified: '2 weeks ago', category: 'archived' },
-    { id: 6, name: 'Logo Design.png', type: 'file', size: '890 KB', modified: '3 weeks ago', category: 'images' },
-    { id: 7, name: 'Smart Contract.sol', type: 'file', size: '15 KB', modified: '1 month ago', category: 'documents' },
-    { id: 8, name: 'Demo Recording.mov', type: 'file', size: '234 MB', modified: '1 month ago', category: 'videos' },
-  ];
+  const { stats, loading } = useUserData();
 
+  // Generate mock files based on real user data
+  const generateFilesFromUserData = () => {
+    if (loading || !stats.totalFiles) return [];
+    
+    const files = [];
+    const fileTypes = stats.filesByType || [];
+    
+    // Generate files based on file type distribution
+    fileTypes.forEach((fileType, index) => {
+      const count = Math.round((fileType.value / 100) * stats.totalFiles);
+      
+      for (let i = 0; i < count; i++) {
+        const fileId = `${fileType.name.toLowerCase()}_${i + 1}`;
+        let fileName, fileExtension, category, size;
+        
+        switch (fileType.name) {
+          case 'Documents':
+            fileName = `Document_${i + 1}`;
+            fileExtension = ['.pdf', '.docx', '.txt'][i % 3];
+            category = 'documents';
+            size = `${(Math.random() * 5 + 0.5).toFixed(1)} MB`;
+            break;
+          case 'Images':
+            fileName = `Image_${i + 1}`;
+            fileExtension = ['.png', '.jpg', '.gif'][i % 3];
+            category = 'images';
+            size = `${(Math.random() * 2 + 0.1).toFixed(1)} MB`;
+            break;
+          case 'Videos':
+            fileName = `Video_${i + 1}`;
+            fileExtension = ['.mp4', '.mov', '.avi'][i % 3];
+            category = 'videos';
+            size = `${(Math.random() * 200 + 50).toFixed(0)} MB`;
+            break;
+          case 'Audio':
+            fileName = `Audio_${i + 1}`;
+            fileExtension = ['.mp3', '.wav', '.flac'][i % 3];
+            category = 'audio';
+            size = `${(Math.random() * 10 + 1).toFixed(1)} MB`;
+            break;
+          default:
+            fileName = `File_${i + 1}`;
+            fileExtension = '.dat';
+            category = 'other';
+            size = `${(Math.random() * 3 + 0.1).toFixed(1)} MB`;
+        }
+        
+        files.push({
+          id: fileId,
+          name: fileName + fileExtension,
+          type: 'file',
+          size,
+          modified: `${Math.floor(Math.random() * 30) + 1} days ago`,
+          category
+        });
+      }
+    });
+    
+    return files.slice(0, stats.totalFiles); // Ensure we don't exceed total files
+  };
+
+  const files = generateFilesFromUserData();
+  
   const filteredFiles = selectedFolder === 'all' 
     ? files 
-    : files.filter(file => file.category === selectedFolder);
+    : files.filter(file => {
+        switch (selectedFolder) {
+          case 'documents':
+            return file.category === 'documents';
+          case 'images':
+            return file.category === 'images';
+          case 'videos':
+            return file.category === 'videos';
+          case 'audio':
+            return file.category === 'audio';
+          case 'archived':
+            return false; // No archived files for now
+          default:
+            return true;
+        }
+      });
 
   const getFileIcon = (type: string, name: string) => {
     if (type === 'folder') return Folder;
@@ -31,11 +101,33 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
   const getFileColor = (type: string, name: string) => {
     if (type === 'folder') return 'text-blue-400';
     if (name.endsWith('.sol')) return 'text-green-400';
-    if (name.endsWith('.pdf')) return 'text-red-400';
-    if (name.endsWith('.png') || name.endsWith('.jpg')) return 'text-purple-400';
-    if (name.endsWith('.mp4') || name.endsWith('.mov')) return 'text-orange-400';
+    if (name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.txt')) return 'text-red-400';
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.gif')) return 'text-purple-400';
+    if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi')) return 'text-orange-400';
+    if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac')) return 'text-cyan-400';
     return 'text-gray-400';
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-6 bg-gray-600 rounded w-32 animate-pulse"></div>
+          <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse">
+              <div className="h-8 w-8 bg-gray-600 rounded mb-3"></div>
+              <div className="h-4 bg-gray-600 rounded mb-2"></div>
+              <div className="h-3 bg-gray-600 rounded w-16 mb-1"></div>
+              <div className="h-3 bg-gray-600 rounded w-20"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
@@ -88,7 +180,12 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
         <div className="text-center py-12">
           <Archive className="w-12 h-12 text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-400 mb-2">No files found</h3>
-          <p className="text-gray-500">Upload some files to get started with BlockDrive</p>
+          <p className="text-gray-500">
+            {selectedFolder === 'all' 
+              ? 'Upload some files to get started with BlockDrive'
+              : `No ${selectedFolder} files found`
+            }
+          </p>
         </div>
       )}
     </div>
