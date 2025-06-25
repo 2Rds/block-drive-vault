@@ -30,6 +30,9 @@ export const WalletInfo = () => {
     );
   }
 
+  const walletAddress = walletData.wallet_address || walletData.address || '';
+  const blockchainType = walletData.blockchain_type || 'solana';
+
   return (
     <Card className="bg-gray-800/40 backdrop-blur-md border-gray-700">
       <CardHeader>
@@ -37,7 +40,7 @@ export const WalletInfo = () => {
           <Wallet className="w-5 h-5" />
           <span>Connected Wallet</span>
           <Badge variant="outline" className="ml-auto border-purple-500 text-purple-300 bg-purple-500/10">
-            {walletData.blockchain_type.toUpperCase()}
+            {blockchainType.toUpperCase()}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -47,13 +50,13 @@ export const WalletInfo = () => {
             <label className="text-sm text-gray-400">Wallet Address</label>
             <div className="flex items-center space-x-2">
               <span className="text-white font-mono text-sm">
-                {showDetails ? walletData.wallet_address : truncateAddress(walletData.wallet_address)}
+                {showDetails ? walletAddress : truncateAddress(walletAddress)}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-gray-400 hover:text-white"
-                onClick={() => copyToClipboard(walletData.wallet_address, 'Wallet address')}
+                onClick={() => copyToClipboard(walletAddress, 'Wallet address')}
               >
                 <Copy className="w-3 h-3" />
               </Button>
@@ -85,7 +88,7 @@ export const WalletInfo = () => {
                   variant="ghost"
                   size="icon"
                   className="h-4 w-4 text-green-400 hover:text-green-300"
-                  onClick={() => copyToClipboard(walletData.blockchain_tokens[0].token_id, 'Token ID')}
+                  onClick={() => copyToClipboard(walletData.blockchain_tokens![0].token_id, 'Token ID')}
                 >
                   <Copy className="w-3 h-3" />
                 </Button>

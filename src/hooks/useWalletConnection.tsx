@@ -63,14 +63,6 @@ export const useWalletConnection = () => {
     setConnecting(true);
     try {
       const adapter = new PhantomWalletAdapter();
-      if (!adapter.ready) {
-        toast({
-          title: "Phantom Extension Not Detected",
-          description: "Please install the Phantom extension to connect your wallet.",
-          variant: "destructive",
-        })
-        return;
-      }
 
       let phantom;
       if (typeof window !== 'undefined') {
@@ -78,7 +70,11 @@ export const useWalletConnection = () => {
       }
 
       if (!phantom) {
-        console.error('Phantom wallet not found');
+        toast({
+          title: "Phantom Extension Not Detected",
+          description: "Please install the Phantom extension to connect your wallet.",
+          variant: "destructive",
+        })
         return;
       }
 
@@ -107,7 +103,9 @@ export const useWalletConnection = () => {
           adapter,
           connected: true,
           autoConnect,
-          id: 'phantom'
+          id: 'phantom',
+          wallet_address: address,
+          blockchain_type: 'solana'
         });
         setConnectedWallet({ address, blockchain: 'solana' });
         localStorage.setItem('selectedWallet', 'phantom');
@@ -165,7 +163,9 @@ export const useWalletConnection = () => {
           adapter,
           connected: true,
           autoConnect,
-          id: 'solflare'
+          id: 'solflare',
+          wallet_address: address,
+          blockchain_type: 'solana'
         });
         setConnectedWallet({ address, blockchain: 'solana' });
         localStorage.setItem('selectedWallet', 'solflare');
