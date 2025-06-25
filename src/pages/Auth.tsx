@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,11 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { ThirdwebWalletConnector } from '@/components/auth/ThirdwebWalletConnector';
 import { ThirdwebProvider } from "thirdweb/react";
-
 const Auth = () => {
-  const { user, session } = useAuth();
+  const {
+    user,
+    session
+  } = useAuth();
   const navigate = useNavigate();
-
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (user && session) {
@@ -18,26 +18,19 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
-
   const onWalletConnected = (walletInfo: any) => {
     console.log('Wallet connected successfully:', walletInfo);
     // The wallet authentication is handled automatically by the ThirdwebWalletConnector
     // and the useAuth hook, so no additional action is needed here
   };
-
-  return (
-    <ThirdwebProvider>
+  return <ThirdwebProvider>
       <div className="min-h-screen bg-gray-950">
         {/* Header */}
         <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
           <div className="flex items-center justify-between px-8 py-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-                <img 
-                  src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" 
-                  alt="BlockDrive Logo" 
-                  className="w-10 h-10 object-contain" 
-                />
+                <img src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" alt="BlockDrive Logo" className="w-10 h-10 object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
@@ -67,7 +60,7 @@ const Auth = () => {
 
               {/* Thirdweb Wallet Connector */}
               <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-                <h4 className="font-semibold text-white mb-4 text-center">Connect Your Web3 Wallet</h4>
+                <h4 className="font-semibold text-white mb-4 text-center">Connect Your Solana Wallet</h4>
                 <ThirdwebWalletConnector onWalletConnected={onWalletConnected} />
               </div>
 
@@ -89,8 +82,6 @@ const Auth = () => {
           </div>
         </div>
       </div>
-    </ThirdwebProvider>
-  );
+    </ThirdwebProvider>;
 };
-
 export default Auth;
