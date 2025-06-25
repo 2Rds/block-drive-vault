@@ -41,7 +41,7 @@ const Index = () => {
                   className={`${
                     activeView === 'dashboard'
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'border-gray-600 text-gray-300 hover:bg-blue-600/20 hover:border-blue-600/50 hover:text-blue-400'
+                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
                   }`}
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -53,7 +53,7 @@ const Index = () => {
                   className={`${
                     activeView === 'files'
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'border-gray-600 text-gray-300 hover:bg-blue-600/20 hover:border-blue-600/50 hover:text-blue-400'
+                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
                   }`}
                 >
                   <Files className="w-4 h-4 mr-2" />
