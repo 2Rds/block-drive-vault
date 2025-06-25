@@ -63,7 +63,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect, userFolders = [] }: Si
     name: folderName,
     icon: Folder,
     count: 0, // New folders start empty
-    color: 'text-blue-400'
+    color: 'text-gray-400'
   }));
 
   const allFolders = [...defaultFolders, ...userCreatedFolders];
