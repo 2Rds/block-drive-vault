@@ -22,9 +22,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [walletData, setWalletData] = useState<any>(null);
 
   useEffect(() => {
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Initial session check:', session?.user?.id);
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      if (session?.user) {
+        loadWalletData(session.user.id);
+      }
+    };
+
+    getInitialSession();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
@@ -35,26 +50,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             loadWalletData(session.user.id);
           }, 0);
+        } else {
+          setWalletData(null);
         }
 
-        // Redirect to home after successful authentication
-        if (event === 'SIGNED_IN' && session?.user && window.location.pathname === '/auth') {
-          window.location.href = '/home';
+        // Handle successful sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in successfully');
+          toast.success('Welcome to BlockDrive!');
+          
+          // Redirect to home if on auth page
+          if (window.location.pathname === '/auth') {
+            window.location.href = '/home';
+          }
+        }
+
+        // Handle token refresh
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed');
+        }
+
+        // Handle sign out
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setWalletData(null);
         }
       }
     );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      if (session?.user) {
-        loadWalletData(session.user.id);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -99,48 +121,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Found valid token:', authToken.id);
 
-      // Try to sign up with magic link (this will work for both new and existing users)
-      const { error: signUpError } = await supabase.auth.signUp({
+      // Try to sign in with OTP first (for existing users)
+      const { error: signInError } = await supabase.auth.signInWithOtp({
         email: authToken.email,
-        password: `wallet_${walletAddress}_${authToken.id}`,
         options: {
           emailRedirectTo: `${window.location.origin}/home`,
           data: {
             wallet_address: walletAddress,
             blockchain_type: blockchainType,
             auth_token_id: authToken.id,
-            full_name: authToken.full_name,
-            email: authToken.email
+            full_name: authToken.full_name
           }
         }
       });
 
-      if (signUpError) {
-        // If sign up fails because user already exists, try sign in with magic link
-        if (signUpError.message.includes('already registered')) {
-          const { error: signInError } = await supabase.auth.signInWithOtp({
-            email: authToken.email,
-            options: {
-              emailRedirectTo: `${window.location.origin}/home`,
-              data: {
-                wallet_address: walletAddress,
-                blockchain_type: blockchainType,
-                auth_token_id: authToken.id,
-                full_name: authToken.full_name
-              }
+      if (signInError) {
+        // If sign in fails, try to sign up (for new users)
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: authToken.email,
+          password: `wallet_${walletAddress}_${authToken.id}`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/home`,
+            data: {
+              wallet_address: walletAddress,
+              blockchain_type: blockchainType,
+              auth_token_id: authToken.id,
+              full_name: authToken.full_name,
+              email: authToken.email
             }
-          });
-
-          if (signInError) {
-            console.error('Magic link error:', signInError);
-            return { error: { message: 'Failed to send magic link. Please try again.' } };
           }
+        });
 
-          toast.success('Magic link sent! Check your email to complete authentication.');
-          return { error: null };
-        } else {
+        if (signUpError) {
           console.error('Sign up error:', signUpError);
-          return { error: { message: 'Failed to create account. Please try again.' } };
+          return { error: { message: 'Failed to send magic link. Please try again.' } };
         }
       }
 
@@ -167,6 +181,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!error) {
       setWalletData(null);
       toast.success('Signed out successfully');
+      // Redirect to auth page
+      window.location.href = '/auth';
     }
     return { error };
   };

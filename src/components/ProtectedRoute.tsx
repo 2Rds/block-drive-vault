@@ -7,7 +7,9 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
+
+  console.log('ProtectedRoute - Loading:', loading, 'User:', user?.id, 'Session:', session?.access_token ? 'exists' : 'none');
 
   if (loading) {
     return (
@@ -17,9 +19,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user) {
+  // Check for both user and session to ensure proper authentication
+  if (!user || !session) {
+    console.log('No authenticated user or session, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
+  console.log('User authenticated, rendering protected content');
   return <>{children}</>;
 };
