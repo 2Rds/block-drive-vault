@@ -24,35 +24,35 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
       name: 'All Files', 
       icon: Database, 
       count: loading ? 0 : stats.totalFiles, 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       id: 'documents', 
       name: 'Documents', 
       icon: FileText, 
       count: getFileCountByType('Documents'), 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       id: 'images', 
       name: 'Images', 
       icon: Image, 
       count: getFileCountByType('Images'), 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       id: 'videos', 
       name: 'Videos', 
       icon: Video, 
       count: getFileCountByType('Videos'), 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       id: 'archived', 
       name: 'Archived', 
       icon: Archive, 
       count: 0, // This would need additional logic if archiving is implemented
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
   ];
 
@@ -68,19 +68,19 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
       label: 'Storage Used', 
       value: loading ? '0 GB' : `${stats.totalStorage} GB`, 
       icon: Database, 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       label: 'Files Uploaded', 
       value: loading ? '0' : stats.totalFiles.toString(), 
       icon: Upload, 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
     { 
       label: 'Downloads', 
       value: loading ? '0' : recentDownloads.toString(), 
       icon: Download, 
-      color: 'text-blue-600' 
+      color: 'text-gray-400' 
     },
   ];
 
@@ -127,7 +127,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
                   selectedFolder === folder.id
                     ? 'bg-blue-600/20 text-white border border-blue-600/50'
-                    : 'text-gray-300 hover:bg-blue-600/10 hover:text-white'
+                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -150,9 +150,9 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           <h3 className="text-sm font-semibold text-white mb-4">Storage Overview</h3>
           <div className="space-y-4">
             {stats_overview.map((stat, index) => (
-              <div key={index} className="bg-blue-600/10 rounded-lg p-4 border border-blue-600/20">
+              <div key={index} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 rounded-lg bg-blue-600/20">
+                  <div className="p-2 rounded-lg bg-gray-600/30">
                     <stat.icon className={`w-4 h-4 ${stat.color}`} />
                   </div>
                   <span className="text-xs font-medium text-gray-300">{stat.label}</span>
@@ -163,7 +163,7 @@ export const Sidebar = ({ selectedFolder, onFolderSelect }: SidebarProps) => {
           </div>
         </div>
 
-        <div className="bg-blue-600/10 rounded-lg p-4 border border-blue-600/20">
+        <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
           <div className="text-sm font-semibold text-white mb-1">Pro Tip</div>
           <div className="text-xs text-gray-300">
             Upload files securely with blockchain-verified ownership tokens.
