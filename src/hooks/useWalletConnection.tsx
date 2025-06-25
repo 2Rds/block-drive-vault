@@ -33,18 +33,24 @@ export const useWalletConnection = () => {
       switch (walletId) {
         case 'phantom':
           if ((window as any).phantom?.solana) {
+            console.log('Phantom wallet detected, attempting connection...');
             const response = await (window as any).phantom.solana.connect();
+            console.log('Phantom connection response:', response);
             walletAddress = response.publicKey.toString();
             publicKey = response.publicKey.toString();
+            console.log('Phantom wallet connected:', walletAddress);
           } else {
             throw new Error('Phantom wallet not found');
           }
           break;
         case 'solflare':
           if ((window as any).solflare) {
+            console.log('Solflare wallet detected, attempting connection...');
             await (window as any).solflare.connect();
-            walletAddress = (window as any).solflare.publicKey?.toString() || '';
+            const publicKeyObj = (window as any).solflare.publicKey;
+            walletAddress = publicKeyObj ? publicKeyObj.toString() : '';
             publicKey = walletAddress;
+            console.log('Solflare wallet connected:', walletAddress);
           } else {
             throw new Error('Solflare wallet not found');
           }
@@ -60,6 +66,14 @@ export const useWalletConnection = () => {
       return { walletAddress, publicKey };
     } catch (error: any) {
       console.error('Connect wallet error details:', error);
+      // More specific error handling
+      if (error.code === -32603) {
+        throw new Error('Wallet connection failed. Please make sure your wallet is unlocked and try again.');
+      } else if (error.code === 4001) {
+        throw new Error('Connection cancelled by user');
+      } else if (error.message?.includes('User rejected')) {
+        throw new Error('Connection cancelled by user');
+      }
       throw new Error(error.message || `Failed to connect to ${walletId}`);
     }
   };
@@ -72,6 +86,7 @@ export const useWalletConnection = () => {
         case 'phantom':
           if ((window as any).phantom?.solana) {
             const encodedMessage = new TextEncoder().encode(message);
+            console.log('Requesting signature from Phantom...');
             const signedMessage = await (window as any).phantom.solana.signMessage(encodedMessage);
             signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
           }
@@ -79,6 +94,7 @@ export const useWalletConnection = () => {
         case 'solflare':
           if ((window as any).solflare) {
             const encodedMessage = new TextEncoder().encode(message);
+            console.log('Requesting signature from Solflare...');
             const signedMessage = await (window as any).solflare.signMessage(encodedMessage);
             signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
           }
@@ -90,6 +106,9 @@ export const useWalletConnection = () => {
       return signature;
     } catch (error: any) {
       console.error('Sign message error details:', error);
+      if (error.code === 4001) {
+        throw new Error('Message signing cancelled by user');
+      }
       throw new Error(error.message || 'Failed to sign message');
     }
   };
