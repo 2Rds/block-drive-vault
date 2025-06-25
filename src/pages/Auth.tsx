@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Database, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -99,8 +100,8 @@ const Auth = () => {
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <Database className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center">
+              <img src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" alt="BlockDrive Logo" className="w-10 h-10 object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
