@@ -29,6 +29,15 @@ export const useIPFSUpload = () => {
       return;
     }
 
+    // Check if user is properly authenticated with Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Authentication session expired. Please reconnect your wallet.');
+      return;
+    }
+
+    console.log('User authenticated for upload:', { userId: user.id, sessionExists: !!session });
+
     setUploading(true);
     setUploadProgress(0);
     
@@ -41,36 +50,80 @@ export const useIPFSUpload = () => {
         const file = files[i];
         setUploadProgress(((i + 1) / files.length) * 50); // First 50% for IPFS upload
         
+        console.log(`Processing file ${i + 1}/${files.length}: ${file.name}`);
+        
         // Upload to IPFS
         const ipfsResult = await IPFSService.uploadFile(file);
         if (!ipfsResult) {
           throw new Error(`Failed to upload ${file.name} to IPFS`);
         }
         
+        console.log('IPFS upload result:', ipfsResult);
+        
         // Pin the file to ensure availability
         await IPFSService.pinFile(ipfsResult.cid);
         
-        // Store metadata in Supabase - using the correct column names
+        // First, get the user's wallet to use as wallet_id
+        const { data: walletData, error: walletError } = await supabase
+          .from('wallets')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (walletError) {
+          console.error('Error fetching wallet:', walletError);
+          // Create a wallet record if it doesn't exist
+          const { data: newWallet, error: createWalletError } = await supabase
+            .from('wallets')
+            .insert({
+              user_id: user.id,
+              wallet_address: user.id, // Using user.id as fallback
+              public_key: '',
+              private_key_encrypted: '',
+              blockchain_type: 'ethereum'
+            })
+            .select('id')
+            .single();
+          
+          if (createWalletError) {
+            console.error('Failed to create wallet:', createWalletError);
+            throw new Error(`Failed to setup wallet for user`);
+          }
+          
+          walletData = newWallet;
+        }
+        
+        if (!walletData) {
+          throw new Error('No wallet found for user');
+        }
+        
+        console.log('Using wallet ID:', walletData.id);
+        
+        // Store metadata in Supabase
+        const fileData = {
+          user_id: user.id,
+          wallet_id: walletData.id,
+          filename: ipfsResult.filename,
+          file_path: `/${ipfsResult.filename}`,
+          content_type: ipfsResult.contentType,
+          file_size: ipfsResult.size,
+          ipfs_cid: ipfsResult.cid,
+          ipfs_url: ipfsResult.url,
+          folder_path: folderPath || '/',
+          storage_provider: 'ipfs',
+          is_encrypted: false,
+          metadata: {
+            originalName: file.name,
+            uploadedVia: 'blockdrive-web',
+            ipfsGateway: 'https://ipfs.io'
+          }
+        };
+        
+        console.log('Inserting file data:', fileData);
+        
         const { data: dbFile, error: dbError } = await supabase
           .from('files')
-          .insert({
-            user_id: user.id,
-            wallet_id: user.id, // Using user.id as wallet_id for now
-            filename: ipfsResult.filename,
-            file_path: `/${ipfsResult.filename}`, // Required field
-            content_type: ipfsResult.contentType,
-            file_size: ipfsResult.size,
-            ipfs_cid: ipfsResult.cid,
-            ipfs_url: ipfsResult.url,
-            folder_path: folderPath || '/',
-            storage_provider: 'ipfs',
-            is_encrypted: false,
-            metadata: {
-              originalName: file.name,
-              uploadedVia: 'blockdrive-web',
-              ipfsGateway: 'https://ipfs.io'
-            }
-          })
+          .insert(fileData)
           .select()
           .single();
         
@@ -78,6 +131,8 @@ export const useIPFSUpload = () => {
           console.error('Database error:', dbError);
           throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
         }
+        
+        console.log('File saved to database:', dbFile);
         
         const ipfsFile: IPFSFile = {
           id: dbFile.id,
