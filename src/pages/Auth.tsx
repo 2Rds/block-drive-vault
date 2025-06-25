@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Database, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -110,7 +109,12 @@ const Auth = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <WalletOptions connectedWallet={connectedWallet} isConnecting={isConnecting} onWalletConnect={onWalletConnect} onShowQRCode={() => setShowQRCode(!showQRCode)} />
+            <WalletOptions 
+              connectedWallet={connectedWallet} 
+              isConnecting={isConnecting ? 'connecting' : null} 
+              onWalletConnect={onWalletConnect} 
+              onShowQRCode={() => setShowQRCode(!showQRCode)} 
+            />
           </div>
         </div>
       </header>
