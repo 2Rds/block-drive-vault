@@ -55,7 +55,9 @@ export class AuthService {
             email: `${walletAddress}@blockdrive.wallet`,
             user_metadata: {
               wallet_address: walletAddress,
-              blockchain_type: blockchainType
+              blockchain_type: blockchainType,
+              username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+              full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
             }
           },
           access_token: data.authToken,

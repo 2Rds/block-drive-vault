@@ -17,9 +17,23 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
     console.log('Thirdweb login params:', params);
     
     try {
-      // Extract wallet information from params - Thirdweb passes these directly
-      const walletAddress = params.address || params.payload?.address;
-      const signature = params.signature;
+      // Extract wallet information from Thirdweb params
+      let walletAddress = '';
+      let signature = '';
+      
+      // Handle different parameter structures from Thirdweb
+      if (params.payload && params.signature) {
+        // Standard Thirdweb auth flow
+        walletAddress = params.payload.address;
+        signature = params.signature;
+      } else if (params.address && params.signature) {
+        // Alternative structure
+        walletAddress = params.address;
+        signature = params.signature;
+      } else {
+        console.error('Invalid authentication parameters from Thirdweb:', params);
+        throw new Error('Invalid authentication parameters received');
+      }
       
       console.log('Extracted wallet address:', walletAddress);
       console.log('Extracted signature:', signature);
@@ -29,7 +43,7 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
         throw new Error('Missing wallet address or signature from Thirdweb');
       }
       
-      // Determine blockchain type based on address format (chain agnostic approach)
+      // Determine blockchain type based on address format
       let blockchainType: 'solana' | 'ethereum' = 'ethereum';
       
       // Simple heuristic: Solana addresses are typically 32-44 chars and base58 encoded
@@ -116,7 +130,7 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
         }}
         accountAbstraction={{
           chain: ethereum,
-          sponsorGas: false, // Set to true if you want to sponsor gas fees
+          sponsorGas: false,
         }}
       />
       
