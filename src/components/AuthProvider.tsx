@@ -25,6 +25,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (sessionData.expires_at > Date.now()) {
             setSession(sessionData as Session);
             setUser(sessionData.user as User);
+            
+            // Set wallet data from session metadata
+            if (sessionData.user?.user_metadata?.wallet_address) {
+              const walletInfo = {
+                address: sessionData.user.user_metadata.wallet_address,
+                publicKey: null,
+                adapter: null,
+                connected: true,
+                autoConnect: false,
+                id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
+                wallet_address: sessionData.user.user_metadata.wallet_address,
+                blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
+              };
+              setWalletData(walletInfo);
+              console.log('Set wallet data from session:', walletInfo);
+            }
+            
             setLoading(false);
             return true;
           } else {
@@ -67,6 +84,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const sessionData = event.detail;
       setSession(sessionData);
       setUser(sessionData.user);
+      
+      // Set wallet data immediately when wallet auth succeeds
+      if (sessionData.user?.user_metadata?.wallet_address) {
+        const walletInfo = {
+          address: sessionData.user.user_metadata.wallet_address,
+          publicKey: null,
+          adapter: null,
+          connected: true,
+          autoConnect: false,
+          id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
+          wallet_address: sessionData.user.user_metadata.wallet_address,
+          blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
+        };
+        setWalletData(walletInfo);
+        console.log('Set wallet data from auth event:', walletInfo);
+      }
+      
       setLoading(false);
     };
 

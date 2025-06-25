@@ -24,7 +24,7 @@ export class AuthService {
     }
   }
 
-  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') {
+  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') => {
     try {
       console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
       
@@ -48,7 +48,7 @@ export class AuthService {
       if (data?.success && data?.authToken) {
         console.log('Wallet authentication successful, creating session...');
         
-        // Create a custom session using the auth token
+        // Create a comprehensive session using the auth token
         const sessionData = {
           user: {
             id: data.authToken,
@@ -69,7 +69,7 @@ export class AuthService {
         // Store session in localStorage for persistence
         localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
         
-        // Trigger auth state change manually
+        // Trigger auth state change manually with wallet data
         window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
           detail: sessionData 
         }));
