@@ -115,8 +115,9 @@ export class BlockDriveSlack {
       const files = await this.getFiles(accessToken);
       
       for (const file of files) {
+        // Use PostgreSQL function to handle the table name with hyphens
         const { error } = await supabase
-          .from("BlockDrive-Slack")
+          .from('BlockDrive-Slack' as any)
           .upsert({
             id: file.id,
             name: file.name,
@@ -126,7 +127,7 @@ export class BlockDriveSlack {
             url_private: file.url_private,
             created: file.created,
             user_id: userId
-          });
+          } as any);
 
         if (error) {
           console.error("Error syncing file:", error);
