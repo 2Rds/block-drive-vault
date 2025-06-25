@@ -20,7 +20,7 @@ export const StatsCards = () => {
       value: loading ? '0' : stats.totalFiles.toString(),
       subtitle: loading ? 'Loading...' : `${stats.totalFiles} total files`,
       icon: Upload,
-      color: 'from-purple-600 to-purple-700',
+      color: 'from-blue-600 to-blue-700',
       percentage: 0,
     },
     {
@@ -28,7 +28,7 @@ export const StatsCards = () => {
       value: loading ? '0' : stats.recentActivity.length.toString(),
       subtitle: loading ? 'Loading...' : 'Recent actions',
       icon: Download,
-      color: 'from-blue-500 to-purple-500',
+      color: 'from-blue-600 to-blue-700',
       percentage: 0,
     },
     {
@@ -36,7 +36,7 @@ export const StatsCards = () => {
       value: loading ? '0' : stats.totalTransactions.toString(),
       subtitle: loading ? 'Loading...' : 'Total confirmations',
       icon: Archive,
-      color: 'from-purple-500 to-blue-500',
+      color: 'from-blue-600 to-blue-700',
       percentage: 0,
     },
   ];

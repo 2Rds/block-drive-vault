@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { File, Folder, Download, Archive, Database } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
@@ -99,13 +98,13 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
   };
 
   const getFileColor = (type: string, name: string) => {
-    if (type === 'folder') return 'text-blue-400';
-    if (name.endsWith('.sol')) return 'text-green-400';
-    if (name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.txt')) return 'text-red-400';
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.gif')) return 'text-purple-400';
-    if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi')) return 'text-orange-400';
-    if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac')) return 'text-cyan-400';
-    return 'text-gray-400';
+    if (type === 'folder') return 'text-blue-600';
+    if (name.endsWith('.sol')) return 'text-blue-600';
+    if (name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.txt')) return 'text-blue-600';
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.gif')) return 'text-blue-600';
+    if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi')) return 'text-blue-600';
+    if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac')) return 'text-blue-600';
+    return 'text-blue-600';
   };
 
   if (loading) {
@@ -148,12 +147,12 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
           return (
             <div
               key={file.id}
-              className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 cursor-pointer group"
+              className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer group"
             >
               <div className="flex items-start justify-between mb-3">
                 <IconComponent className={`w-8 h-8 ${iconColor}`} />
                 <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Download className="w-4 h-4 text-gray-400 hover:text-white" />
+                  <Download className="w-4 h-4 text-blue-600 hover:text-blue-400" />
                 </button>
               </div>
               
@@ -167,7 +166,7 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
               
               <div className="mt-3 pt-3 border-t border-white/10">
                 <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-xs text-gray-400">On-chain</span>
                 </div>
               </div>
@@ -178,7 +177,7 @@ export const FileGrid = ({ selectedFolder }: FileGridProps) => {
 
       {filteredFiles.length === 0 && (
         <div className="text-center py-12">
-          <Archive className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <Archive className="w-12 h-12 text-blue-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-400 mb-2">No files found</h3>
           <p className="text-gray-500">
             {selectedFolder === 'all' 

@@ -47,12 +47,12 @@ export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
       <Card className="bg-gray-800/40 border-gray-700/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-gray-300">Total Storage</CardTitle>
-          <HardDrive className="h-4 w-4 text-blue-400" />
+          <HardDrive className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-white">{stats.totalStorage} GB</div>
           <p className="text-xs text-gray-400">
-            <TrendingUp className="inline h-3 w-3 mr-1" />
+            <TrendingUp className="inline h-3 w-3 mr-1 text-blue-600" />
             {stats.totalFiles > 0 ? 'Active storage' : 'No files yet'}
           </p>
         </CardContent>
@@ -61,12 +61,12 @@ export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
       <Card className="bg-gray-800/40 border-gray-700/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-gray-300">Total Files</CardTitle>
-          <Database className="h-4 w-4 text-purple-400" />
+          <Database className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-white">{stats.totalFiles}</div>
           <p className="text-xs text-gray-400">
-            <TrendingUp className="inline h-3 w-3 mr-1" />
+            <TrendingUp className="inline h-3 w-3 mr-1 text-blue-600" />
             {stats.totalFiles > 0 ? 'Files stored' : 'Start uploading'}
           </p>
         </CardContent>
@@ -75,12 +75,12 @@ export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
       <Card className="bg-gray-800/40 border-gray-700/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-gray-300">Blockchain Transactions</CardTitle>
-          <Activity className="h-4 w-4 text-green-400" />
+          <Activity className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-white">{stats.totalTransactions}</div>
           <p className="text-xs text-gray-400">
-            <TrendingUp className="inline h-3 w-3 mr-1" />
+            <TrendingUp className="inline h-3 w-3 mr-1 text-blue-600" />
             {stats.totalTransactions > 0 ? '100% success rate' : 'No transactions yet'}
           </p>
         </CardContent>
@@ -89,12 +89,12 @@ export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
       <Card className="bg-gray-800/40 border-gray-700/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-gray-300">Network Health</CardTitle>
-          <Shield className="h-4 w-4 text-yellow-400" />
+          <Shield className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-white">{stats.networkHealth}%</div>
           <p className="text-xs text-gray-400">
-            <Zap className="inline h-3 w-3 mr-1" />
+            <Zap className="inline h-3 w-3 mr-1 text-blue-600" />
             All systems operational
           </p>
         </CardContent>
