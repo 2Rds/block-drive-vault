@@ -1,46 +1,71 @@
 
 import React from 'react';
 import { Database, Upload, Download, Archive } from 'lucide-react';
+import { useUserData } from '@/hooks/useUserData';
 
 export const StatsCards = () => {
-  const stats = [
+  const { stats, loading } = useUserData();
+
+  const statsData = [
     {
       title: 'Total Storage Used',
-      value: '2.4 GB',
-      subtitle: 'of 10 GB',
+      value: loading ? '0 GB' : `${stats.totalStorage} GB`,
+      subtitle: 'Secure blockchain storage',
       icon: Database,
       color: 'from-blue-600 to-blue-700',
-      percentage: 24,
+      percentage: loading ? 0 : Math.min(Math.round((stats.totalStorage / 10) * 100), 100), // Assuming 10GB limit
     },
     {
-      title: 'Files Uploaded Today',
-      value: '12',
-      subtitle: '+3 from yesterday',
+      title: 'Files Uploaded',
+      value: loading ? '0' : stats.totalFiles.toString(),
+      subtitle: loading ? 'Loading...' : `${stats.totalFiles} total files`,
       icon: Upload,
       color: 'from-purple-600 to-purple-700',
       percentage: 0,
     },
     {
-      title: 'Downloads This Week',
-      value: '47',
-      subtitle: '+15% from last week',
+      title: 'Recent Activity',
+      value: loading ? '0' : stats.recentActivity.length.toString(),
+      subtitle: loading ? 'Loading...' : 'Recent actions',
       icon: Download,
       color: 'from-blue-500 to-purple-500',
       percentage: 0,
     },
     {
       title: 'Blockchain Transactions',
-      value: '156',
-      subtitle: 'Total confirmations',
+      value: loading ? '0' : stats.totalTransactions.toString(),
+      subtitle: loading ? 'Loading...' : 'Total confirmations',
       icon: Archive,
       color: 'from-purple-500 to-blue-500',
       percentage: 0,
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50 animate-pulse"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-gray-600/40 w-12 h-12"></div>
+            </div>
+            <div className="space-y-1">
+              <div className="h-4 bg-gray-600 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-600 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-600 rounded w-20"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, index) => (
+      {statsData.map((stat, index) => (
         <div
           key={index}
           className="bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50 hover:bg-gray-700/30 transition-all duration-300"
