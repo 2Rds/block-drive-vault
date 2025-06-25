@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, Bell, User, Wallet, LogOut } from 'lucide-react';
+import { Search, Bell, User, Wallet, LogOut, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignOut = async () => {
@@ -19,6 +21,10 @@ export const Header = () => {
       toast.success('Successfully signed out');
     }
     setIsLoading(false);
+  };
+
+  const handleSignInClick = () => {
+    navigate('/auth');
   };
 
   return (
@@ -43,42 +49,56 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
-            <Bell className="w-5 h-5" />
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl px-3 py-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-medium">{user?.user_metadata?.username || 'User'}</span>
+          {user ? (
+            // Authenticated user content
+            <>
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
+                <Bell className="w-5 h-5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal p-4">
-                <div className="flex flex-col space-y-2">
-                  <p className="text-sm font-semibold text-white">
-                    {user?.user_metadata?.username || 'User'}
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    {user?.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-gray-600" />
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" onClick={handleSignOut} disabled={isLoading}>
-                <LogOut className="mr-3 h-4 w-4" />
-                <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl px-3 py-2">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-medium">{user?.user_metadata?.username || 'User'}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal p-4">
+                    <div className="flex flex-col space-y-2">
+                      <p className="text-sm font-semibold text-white">
+                        {user?.user_metadata?.username || 'User'}
+                      </p>
+                      <p className="text-xs text-gray-300">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-600" />
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" onClick={handleSignOut} disabled={isLoading}>
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center space-x-2 bg-blue-600/20 border border-blue-600/30 rounded-xl px-4 py-2">
-            <Wallet className="w-4 h-4 text-blue-600" />
-            <span className="text-gray-300 text-sm font-medium">Connected</span>
-          </div>
+              <div className="flex items-center space-x-2 bg-blue-600/20 border border-blue-600/30 rounded-xl px-4 py-2">
+                <Wallet className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-300 text-sm font-medium">Connected</span>
+              </div>
+            </>
+          ) : (
+            // Unauthenticated user content
+            <Button 
+              onClick={handleSignInClick}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In</span>
+            </Button>
+          )}
         </div>
       </div>
     </header>
