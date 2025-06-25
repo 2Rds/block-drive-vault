@@ -11,29 +11,58 @@ interface IPFSUploadResult {
 
 export class IPFSService {
   private static readonly BLOCKDRIVE_DID = 'did:key:z6MkhyUYfeQAP2BHxwzbK93LxpiVSrKYZfrKw6EWhLHeefoe';
+  private static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
+  private static readonly PINATA_SECRET_KEY = '6d9723fc850df5431aa8ad08062b71c5327b8ebc1dcb469026e03a8bd5a6748c';
+  private static readonly PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYzBiNTg4NC0wNjBiLTQ5ZmYtOTBhYy0wMGFlNDdhNGRhYTIiLCJlbWFpbCI6InR3b3JvYWRzaW5ub3ZhdGl2ZXNvbHV0aW9uc0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiZmRkZTVkMWJmYWFiMGExODQwN2MiLCJzY29wZWRLZXlTZWNyZXQiOiI2ZDk3MjNmYzg1MGRmNTQzMWFhOGFkMDgwNjJiNzFjNTMyN2I4ZWJjMWRjYjQ2OTAyNmUwM2E4YmQ1YTY3NDhjIiwiZXhwIjoxNzgyMzk1MTA1fQ.IXY4eZqJ-26DXo8hRWN1iv2uLqo0i0kYI3sE2WBJlxU';
   
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
     try {
       console.log(`Starting BlockDrive IPFS upload for file: ${file.name} (${file.size} bytes)`);
       console.log(`Using DID: ${this.BLOCKDRIVE_DID}`);
       
-      // For now, we'll simulate the IPFS upload since the API key is invalid
-      // In a real implementation, you would need a valid Pinata API key
-      const mockCid = this.generateMockCID();
+      const formData = new FormData();
+      formData.append('file', file);
       
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add metadata to associate with BlockDrive DID
+      const metadata = {
+        name: file.name,
+        keyvalues: {
+          'blockdrive_did': this.BLOCKDRIVE_DID,
+          'uploaded_by': 'BlockDrive_IPFS_Workspace',
+          'upload_timestamp': new Date().toISOString(),
+          'file_type': file.type || 'application/octet-stream'
+        }
+      };
+      
+      formData.append('pinataMetadata', JSON.stringify(metadata));
+      
+      const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.PINATA_JWT}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Pinata API error:', response.status, errorText);
+        throw new Error(`Pinata API error: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Pinata upload result:', result);
       
       const uploadResult: IPFSUploadResult = {
-        cid: mockCid,
-        url: `https://gateway.pinata.cloud/ipfs/${mockCid}`,
+        cid: result.IpfsHash,
+        url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash}`,
         filename: file.name,
         size: file.size,
         contentType: file.type || 'application/octet-stream'
       };
       
-      console.log('BlockDrive IPFS upload successful (simulated):', uploadResult);
-      toast.success(`File uploaded to BlockDrive IPFS Workspace: ${mockCid}`);
+      console.log('BlockDrive IPFS upload successful:', uploadResult);
+      toast.success(`File uploaded to BlockDrive IPFS Workspace: ${result.IpfsHash}`);
       return uploadResult;
       
     } catch (error) {
@@ -102,8 +131,33 @@ export class IPFSService {
   
   static async pinFile(cid: string): Promise<boolean> {
     try {
-      console.log(`File pinned to BlockDrive IPFS Workspace: ${cid}`);
-      return true;
+      console.log(`Pinning file to BlockDrive IPFS Workspace: ${cid}`);
+      
+      const response = await fetch(`https://api.pinata.cloud/pinning/pinByHash`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.PINATA_JWT}`,
+        },
+        body: JSON.stringify({
+          hashToPin: cid,
+          pinataMetadata: {
+            name: `BlockDrive_Pin_${cid}`,
+            keyvalues: {
+              'blockdrive_did': this.BLOCKDRIVE_DID,
+              'pin_timestamp': new Date().toISOString()
+            }
+          }
+        }),
+      });
+      
+      if (response.ok) {
+        console.log(`File pinned successfully to BlockDrive IPFS Workspace: ${cid}`);
+        return true;
+      } else {
+        console.warn('Failed to pin file to BlockDrive IPFS Workspace:', await response.text());
+        return false;
+      }
     } catch (error) {
       console.error('BlockDrive IPFS pinning failed:', error);
       return false;
@@ -112,8 +166,22 @@ export class IPFSService {
   
   static async unpinFile(cid: string): Promise<boolean> {
     try {
-      console.log(`File unpinned from BlockDrive IPFS Workspace: ${cid}`);
-      return true;
+      console.log(`Unpinning file from BlockDrive IPFS Workspace: ${cid}`);
+      
+      const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.PINATA_JWT}`,
+        },
+      });
+      
+      if (response.ok) {
+        console.log(`File unpinned successfully from BlockDrive IPFS Workspace: ${cid}`);
+        return true;
+      } else {
+        console.warn('Failed to unpin file from BlockDrive IPFS Workspace:', await response.text());
+        return false;
+      }
     } catch (error) {
       console.error('BlockDrive IPFS unpinning failed:', error);
       return false;
@@ -135,15 +203,5 @@ export class IPFSService {
   
   static getDIDKey(): string {
     return this.BLOCKDRIVE_DID;
-  }
-  
-  private static generateMockCID(): string {
-    // Generate a realistic looking CID for simulation
-    const chars = '123456789ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let result = 'Qm';
-    for (let i = 0; i < 44; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
   }
 }
