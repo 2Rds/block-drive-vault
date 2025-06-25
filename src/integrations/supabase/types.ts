@@ -86,39 +86,6 @@ export type Database = {
           },
         ]
       }
-      "BlockDrive-Slack": {
-        Row: {
-          created: string | null
-          id: string | null
-          mimetype: string | null
-          name: string | null
-          size: number | null
-          title: string | null
-          url_private: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created?: string | null
-          id?: string | null
-          mimetype?: string | null
-          name?: string | null
-          size?: number | null
-          title?: string | null
-          url_private?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created?: string | null
-          id?: string | null
-          mimetype?: string | null
-          name?: string | null
-          size?: number | null
-          title?: string | null
-          url_private?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       files: {
         Row: {
           content_type: string | null

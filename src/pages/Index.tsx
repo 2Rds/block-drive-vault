@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
@@ -8,13 +7,15 @@ import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Upload } from 'lucide-react';
+import { BarChart3, Files, Upload, Slack } from 'lucide-react';
+import { SlackIntegration } from '@/components/SlackIntegration';
 
 const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
   const [activeView, setActiveView] = useState<'dashboard' | 'files'>('dashboard');
   const [userFolders, setUserFolders] = useState<string[]>([]);
+  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
 
   const handleCreateFolder = (folderName: string) => {
     setUserFolders(prev => [...prev, folderName]);
@@ -69,6 +70,14 @@ const Index = () => {
                   <Files className="w-4 h-4 mr-2" />
                   Files
                 </Button>
+                <Button
+                  onClick={() => setShowSlackIntegration(true)}
+                  variant="outline"
+                  className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
+                >
+                  <Slack className="w-4 h-4 mr-2" />
+                  Slack
+                </Button>
               </div>
             </div>
 
@@ -90,6 +99,11 @@ const Index = () => {
           </div>
         </main>
       </div>
+
+      <SlackIntegration
+        isOpen={showSlackIntegration}
+        onClose={() => setShowSlackIntegration(false)}
+      />
     </div>
   );
 };
