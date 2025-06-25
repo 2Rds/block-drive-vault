@@ -19,7 +19,16 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check for both user and session to ensure proper authentication
+  // In development mode, allow access if we have a user (even without session)
+  // This helps with development workflow in Lovable
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
+  
+  if (isDevelopment && user) {
+    console.log('Development mode - allowing access with user only');
+    return <>{children}</>;
+  }
+
+  // In production, require both user and session
   if (!user || !session) {
     console.log('No authenticated user or session, redirecting to auth');
     return <Navigate to="/auth" replace />;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +27,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // In development, if no session but we need to simulate a user for testing
+      if (!session?.user) {
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
+        if (isDevelopment) {
+          // Create a mock user for development purposes
+          const mockUser = {
+            id: 'dev-user-123',
+            email: 'dev@example.com',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            email_confirmed_at: new Date().toISOString(),
+            last_sign_in_at: new Date().toISOString(),
+            role: 'authenticated',
+            aud: 'authenticated',
+            app_metadata: {},
+            user_metadata: { wallet_address: 'dev-wallet-address' }
+          } as User;
+          
+          console.log('Development mode - setting mock user');
+          setUser(mockUser);
+        }
+      }
+      
       setLoading(false);
       
       if (session?.user) {
