@@ -56,7 +56,10 @@ export const UploadArea = ({ isUploading, setIsUploading }: UploadAreaProps) => 
               <Plus className="w-4 h-4 mr-2" />
               {isUploading ? 'Uploading...' : 'Choose Files'}
             </Button>
-            <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+            <Button 
+              variant="outline" 
+              className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
+            >
               Create Folder
             </Button>
           </div>
