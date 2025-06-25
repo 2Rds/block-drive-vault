@@ -50,19 +50,21 @@ export const useIPFSUpload = () => {
         // Pin the file to ensure availability
         await IPFSService.pinFile(ipfsResult.cid);
         
-        // Store metadata in Supabase
+        // Store metadata in Supabase - using the correct column names
         const { data: dbFile, error: dbError } = await supabase
           .from('files')
           .insert({
             user_id: user.id,
+            wallet_id: user.id, // Using user.id as wallet_id for now
             filename: ipfsResult.filename,
+            file_path: `/${ipfsResult.filename}`, // Required field
             content_type: ipfsResult.contentType,
             file_size: ipfsResult.size,
             ipfs_cid: ipfsResult.cid,
             ipfs_url: ipfsResult.url,
             folder_path: folderPath || '/',
             storage_provider: 'ipfs',
-            is_encrypted: false, // TODO: Add encryption in Phase 2
+            is_encrypted: false,
             metadata: {
               originalName: file.name,
               uploadedVia: 'blockdrive-web',
@@ -74,19 +76,19 @@ export const useIPFSUpload = () => {
         
         if (dbError) {
           console.error('Database error:', dbError);
-          throw new Error(`Failed to save ${file.name} metadata`);
+          throw new Error(`Failed to save ${file.name} metadata: ${dbError.message}`);
         }
         
         const ipfsFile: IPFSFile = {
           id: dbFile.id,
           filename: dbFile.filename,
-          cid: ipfsResult.cid,
-          size: ipfsResult.size,
-          contentType: ipfsResult.contentType,
-          ipfsUrl: ipfsResult.url,
+          cid: dbFile.ipfs_cid || ipfsResult.cid,
+          size: dbFile.file_size || ipfsResult.size,
+          contentType: dbFile.content_type || ipfsResult.contentType,
+          ipfsUrl: dbFile.ipfs_url || ipfsResult.url,
           uploadedAt: dbFile.created_at,
           userId: user.id,
-          folderPath: folderPath
+          folderPath: dbFile.folder_path || folderPath
         };
         
         uploadedFiles.push(ipfsFile);
@@ -182,13 +184,13 @@ export const useIPFSUpload = () => {
         throw error;
       }
       
-      const ipfsFiles: IPFSFile[] = files.map(file => ({
+      const ipfsFiles: IPFSFile[] = (files || []).map(file => ({
         id: file.id,
         filename: file.filename,
-        cid: file.ipfs_cid,
+        cid: file.ipfs_cid || '',
         size: file.file_size || 0,
         contentType: file.content_type || 'application/octet-stream',
-        ipfsUrl: file.ipfs_url,
+        ipfsUrl: file.ipfs_url || '',
         uploadedAt: file.created_at,
         userId: file.user_id,
         folderPath: file.folder_path

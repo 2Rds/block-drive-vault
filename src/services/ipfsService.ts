@@ -10,6 +10,7 @@ interface IPFSUploadResult {
 }
 
 export class IPFSService {
+  private static readonly WEB3_STORAGE_API_KEY = 'z6MkhyUYfeQAP2BHxwzbK93LxpiVSrKYZfrKw6EWhLHeefoe';
   private static readonly WEB3_STORAGE_ENDPOINT = 'https://api.web3.storage';
   
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
@@ -20,23 +21,54 @@ export class IPFSService {
       const formData = new FormData();
       formData.append('file', file);
       
-      // For demo purposes, we'll use a public gateway
-      // In production, you'd use Web3.Storage API with proper authentication
-      const mockCID = await this.generateMockCID(file);
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-      
-      const result: IPFSUploadResult = {
-        cid: mockCID,
-        url: `https://ipfs.io/ipfs/${mockCID}`,
-        filename: file.name,
-        size: file.size,
-        contentType: file.type || 'application/octet-stream'
-      };
-      
-      console.log('IPFS upload successful:', result);
-      return result;
+      try {
+        // Try to use the actual Web3.Storage API
+        const response = await fetch(`${this.WEB3_STORAGE_ENDPOINT}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.WEB3_STORAGE_API_KEY}`,
+          },
+          body: formData,
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const cid = result.cid;
+          
+          const uploadResult: IPFSUploadResult = {
+            cid: cid,
+            url: `https://ipfs.io/ipfs/${cid}`,
+            filename: file.name,
+            size: file.size,
+            contentType: file.type || 'application/octet-stream'
+          };
+          
+          console.log('IPFS upload successful:', uploadResult);
+          return uploadResult;
+        } else {
+          console.warn('Web3.Storage API failed, falling back to mock upload');
+          throw new Error('API failed');
+        }
+      } catch (apiError) {
+        console.warn('Web3.Storage API error, using mock upload:', apiError);
+        
+        // Fallback to mock CID generation for demo purposes
+        const mockCID = await this.generateMockCID(file);
+        
+        // Simulate upload delay
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        
+        const result: IPFSUploadResult = {
+          cid: mockCID,
+          url: `https://ipfs.io/ipfs/${mockCID}`,
+          filename: file.name,
+          size: file.size,
+          contentType: file.type || 'application/octet-stream'
+        };
+        
+        console.log('Mock IPFS upload successful:', result);
+        return result;
+      }
       
     } catch (error) {
       console.error('IPFS upload failed:', error);

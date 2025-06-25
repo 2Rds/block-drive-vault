@@ -132,8 +132,13 @@ export type Database = {
           file_path: string
           file_size: number | null
           filename: string
+          folder_path: string | null
           id: string
+          ipfs_cid: string | null
+          ipfs_url: string | null
           is_encrypted: boolean
+          metadata: Json | null
+          storage_provider: string | null
           updated_at: string
           user_id: string
           wallet_id: string
@@ -144,8 +149,13 @@ export type Database = {
           file_path: string
           file_size?: number | null
           filename: string
+          folder_path?: string | null
           id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
           is_encrypted?: boolean
+          metadata?: Json | null
+          storage_provider?: string | null
           updated_at?: string
           user_id: string
           wallet_id: string
@@ -156,8 +166,13 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           filename?: string
+          folder_path?: string | null
           id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
           is_encrypted?: boolean
+          metadata?: Json | null
+          storage_provider?: string | null
           updated_at?: string
           user_id?: string
           wallet_id?: string
