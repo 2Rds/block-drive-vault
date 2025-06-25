@@ -11,7 +11,7 @@ export const FeatureCards = () => {
             </div>
             <div>
               <h3 className="font-semibold text-white mb-2">Sign In With Solana Authentication</h3>
-              <p className="text-gray-300 text-sm">Secure, passwordless login using your Web3 wallet signature. No passwords to remember or manage.</p>
+              <p className="text-gray-300 text-sm">Secure, passwordless login using your Solana wallet signature. No passwords to remember or manage. No personal data or credentials collected.  True decentralization at every level.</p>
             </div>
           </div>
         </CardContent>
