@@ -24,6 +24,7 @@ export interface AuthContextType {
   loading: boolean;
   walletData: WalletData | null;
   setWalletData: (data: WalletData) => void;
-  connectWallet: (walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') => Promise<{ error: any }>;
+  connectWallet: (walletData: any) => Promise<void>;
+  disconnectWallet: () => Promise<void>;
   signOut: () => Promise<{ error: any }>;
 }

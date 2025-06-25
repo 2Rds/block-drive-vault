@@ -7,6 +7,11 @@ interface User {
   id: string;
   email?: string;
   wallet_address?: string;
+  user_metadata?: {
+    wallet_address?: string;
+    blockchain_type?: string;
+    username?: string;
+  };
 }
 
 interface WalletData {
@@ -22,16 +27,20 @@ interface WalletData {
 
 interface AuthContextType {
   user: User | null;
+  session: any | null;
   walletData: WalletData | null;
   loading: boolean;
   connectWallet: (walletData: any) => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  signOut: () => Promise<{ error: any }>;
+  setWalletData: (data: WalletData) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -149,12 +158,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('User authenticated:', signInData.user.id);
 
-      // Set user data
+      // Set user data with metadata
       setUser({
         id: signInData.user.id,
         email: signInData.user.email,
         wallet_address: walletAddress,
+        user_metadata: {
+          wallet_address: walletAddress,
+          blockchain_type: incomingWalletData.blockchain_type || 'ethereum',
+          username: `user-${walletAddress.slice(0, 6)}`
+        }
       });
+
+      setSession(signInData.session);
 
       // Process wallet data
       const processedWalletData: WalletData = {
@@ -200,6 +216,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       setUser(null);
+      setSession(null);
       setWalletData(null);
       
       toast.success('Wallet disconnected');
@@ -209,13 +226,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        return { error };
+      }
+      
+      setUser(null);
+      setSession(null);
+      setWalletData(null);
+      
+      // Clear all wallet sessions
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('wallet_session_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { error };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       walletData,
       loading,
       connectWallet,
       disconnectWallet,
+      signOut,
+      setWalletData,
     }}>
       {children}
     </AuthContext.Provider>

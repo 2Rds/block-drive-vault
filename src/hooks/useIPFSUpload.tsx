@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from './useAuth';
 import { IPFSService } from '@/services/ipfsService';
@@ -64,7 +63,7 @@ export const useIPFSUpload = () => {
         await IPFSService.pinFile(ipfsResult.cid);
         
         // First, get the user's wallet to use as wallet_id
-        const { data: walletData, error: walletError } = await supabase
+        let { data: walletData, error: walletError } = await supabase
           .from('wallets')
           .select('id')
           .eq('user_id', user.id)
@@ -77,7 +76,7 @@ export const useIPFSUpload = () => {
             .from('wallets')
             .insert({
               user_id: user.id,
-              wallet_address: user.id, // Using user.id as fallback
+              wallet_address: user.wallet_address || user.id, // Using user.id as fallback
               public_key: '',
               private_key_encrypted: '',
               blockchain_type: 'ethereum'

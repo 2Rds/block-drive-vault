@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ConnectButton } from "thirdweb/react";
 import { thirdwebClient, supportedWallets } from '@/config/thirdweb';
@@ -71,23 +70,23 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
 
       console.log('Determined blockchain type:', blockchainType);
 
-      // Authenticate with our backend
-      const authResult = await connectWallet(walletAddress, signature, blockchainType);
+      // Authenticate with our backend - using the updated function signature
+      await connectWallet({
+        address: walletAddress,
+        blockchain_type: blockchainType,
+        signature,
+        id: blockchainType
+      });
       
-      if (!authResult.error) {
-        toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
-        if (onWalletConnected) {
-          onWalletConnected({
-            address: walletAddress,
-            blockchain: blockchainType,
-            signature,
-            message: params.payload?.statement || 'Authentication successful'
-          });
-        }
-      } else {
-        console.error('Authentication failed:', authResult.error);
-        toast.error('Failed to authenticate wallet. Please try again.');
-        throw new Error('Authentication failed');
+      toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
+      
+      if (onWalletConnected) {
+        onWalletConnected({
+          address: walletAddress,
+          blockchain: blockchainType,
+          signature,
+          message: params.payload?.statement || 'Authentication successful'
+        });
       }
     } catch (error) {
       console.error('Wallet authentication error:', error);

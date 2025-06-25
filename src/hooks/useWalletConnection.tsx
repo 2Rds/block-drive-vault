@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from './useAuth';
@@ -52,16 +51,21 @@ export const useWalletConnection = () => {
     setConnectedWallet(walletInfo);
     localStorage.setItem('selectedWallet', walletId);
 
-    // Authenticate with backend
-    const authResult = await connectWallet(walletInfo.address, signature, 'solana');
-    
-    if (!authResult.error) {
+    // Authenticate with backend using the updated function signature
+    try {
+      await connectWallet({
+        address: walletInfo.address,
+        blockchain_type: 'solana',
+        signature,
+        id: walletId
+      });
+      
       toast({
         title: `${walletId === 'phantom' ? 'Phantom' : 'Solflare'} Wallet Connected`,
         description: `Wallet authenticated successfully!`,
       });
       navigate('/index');
-    } else {
+    } catch (error) {
       toast({
         title: "Authentication Failed",
         description: "Failed to authenticate wallet. Please try again.",
