@@ -8,7 +8,7 @@ interface WalletOption {
   id: string;
   name: string;
   icon: string;
-  blockchain: 'solana' | 'ethereum' | 'ton';
+  blockchain: 'solana';
 }
 
 interface WalletOptionsProps {
@@ -29,36 +29,6 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
     name: 'Solflare',
     icon: '🔥',
     blockchain: 'solana'
-  }, {
-    id: 'metamask',
-    name: 'MetaMask',
-    icon: '🦊',
-    blockchain: 'ethereum'
-  }, {
-    id: 'coinbase',
-    name: 'Coinbase Wallet',
-    icon: '🔵',
-    blockchain: 'ethereum'
-  }, {
-    id: 'trust',
-    name: 'Trust Wallet',
-    icon: '🛡️',
-    blockchain: 'ethereum'
-  }, {
-    id: 'exodus',
-    name: 'Exodus',
-    icon: '🚀',
-    blockchain: 'ethereum'
-  }, {
-    id: 'okx',
-    name: 'OKX Wallet',
-    icon: '⭕',
-    blockchain: 'ethereum'
-  }, {
-    id: 'ledger',
-    name: 'Ledger',
-    icon: '🔒',
-    blockchain: 'ethereum'
   }];
 
   const detectWallet = (walletId: string) => {
@@ -67,18 +37,6 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
         return (window as any).phantom?.solana;
       case 'solflare':
         return (window as any).solflare;
-      case 'metamask':
-        return (window as any).ethereum?.isMetaMask;
-      case 'coinbase':
-        return (window as any).ethereum?.isCoinbaseWallet;
-      case 'trust':
-        return (window as any).ethereum?.isTrust;
-      case 'exodus':
-        return (window as any).ethereum?.isExodus;
-      case 'okx':
-        return (window as any).okxwallet;
-      case 'ledger':
-        return (window as any).ethereum?.isLedgerConnect;
       default:
         return false;
     }
@@ -94,12 +52,12 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end">
         <DropdownMenuLabel className="text-white text-center py-3">
-          Choose Your Wallet
+          Choose Your Solana Wallet
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-600" />
         
         {walletOptions.map(wallet => {
-          const isDetected = detectWallet(wallet.id) || wallet.id === 'ledger';
+          const isDetected = detectWallet(wallet.id);
           const isConnectingWallet = isConnecting === wallet.id;
           return (
             <DropdownMenuItem 
@@ -117,14 +75,14 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {!isDetected && wallet.id !== 'ledger' && (
+                  {!isDetected && (
                     <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">
                       Not Installed
                     </span>
                   )}
                   {isDetected && (
                     <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
-                      {wallet.id === 'ledger' ? 'Hardware' : 'Detected'}
+                      Detected
                     </span>
                   )}
                 </div>

@@ -3,21 +3,12 @@ export interface WalletData {
   address: string;
   privateKey: string;
   publicKey: string;
-  blockchain: 'solana' | 'ethereum' | 'ton';
+  blockchain: 'solana';
 }
 
 // Simple wallet generation for demo purposes
 // In production, use proper blockchain libraries
-export const generateWallet = (blockchainType: 'solana' | 'ethereum' | 'ton'): WalletData => {
-  const generateRandomHex = (length: number) => {
-    const chars = '0123456789abcdef';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
+export const generateWallet = (blockchainType: 'solana'): WalletData => {
   const generateRandomBase58 = (length: number) => {
     const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
     let result = '';
@@ -27,31 +18,12 @@ export const generateWallet = (blockchainType: 'solana' | 'ethereum' | 'ton'): W
     return result;
   };
 
-  switch (blockchainType) {
-    case 'solana':
-      return {
-        address: generateRandomBase58(44),
-        privateKey: generateRandomHex(64),
-        publicKey: generateRandomHex(64),
-        blockchain: 'solana'
-      };
-    case 'ethereum':
-      return {
-        address: '0x' + generateRandomHex(40),
-        privateKey: generateRandomHex(64),
-        publicKey: generateRandomHex(128),
-        blockchain: 'ethereum'
-      };
-    case 'ton':
-      return {
-        address: 'EQ' + generateRandomBase58(46),
-        privateKey: generateRandomHex(64),
-        publicKey: generateRandomHex(64),
-        blockchain: 'ton'
-      };
-    default:
-      throw new Error('Unsupported blockchain type');
-  }
+  return {
+    address: generateRandomBase58(44),
+    privateKey: generateRandomBase58(64),
+    publicKey: generateRandomBase58(64),
+    blockchain: 'solana'
+  };
 };
 
 export const encryptPrivateKey = (privateKey: string, password: string): string => {
