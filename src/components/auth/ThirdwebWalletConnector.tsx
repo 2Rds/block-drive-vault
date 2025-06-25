@@ -57,18 +57,21 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
     // Handle logout if needed
   };
 
-  const getLoginPayload = async (params: any) => {
+  const getLoginPayload = async (params: { address: string; chainId: number }) => {
     console.log('Getting login payload for:', params);
     
-    // Return a payload that will be signed by the wallet
+    // Return a proper LoginPayload object
     return {
+      domain: window.location.hostname,
+      address: params.address,
       statement: "Sign this message to authenticate with BlockDrive",
       uri: window.location.origin,
       version: "1",
-      chainId: params.chainId,
+      chain_id: params.chainId.toString(),
       nonce: crypto.randomUUID(),
-      issuedAt: new Date().toISOString(),
-      expirationTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      issued_at: new Date().toISOString(),
+      expiration_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      invalid_before: new Date().toISOString(),
     };
   };
 

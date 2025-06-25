@@ -4,7 +4,7 @@ import { createWallet } from "thirdweb/wallets";
 import { ethereum, solana } from "thirdweb/chains";
 
 export const thirdwebClient = createThirdwebClient({
-  clientId: "your_thirdweb_client_id_here", // You'll need to get this from Thirdweb dashboard
+  clientId: "cf74fd6b0c10ccf7ff0ab35e790c369a",
 });
 
 export const supportedWallets = [
