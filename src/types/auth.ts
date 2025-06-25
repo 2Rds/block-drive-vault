@@ -25,6 +25,6 @@ export interface AuthContextType {
   walletData: WalletData | null;
   setWalletData: (data: WalletData) => void;
   connectWallet: (walletData: any) => Promise<{ error: any; data?: any }>;
-  disconnectWallet: () => Promise<void>;
+  disconnectWallet: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
 }
