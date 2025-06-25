@@ -10,8 +10,8 @@ interface IPFSUploadResult {
 }
 
 export class IPFSService {
-  private static readonly WEB3_STORAGE_API_KEY = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkaWQ6a2V5Ono2TWtoeVVZZmVRQVAyQkh4d3piSzkzTHhwaVZTcktZWmZyS3c2RVdoTEhlZWZvZSIsInN1YiI6ImRpZDprZXk6ejZNa2h5VVlmZVFBUDJCSHh3emJLOTNMeHBpVlNyS1laZnJLdzZFV2hMSGVlZm9lIiwiYXVkIjoidzNzLnVjYW4ueHl6IiwiZXhwIjoxNzUxNzc3ODUzLCJmYWN0IjpbeyJjYW4iOiJzcGFjZS9pbmZvIiwid2l0aCI6ImRpZDprZXk6ejZNa2h5VVlmZVFBUDJCSHh3emJLOTNMeHBpVlNyS1laZnJLdzZFV2hMSGVlZm9lIn0seyJjYW4iOiJ1cGxvYWQvYWRkIiwid2l0aCI6ImRpZDprZXk6ejZNa2h5VVlmZVFBUDJCSHh3emJLOTNMeHBpVlNyS1laZnJLdzZFV2hMSGVlZm9lIn0seyJjYW4iOiJ1cGxvYWQvbGlzdCIsIndpdGgiOiJkaWQ6a2V5Ono2TWtoeVVZZmVRQVAyQkh4d3piSzkzTHhwaVZTcktZWmZyS3c2RVdoTEhlZWZvZSJ9LHsiY2FuIjoiZmlsZWNvaW4vaW5mbyIsIndpdGgiOiJkaWQ6a2V5Ono2TWtoeVVZZmVRQVAyQkh4d3piSzkzTHhwaVZTcktZWmZyS3c2RVdoTEhlZWZvZSJ9LHsiY2FuIjoic3BhY2UvcmVjb3ZlciIsIndpdGgiOiJkaWQ6a2V5Ono2TWtoeVVZZmVRQVAyQkh4d3piSzkzTHhwaVZTcktZWmZyS3c2RVdoTEhlZWZvZSJ9XSwiaWF0IjoxNzUwNjkwNjUzfQ.4OrkN05f9n9__QEJNTgdU-KGhCGbS2KPvjNGKe4b7kZL8HpJnqoQdZLcE6YqJFNWGr9Yf8a2LK8r1kf1fRV1Dw';
-  private static readonly WEB3_STORAGE_ENDPOINT = 'https://api.web3.storage';
+  private static readonly PINATA_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJiZDQyZWRjNy1mZGI2LTRmNjUtYjg3Mi1lZTU5MTY0YjYzZDciLCJlbWFpbCI6ImJsb2NrZHJpdmUuZGV2QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImlkIjoiRlJBMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfSx7ImlkIjoiTllDMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJlZGFjNzZhZGU4NDQ1YjgzNzIyMiIsInNjb3BlZEtleVNlY3JldCI6ImNkNmYyNGQ5YmQzM2QxMzI1MjAzMWVhZGI3ZmMzYjk5ZjdmZjM1YzBlNzU0ZjY5YzY2MjU5YzNlY2Y1NzJmZmYiLCJpYXQiOjE3MzU3NjExMjN9.8zXHg2yI_RnLcKoEhCcP7Ls4pMnq2jJJDKG1wJ2pAUo';
+  private static readonly PINATA_API_URL = 'https://api.pinata.cloud';
   private static readonly BLOCKDRIVE_DID = 'did:key:z6MkhyUYfeQAP2BHxwzbK93LxpiVSrKYZfrKw6EWhLHeefoe';
   
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
@@ -19,79 +19,49 @@ export class IPFSService {
       console.log(`Starting BlockDrive IPFS upload for file: ${file.name} (${file.size} bytes)`);
       console.log(`Using DID: ${this.BLOCKDRIVE_DID}`);
       
-      // Create FormData for Web3.Storage upload
+      // Create FormData for Pinata upload
       const formData = new FormData();
       formData.append('file', file);
       
-      try {
-        // Use the BlockDrive IPFS Workspace API
-        const response = await fetch(`${this.WEB3_STORAGE_ENDPOINT}/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.WEB3_STORAGE_API_KEY}`,
-            'X-Client': 'blockdrive-web',
-          },
-          body: formData,
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          const cid = result.cid;
-          
-          const uploadResult: IPFSUploadResult = {
-            cid: cid,
-            url: `https://${cid}.ipfs.w3s.link`,
-            filename: file.name,
-            size: file.size,
-            contentType: file.type || 'application/octet-stream'
-          };
-          
-          console.log('BlockDrive IPFS upload successful:', uploadResult);
-          toast.success(`File uploaded to BlockDrive IPFS Workspace: ${cid}`);
-          return uploadResult;
-        } else {
-          const errorText = await response.text();
-          console.error('BlockDrive IPFS API error:', response.status, errorText);
-          throw new Error(`BlockDrive IPFS upload failed: ${response.status} ${errorText}`);
+      // Add metadata for BlockDrive
+      const metadata = JSON.stringify({
+        name: file.name,
+        keyvalues: {
+          'blockdrive-did': this.BLOCKDRIVE_DID,
+          'upload-timestamp': new Date().toISOString(),
+          'file-type': file.type || 'application/octet-stream'
         }
-      } catch (apiError) {
-        console.error('BlockDrive IPFS API error:', apiError);
+      });
+      formData.append('pinataMetadata', metadata);
+      
+      // Upload to Pinata IPFS
+      const response = await fetch(`${this.PINATA_API_URL}/pinning/pinFileToIPFS`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.PINATA_API_KEY}`,
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        const cid = result.IpfsHash;
         
-        // Try alternative Web3.Storage gateway
-        try {
-          console.log('Trying alternative Web3.Storage endpoint...');
-          
-          const altResponse = await fetch('https://api.web3.storage/upload', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${this.WEB3_STORAGE_API_KEY}`,
-              'X-Client': 'blockdrive-workspace',
-            },
-            body: formData,
-          });
-          
-          if (altResponse.ok) {
-            const result = await altResponse.json();
-            const cid = result.cid;
-            
-            const uploadResult: IPFSUploadResult = {
-              cid: cid,
-              url: `https://${cid}.ipfs.w3s.link`,
-              filename: file.name,
-              size: file.size,
-              contentType: file.type || 'application/octet-stream'
-            };
-            
-            console.log('Alternative BlockDrive IPFS upload successful:', uploadResult);
-            toast.success(`File uploaded to BlockDrive IPFS Workspace: ${cid}`);
-            return uploadResult;
-          }
-        } catch (altError) {
-          console.error('Alternative BlockDrive IPFS upload failed:', altError);
-        }
+        const uploadResult: IPFSUploadResult = {
+          cid: cid,
+          url: `https://gateway.pinata.cloud/ipfs/${cid}`,
+          filename: file.name,
+          size: file.size,
+          contentType: file.type || 'application/octet-stream'
+        };
         
-        // Final fallback - throw error instead of creating mock
-        throw new Error(`Failed to upload to BlockDrive IPFS Workspace: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+        console.log('BlockDrive IPFS upload successful:', uploadResult);
+        toast.success(`File uploaded to BlockDrive IPFS Workspace: ${cid}`);
+        return uploadResult;
+      } else {
+        const errorText = await response.text();
+        console.error('BlockDrive IPFS API error:', response.status, errorText);
+        throw new Error(`BlockDrive IPFS upload failed: ${response.status} ${errorText}`);
       }
       
     } catch (error) {
@@ -123,10 +93,10 @@ export class IPFSService {
       
       // Try multiple IPFS gateways for better reliability
       const gateways = [
-        `https://${cid}.ipfs.w3s.link`,
-        `https://ipfs.io/ipfs/${cid}`,
         `https://gateway.pinata.cloud/ipfs/${cid}`,
-        `https://cloudflare-ipfs.com/ipfs/${cid}`
+        `https://ipfs.io/ipfs/${cid}`,
+        `https://cloudflare-ipfs.com/ipfs/${cid}`,
+        `https://dweb.link/ipfs/${cid}`
       ];
       
       for (const gateway of gateways) {
@@ -160,15 +130,10 @@ export class IPFSService {
   
   static async pinFile(cid: string): Promise<boolean> {
     try {
-      console.log(`Pinning file to BlockDrive IPFS Workspace: ${cid}`);
-      
-      // Pin to Web3.Storage (files are automatically pinned on upload)
-      console.log('File automatically pinned to BlockDrive IPFS Workspace');
+      console.log(`File already pinned to BlockDrive IPFS Workspace: ${cid}`);
       return true;
-      
     } catch (error) {
       console.error('BlockDrive IPFS pinning failed:', error);
-      toast.error('Failed to pin file to BlockDrive IPFS Workspace');
       return false;
     }
   }
@@ -177,24 +142,33 @@ export class IPFSService {
     try {
       console.log(`Unpinning file from BlockDrive IPFS Workspace: ${cid}`);
       
-      // Note: Web3.Storage doesn't support unpinning individual files
-      // Files remain available as long as the account is active
-      console.log('File remains in BlockDrive IPFS Workspace (unpinning not supported)');
-      return true;
+      const response = await fetch(`${this.PINATA_API_URL}/pinning/unpin/${cid}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.PINATA_API_KEY}`,
+        },
+      });
+      
+      if (response.ok) {
+        console.log('File unpinned from BlockDrive IPFS Workspace');
+        return true;
+      } else {
+        console.warn('Failed to unpin file from BlockDrive IPFS Workspace');
+        return false;
+      }
       
     } catch (error) {
       console.error('BlockDrive IPFS unpinning failed:', error);
-      toast.error('Failed to unpin file from BlockDrive IPFS Workspace');
       return false;
     }
   }
   
-  static getIPFSGatewayUrl(cid: string, gateway = 'https://w3s.link'): string {
+  static getIPFSGatewayUrl(cid: string, gateway = 'https://gateway.pinata.cloud'): string {
     return `${gateway}/ipfs/${cid}`;
   }
   
   static getBlockDriveIPFSUrl(cid: string): string {
-    return `https://${cid}.ipfs.w3s.link`;
+    return `https://gateway.pinata.cloud/ipfs/${cid}`;
   }
   
   static isValidCID(cid: string): boolean {

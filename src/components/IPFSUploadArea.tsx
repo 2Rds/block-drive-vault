@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Upload, Plus, Globe, Shield, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   
   const { uploading, uploadProgress, uploadToIPFS } = useIPFSUpload();
   const { user, session } = useAuth();
@@ -25,25 +27,26 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
     if (!files || files.length === 0) return;
     
     setUploadStatus('idle');
+    setErrorMessage('');
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
     
     try {
       const result = await uploadToIPFS(files, folderPath);
       if (result && result.length > 0) {
         setUploadStatus('success');
-        // Call the callback to refresh the file grid
         if (onUploadComplete) {
           onUploadComplete();
         }
-        // Reset status after 3 seconds
         setTimeout(() => setUploadStatus('idle'), 3000);
       } else {
         setUploadStatus('error');
+        setErrorMessage('Failed to upload files to BlockDrive IPFS Workspace');
         setTimeout(() => setUploadStatus('idle'), 5000);
       }
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
       setTimeout(() => setUploadStatus('idle'), 5000);
     }
   };
@@ -73,7 +76,6 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
     }
   };
 
-  // Check if user has a valid session
   const hasValidSession = session || localStorage.getItem('sb-supabase-auth-token');
 
   if (!user) {
@@ -172,17 +174,17 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               <Globe className="w-6 h-6 text-blue-400" />
               {uploadStatus === 'success' ? 'Upload Successful!' : 
                uploadStatus === 'error' ? 'Upload Failed' :
-               uploading ? 'Uploading to BlockDrive IPFS Workspace...' : 'Upload to BlockDrive IPFS Workspace'}
+               uploading ? 'Uploading to BlockDrive IPFS...' : 'Upload to BlockDrive IPFS'}
             </h3>
             <p className="text-gray-300 mb-2">
-              {uploadStatus === 'success' ? 'Your files have been successfully stored in BlockDrive IPFS Workspace!' :
-               uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
-               'Secure, decentralized storage powered by Web3.Storage and IPFS'}
+              {uploadStatus === 'success' ? 'Your files have been successfully stored in BlockDrive IPFS with Pinata!' :
+               uploadStatus === 'error' ? `Error: ${errorMessage}` :
+               'Secure, decentralized storage powered by IPFS and Pinata'}
             </p>
             <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
               <span className="flex items-center gap-1">
                 <Shield className="w-4 h-4" />
-                DID Authenticated
+                DID Secured
               </span>
               <span className="flex items-center gap-1">
                 <Globe className="w-4 h-4" />
@@ -190,14 +192,14 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               </span>
               <span className="flex items-center gap-1">
                 <Zap className="w-4 h-4" />
-                Workspace Ready
+                Pinata Gateway
               </span>
             </div>
             
             {uploading ? (
               <div className="space-y-4">
                 <div className="text-lg font-semibold text-green-400">
-                  Uploading to BlockDrive IPFS Workspace...
+                  Uploading to BlockDrive IPFS...
                 </div>
                 <Progress value={uploadProgress} className="w-full max-w-md mx-auto h-2" />
                 <div className="text-sm text-gray-400">
@@ -228,12 +230,13 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                 <Button
                   onClick={() => {
                     setUploadStatus('idle');
+                    setErrorMessage('');
                     fileInputRef.current?.click();
                   }}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300"
                 >
                   <Plus className="w-5 h-5 mr-2" />
-                  Upload More Files
+                  Try Again
                 </Button>
               </div>
             )}
@@ -254,7 +257,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                 Drag and drop files here, or click "Choose Files" to browse
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Files are stored in your BlockDrive IPFS Workspace (DID: z6Mkhy...efoe)
+                Files are stored in IPFS via Pinata (DID: z6Mkhy...efoe)
               </p>
             </div>
           )}
