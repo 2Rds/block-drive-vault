@@ -17,7 +17,7 @@ interface IPFSFile {
 }
 
 export const useIPFSUpload = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [userFiles, setUserFiles] = useState<IPFSFile[]>([]);
@@ -28,14 +28,18 @@ export const useIPFSUpload = () => {
       return;
     }
 
-    // Check if user is properly authenticated with Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    // Check if we have either a custom wallet session or Supabase session
+    const hasValidSession = session || localStorage.getItem('sb-supabase-auth-token');
+    if (!hasValidSession) {
       toast.error('Authentication session expired. Please reconnect your wallet.');
       return;
     }
 
-    console.log('User authenticated for upload:', { userId: user.id, sessionExists: !!session });
+    console.log('User authenticated for upload:', { 
+      userId: user.id, 
+      hasSession: !!session,
+      hasStoredSession: !!localStorage.getItem('sb-supabase-auth-token')
+    });
 
     setUploading(true);
     setUploadProgress(0);
@@ -62,38 +66,42 @@ export const useIPFSUpload = () => {
         // Pin the file to ensure availability
         await IPFSService.pinFile(ipfsResult.cid);
         
-        // First, get the user's wallet to use as wallet_id
+        // First, get or create the user's wallet record
         let { data: walletData, error: walletError } = await supabase
           .from('wallets')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
         
-        if (walletError) {
+        if (walletError && walletError.code !== 'PGRST116') {
           console.error('Error fetching wallet:', walletError);
+          throw new Error(`Failed to fetch wallet: ${walletError.message}`);
+        }
+        
+        if (!walletData) {
           // Create a wallet record if it doesn't exist
+          const walletAddress = user.wallet_address || 
+                               user.user_metadata?.wallet_address || 
+                               user.id;
+          
           const { data: newWallet, error: createWalletError } = await supabase
             .from('wallets')
             .insert({
               user_id: user.id,
-              wallet_address: user.wallet_address || user.id, // Using user.id as fallback
+              wallet_address: walletAddress,
               public_key: '',
               private_key_encrypted: '',
-              blockchain_type: 'ethereum'
+              blockchain_type: user.user_metadata?.blockchain_type || 'ethereum'
             })
             .select('id')
             .single();
           
           if (createWalletError) {
             console.error('Failed to create wallet:', createWalletError);
-            throw new Error(`Failed to setup wallet for user`);
+            throw new Error(`Failed to setup wallet for user: ${createWalletError.message}`);
           }
           
           walletData = newWallet;
-        }
-        
-        if (!walletData) {
-          throw new Error('No wallet found for user');
         }
         
         console.log('Using wallet ID:', walletData.id);

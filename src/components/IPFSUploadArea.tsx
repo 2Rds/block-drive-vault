@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { Upload, Plus, Globe, Shield, Zap } from 'lucide-react';
+import { Upload, Plus, Globe, Shield, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CreateFolderModal } from './CreateFolderModal';
@@ -18,7 +18,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
   const [dragOver, setDragOver] = useState(false);
   
   const { uploading, uploadProgress, uploadToIPFS } = useIPFSUpload();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -52,6 +52,9 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
     }
   };
 
+  // Check if user has a valid session
+  const hasValidSession = session || localStorage.getItem('sb-supabase-auth-token');
+
   if (!user) {
     return (
       <div className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-gray-600 p-8 text-center">
@@ -68,6 +71,34 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder }: IPFSUploadAre
             <p className="text-gray-500">
               Please connect your Web3 wallet to start uploading files to IPFS
             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasValidSession) {
+    return (
+      <div className="bg-red-900/20 backdrop-blur-md rounded-xl border-2 border-dashed border-red-600 p-8 text-center">
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <div className="p-4 bg-red-600/20 rounded-full">
+              <AlertCircle className="w-8 h-8 text-red-400" />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-red-300 mb-2">
+              Authentication Session Expired
+            </h3>
+            <p className="text-red-400 mb-4">
+              Your wallet session has expired. Please reconnect your wallet to continue uploading files.
+            </p>
+            <Button
+              onClick={() => window.location.href = '/auth'}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reconnect Wallet
+            </Button>
           </div>
         </div>
       </div>
