@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Database, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,16 +11,21 @@ import { QRCodeModal } from '@/components/auth/QRCodeModal';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { WalletConnectionStatus } from '@/components/auth/WalletConnectionStatus';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
-
 const Auth = () => {
-  const { user, session } = useAuth();
+  const {
+    user,
+    session
+  } = useAuth();
   const navigate = useNavigate();
   const [showQRCode, setShowQRCode] = useState(false);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
-  
-  const { isConnecting, connectedWallet, setConnectedWallet, handleWalletConnect } = useWalletConnection();
-  
+  const {
+    isConnecting,
+    connectedWallet,
+    setConnectedWallet,
+    handleWalletConnect
+  } = useWalletConnection();
   const form = useForm({
     defaultValues: {
       email: '',
@@ -31,7 +35,6 @@ const Auth = () => {
       blockchainType: ''
     }
   });
-
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (user && session) {
@@ -39,27 +42,25 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
-
   const onWalletConnect = (wallet: any) => {
-    handleWalletConnect(wallet, (walletInfo) => {
+    handleWalletConnect(wallet, walletInfo => {
       form.setValue('walletAddress', walletInfo.address);
       form.setValue('blockchainType', walletInfo.blockchain);
       setShowSignupForm(true);
     });
   };
-  
   const onSubmit = async (data: any) => {
     if (!connectedWallet) {
       toast.error('Please connect your wallet first to register.');
       return;
     }
-
     setIsSubmittingRequest(true);
-    
     try {
       console.log('Submitting wallet registration:', data);
-      
-      const { data: response, error } = await supabase.functions.invoke('send-auth-token', {
+      const {
+        data: response,
+        error
+      } = await supabase.functions.invoke('send-auth-token', {
         body: {
           email: data.email,
           fullName: data.fullName,
@@ -68,13 +69,11 @@ const Auth = () => {
           blockchainType: connectedWallet.blockchain
         }
       });
-
       if (error) {
         console.error('Error calling function:', error);
         toast.error('Failed to register wallet. Please try again.');
         return;
       }
-
       if (response?.success) {
         toast.success('Wallet registered successfully! You can now connect your wallet to authenticate.');
         form.reset();
@@ -90,9 +89,7 @@ const Auth = () => {
       setIsSubmittingRequest(false);
     }
   };
-  
-  return (
-    <div className="min-h-screen bg-gray-950">
+  return <div className="min-h-screen bg-gray-950">
       {/* Header with Connect Wallet Button */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
@@ -107,21 +104,13 @@ const Auth = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <WalletOptions
-              connectedWallet={connectedWallet}
-              isConnecting={isConnecting}
-              onWalletConnect={onWalletConnect}
-              onShowQRCode={() => setShowQRCode(!showQRCode)}
-            />
+            <WalletOptions connectedWallet={connectedWallet} isConnecting={isConnecting} onWalletConnect={onWalletConnect} onShowQRCode={() => setShowQRCode(!showQRCode)} />
           </div>
         </div>
       </header>
 
       {/* QR Code Modal */}
-      <QRCodeModal 
-        showQRCode={showQRCode}
-        onClose={() => setShowQRCode(false)}
-      />
+      <QRCodeModal showQRCode={showQRCode} onClose={() => setShowQRCode(false)} />
 
       <div className="flex items-center justify-center p-8 min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -131,31 +120,19 @@ const Auth = () => {
               <h2 className="text-4xl font-bold text-white mb-4">
                 {showSignupForm ? 'Register Your Wallet' : 'Welcome to BlockDrive'}
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Web3 Storage Revolution
-                </span>
+                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Web3 Storage Revolutionized</span>
               </h2>
               <p className="text-gray-300 text-lg">
-                {showSignupForm 
-                  ? 'Your wallet is connected. Complete your registration to get started with BlockDrive.'
-                  : 'Connect your Solana wallet to access your decentralized storage dashboard. First-time users will be prompted to register their wallet.'
-                }
+                {showSignupForm ? 'Your wallet is connected. Complete your registration to get started with BlockDrive.' : 'Connect your Solana wallet to access your decentralized storage dashboard. First-time users will be prompted to register their wallet.'}
               </p>
             </div>
 
             {/* Wallet Connection Status */}
             <WalletConnectionStatus connectedWallet={connectedWallet} />
 
-            {showSignupForm && (
-              <SignupForm 
-                form={form}
-                onSubmit={onSubmit}
-                isSubmitting={isSubmittingRequest}
-              />
-            )}
+            {showSignupForm && <SignupForm form={form} onSubmit={onSubmit} isSubmitting={isSubmittingRequest} />}
 
-            {!showSignupForm && (
-              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+            {!showSignupForm && <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                 <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
                 <p className="text-gray-400 text-sm mb-4">
                   Connect your Solana wallet above to authenticate. If this is your first time using BlockDrive, 
@@ -165,16 +142,13 @@ const Auth = () => {
                   <Shield className="w-4 h-4" />
                   <span>Secure • Web3 Authentication • Wallet Signature Based</span>
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
 
           {/* Right Side - Features */}
           <FeatureCards />
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
