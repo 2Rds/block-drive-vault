@@ -22,7 +22,7 @@ interface ConnectedWallet {
 }
 
 export const useWalletConnection = () => {
-  const { setWalletData, walletData } = useAuth();
+  const { setWalletData, walletData, connectWallet } = useAuth();
   const [connecting, setConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<ConnectedWallet | null>(null);
   const { toast } = useToast();
@@ -95,33 +95,37 @@ export const useWalletConnection = () => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      // Verify signature (This part would ideally be done on the server)
-      const isValidSignature = true; // Placeholder for server-side verification
+      // Set wallet data first
+      setWalletData({
+        address,
+        publicKey,
+        adapter,
+        connected: true,
+        autoConnect,
+        id: 'phantom',
+        wallet_address: address,
+        blockchain_type: 'solana'
+      });
+      setConnectedWallet({ address, blockchain: 'solana' });
+      localStorage.setItem('selectedWallet', 'phantom');
 
-      if (isValidSignature) {
-        setWalletData({
-          address,
-          publicKey,
-          adapter,
-          connected: true,
-          autoConnect,
-          id: 'phantom',
-          wallet_address: address,
-          blockchain_type: 'solana'
-        });
-        setConnectedWallet({ address, blockchain: 'solana' });
-        localStorage.setItem('selectedWallet', 'phantom');
+      // Authenticate with the backend to create a session
+      const authResult = await connectWallet(address, signatureHex, 'solana');
+      
+      if (!authResult.error) {
         toast({
           title: "Phantom Wallet Connected",
-          description: `Wallet address: ${address}`,
+          description: `Wallet authenticated successfully!`,
         });
         
-        // Navigate to index after successful connection
-        if (!autoConnect) {
-          navigate('/index');
-        }
+        // Navigate to index after successful authentication
+        navigate('/index');
       } else {
-        console.error('Signature verification failed');
+        toast({
+          title: "Authentication Failed",
+          description: "Failed to authenticate wallet. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Error connecting to Phantom wallet:', error);
@@ -155,33 +159,37 @@ export const useWalletConnection = () => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      // Verify signature (This part would ideally be done on the server)
-      const isValidSignature = true; // Placeholder for server-side verification
+      // Set wallet data first
+      setWalletData({
+        address,
+        publicKey,
+        adapter,
+        connected: true,
+        autoConnect,
+        id: 'solflare',
+        wallet_address: address,
+        blockchain_type: 'solana'
+      });
+      setConnectedWallet({ address, blockchain: 'solana' });
+      localStorage.setItem('selectedWallet', 'solflare');
 
-      if (isValidSignature) {
-        setWalletData({
-          address,
-          publicKey,
-          adapter,
-          connected: true,
-          autoConnect,
-          id: 'solflare',
-          wallet_address: address,
-          blockchain_type: 'solana'
-        });
-        setConnectedWallet({ address, blockchain: 'solana' });
-        localStorage.setItem('selectedWallet', 'solflare');
+      // Authenticate with the backend to create a session
+      const authResult = await connectWallet(address, signatureHex, 'solana');
+      
+      if (!authResult.error) {
         toast({
           title: "Solflare Wallet Connected",
-          description: `Wallet address: ${address}`,
+          description: `Wallet authenticated successfully!`,
         });
         
-        // Navigate to index after successful connection
-        if (!autoConnect) {
-          navigate('/index');
-        }
+        // Navigate to index after successful authentication
+        navigate('/index');
       } else {
-        console.error('Signature verification failed');
+        toast({
+          title: "Authentication Failed",
+          description: "Failed to authenticate wallet. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Error connecting to Solflare wallet:', error);
