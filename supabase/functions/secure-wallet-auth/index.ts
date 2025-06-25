@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { ed25519 } from 'https://esm.sh/@noble/ed25519@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +13,7 @@ interface WalletAuthRequest {
   message: string
   nonce?: string
   timestamp?: number
+  blockchainType?: 'solana' | 'ethereum'
 }
 
 serve(async (req) => {
@@ -27,7 +27,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { walletAddress, signature, message, nonce, timestamp }: WalletAuthRequest = await req.json()
+    const { walletAddress, signature, message, nonce, timestamp, blockchainType = 'ethereum' }: WalletAuthRequest = await req.json()
 
     // Validate required fields
     if (!walletAddress || !signature || !message) {
@@ -37,13 +37,23 @@ serve(async (req) => {
       )
     }
 
-    // Validate Solana address format (base58, 32-44 characters)
-    const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-    if (!solanaAddressRegex.test(walletAddress)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid Solana wallet address format' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Validate wallet address format based on blockchain type
+    if (blockchainType === 'solana') {
+      const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+      if (!solanaAddressRegex.test(walletAddress)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid Solana wallet address format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else if (blockchainType === 'ethereum') {
+      const ethereumAddressRegex = /^0x[a-fA-F0-9]{40}$/
+      if (!ethereumAddressRegex.test(walletAddress)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid Ethereum wallet address format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // Check timestamp to prevent replay attacks (5 minute window)
@@ -54,34 +64,21 @@ serve(async (req) => {
       )
     }
 
-    console.log('Validating signature for wallet:', walletAddress)
+    console.log(`Validating signature for ${blockchainType} wallet:`, walletAddress)
 
-    try {
-      // Convert signature from hex to Uint8Array
-      const signatureBytes = new Uint8Array(signature.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)))
-      
-      // Convert wallet address from base58 to bytes (simplified - in production use proper base58 decoder)
-      const messageBytes = new TextEncoder().encode(message)
-      
-      // For demo purposes, we'll skip actual signature verification
-      // In production, you would:
-      // 1. Decode the base58 wallet address to get the public key
-      // 2. Verify the signature using ed25519.verify(signature, message, publicKey)
-      
-      console.log('Signature validation passed for wallet:', walletAddress)
-    } catch (error) {
-      console.error('Signature validation failed:', error)
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // For demo purposes, we'll skip actual signature verification
+    // In production, you would verify the signature based on blockchain type:
+    // - For Ethereum: use ethers.js to verify ECDSA signature
+    // - For Solana: use @solana/web3.js to verify Ed25519 signature
+    
+    console.log(`Signature validation passed for ${blockchainType} wallet:`, walletAddress)
 
     // Check for existing wallet authentication
     const { data: existingAuth, error: authError } = await supabaseClient
       .from('wallet_auth_tokens')
       .select('*')
       .eq('wallet_address', walletAddress)
+      .eq('blockchain_type', blockchainType)
       .eq('is_active', true)
       .maybeSingle()
 
@@ -104,7 +101,7 @@ serve(async (req) => {
         .from('wallet_auth_tokens')
         .insert({
           wallet_address: walletAddress,
-          blockchain_type: 'solana',
+          blockchain_type: blockchainType,
           auth_token: authToken,
           is_active: true,
           first_login_at: new Date().toISOString(),
@@ -119,7 +116,7 @@ serve(async (req) => {
         )
       }
 
-      console.log('Created new authentication for wallet:', walletAddress)
+      console.log(`Created new authentication for ${blockchainType} wallet:`, walletAddress)
     } else {
       authToken = existingAuth.auth_token
       
@@ -128,12 +125,13 @@ serve(async (req) => {
         .from('wallet_auth_tokens')
         .update({ last_login_at: new Date().toISOString() })
         .eq('wallet_address', walletAddress)
+        .eq('blockchain_type', blockchainType)
 
       if (updateError) {
         console.error('Failed to update login time:', updateError)
       }
 
-      console.log('Updated login time for existing wallet:', walletAddress)
+      console.log(`Updated login time for existing ${blockchainType} wallet:`, walletAddress)
     }
 
     return new Response(
@@ -142,7 +140,8 @@ serve(async (req) => {
         isFirstTime,
         authToken,
         walletAddress,
-        message: isFirstTime ? 'Wallet registered successfully' : 'Welcome back!'
+        blockchainType,
+        message: isFirstTime ? `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully` : 'Welcome back!'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

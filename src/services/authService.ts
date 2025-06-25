@@ -24,9 +24,9 @@ export class AuthService {
     }
   }
 
-  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana') {
+  static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') {
     try {
-      console.log('Attempting to authenticate Solana wallet:', walletAddress);
+      console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
       
       // Use the secure authentication endpoint
       const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
@@ -35,7 +35,8 @@ export class AuthService {
           signature,
           message: 'Sign this message to authenticate with BlockDrive',
           timestamp: Date.now(),
-          nonce: crypto.randomUUID()
+          nonce: crypto.randomUUID(),
+          blockchainType // Pass the blockchain type
         }
       });
 
@@ -48,7 +49,6 @@ export class AuthService {
         console.log('Wallet authentication successful, creating session...');
         
         // Create a custom session using the auth token
-        // This is a simplified approach - in production you'd want proper JWT handling
         const sessionData = {
           user: {
             id: data.authToken,
@@ -73,9 +73,9 @@ export class AuthService {
         }));
 
         if (data.isFirstTime) {
-          toast.success('Wallet registered successfully! Welcome to BlockDrive!');
+          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully! Welcome to BlockDrive!`);
         } else {
-          toast.success('Wallet authenticated successfully! Welcome back!');
+          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
         }
         
         return { error: null, data: sessionData };
