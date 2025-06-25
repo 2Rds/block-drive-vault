@@ -19,12 +19,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // In development mode, allow access if we have a user (even without session)
-  // This helps with development workflow in Lovable
+  // Check if we're in development mode
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
   
   if (isDevelopment && user) {
-    console.log('Development mode - allowing access with user only');
+    console.log('Development mode - allowing access with user');
     return <>{children}</>;
   }
 

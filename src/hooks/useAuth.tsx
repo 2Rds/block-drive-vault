@@ -20,42 +20,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [walletData, setWalletData] = useState<any>(null);
 
+  // Check if we're in development mode
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
       
-      // In development, if no session but we need to simulate a user for testing
-      if (!session?.user) {
-        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
-        if (isDevelopment) {
-          // Create a mock user for development purposes
-          const mockUser = {
-            id: 'dev-user-123',
-            email: 'dev@example.com',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            email_confirmed_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(),
-            role: 'authenticated',
-            aud: 'authenticated',
-            app_metadata: {},
-            user_metadata: { wallet_address: 'dev-wallet-address' }
-          } as User;
-          
-          console.log('Development mode - setting mock user');
-          setUser(mockUser);
-        }
+      if (session?.user) {
+        setSession(session);
+        setUser(session.user);
+        loadWalletData(session.user.id);
+      } else if (isDevelopment) {
+        // Create a mock user for development purposes
+        const mockUser = {
+          id: 'dev-user-123',
+          email: 'dev@example.com',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          email_confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          role: 'authenticated',
+          aud: 'authenticated',
+          app_metadata: {},
+          user_metadata: { wallet_address: 'dev-wallet-address' }
+        } as User;
+        
+        console.log('Development mode - setting mock user');
+        setUser(mockUser);
       }
       
       setLoading(false);
-      
-      if (session?.user) {
-        loadWalletData(session.user.id);
-      }
     };
 
     getInitialSession();
@@ -64,18 +61,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
         
-        // Load wallet data when user is authenticated
+        // Only update if we have a real session or if we're not in development mode
         if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          
+          // Load wallet data when user is authenticated
           setTimeout(() => {
             loadWalletData(session.user.id);
           }, 0);
-        } else {
+        } else if (!isDevelopment) {
+          // Only clear user/session if not in development mode
+          setSession(null);
+          setUser(null);
           setWalletData(null);
         }
+        // In development mode, if no session, keep the mock user
+        
+        setLoading(false);
 
         // Handle successful sign in
         if (event === 'SIGNED_IN' && session?.user) {
@@ -96,13 +100,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Handle sign out
         if (event === 'SIGNED_OUT') {
           console.log('User signed out');
+          setSession(null);
+          setUser(null);
           setWalletData(null);
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isDevelopment]);
 
   const loadWalletData = async (userId: string) => {
     try {
@@ -144,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Found valid token:', authToken.id);
 
-      // Try to sign in with OTP first (for existing users)
+      // Try to sign in with OTP first (for returning users)
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: authToken.email,
         options: {
