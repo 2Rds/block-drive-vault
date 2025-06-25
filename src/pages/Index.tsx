@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { FileGrid } from '@/components/FileGrid';
-import { UploadArea } from '@/components/UploadArea';
+import { IPFSUploadArea } from '@/components/IPFSUploadArea';
 import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
@@ -12,8 +13,7 @@ import { SlackIntegration } from '@/components/SlackIntegration';
 
 const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files'); // Default to files to show IPFS upload
   const [userFolders, setUserFolders] = useState<string[]>([]);
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
 
@@ -36,12 +36,12 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-white">
-                  {activeView === 'dashboard' ? 'Analytics Dashboard' : 'Your Files'}
+                  {activeView === 'dashboard' ? 'Analytics Dashboard' : 'IPFS File Storage'}
                 </h1>
                 <p className="text-gray-300 mt-1">
                   {activeView === 'dashboard' 
                     ? 'Comprehensive insights into your BlockDrive usage'
-                    : 'Secure Web3 decentralized storage'
+                    : 'Decentralized file storage on the InterPlanetary File System'
                   }
                 </p>
               </div>
@@ -68,7 +68,7 @@ const Index = () => {
                   }`}
                 >
                   <Files className="w-4 h-4 mr-2" />
-                  Files
+                  IPFS Files
                 </Button>
                 <Button
                   onClick={() => setShowSlackIntegration(true)}
@@ -88,10 +88,9 @@ const Index = () => {
             ) : (
               <>
                 <StatsCards />
-                <UploadArea 
-                  isUploading={isUploading} 
-                  setIsUploading={setIsUploading}
+                <IPFSUploadArea 
                   onCreateFolder={handleCreateFolder}
+                  selectedFolder={selectedFolder}
                 />
                 <FileGrid selectedFolder={selectedFolder} userFolders={userFolders} />
               </>
