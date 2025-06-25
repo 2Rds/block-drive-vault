@@ -49,7 +49,9 @@ export const useWalletConnection = () => {
       adapter: null,
       connected: false,
       autoConnect: false,
-      id: null
+      id: null,
+      wallet_address: '',
+      blockchain_type: 'solana'
     });
     setConnectedWallet(null);
     localStorage.removeItem('selectedWallet');

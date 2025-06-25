@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Database, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +12,7 @@ import { QRCodeModal } from '@/components/auth/QRCodeModal';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { WalletConnectionStatus } from '@/components/auth/WalletConnectionStatus';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
+
 const Auth = () => {
   const {
     user,
@@ -32,9 +34,10 @@ const Auth = () => {
       fullName: '',
       organization: '',
       walletAddress: '',
-      blockchainType: ''
+      blockchainType: 'solana'
     }
   });
+
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (user && session) {
@@ -42,6 +45,7 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
+
   const onWalletConnect = (wallet: any) => {
     handleWalletConnect(wallet, walletInfo => {
       form.setValue('walletAddress', walletInfo.address);
@@ -49,6 +53,7 @@ const Auth = () => {
       setShowSignupForm(true);
     });
   };
+
   const onSubmit = async (data: any) => {
     if (!connectedWallet) {
       toast.error('Please connect your wallet first to register.');
@@ -89,6 +94,7 @@ const Auth = () => {
       setIsSubmittingRequest(false);
     }
   };
+
   return <div className="min-h-screen bg-gray-950">
       {/* Header with Connect Wallet Button */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
@@ -151,4 +157,5 @@ const Auth = () => {
       </div>
     </div>;
 };
+
 export default Auth;
