@@ -32,16 +32,13 @@ const Auth = () => {
     }
   });
 
-  // Check if we're in development mode
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
-
   useEffect(() => {
-    // Only redirect if we have a real authenticated session (not just a mock user in development)
-    if (user && session && !isDevelopment) {
-      console.log('User authenticated with real session, redirecting to index dashboard');
+    // Redirect authenticated users to dashboard
+    if (user && session) {
+      console.log('User authenticated, redirecting to dashboard');
       navigate('/index');
     }
-  }, [user, session, navigate, isDevelopment]);
+  }, [user, session, navigate]);
 
   const onWalletConnect = (wallet: any) => {
     handleWalletConnect(wallet, (walletInfo) => {
@@ -53,14 +50,14 @@ const Auth = () => {
   
   const onSubmit = async (data: any) => {
     if (!connectedWallet) {
-      toast.error('Please connect your wallet first to receive your authentication token.');
+      toast.error('Please connect your wallet first to register.');
       return;
     }
 
     setIsSubmittingRequest(true);
     
     try {
-      console.log('Submitting access request:', data);
+      console.log('Submitting wallet registration:', data);
       
       const { data: response, error } = await supabase.functions.invoke('send-auth-token', {
         body: {
@@ -74,20 +71,20 @@ const Auth = () => {
 
       if (error) {
         console.error('Error calling function:', error);
-        toast.error('Failed to send request. Please try again.');
+        toast.error('Failed to register wallet. Please try again.');
         return;
       }
 
       if (response?.success) {
-        toast.success('Authentication token sent! Now connect your wallet again to authenticate using your wallet signature.');
+        toast.success('Wallet registered successfully! You can now connect your wallet to authenticate.');
         form.reset();
         setConnectedWallet(null);
         setShowSignupForm(false);
       } else {
-        toast.error(response?.error || 'Failed to send authentication token');
+        toast.error(response?.error || 'Failed to register wallet');
       }
     } catch (error: any) {
-      console.error('Error submitting request:', error);
+      console.error('Error submitting registration:', error);
       toast.error('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmittingRequest(false);
@@ -110,11 +107,6 @@ const Auth = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            {isDevelopment && user && (
-              <div className="text-yellow-400 text-sm bg-yellow-400/20 px-3 py-1 rounded-lg">
-                Development Mode - Mock User Active
-              </div>
-            )}
             <WalletOptions
               connectedWallet={connectedWallet}
               isConnecting={isConnecting}
@@ -137,7 +129,7 @@ const Auth = () => {
           <div className="space-y-6">
             <div className="text-center lg:text-left">
               <h2 className="text-4xl font-bold text-white mb-4">
-                {showSignupForm ? 'Complete Your Signup' : 'Welcome to BlockDrive'}
+                {showSignupForm ? 'Register Your Wallet' : 'Welcome to BlockDrive'}
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   Web3 Storage Revolution
@@ -145,8 +137,8 @@ const Auth = () => {
               </h2>
               <p className="text-gray-300 text-lg">
                 {showSignupForm 
-                  ? 'Your wallet is connected. Complete your signup to receive your authentication token, then reconnect your wallet to authenticate using your wallet signature.'
-                  : 'Connect your Solana wallet to access your decentralized storage dashboard via secure Web3 authentication.'
+                  ? 'Your wallet is connected. Complete your registration to get started with BlockDrive.'
+                  : 'Connect your Solana wallet to access your decentralized storage dashboard. First-time users will be prompted to register their wallet.'
                 }
               </p>
             </div>
@@ -166,12 +158,12 @@ const Auth = () => {
               <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                 <h4 className="font-semibold text-white mb-3">Ready to Access BlockDrive?</h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  If you already have an authentication token, connect your wallet above and we'll authenticate you using your wallet signature. 
-                  If you're new to BlockDrive, connect your wallet and complete the signup process.
+                  Connect your Solana wallet above to authenticate. If this is your first time using BlockDrive, 
+                  you'll be prompted to register your wallet for secure access to your personal dashboard.
                 </p>
                 <div className="flex items-center space-x-2 text-xs text-blue-400">
                   <Shield className="w-4 h-4" />
-                  <span>Secure • Web3 Authentication • Passwordless</span>
+                  <span>Secure • Web3 Authentication • Wallet Signature Based</span>
                 </div>
               </div>
             )}

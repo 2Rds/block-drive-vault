@@ -19,15 +19,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check if we're in development mode
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com');
-  
-  if (isDevelopment && user) {
-    console.log('Development mode - allowing access with user');
-    return <>{children}</>;
-  }
-
-  // In production, require both user and session
+  // Require both user and session for access
   if (!user || !session) {
     console.log('No authenticated user or session, redirecting to auth');
     return <Navigate to="/auth" replace />;

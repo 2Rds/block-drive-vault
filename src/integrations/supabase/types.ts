@@ -157,6 +157,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_auth_tokens: {
+        Row: {
+          auth_token: string
+          blockchain_type: string
+          created_at: string
+          first_login_at: string
+          id: string
+          is_active: boolean
+          last_login_at: string
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          auth_token: string
+          blockchain_type?: string
+          created_at?: string
+          first_login_at?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          auth_token?: string
+          blockchain_type?: string
+          created_at?: string
+          first_login_at?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           blockchain_type: string

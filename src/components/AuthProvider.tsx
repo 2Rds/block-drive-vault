@@ -5,15 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AuthContext } from '@/contexts/AuthContext';
 import { AuthService } from '@/services/authService';
-import { isDevelopmentMode, createMockUser } from '@/utils/authUtils';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [walletData, setWalletData] = useState<any>(null);
-
-  const isDevelopment = isDevelopmentMode();
 
   useEffect(() => {
     // Get initial session
@@ -25,12 +22,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session.user);
         loadWalletData(session.user.id);
-      } else if (isDevelopment) {
-        // Create a mock user for development purposes
-        const mockUser = createMockUser() as User;
-        
-        console.log('Development mode - setting mock user');
-        setUser(mockUser);
       }
       
       setLoading(false);
@@ -43,7 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
-        // Only update if we have a real session or if we're not in development mode
         if (session?.user) {
           setSession(session);
           setUser(session.user);
@@ -52,13 +42,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             loadWalletData(session.user.id);
           }, 0);
-        } else if (!isDevelopment) {
-          // Only clear user/session if not in development mode
+        } else {
           setSession(null);
           setUser(null);
           setWalletData(null);
         }
-        // In development mode, if no session, keep the mock user
         
         setLoading(false);
 
@@ -89,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, [isDevelopment]);
+  }, []);
 
   const loadWalletData = async (userId: string) => {
     const wallet = await AuthService.loadWalletData(userId);

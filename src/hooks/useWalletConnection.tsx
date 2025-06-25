@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { AuthService } from '@/services/authService';
 
 interface WalletOption {
   id: string;
@@ -63,6 +63,35 @@ export const useWalletConnection = () => {
     }
   };
 
+  const signMessage = async (walletId: string, message: string) => {
+    try {
+      let signature = '';
+      
+      switch (walletId) {
+        case 'phantom':
+          if ((window as any).phantom?.solana) {
+            const encodedMessage = new TextEncoder().encode(message);
+            const signedMessage = await (window as any).phantom.solana.signMessage(encodedMessage);
+            signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
+          }
+          break;
+        case 'solflare':
+          if ((window as any).solflare) {
+            const encodedMessage = new TextEncoder().encode(message);
+            const signedMessage = await (window as any).solflare.signMessage(encodedMessage);
+            signature = Array.from(signedMessage.signature).map(b => b.toString(16).padStart(2, '0')).join('');
+          }
+          break;
+        default:
+          throw new Error('Unsupported wallet for signing');
+      }
+      
+      return signature;
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to sign message');
+    }
+  };
+
   const handleWalletConnect = async (wallet: WalletOption, onSignupRequired: (wallet: {address: string, blockchain: string}) => void) => {
     const walletDetected = detectWallet(wallet.id);
     if (!walletDetected) {
@@ -73,34 +102,33 @@ export const useWalletConnection = () => {
     setIsConnecting(wallet.id);
     
     try {
-      const { walletAddress, publicKey } = await connectToWallet(wallet.id);
+      const { walletAddress } = await connectToWallet(wallet.id);
       
-      console.log('Wallet connected, attempting Solana authentication...');
+      console.log('Wallet connected, requesting signature for authentication...');
       
-      // Use Supabase Sign in with Solana
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'solana' as any,
-        options: {
-          redirectTo: `${window.location.origin}/index`,
-          queryParams: {
-            wallet_address: walletAddress,
-            public_key: publicKey
-          }
-        }
-      });
+      // Request signature for authentication
+      const message = 'Sign this message to authenticate with BlockDrive';
+      const signature = await signMessage(wallet.id, message);
       
-      if (error) {
-        console.log('Solana authentication failed, showing signup form');
-        // If authentication fails, show the signup form with wallet info
+      console.log('Signature obtained, authenticating with BlockDrive...');
+      
+      // Authenticate with our service
+      const result = await AuthService.connectWallet(walletAddress, signature, wallet.blockchain);
+      
+      if (result.error) {
+        console.error('Authentication failed:', result.error);
+        // Show signup form for new wallets that need registration
         const walletInfo = { address: walletAddress, blockchain: wallet.blockchain };
         setConnectedWallet(walletInfo);
         onSignupRequired(walletInfo);
-        toast.info(`${wallet.name} connected! Please complete signup to authenticate with Solana.`);
+        toast.info(`${wallet.name} connected! Please complete signup to register your wallet.`);
       } else {
-        console.log('Solana authentication successful');
-        toast.success(`${wallet.name} connected and authenticated with Solana!`);
+        console.log('Authentication successful');
+        toast.success(`${wallet.name} authenticated successfully!`);
+        // User should be redirected by the auth state change
       }
     } catch (error: any) {
+      console.error('Wallet connection error:', error);
       toast.error(error.message || `Failed to connect ${wallet.name}`);
     }
     

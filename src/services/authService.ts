@@ -26,27 +26,35 @@ export class AuthService {
 
   static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana') {
     try {
-      console.log('Attempting to connect Solana wallet:', walletAddress);
+      console.log('Attempting to authenticate Solana wallet:', walletAddress);
       
-      // Use Supabase Sign in with Solana instead of magic link
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'solana' as any,
-        options: {
-          redirectTo: `${window.location.origin}/index`,
-          queryParams: {
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType
-          }
+      // Call our edge function to handle wallet authentication
+      const { data, error } = await supabase.functions.invoke('authenticate-wallet', {
+        body: {
+          walletAddress,
+          signature,
+          message: 'Sign this message to authenticate with BlockDrive',
+          blockchainType
         }
       });
 
       if (error) {
-        console.error('Solana authentication error:', error);
-        return { error: { message: 'Failed to authenticate with Solana. Please try again.' } };
+        console.error('Wallet authentication error:', error);
+        return { error: { message: 'Failed to authenticate wallet. Please try again.' } };
       }
 
-      toast.success('Authenticating with Solana...');
-      return { error: null };
+      if (data?.success) {
+        if (data.isFirstTime) {
+          toast.success('Wallet registered successfully! Welcome to BlockDrive!');
+        } else {
+          toast.success('Wallet authenticated successfully! Welcome back!');
+        }
+        
+        // The edge function handles the authentication, so the user should be logged in now
+        return { error: null };
+      } else {
+        return { error: { message: 'Wallet authentication failed' } };
+      }
     } catch (error: any) {
       console.error('Connect wallet error:', error);
       return { error: { message: error.message || 'Failed to connect wallet' } };
