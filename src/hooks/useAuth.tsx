@@ -30,8 +30,8 @@ interface AuthContextType {
   session: any | null;
   walletData: WalletData | null;
   loading: boolean;
-  connectWallet: (walletData: any) => Promise<void>;
-  disconnectWallet: () => Promise<void>;
+  connectWallet: (walletData: any) => Promise<{ error: any; data?: any }>;
+  disconnectWallet: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   setWalletData: (data: WalletData) => void;
 }
@@ -45,64 +45,85 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Checking existing session:', session?.user?.id);
-        
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-          });
+    // Check for existing wallet session
+    const checkWalletSession = () => {
+      const storedSession = localStorage.getItem('sb-supabase-auth-token');
+      if (storedSession) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          console.log('Found stored wallet session:', sessionData.user?.id);
           
-          // Check for stored wallet data
-          const storedWalletData = localStorage.getItem(`wallet_session_${session.user.id}`);
-          if (storedWalletData) {
-            console.log('Found stored wallet session:', session.user.id);
-            const parsedWalletData = JSON.parse(storedWalletData);
-            console.log('Set wallet data from session:', parsedWalletData);
-            setWalletData(parsedWalletData);
+          // Check if session is still valid
+          if (sessionData.expires_at > Date.now()) {
+            setSession(sessionData);
+            setUser(sessionData.user);
+            
+            // Set wallet data from session metadata
+            if (sessionData.user?.user_metadata?.wallet_address) {
+              const walletInfo = {
+                address: sessionData.user.user_metadata.wallet_address,
+                publicKey: null,
+                adapter: null,
+                connected: true,
+                autoConnect: false,
+                id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
+                wallet_address: sessionData.user.user_metadata.wallet_address,
+                blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
+              };
+              setWalletData(walletInfo);
+              console.log('Set wallet data from session:', walletInfo);
+            }
+            
+            setLoading(false);
+            return true;
+          } else {
+            // Session expired, remove it
+            localStorage.removeItem('sb-supabase-auth-token');
           }
+        } catch (error) {
+          console.error('Error parsing stored session:', error);
+          localStorage.removeItem('sb-supabase-auth-token');
         }
-      } catch (error) {
-        console.error('Error checking session:', error);
-      } finally {
-        setLoading(false);
       }
+      return false;
     };
 
-    checkSession();
+    // Check for wallet session first
+    if (!checkWalletSession()) {
+      setLoading(false);
+    }
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Supabase auth state changed:', event, { 
-          userId: session?.user?.id,
-          userEmail: session?.user?.email 
-        });
-        
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-          });
-        } else {
-          setUser(null);
-          setWalletData(null);
-          // Clear stored wallet data
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('wallet_session_')) {
-              localStorage.removeItem(key);
-            }
-          });
-        }
-        setLoading(false);
+    // Listen for wallet authentication events
+    const handleWalletAuth = (event: CustomEvent) => {
+      console.log('Wallet auth success event received:', event.detail);
+      const sessionData = event.detail;
+      setSession(sessionData);
+      setUser(sessionData.user);
+      
+      // Set wallet data immediately when wallet auth succeeds
+      if (sessionData.user?.user_metadata?.wallet_address) {
+        const walletInfo = {
+          address: sessionData.user.user_metadata.wallet_address,
+          publicKey: null,
+          adapter: null,
+          connected: true,
+          autoConnect: false,
+          id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
+          wallet_address: sessionData.user.user_metadata.wallet_address,
+          blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
+        };
+        setWalletData(walletInfo);
+        console.log('Set wallet data from auth event:', walletInfo);
       }
-    );
+      
+      setLoading(false);
+    };
 
-    return () => subscription.unsubscribe();
+    window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+
+    return () => {
+      window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+    };
   }, []);
 
   const connectWallet = async (incomingWalletData: any) => {
@@ -110,91 +131,97 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Connecting wallet with data:', incomingWalletData);
       setLoading(true);
 
-      // Create or sign in user with wallet address as identifier
       const walletAddress = incomingWalletData.address || incomingWalletData.wallet_address;
+      const signature = incomingWalletData.signature || `mock-signature-${Date.now()}`;
+      const blockchainType = incomingWalletData.blockchain_type || 'ethereum';
       
       if (!walletAddress) {
         throw new Error('No wallet address provided');
       }
 
-      // Use wallet address as email for Supabase auth
-      const email = `${walletAddress.toLowerCase()}@wallet.local`;
-      const password = walletAddress; // Use wallet address as password for simplicity
-
-      console.log('Attempting to sign in with email:', email);
-
-      // Try to sign in first
-      let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
+      
+      // Use the secure wallet authentication endpoint
+      const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
+        body: {
+          walletAddress,
+          signature,
+          message: 'Sign this message to authenticate with BlockDrive',
+          timestamp: Date.now(),
+          nonce: crypto.randomUUID(),
+          blockchainType
+        }
       });
 
-      // If sign in fails, try to sign up
-      if (signInError) {
-        console.log('Sign in failed, attempting sign up:', signInError.message);
+      if (error) {
+        console.error('Wallet authentication error:', error);
+        throw new Error(`Failed to authenticate wallet: ${error.message}`);
+      }
+
+      if (data?.success && data?.authToken) {
+        console.log('Wallet authentication successful, creating session...');
         
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
+        // Create a comprehensive session using the auth token
+        const sessionData = {
+          user: {
+            id: data.authToken,
+            email: `${walletAddress}@blockdrive.wallet`,
+            wallet_address: walletAddress,
+            user_metadata: {
               wallet_address: walletAddress,
-              blockchain_type: incomingWalletData.blockchain_type || 'ethereum'
+              blockchain_type: blockchainType,
+              username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+              full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
             }
-          }
-        });
+          },
+          access_token: data.authToken,
+          refresh_token: data.authToken,
+          expires_at: Date.now() + (24 * 60 * 60 * 1000),
+          token_type: 'bearer'
+        };
 
-        if (signUpError) {
-          console.error('Sign up error:', signUpError);
-          throw signUpError;
-        }
+        // Store session in localStorage for persistence
+        localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
+        
+        // Set user and session data
+        setUser(sessionData.user);
+        setSession(sessionData);
 
-        signInData = signUpData;
-      }
-
-      if (!signInData.user) {
-        throw new Error('Failed to authenticate user');
-      }
-
-      console.log('User authenticated:', signInData.user.id);
-
-      // Set user data with metadata
-      setUser({
-        id: signInData.user.id,
-        email: signInData.user.email,
-        wallet_address: walletAddress,
-        user_metadata: {
+        // Process wallet data
+        const processedWalletData: WalletData = {
+          id: incomingWalletData.id || blockchainType,
+          address: walletAddress,
+          publicKey: incomingWalletData.publicKey,
+          adapter: incomingWalletData.adapter,
+          connected: true,
+          autoConnect: false,
           wallet_address: walletAddress,
-          blockchain_type: incomingWalletData.blockchain_type || 'ethereum',
-          username: `user-${walletAddress.slice(0, 6)}`
+          blockchain_type: blockchainType
+        };
+
+        setWalletData(processedWalletData);
+
+        console.log('Wallet connected successfully:', processedWalletData);
+        
+        if (data.isFirstTime) {
+          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully! Welcome to BlockDrive!`);
+        } else {
+          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
         }
-      });
+        
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = '/index';
+        }, 1000);
 
-      setSession(signInData.session);
-
-      // Process wallet data
-      const processedWalletData: WalletData = {
-        id: incomingWalletData.id || incomingWalletData.blockchain_type || 'ethereum',
-        address: walletAddress,
-        publicKey: incomingWalletData.publicKey,
-        adapter: incomingWalletData.adapter,
-        connected: true,
-        autoConnect: false,
-        wallet_address: walletAddress,
-        blockchain_type: incomingWalletData.blockchain_type || 'ethereum'
-      };
-
-      setWalletData(processedWalletData);
-
-      // Store wallet session
-      localStorage.setItem(`wallet_session_${signInData.user.id}`, JSON.stringify(processedWalletData));
-
-      console.log('Wallet connected successfully:', processedWalletData);
-      toast.success(`Wallet connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`);
-
-    } catch (error) {
+        return { error: null, data: sessionData };
+      } else {
+        throw new Error('Wallet authentication failed');
+      }
+    } catch (error: any) {
       console.error('Wallet connection failed:', error);
-      toast.error(`Failed to connect wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to connect wallet: ${error.message}`);
+      return { error: { message: error.message } };
     } finally {
       setLoading(false);
     }
@@ -205,45 +232,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Disconnecting wallet...');
       
       // Clear wallet session storage
-      if (user) {
-        localStorage.removeItem(`wallet_session_${user.id}`);
-      }
+      localStorage.removeItem('sb-supabase-auth-token');
       
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-      }
-
       setUser(null);
       setSession(null);
       setWalletData(null);
       
       toast.success('Wallet disconnected');
-    } catch (error) {
+      
+      // Redirect to auth page
+      window.location.href = '/auth';
+      
+      return { error: null };
+    } catch (error: any) {
       console.error('Error disconnecting wallet:', error);
       toast.error('Failed to disconnect wallet');
+      return { error };
     }
   };
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        return { error };
-      }
+      // Clear wallet session storage
+      localStorage.removeItem('sb-supabase-auth-token');
       
       setUser(null);
       setSession(null);
       setWalletData(null);
-      
-      // Clear all wallet sessions
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('wallet_session_')) {
-          localStorage.removeItem(key);
-        }
-      });
       
       return { error: null };
     } catch (error) {
