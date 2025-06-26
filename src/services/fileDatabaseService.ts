@@ -139,7 +139,7 @@ export class FileDatabaseService {
       uploadedAt: file.created_at,
       userId: file.user_id,
       folderPath: file.folder_path,
-      metadata: file.metadata
+      metadata: file.metadata as IPFSFile['metadata']
     }));
   }
 
