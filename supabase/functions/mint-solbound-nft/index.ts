@@ -1,257 +1,156 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface MintRequest {
-  walletAddress: string;
-  blockchainType: string;
-  authTokenId: string;
-  userEmail: string;
-  fullName: string;
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const generateSolboundMetadata = (userEmail: string, fullName: string, walletAddress: string) => {
-  return {
-    name: `BlockDrive Access Token - ${fullName}`,
-    description: `Solbound authentication token for BlockDrive platform access. This non-transferable NFT grants secure access to your decentralized storage dashboard.`,
-    image: "https://blockdrive.storage/assets/solbound-nft.png",
-    attributes: [
-      {
-        trait_type: "Token Type",
-        value: "Solbound Authentication"
-      },
-      {
-        trait_type: "Platform",
-        value: "BlockDrive"
-      },
-      {
-        trait_type: "User Email",
-        value: userEmail
-      },
-      {
-        trait_type: "Wallet Address",
-        value: walletAddress
-      },
-      {
-        trait_type: "Non-Transferable",
-        value: "true"
-      },
-      {
-        trait_type: "Created Date",
-        value: new Date().toISOString()
-      }
-    ],
-    properties: {
-      category: "Authentication",
-      creators: [
-        {
-          address: "BlockDriveAuthority",
-          share: 100
-        }
-      ]
-    }
-  };
-};
-
-const mintSolanaNFT = async (walletAddress: string, metadata: any) => {
-  // Simulate minting process for Solana
-  // In a real implementation, this would use Metaplex or similar SDK
-  console.log('Minting Solana NFT for wallet:', walletAddress);
-  
-  const mintAddress = `mint_${Math.random().toString(36).substr(2, 32)}`;
-  const transactionHash = `tx_${Math.random().toString(36).substr(2, 64)}`;
-  
-  // Simulate blockchain delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  return {
-    mintAddress,
-    transactionHash,
-    metadata,
-    blockchain: 'solana',
-    status: 'minted'
-  };
-};
-
-const mintEthereumNFT = async (walletAddress: string, metadata: any) => {
-  // Simulate minting process for Ethereum
-  console.log('Minting Ethereum NFT for wallet:', walletAddress);
-  
-  const contractAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
-  const tokenId = Math.floor(Math.random() * 1000000);
-  const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-  
-  // Simulate blockchain delay
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  
-  return {
-    contractAddress,
-    tokenId,
-    transactionHash,
-    metadata,
-    blockchain: 'ethereum',
-    status: 'minted'
-  };
-};
-
-const handler = async (req: Request): Promise<Response> => {
-  console.log('Received mint NFT request:', req.method);
-
+serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { 
-      status: 405, 
-      headers: corsHeaders 
-    });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { walletAddress, blockchainType, authTokenId, userEmail, fullName }: MintRequest = await req.json();
-    console.log('Processing NFT mint for:', { walletAddress, blockchainType, authTokenId });
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Validate required fields
-    if (!walletAddress || !blockchainType || !authTokenId) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Missing required fields: walletAddress, blockchainType, or authTokenId' 
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+    const { walletAddress, blockchainType, signature, message } = await req.json()
+
+    console.log('NFT Minting request:', { walletAddress, blockchainType })
+
+    if (!walletAddress || !blockchainType) {
+      throw new Error('Missing required fields: walletAddress and blockchainType')
     }
 
-    // Verify auth token exists and is valid
-    const { data: authToken, error: tokenError } = await supabase
-      .from('auth_tokens')
+    // Verify signature (simplified for demo - in production, verify the actual signature)
+    if (!signature || !message) {
+      throw new Error('Invalid signature or message')
+    }
+
+    // Check if user already has an NFT for this wallet and blockchain
+    const { data: existingNFT, error: nftCheckError } = await supabase
+      .from('blockdrive_nfts')
       .select('*')
-      .eq('id', authTokenId)
       .eq('wallet_address', walletAddress)
       .eq('blockchain_type', blockchainType)
-      .single();
-
-    if (tokenError || !authToken) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Invalid or expired authentication token' 
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    // Check if NFT already exists for this wallet
-    const { data: existingNFT } = await supabase
-      .from('blockchain_tokens')
-      .select('*')
-      .eq('wallet_id', walletAddress)
-      .eq('blockchain_type', blockchainType)
       .eq('is_active', true)
-      .single();
+      .maybeSingle()
+
+    if (nftCheckError) {
+      console.error('Error checking existing NFT:', nftCheckError)
+      throw new Error('Failed to check existing NFT')
+    }
 
     if (existingNFT) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Solbound NFT already exists for this wallet' 
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'NFT already exists for this wallet',
+          nftExists: true
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
     }
 
-    // Generate NFT metadata
-    const metadata = generateSolboundMetadata(userEmail || authToken.email, fullName || authToken.full_name, walletAddress);
+    // Create or get user profile
+    let userId: string
 
-    // Mint NFT based on blockchain type
-    let nftResult;
-    if (blockchainType === 'solana') {
-      nftResult = await mintSolanaNFT(walletAddress, metadata);
-    } else if (blockchainType === 'ethereum') {
-      nftResult = await mintEthereumNFT(walletAddress, metadata);
+    // Check if user exists
+    const { data: existingUser, error: userError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', walletAddress) // Using wallet address as user ID for now
+      .maybeSingle()
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Error checking user:', userError)
+      throw new Error('Failed to check user')
+    }
+
+    if (!existingUser) {
+      // Create new user profile
+      const { data: newUser, error: createUserError } = await supabase
+        .from('profiles')
+        .insert({
+          id: walletAddress,
+          username: `${blockchainType}_user_${walletAddress.slice(0, 8)}`,
+          email: `${walletAddress}@blockdrive.${blockchainType}`
+        })
+        .select()
+        .single()
+
+      if (createUserError) {
+        console.error('Error creating user:', createUserError)
+        throw new Error('Failed to create user profile')
+      }
+
+      userId = newUser.id
     } else {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Unsupported blockchain type' 
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      userId = existingUser.id
     }
 
-    // Store NFT information in database
-    const { data: blockchainToken, error: insertError } = await supabase
-      .from('blockchain_tokens')
+    // Generate mock NFT token ID (in production, this would be from actual blockchain minting)
+    const nftTokenId = `blockdrive_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Mock contract addresses (in production, these would be real smart contract addresses)
+    const contractAddress = blockchainType === 'ethereum' 
+      ? '0x1234567890123456789012345678901234567890'
+      : 'BlockDriveNFT1234567890123456789012345678'
+
+    // Insert NFT record
+    const { data: nftData, error: insertError } = await supabase
+      .from('blockdrive_nfts')
       .insert({
-        wallet_id: walletAddress,
-        token_id: nftResult.mintAddress || `${nftResult.contractAddress}:${nftResult.tokenId}`,
+        user_id: userId,
+        wallet_address: walletAddress,
         blockchain_type: blockchainType,
-        token_metadata: {
-          ...nftResult,
-          metadata: metadata,
-          created_at: new Date().toISOString(),
-          auth_token_id: authTokenId
-        },
+        nft_token_id: nftTokenId,
+        nft_contract_address: contractAddress,
+        transaction_hash: `mock_tx_${Date.now()}`,
         is_active: true
       })
       .select()
-      .single();
+      .single()
 
     if (insertError) {
-      console.error('Error storing NFT information:', insertError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Failed to store NFT information' 
-      }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      console.error('Error inserting NFT:', insertError)
+      throw new Error('Failed to mint NFT record')
     }
 
-    console.log('NFT minted and stored successfully:', blockchainToken.id);
+    console.log('NFT minted successfully:', nftData)
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Solbound NFT minted and airdropped successfully!",
-      nft: {
-        id: blockchainToken.id,
-        tokenId: nftResult.mintAddress || `${nftResult.contractAddress}:${nftResult.tokenId}`,
-        transactionHash: nftResult.transactionHash,
-        blockchain: blockchainType,
-        metadata: metadata
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        nft: nftData,
+        message: `BlockDrive NFT successfully minted to ${walletAddress}`,
+        isFirstTime: !existingUser
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error in mint-solbound-nft function:", error);
+    )
+
+  } catch (error) {
+    console.error('NFT minting error:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || "Failed to mint solbound NFT" 
+        error: error.message || 'Failed to mint NFT' 
       }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
       }
-    );
+    )
   }
-};
-
-serve(handler);
+})

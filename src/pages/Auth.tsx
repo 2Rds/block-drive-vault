@@ -1,18 +1,18 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
-import { ENSSubdomainCreator } from '@/components/auth/ENSSubdomainCreator';
-import { SNSSubdomainCreator } from '@/components/auth/SNSSubdomainCreator';
+import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 const Auth = () => {
   const { user, session } = useAuth();
   const { primaryWallet } = useDynamicContext();
   const navigate = useNavigate();
+  const [authMode, setAuthMode] = useState<'dynamic' | 'web3mfa'>('web3mfa');
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -21,6 +21,12 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
+
+  const handleWeb3MFASuccess = (authData: any) => {
+    console.log('Web3 MFA authentication successful:', authData);
+    // The actual authentication will be handled by the Web3AuthService
+    // This is just for logging and potential additional processing
+  };
 
   const onWalletConnected = (walletInfo: any) => {
     console.log('Dynamic wallet connected successfully:', walletInfo);
@@ -37,7 +43,7 @@ const Auth = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-gray-300">Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Next-Gen Web3 Storage Platform</p>
             </div>
           </div>
         </div>
@@ -52,38 +58,73 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  MultiChain Authentication
+                  Web3 Multi-Factor Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Connect with our proprietary MultiChain wallet supporting both Ethereum and Solana ecosystems. 
-                Create your blockdrive.eth or blockdrive.sol subdomain for enhanced security.
+                Experience next-generation security with NFT + Subdomain authentication. 
+                Choose your blockchain and create your unique identity.
               </p>
             </div>
 
-            {/* Dynamic Wallet Connector */}
+            {/* Authentication Mode Toggle */}
+            <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setAuthMode('web3mfa')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    authMode === 'web3mfa'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Web3 MFA (Recommended)
+                </button>
+                <button
+                  onClick={() => setAuthMode('dynamic')}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    authMode === 'dynamic'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Standard MultiChain
+                </button>
+              </div>
+            </div>
+
+            {/* Dynamic Wallet Connector - Always shown for wallet connection */}
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-4 text-center">MultiChain Wallet Connection</h4>
+              <h4 className="font-semibold text-white mb-4 text-center">Connect Your Wallet</h4>
               <DynamicWalletConnector onWalletConnected={onWalletConnected} />
             </div>
 
-            {/* Subdomain Creators - Show based on connected wallet */}
-            {primaryWallet && (
-              <div className="space-y-4">
-                <ENSSubdomainCreator />
-                <SNSSubdomainCreator />
+            {/* Authentication Method Based on Mode */}
+            {authMode === 'web3mfa' ? (
+              <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
+            ) : (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <h4 className="font-semibold text-white mb-3">Standard MultiChain Authentication</h4>
+                <p className="text-gray-400 text-sm mb-4">
+                  Connect with standard wallet authentication. Supports both Ethereum and Solana networks 
+                  with basic signature verification.
+                </p>
+                <div className="flex items-center space-x-2 text-xs text-blue-400">
+                  <Shield className="w-4 h-4" />
+                  <span>MultiChain • Signature Auth • Basic Security</span>
+                </div>
               </div>
             )}
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">Enhanced MultiChain Security</h4>
+              <h4 className="font-semibold text-white mb-3">Enhanced Web3 Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our proprietary wallet contains embedded Ethereum and Solana wallets. Create your blockdrive.eth 
-                subdomain for Ethereum authentication or blockdrive.sol subdomain for Solana authentication.
+                Our revolutionary Web3 MFA system uses NFT ownership as the first authentication factor 
+                and subdomain control as the second factor, creating an virtually unhackable authentication method.
               </p>
-              <div className="flex items-center space-x-2 text-xs text-blue-400">
+              <div className="flex items-center space-x-2 text-xs text-purple-400">
                 <Shield className="w-4 h-4" />
-                <span>ENS + SNS • Dual Chain • Enhanced Security • Subdomain Authentication</span>
+                <span>NFT Token Gating • Subdomain Auth • Military-Grade Security</span>
               </div>
             </div>
           </div>

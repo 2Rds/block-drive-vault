@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      auth_sessions: {
+        Row: {
+          authentication_successful: boolean | null
+          blockchain_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          nft_verified: boolean | null
+          session_token: string | null
+          subdomain_verified: boolean | null
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          authentication_successful?: boolean | null
+          blockchain_type: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          nft_verified?: boolean | null
+          session_token?: string | null
+          subdomain_verified?: boolean | null
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          authentication_successful?: boolean | null
+          blockchain_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          nft_verified?: boolean | null
+          session_token?: string | null
+          subdomain_verified?: boolean | null
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auth_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_tokens: {
         Row: {
           blockchain_type: string | null
@@ -82,6 +129,53 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blockdrive_nfts: {
+        Row: {
+          blockchain_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          minted_at: string | null
+          nft_contract_address: string | null
+          nft_token_id: string
+          transaction_hash: string | null
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          blockchain_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          minted_at?: string | null
+          nft_contract_address?: string | null
+          nft_token_id: string
+          transaction_hash?: string | null
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          blockchain_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          minted_at?: string | null
+          nft_contract_address?: string | null
+          nft_token_id?: string
+          transaction_hash?: string | null
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockdrive_nfts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -202,6 +296,53 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      subdomain_registrations: {
+        Row: {
+          blockchain_type: string
+          created_at: string | null
+          full_domain: string
+          id: string
+          is_active: boolean | null
+          registered_at: string | null
+          registration_transaction: string | null
+          subdomain_name: string
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          blockchain_type: string
+          created_at?: string | null
+          full_domain: string
+          id?: string
+          is_active?: boolean | null
+          registered_at?: string | null
+          registration_transaction?: string | null
+          subdomain_name: string
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          blockchain_type?: string
+          created_at?: string | null
+          full_domain?: string
+          id?: string
+          is_active?: boolean | null
+          registered_at?: string | null
+          registration_transaction?: string | null
+          subdomain_name?: string
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subdomain_registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallet_auth_tokens: {
         Row: {
