@@ -7,14 +7,7 @@ import { ConnectedWallet } from '@/types/wallet';
 import { PhantomWalletService } from '@/services/phantomWalletService';
 import { SolflareWalletService } from '@/services/solflareWalletService';
 
-declare global {
-  interface Window {
-    phantom?: {
-      solana?: any;
-    };
-    solflare?: any;
-  }
-}
+// Remove the conflicting global declarations since they're already defined by the wallet adapters
 
 export const useWalletConnection = () => {
   const { setWalletData, walletData, connectWallet } = useAuth();
