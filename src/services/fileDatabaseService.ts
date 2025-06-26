@@ -78,12 +78,51 @@ export class FileDatabaseService {
     }
   }
 
+  static async saveFile(fileData: {
+    filename: string;
+    file_size: number;
+    content_type: string;
+    user_id: string;
+    folder_path?: string;
+    storage_provider: string;
+    ipfs_cid: string;
+    ipfs_url: string;
+    metadata?: any;
+  }) {
+    console.log('Saving file with hybrid storage data:', fileData);
+    
+    try {
+      const { data: dbFile, error: dbError } = await supabase
+        .from('files')
+        .insert({
+          ...fileData,
+          wallet_id: fileData.user_id, // Use user_id as wallet_id fallback
+          file_path: `/${fileData.filename}`,
+          is_encrypted: false,
+          folder_path: fileData.folder_path || '/'
+        })
+        .select()
+        .single();
+      
+      if (dbError) {
+        console.error('Database error saving hybrid file:', dbError);
+        throw new Error(`Failed to save file: ${dbError.message}`);
+      }
+      
+      console.log('Hybrid file saved to database:', dbFile);
+      return dbFile;
+      
+    } catch (error) {
+      console.error('Error saving hybrid file:', error);
+      throw error;
+    }
+  }
+
   static async loadUserFiles(userId: string): Promise<IPFSFile[]> {
     const { data: files, error } = await supabase
       .from('files')
       .select('*')
       .eq('user_id', userId)
-      .eq('storage_provider', 'ipfs')
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -99,7 +138,8 @@ export class FileDatabaseService {
       ipfsUrl: file.ipfs_url || '',
       uploadedAt: file.created_at,
       userId: file.user_id,
-      folderPath: file.folder_path
+      folderPath: file.folder_path,
+      metadata: file.metadata
     }));
   }
 

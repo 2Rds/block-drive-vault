@@ -1,4 +1,3 @@
-
 import { IPFSUploadService } from './ipfsUploadService';
 import { SolanaInscriptionService } from './solanaInscriptionService';
 import { FileDatabaseService } from './fileDatabaseService';
@@ -199,8 +198,13 @@ export class HybridStorageService {
     user: any,
     folderPath?: string
   ): Promise<HybridStorageResult> {
+    const fileList = Object.assign([file], { 
+      length: 1, 
+      item: (index: number) => index === 0 ? file : null 
+    }) as unknown as FileList;
+    
     const ipfsFiles = await IPFSUploadService.uploadFiles(
-      new FileList([file] as any),
+      fileList,
       user,
       folderPath
     );
