@@ -7,7 +7,7 @@ import { SolanaWalletConnectors } from '@dynamic-labs/solana'
 import App from './App.tsx'
 import './index.css'
 
-const ENVIRONMENT_ID = '2762a57b-faa4-41ce-9f16-abff9300e2c9'
+const ENVIRONMENT_ID = '63b19e36-1946-4cfa-a62d-3c6edea09860'
 
 if (!ENVIRONMENT_ID) {
   throw new Error('Missing Dynamic Environment ID')
