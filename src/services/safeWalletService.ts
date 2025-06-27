@@ -2,8 +2,14 @@
 import Safe from '@safe-global/safe-core-sdk';
 import EthersAdapter from '@safe-global/safe-ethers-lib';
 import SafeServiceClient from '@safe-global/safe-service-client';
-import { ethers } from 'ethers';
 import { toast } from 'sonner';
+
+// Use ethers from the Safe package to avoid version conflicts
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 export interface SafeWalletData {
   safeAddress: string;
@@ -18,7 +24,7 @@ export class SafeWalletService {
   private safe: Safe | null = null;
   private ethAdapter: EthersAdapter | null = null;
   private safeService: SafeServiceClient | null = null;
-  private provider: ethers.providers.Web3Provider | null = null;
+  private provider: any = null;
 
   async connectSafeWallet(): Promise<SafeWalletData | null> {
     try {
@@ -30,6 +36,9 @@ export class SafeWalletService {
 
       // Request account access
       await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
+      // Import ethers dynamically to avoid version conflicts
+      const { ethers } = await import('ethers');
       
       // Create provider and signer
       this.provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -87,12 +96,13 @@ export class SafeWalletService {
         }
       }
 
+      const { ethers: ethersForFormat } = await import('ethers');
       const safeData: SafeWalletData = {
         safeAddress,
         owners,
         threshold,
         chainId,
-        balance: ethers.utils.formatEther(balance),
+        balance: ethersForFormat.utils.formatEther(balance),
         pendingTransactions
       };
 
