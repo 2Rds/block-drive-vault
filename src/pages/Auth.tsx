@@ -4,7 +4,7 @@ import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
-import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
+import { MultiChainConnector } from '@/components/auth/MultiChainConnector';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
@@ -25,10 +25,6 @@ const Auth = () => {
     console.log('Web3 MFA authentication successful:', authData);
     // The actual authentication will be handled by the Web3AuthService
     // This is just for logging and potential additional processing
-  };
-
-  const onWalletConnected = (walletInfo: any) => {
-    console.log('Dynamic wallet connected successfully:', walletInfo);
   };
 
   return (
@@ -56,34 +52,31 @@ const Auth = () => {
               <h2 className="text-4xl font-bold text-white mb-4">
                 Welcome to BlockDrive
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Web3 Multi-Factor Authentication
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+                  Superchain Multi-Factor Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience revolutionary security with NFT + Subdomain authentication. 
-                Choose your blockchain and create your unique identity.
+                Experience revolutionary security with Safe multi-sig + Solana cross-chain authentication. 
+                Connect to both ecosystems for maximum security and interoperability.
               </p>
             </div>
 
-            {/* Dynamic Wallet Connector - Always shown for wallet connection */}
-            <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-4 text-center">Connect Your Wallet</h4>
-              <DynamicWalletConnector onWalletConnected={onWalletConnected} />
-            </div>
+            {/* New Multi-Chain Connector */}
+            <MultiChainConnector />
 
-            {/* Web3 MFA Connector - The only authentication method */}
+            {/* Web3 MFA Connector - Enhanced for cross-chain */}
             <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">Revolutionary Web3 Security</h4>
+              <h4 className="font-semibold text-white mb-3">Revolutionary Superchain Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our revolutionary Web3 MFA system uses NFT ownership as the first authentication factor 
-                and subdomain control as the second factor, creating a virtually unhackable authentication method.
+                Our revolutionary Web3 MFA system now leverages Safe multi-signature wallets and OP Superchain 
+                interoperability to create a virtually unhackable cross-chain authentication method.
               </p>
               <div className="flex items-center space-x-2 text-xs text-purple-400">
                 <Shield className="w-4 h-4" />
-                <span>NFT Token Gating • Subdomain Auth • Military-Grade Security</span>
+                <span>Safe Multi-Sig • Cross-Chain Auth • Superchain Ready</span>
               </div>
             </div>
           </div>
