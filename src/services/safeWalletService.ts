@@ -1,6 +1,7 @@
 
-import Safe, { EthersAdapter } from '@safe-global/safe-core-sdk';
-import { SafeServiceClient } from '@safe-global/safe-service-client';
+import Safe from '@safe-global/safe-core-sdk';
+import EthersAdapter from '@safe-global/safe-ethers-lib';
+import SafeServiceClient from '@safe-global/safe-service-client';
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
