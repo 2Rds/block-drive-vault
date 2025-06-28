@@ -6,6 +6,7 @@ import { Wallet, Shield, Loader2, CheckCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { AlchemySmartAccountConnector } from './AlchemySmartAccountConnector';
+import { AlchemyAccountKitConnector } from './AlchemyAccountKitConnector';
 
 interface Web3MFAConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -14,7 +15,7 @@ interface Web3MFAConnectorProps {
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const [selectedMethod, setSelectedMethod] = useState<'traditional' | 'smart-account'>('traditional');
+  const [selectedMethod, setSelectedMethod] = useState<'traditional' | 'smart-account' | 'account-kit'>('account-kit');
   const { connectWallet } = useAuth();
 
   const connectWeb3Wallet = async (walletType: 'metamask' | 'phantom') => {
@@ -131,22 +132,32 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
   return (
     <div className="space-y-6">
       {/* Connection Method Selector */}
-      <div className="flex space-x-2 bg-gray-800/40 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-gray-800/40 p-1 rounded-lg">
+        <button
+          onClick={() => setSelectedMethod('account-kit')}
+          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            selectedMethod === 'account-kit'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-400 hover:text-gray-300'
+          }`}
+        >
+          Account Kit
+        </button>
         <button
           onClick={() => setSelectedMethod('traditional')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
             selectedMethod === 'traditional'
               ? 'bg-blue-600 text-white'
               : 'text-gray-400 hover:text-gray-300'
           }`}
         >
-          Traditional Wallets
+          Traditional
         </button>
         <button
           onClick={() => setSelectedMethod('smart-account')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
             selectedMethod === 'smart-account'
-              ? 'bg-purple-600 text-white'
+              ? 'bg-orange-600 text-white'
               : 'text-gray-400 hover:text-gray-300'
           }`}
         >
@@ -154,7 +165,9 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
         </button>
       </div>
 
-      {selectedMethod === 'traditional' ? (
+      {selectedMethod === 'account-kit' ? (
+        <AlchemyAccountKitConnector onAuthenticationSuccess={onAuthenticationSuccess} />
+      ) : selectedMethod === 'traditional' ? (
         <div className="space-y-4">
           <Card className="bg-blue-900/20 border-blue-800">
             <CardContent className="p-4">
