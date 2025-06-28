@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,8 +30,8 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
     
     try {
       let wallet;
-      let address;
-      let blockchainType;
+      let address: string;
+      let blockchainType: string;
 
       if (walletType === 'metamask') {
         // Connect to MetaMask
@@ -54,21 +53,24 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
         } else {
           throw new Error('Phantom wallet not installed');
         }
+      } else {
+        throw new Error('Unsupported wallet type');
       }
 
       console.log(`${walletType} wallet connected:`, address);
 
       // Create authentication signature
       const message = 'Sign this message to authenticate with BlockDrive';
-      let signature = `web3-mfa-${Date.now()}-${address.slice(-6)}`;
+      let signature: string = `web3-mfa-${Date.now()}-${address.slice(-6)}`;
 
       // Try to get real signature if possible
       try {
         if (walletType === 'metamask' && window.ethereum) {
-          signature = await window.ethereum.request({
+          const signedMessage = await window.ethereum.request({
             method: 'personal_sign',
             params: [message, address],
           });
+          signature = String(signedMessage);
         } else if (walletType === 'phantom' && window.solana) {
           const encodedMessage = new TextEncoder().encode(message);
           const signedMessage = await window.solana.signMessage(encodedMessage, 'utf8');
