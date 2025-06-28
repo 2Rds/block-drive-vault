@@ -11,6 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@alchemy/aa-accounts": "^3.19.0",
+    "@alchemy/aa-alchemy": "^3.19.0",
+    "@alchemy/aa-core": "^3.19.0",
     "@dynamic-labs/ethereum": "^4.20.9",
     "@dynamic-labs/sdk-react-core": "^4.20.9",
     "@dynamic-labs/solana": "^4.20.9",
