@@ -13,7 +13,6 @@ interface DynamicWalletHandlerProps {
 export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: DynamicWalletHandlerProps) => {
   const { connectWallet } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   // Initialize the Dynamic provider
   useEffect(() => {
@@ -80,16 +79,6 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     }
   };
 
-  // Fallback to Web3 MFA when Dynamic fails
-  const handleFallbackConnection = () => {
-    console.log('Using Web3 MFA fallback connection method');
-    toast.info('Using alternative wallet connection method');
-    
-    // Trigger Web3 MFA connector
-    const web3MFAEvent = new CustomEvent('trigger-web3-mfa');
-    window.dispatchEvent(web3MFAEvent);
-  };
-
   // Early return if not available
   if (!DynamicComponents) {
     return (
@@ -111,7 +100,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
 
   if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
-    console.error('Missing Dynamic components, showing fallback');
+    console.error('Missing Dynamic components');
     return (
       <div className="space-y-4">
         <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4">
@@ -119,17 +108,10 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
             <AlertCircle className="w-5 h-5 text-yellow-400" />
             <div>
               <p className="text-yellow-400 font-medium">Dynamic SDK Loading Issue</p>
-              <p className="text-yellow-300 text-sm">Using alternative connection method</p>
+              <p className="text-yellow-300 text-sm">Please refresh the page to try again</p>
             </div>
           </div>
         </div>
-        <Button 
-          onClick={handleFallbackConnection}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
-        >
-          <Wallet className="w-4 h-4 mr-2" />
-          Connect Wallet (Alternative Method)
-        </Button>
       </div>
     );
   }
@@ -153,9 +135,6 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
       console.error('Dynamic context error:', error);
       if (!contextError) {
         setContextError(error.message);
-        setTimeout(() => {
-          handleFallbackConnection();
-        }, 1000);
       }
       
       return (
@@ -164,7 +143,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
             <AlertCircle className="w-5 h-5 text-red-400" />
             <div>
               <p className="text-red-400 font-medium">Dynamic Widget Error</p>
-              <p className="text-red-300 text-sm">Switching to alternative connection...</p>
+              <p className="text-red-300 text-sm">Please refresh the page to try again</p>
             </div>
           </div>
         </div>
@@ -198,13 +177,15 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   if (!dynamicSettings.environmentId) {
     console.error('Missing environment ID');
     return (
-      <Button 
-        onClick={handleFallbackConnection}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
-      >
-        <Wallet className="w-4 h-4 mr-2" />
-        Connect Wallet
-      </Button>
+      <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
+        <div className="flex items-center space-x-3">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <div>
+            <p className="text-red-400 font-medium">Configuration Error</p>
+            <p className="text-red-300 text-sm">Dynamic environment ID is missing</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -216,7 +197,6 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     );
   } catch (error: any) {
     console.error('Dynamic provider error:', error);
-    setHasError(true);
     return (
       <div className="space-y-4">
         <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
@@ -228,13 +208,6 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
             </div>
           </div>
         </div>
-        <Button 
-          onClick={handleFallbackConnection}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
-        >
-          <Wallet className="w-4 h-4 mr-2" />
-          Use Alternative Connection
-        </Button>
       </div>
     );
   }

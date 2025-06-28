@@ -1,11 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
-import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 
 const Auth = () => {
   const { user, session } = useAuth();
@@ -18,10 +17,6 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
-
-  const handleWeb3MFASuccess = (authData: any) => {
-    console.log('Web3 MFA authentication successful:', authData);
-  };
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -49,7 +44,7 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Web3 Multi-Factor Authentication
+                  Web3 Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
@@ -58,16 +53,13 @@ const Auth = () => {
               </p>
             </div>
 
-            {/* Dynamic Wallet Connector with built-in error handling */}
+            {/* Dynamic Wallet Connector */}
             <DynamicWalletConnector onWalletConnected={() => {}} />
-
-            {/* Web3 MFA Connector - Always available as fallback */}
-            <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
               <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our Web3 MFA system leverages wallet signatures and decentralized authentication 
+                Our Web3 authentication system leverages wallet signatures and decentralized authentication 
                 to create a secure and user-friendly login experience.
               </p>
               <div className="flex items-center space-x-2 text-xs text-purple-400">

@@ -50,63 +50,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
 
-    // Listen for Web3 MFA authentication events
-    const handleWeb3MFAAuth = (event: CustomEvent) => {
-      console.log('Web3 MFA auth success event received:', event.detail);
-      const authData = event.detail;
-      
-      // Create session data for Web3 MFA authentication
-      const user: User = {
-        id: authData.sessionToken,
-        email: `${authData.walletAddress}@blockdrive.${authData.blockchainType}`,
-        wallet_address: authData.walletAddress,
-        app_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        user_metadata: {
-          wallet_address: authData.walletAddress,
-          blockchain_type: authData.blockchainType,
-          username: `${authData.blockchainType.charAt(0).toUpperCase() + authData.blockchainType.slice(1)} MFA User`,
-        }
-      };
-
-      const sessionData = {
-        user,
-        access_token: authData.sessionToken,
-        refresh_token: authData.sessionToken,
-        expires_at: Date.now() + (24 * 60 * 60 * 1000),
-        token_type: 'bearer'
-      };
-
-      createSession(sessionData);
-      
-      // Set wallet data
-      const walletInfo: WalletData = {
-        address: authData.walletAddress,
-        publicKey: null,
-        adapter: null,
-        connected: true,
-        autoConnect: false,
-        id: authData.blockchainType,
-        wallet_address: authData.walletAddress,
-        blockchain_type: authData.blockchainType
-      };
-      setWalletData(walletInfo);
-      
-      setLoading(false);
-      
-      // Redirect to dashboard
-      setTimeout(() => {
-        window.location.href = '/index';
-      }, 1000);
-    };
-
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
-    window.addEventListener('web3-mfa-success', handleWeb3MFAAuth as EventListener);
 
     return () => {
       window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
-      window.removeEventListener('web3-mfa-success', handleWeb3MFAAuth as EventListener);
     };
   }, [createSession, setWalletData, setLoading]);
 
