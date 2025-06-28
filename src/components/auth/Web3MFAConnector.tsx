@@ -2,11 +2,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Shield, Loader2, CheckCircle, Sparkles } from 'lucide-react';
+import { Wallet, Shield, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { AlchemySmartAccountConnector } from './AlchemySmartAccountConnector';
-import { AlchemyAccountKitConnector } from './AlchemyAccountKitConnector';
+import { UnifiedAuthFlow } from './UnifiedAuthFlow';
 
 interface Web3MFAConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -15,7 +14,6 @@ interface Web3MFAConnectorProps {
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const [selectedMethod, setSelectedMethod] = useState<'traditional' | 'smart-account' | 'account-kit'>('account-kit');
   const { connectWallet } = useAuth();
 
   const connectWeb3Wallet = async (walletType: 'metamask' | 'phantom') => {
@@ -131,87 +129,60 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
 
   return (
     <div className="space-y-6">
-      {/* Connection Method Selector */}
-      <div className="flex space-x-1 bg-gray-800/40 p-1 rounded-lg">
-        <button
-          onClick={() => setSelectedMethod('account-kit')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            selectedMethod === 'account-kit'
-              ? 'bg-purple-600 text-white'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          Account Kit
-        </button>
-        <button
-          onClick={() => setSelectedMethod('traditional')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            selectedMethod === 'traditional'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          Traditional
-        </button>
-        <button
-          onClick={() => setSelectedMethod('smart-account')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            selectedMethod === 'smart-account'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          Smart Accounts
-        </button>
+      {/* Primary Authentication - Alchemy Account Kit */}
+      <UnifiedAuthFlow onAuthenticationSuccess={onAuthenticationSuccess} />
+
+      {/* Alternative: Traditional Wallets */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-gray-700" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-gray-950 px-2 text-gray-400">Or connect existing wallet</span>
+        </div>
       </div>
 
-      {selectedMethod === 'account-kit' ? (
-        <AlchemyAccountKitConnector onAuthenticationSuccess={onAuthenticationSuccess} />
-      ) : selectedMethod === 'traditional' ? (
-        <div className="space-y-4">
-          <Card className="bg-blue-900/20 border-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-blue-400" />
-                <div>
-                  <p className="text-blue-400 font-medium">Traditional Web3 Wallets</p>
-                  <p className="text-blue-300 text-sm">Connect your existing browser wallet</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button
+          onClick={() => connectWeb3Wallet('metamask')}
+          disabled={isConnecting}
+          className="bg-orange-600 hover:bg-orange-700 text-white border-0 px-4 py-3 rounded-lg font-medium"
+        >
+          {isConnecting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Wallet className="w-4 h-4 mr-2" />
+          )}
+          MetaMask
+        </Button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button
-              onClick={() => connectWeb3Wallet('metamask')}
-              disabled={isConnecting}
-              className="bg-orange-600 hover:bg-orange-700 text-white border-0 px-4 py-3 rounded-lg font-medium"
-            >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Wallet className="w-4 h-4 mr-2" />
-              )}
-              MetaMask
-            </Button>
+        <Button
+          onClick={() => connectWeb3Wallet('phantom')}
+          disabled={isConnecting}
+          className="bg-purple-600 hover:bg-purple-700 text-white border-0 px-4 py-3 rounded-lg font-medium"
+        >
+          {isConnecting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Wallet className="w-4 h-4 mr-2" />
+          )}
+          Phantom
+        </Button>
+      </div>
 
-            <Button
-              onClick={() => connectWeb3Wallet('phantom')}
-              disabled={isConnecting}
-              className="bg-purple-600 hover:bg-purple-700 text-white border-0 px-4 py-3 rounded-lg font-medium"
-            >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Wallet className="w-4 h-4 mr-2" />
-              )}
-              Phantom
-            </Button>
+      <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-blue-600/20 rounded-lg">
+            <Shield className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <h4 className="font-medium text-white text-sm mb-1">Multiple Authentication Options</h4>
+            <p className="text-gray-400 text-xs">
+              Choose from smart wallets with social login, email authentication, or connect your existing Web3 wallet.
+            </p>
           </div>
         </div>
-      ) : (
-        <AlchemySmartAccountConnector onAuthenticationSuccess={onAuthenticationSuccess} />
-      )}
+      </div>
     </div>
   );
 };
