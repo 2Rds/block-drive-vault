@@ -1,8 +1,10 @@
 
 import React, { useEffect } from 'react';
+import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { UnifiedAuthFlow } from '@/components/auth/UnifiedAuthFlow';
+import { FeatureCards } from '@/components/auth/FeatureCards';
+import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 
 const Auth = () => {
   const { user, session } = useAuth();
@@ -16,82 +18,64 @@ const Auth = () => {
     }
   }, [user, session, navigate]);
 
-  const handleAuthenticationSuccess = (authData: any) => {
-    console.log('Authentication successful:', authData);
+  const handleWalletConnected = (walletInfo: any) => {
+    console.log('Wallet connected successfully:', walletInfo);
     // Navigation will be handled by the auth context
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+    <div className="min-h-screen bg-gray-950">
       {/* Header */}
-      <header className="border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-8 py-6">
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-8 py-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" 
-                alt="BlockDrive Logo" 
-                className="w-10 h-10 object-contain" 
-              />
+              <img src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" alt="BlockDrive Logo" className="w-10 h-10 object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-slate-400">Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Next-Gen Web3 Storage Platform</p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex items-center justify-center p-8 min-h-[calc(100vh-120px)]">
-        <div className="w-full max-w-4xl">
-          <div className="text-center mb-12">
-            <h2 className="text-5xl font-bold text-white mb-4">
-              Welcome to 
-              <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-emerald-400 bg-clip-text text-transparent ml-3">
-                BlockDrive
-              </span>
-            </h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
-              Connect your wallet for maximum security and decentralized storage access.
-            </p>
-          </div>
-
-          <UnifiedAuthFlow onAuthenticationSuccess={handleAuthenticationSuccess} />
-
-          {/* Bottom Features */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-r from-purple-600/20 to-purple-400/20 flex items-center justify-center border border-purple-500/30">
-                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Secure by Design</h3>
-              <p className="text-slate-400 text-sm">Built with smart contract security and cryptographic verification</p>
+      <div className="flex items-center justify-center p-8 min-h-[calc(100vh-80px)]">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Left Side - Authentication */}
+          <div className="space-y-6">
+            <div className="text-center lg:text-left">
+              <h2 className="text-4xl font-bold text-white mb-4">
+                Welcome to BlockDrive
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
+                  Web3 Authentication
+                </span>
+              </h2>
+              <p className="text-gray-300 text-lg">
+                Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
+                Connect your wallet for maximum security and decentralized storage access.
+              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-r from-blue-600/20 to-blue-400/20 flex items-center justify-center border border-blue-500/30">
-                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-              <p className="text-slate-400 text-sm">Instant uploads and downloads with IPFS integration</p>
-            </div>
+            {/* Web3MFA Connector - Always visible */}
+            <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-r from-emerald-600/20 to-emerald-400/20 flex items-center justify-center border border-emerald-500/30">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-                </svg>
+            <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+              <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
+              <p className="text-gray-400 text-sm mb-4">
+                Our Web3 authentication system leverages wallet signatures and decentralized authentication 
+                to create a secure and user-friendly login experience.
+              </p>
+              <div className="flex items-center space-x-2 text-xs text-purple-400">
+                <Shield className="w-4 h-4" />
+                <span>Wallet Authentication • Multi-Chain Support • Decentralized</span>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Decentralized</h3>
-              <p className="text-slate-400 text-sm">True ownership with decentralized storage and blockchain verification</p>
             </div>
           </div>
+
+          {/* Right Side - Features */}
+          <FeatureCards />
         </div>
       </div>
     </div>
