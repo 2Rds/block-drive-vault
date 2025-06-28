@@ -9,14 +9,45 @@ interface DynamicWalletConnectorProps {
 }
 
 export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConnectorProps) => {
-  const { primaryWallet, user, handleLogOut } = useDynamicContext();
+  const [isSDKReady, setIsSDKReady] = React.useState(false);
+  const [sdkError, setSdkError] = React.useState<string | null>(null);
+  
+  // Safely get Dynamic context with error handling
+  let dynamicContext;
+  try {
+    dynamicContext = useDynamicContext();
+  } catch (error) {
+    console.error('Dynamic context error:', error);
+    setSdkError('Failed to initialize Dynamic SDK context');
+  }
+
+  const { primaryWallet, user, handleLogOut, sdkHasLoaded } = dynamicContext || {};
   const { connectWallet } = useAuth();
 
   React.useEffect(() => {
-    if (primaryWallet && user) {
+    // Check if SDK loaded successfully
+    if (sdkHasLoaded) {
+      setIsSDKReady(true);
+      setSdkError(null);
+      console.log('Dynamic SDK loaded successfully');
+    } else {
+      // Set a timeout to detect if SDK fails to load
+      const timeout = setTimeout(() => {
+        if (!sdkHasLoaded) {
+          setSdkError('Dynamic SDK failed to load within timeout');
+          console.warn('Dynamic SDK load timeout');
+        }
+      }, 15000); // 15 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [sdkHasLoaded]);
+
+  React.useEffect(() => {
+    if (primaryWallet && user && isSDKReady) {
       handleWalletConnection();
     }
-  }, [primaryWallet, user]);
+  }, [primaryWallet, user, isSDKReady]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || !user) {
@@ -84,6 +115,38 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
       }
     }
   };
+
+  // Show error state if SDK failed to load
+  if (sdkError) {
+    return (
+      <div className="bg-red-800/40 border border-red-700 rounded-xl p-6">
+        <div className="text-center">
+          <h3 className="text-red-300 font-semibold mb-2">Dynamic SDK Error</h3>
+          <p className="text-red-200 text-sm mb-4">
+            {sdkError}
+          </p>
+          <p className="text-red-300 text-xs">
+            Please try refreshing the page or use the Web3 MFA option below.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while SDK initializes
+  if (!isSDKReady) {
+    return (
+      <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+        <div className="text-center">
+          <div className="animate-pulse space-y-3">
+            <div className="h-12 bg-gray-700 rounded-lg"></div>
+            <div className="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
+          </div>
+          <p className="text-gray-400 text-sm mt-3">Initializing wallet connectors...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center space-y-4">
