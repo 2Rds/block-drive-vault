@@ -17,8 +17,8 @@ export const useDynamicSDK = () => {
     try {
       console.log('Loading Dynamic SDK...');
       
-      // Use the correct environment ID
-      const ENVIRONMENT_ID = '63b19e36-1946-4cfa-a62d-3c6edea09860';
+      // Use the new environment ID
+      const ENVIRONMENT_ID = 'dyn_GVYFZ0QJSLhoBKEXyV0nc63Kw8oLtEUgHqvsdsUumeuB1BB8mV4w8HJy';
       
       if (!ENVIRONMENT_ID) {
         throw new Error('Missing Dynamic Environment ID');
@@ -29,7 +29,7 @@ export const useDynamicSDK = () => {
       // Add a small delay to ensure DOM is ready
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Import Dynamic SDK modules directly
+      // Import Dynamic SDK modules
       const [
         DynamicCore,
         EthereumModule,
