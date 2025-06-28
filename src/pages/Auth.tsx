@@ -4,7 +4,7 @@ import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
-import { MultiChainConnector } from '@/components/auth/MultiChainConnector';
+import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
@@ -53,30 +53,30 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Superchain Multi-Factor Authentication
+                  Web3 Multi-Factor Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience revolutionary security with Safe multi-sig + Solana cross-chain authentication. 
-                Connect to both ecosystems for maximum security and interoperability.
+                Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
+                Connect your wallet for maximum security and decentralized storage access.
               </p>
             </div>
 
-            {/* New Multi-Chain Connector */}
-            <MultiChainConnector />
+            {/* Dynamic Wallet Connector */}
+            <DynamicWalletConnector onWalletConnected={() => {}} />
 
-            {/* Web3 MFA Connector - Enhanced for cross-chain */}
+            {/* Web3 MFA Connector */}
             <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">Revolutionary Superchain Security</h4>
+              <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our revolutionary Web3 MFA system now leverages Safe multi-signature wallets and OP Superchain 
-                interoperability to create a virtually unhackable cross-chain authentication method.
+                Our Web3 MFA system leverages wallet signatures and decentralized authentication 
+                to create a secure and user-friendly login experience.
               </p>
               <div className="flex items-center space-x-2 text-xs text-purple-400">
                 <Shield className="w-4 h-4" />
-                <span>Safe Multi-Sig • Cross-Chain Auth • Superchain Ready</span>
+                <span>Wallet Authentication • Multi-Chain Support • Decentralized</span>
               </div>
             </div>
           </div>
