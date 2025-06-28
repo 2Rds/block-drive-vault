@@ -120,8 +120,11 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
     return (
       <DynamicWidget 
-        innerButtonComponent="Connect Wallet"
-        buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+        innerButtonComponent={
+          <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200">
+            Connect Wallet
+          </button>
+        }
       />
     );
   };
@@ -131,13 +134,26 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
       <DynamicContextProvider 
         settings={{
           environmentId: DynamicComponents.ENVIRONMENT_ID,
-          walletConnectors: [DynamicComponents.EthereumWalletConnectors, DynamicComponents.SolanaWalletConnectors],
+          walletConnectors: [...DynamicComponents.EthereumWalletConnectors, ...DynamicComponents.SolanaWalletConnectors],
           appName: 'BlockDrive',
           appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
           initialAuthenticationMode: 'connect-only',
           enableVisitTrackingOnConnectOnly: false,
           shadowDOMEnabled: false,
-          debugError: true,
+          debugError: false,
+          cssOverrides: `
+            [data-dynamic-widget-theme="light"] {
+              color-scheme: dark;
+            }
+          `,
+          eventsCallbacks: {
+            onAuthSuccess: (args) => {
+              console.log('Dynamic auth success:', args);
+            },
+            onAuthFailure: (args) => {
+              console.log('Dynamic auth failure:', args);
+            }
+          }
         }}
       >
         <WalletConnector />
