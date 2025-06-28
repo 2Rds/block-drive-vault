@@ -39,6 +39,16 @@ export const useDynamicSDK = () => {
 
       console.log('Dynamic SDK modules loaded successfully');
 
+      // Verify wallet connectors are properly loaded
+      if (!EthereumWalletConnectors || !SolanaWalletConnectors) {
+        throw new Error('Failed to load wallet connectors');
+      }
+
+      console.log('Wallet connectors loaded:', {
+        ethereum: EthereumWalletConnectors.length || 'Available',
+        solana: SolanaWalletConnectors.length || 'Available'
+      });
+
       // Store the components
       setDynamicComponents({
         DynamicContextProvider,

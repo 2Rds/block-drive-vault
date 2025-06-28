@@ -109,7 +109,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
   // Inner component that uses the Dynamic context
   const WalletConnector = () => {
-    const { primaryWallet, user } = useDynamicContext();
+    const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
     
     useEffect(() => {
       if (primaryWallet && user) {
@@ -120,6 +120,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
     return (
       <DynamicWidget 
+        innerButtonComponent="Connect Wallet"
         buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
       />
     );
