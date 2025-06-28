@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +10,17 @@ import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 const Auth = () => {
   const { user, session } = useAuth();
-  const { primaryWallet } = useDynamicContext();
+  const { primaryWallet, sdkHasLoaded, networkConfigurations } = useDynamicContext();
   const navigate = useNavigate();
+  const [dynamicReady, setDynamicReady] = useState(false);
+
+  useEffect(() => {
+    // Check if Dynamic SDK has loaded
+    if (sdkHasLoaded) {
+      setDynamicReady(true);
+      console.log('Dynamic SDK loaded successfully');
+    }
+  }, [sdkHasLoaded]);
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -62,8 +71,34 @@ const Auth = () => {
               </p>
             </div>
 
+            {/* Dynamic SDK Status */}
+            {!dynamicReady && (
+              <div className="bg-yellow-800/40 border border-yellow-700 rounded-xl p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
+                  <span className="text-yellow-200 text-sm">Loading wallet connectors...</span>
+                </div>
+              </div>
+            )}
+
             {/* Dynamic Wallet Connector */}
-            <DynamicWalletConnector onWalletConnected={() => {}} />
+            {dynamicReady ? (
+              <DynamicWalletConnector onWalletConnected={() => {}} />
+            ) : (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <div className="text-center">
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-12 bg-gray-700 rounded-lg"></div>
+                    <div className="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
+                    <div className="flex justify-center space-x-2">
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Web3 MFA Connector */}
             <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
