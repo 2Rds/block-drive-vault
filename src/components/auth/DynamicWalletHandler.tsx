@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -10,7 +10,14 @@ interface DynamicWalletHandlerProps {
 
 export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: DynamicWalletHandlerProps) => {
   const { connectWallet } = useAuth();
-  const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize the Dynamic provider
+  useEffect(() => {
+    if (DynamicComponents && !isInitialized) {
+      setIsInitialized(true);
+    }
+  }, [DynamicComponents, isInitialized]);
 
   const handleWalletConnection = async (primaryWallet: any, user: any) => {
     if (!primaryWallet || !user) {
@@ -69,8 +76,18 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     }
   };
 
-  // Create the wallet handler as a separate component to properly use context
-  const WalletHandler = () => {
+  if (!isInitialized || !DynamicComponents) {
+    return (
+      <div className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
+        Initializing wallet connectors...
+      </div>
+    );
+  }
+
+  const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
+
+  // Inner component that uses the Dynamic context
+  const WalletConnector = () => {
     const { primaryWallet, user } = useDynamicContext();
     
     useEffect(() => {
@@ -99,7 +116,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
         debugError: false,
       }}
     >
-      <WalletHandler />
+      <WalletConnector />
     </DynamicContextProvider>
   );
 };
