@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Shield, Loader2, CheckCircle, Sparkles } from 'lucide-react';
+import { Wallet, Loader2, CheckCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { alchemyClient, alchemyConfig } from '@/config/alchemy';
+import { alchemyConfig } from '@/config/alchemy';
 
 interface AlchemySmartAccountConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -14,29 +14,7 @@ interface AlchemySmartAccountConnectorProps {
 export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: AlchemySmartAccountConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedAccount, setConnectedAccount] = useState<any>(null);
-  const [alchemyModal, setAlchemyModal] = useState<any>(null);
   const { connectWallet } = useAuth();
-
-  useEffect(() => {
-    // Initialize Alchemy embedded modal
-    const initializeAlchemy = async () => {
-      try {
-        // This would be the actual Alchemy embedded modal initialization
-        // You'll need to replace this with your specific Alchemy app configuration
-        console.log('Initializing Alchemy embedded modal...');
-        
-        // For now, we'll simulate the modal initialization
-        setAlchemyModal({
-          isReady: true,
-          open: () => connectSmartAccount(),
-        });
-      } catch (error) {
-        console.error('Failed to initialize Alchemy modal:', error);
-      }
-    };
-
-    initializeAlchemy();
-  }, []);
 
   const connectSmartAccount = async () => {
     setIsConnecting(true);
@@ -44,35 +22,14 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
     try {
       console.log('Connecting to Alchemy Smart Account...');
       
-      // Create smart account with Alchemy
-      const smartAccount = await alchemyClient.connect({
-        owner: {
-          // This would typically come from your wallet connection
-          // For demo, we'll use a placeholder
-          type: 'local',
-        },
-      });
-
-      const address = await smartAccount.getAddress();
-      console.log('Smart Account created:', address);
-
-      // Create authentication signature
-      const message = 'Sign this message to authenticate with BlockDrive using Alchemy Smart Account';
-      let signature: string = `alchemy-smart-account-${Date.now()}-${address.slice(-6)}`;
-
-      // Try to get real signature if possible
-      try {
-        const signedMessage = await smartAccount.signMessage({
-          message,
-        });
-        signature = signedMessage;
-      } catch (signError) {
-        console.warn('Could not get signature, using fallback:', signError);
-      }
+      // Simulate smart account creation for now
+      // This will be replaced with actual Alchemy SDK integration once API key is provided
+      const mockAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
+      const signature = `alchemy-smart-account-${Date.now()}-${mockAddress.slice(-6)}`;
 
       // Authenticate with backend
       const result = await connectWallet({
-        address,
+        address: mockAddress,
         blockchain_type: 'ethereum',
         signature,
         id: 'alchemy-smart-account'
@@ -83,7 +40,7 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
       }
 
       const authData = {
-        walletAddress: address,
+        walletAddress: mockAddress,
         blockchainType: 'ethereum',
         signature,
         sessionToken: `alchemy-smart-account-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -104,14 +61,6 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
       toast.error(`Failed to connect Alchemy Smart Account: ${error.message}`);
     } finally {
       setIsConnecting(false);
-    }
-  };
-
-  const openAlchemyModal = () => {
-    if (alchemyModal && alchemyModal.isReady) {
-      alchemyModal.open();
-    } else {
-      connectSmartAccount();
     }
   };
 
@@ -153,7 +102,7 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
       </Card>
 
       <Button
-        onClick={openAlchemyModal}
+        onClick={connectSmartAccount}
         disabled={isConnecting}
         className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 px-4 py-3 rounded-lg font-medium"
       >
