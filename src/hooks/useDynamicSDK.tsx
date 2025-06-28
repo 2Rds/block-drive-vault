@@ -32,8 +32,8 @@ export const useDynamicSDK = () => {
       // Dynamically import the Dynamic SDK modules with error handling
       const [
         { DynamicContextProvider, DynamicWidget, useDynamicContext },
-        { EthereumWalletConnectors },
-        { SolanaWalletConnectors }
+        EthereumModule,
+        SolanaModule
       ] = await Promise.all([
         import('@dynamic-labs/sdk-react-core').catch(err => {
           console.error('Failed to load Dynamic core:', err);
@@ -56,23 +56,29 @@ export const useDynamicSDK = () => {
         throw new Error('Dynamic SDK components not properly loaded');
       }
 
+      // Extract wallet connectors properly
+      const EthereumWalletConnectors = EthereumModule.EthereumWalletConnectors || [];
+      const SolanaWalletConnectors = SolanaModule.SolanaWalletConnectors || [];
+
       // Verify wallet connectors are properly loaded
-      if (!EthereumWalletConnectors || !SolanaWalletConnectors) {
+      if (!EthereumWalletConnectors && !SolanaWalletConnectors) {
         throw new Error('Failed to load wallet connectors');
       }
 
       console.log('Wallet connectors loaded:', {
-        ethereum: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors.length : 'Available',
-        solana: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors.length : 'Available'
+        ethereum: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors.length : 'Not array',
+        solana: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors.length : 'Not array',
+        ethereumType: typeof EthereumWalletConnectors,
+        solanaType: typeof SolanaWalletConnectors
       });
 
-      // Store the components
+      // Store the components with properly formatted connectors
       setDynamicComponents({
         DynamicContextProvider,
         DynamicWidget,
         useDynamicContext,
-        EthereumWalletConnectors,
-        SolanaWalletConnectors,
+        EthereumWalletConnectors: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors : [],
+        SolanaWalletConnectors: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors : [],
         ENVIRONMENT_ID
       });
       

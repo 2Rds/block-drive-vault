@@ -130,11 +130,25 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   };
 
   try {
+    // Ensure wallet connectors are arrays before spreading
+    const ethereumConnectors = Array.isArray(DynamicComponents.EthereumWalletConnectors) 
+      ? DynamicComponents.EthereumWalletConnectors 
+      : [];
+    const solanaConnectors = Array.isArray(DynamicComponents.SolanaWalletConnectors) 
+      ? DynamicComponents.SolanaWalletConnectors 
+      : [];
+
+    console.log('Using wallet connectors:', {
+      ethereum: ethereumConnectors.length,
+      solana: solanaConnectors.length,
+      total: ethereumConnectors.length + solanaConnectors.length
+    });
+
     return (
       <DynamicContextProvider 
         settings={{
           environmentId: DynamicComponents.ENVIRONMENT_ID,
-          walletConnectors: [...DynamicComponents.EthereumWalletConnectors, ...DynamicComponents.SolanaWalletConnectors],
+          walletConnectors: [...ethereumConnectors, ...solanaConnectors],
           appName: 'BlockDrive',
           appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
           initialAuthenticationMode: 'connect-only',
