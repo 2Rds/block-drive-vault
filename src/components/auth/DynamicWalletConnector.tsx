@@ -5,6 +5,7 @@ import { DynamicErrorState } from './DynamicErrorState';
 import { DynamicLoadingState } from './DynamicLoadingState';
 import { DynamicWalletHandler } from './DynamicWalletHandler';
 import { MultichainInfo } from './MultichainInfo';
+import { Web3MFAConnector } from './Web3MFAConnector';
 
 interface DynamicWalletConnectorProps {
   onWalletConnected?: (walletInfo: any) => void;
@@ -19,9 +20,20 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
     loadDynamicSDK
   } = useDynamicSDK();
 
-  // Show error state with retry option
+  // Show error state with retry option and fallback
   if (dynamicError) {
-    return <DynamicErrorState error={dynamicError} onRetry={loadDynamicSDK} />;
+    return (
+      <div className="space-y-4">
+        <DynamicErrorState error={dynamicError} onRetry={loadDynamicSDK} />
+        
+        {/* Show fallback option for CORS/network errors */}
+        {(dynamicError.includes('CORS') || dynamicError.includes('network restrictions') || dynamicError.includes('Network')) && (
+          <div className="mt-4">
+            <Web3MFAConnector onAuthenticationSuccess={onWalletConnected} />
+          </div>
+        )}
+      </div>
+    );
   }
 
   // Show loading state while Dynamic SDK is being loaded

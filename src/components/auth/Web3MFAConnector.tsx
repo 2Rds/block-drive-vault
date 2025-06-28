@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, Shield, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Web3MFAConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -12,13 +14,14 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
   const [shouldShow, setShouldShow] = useState(false);
+  const { connectWallet } = useAuth();
 
   // Listen for fallback trigger events
   useEffect(() => {
     const handleFallbackTrigger = () => {
       console.log('Web3 MFA fallback triggered');
       setShouldShow(true);
-      toast.info('Using Web3 MFA authentication method');
+      toast.info('Using alternative wallet connection method');
     };
 
     window.addEventListener('trigger-web3-mfa', handleFallbackTrigger);
@@ -80,6 +83,18 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
         console.warn('Could not get signature, using fallback:', signError);
       }
 
+      // Authenticate with backend
+      const result = await connectWallet({
+        address,
+        blockchain_type: blockchainType,
+        signature,
+        id: blockchainType
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Authentication failed');
+      }
+
       const authData = {
         walletAddress: address,
         blockchainType,
@@ -90,10 +105,6 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
 
       setConnectedWallet(authData);
       
-      // Dispatch success event
-      const successEvent = new CustomEvent('web3-mfa-success', { detail: authData });
-      window.dispatchEvent(successEvent);
-
       toast.success(`${walletType.charAt(0).toUpperCase() + walletType.slice(1)} wallet connected successfully!`);
 
       if (onAuthenticationSuccess) {
@@ -136,8 +147,8 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
           <div className="flex items-center space-x-3">
             <Shield className="w-5 h-5 text-blue-400" />
             <div>
-              <p className="text-blue-400 font-medium">Web3 MFA Authentication</p>
-              <p className="text-gray-300 text-sm">Alternative secure wallet connection method</p>
+              <p className="text-blue-400 font-medium">Alternative Wallet Connection</p>
+              <p className="text-gray-300 text-sm">Direct browser wallet connection method</p>
             </div>
           </div>
         </CardContent>
