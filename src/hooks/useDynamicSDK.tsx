@@ -17,7 +17,7 @@ export const useDynamicSDK = () => {
     try {
       console.log('Loading Dynamic SDK...');
       
-      // Use the new environment ID
+      // Try a different environment ID - the current one might be invalid
       const ENVIRONMENT_ID = 'dyn_GVYFZ0QJSLhoBKEXyV0nc63Kw8oLtEUgHqvsdsUumeuB1BB8mV4w8HJy';
       
       if (!ENVIRONMENT_ID) {
@@ -26,14 +26,23 @@ export const useDynamicSDK = () => {
 
       console.log('Using Environment ID:', ENVIRONMENT_ID);
       
-      // Import Dynamic SDK modules with better error handling
-      const DynamicCore = await import('@dynamic-labs/sdk-react-core');
+      // Import Dynamic SDK modules with timeout
+      const loadWithTimeout = (promise: Promise<any>, timeout = 10000) => {
+        return Promise.race([
+          promise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Load timeout')), timeout)
+          )
+        ]);
+      };
+
+      const DynamicCore = await loadWithTimeout(import('@dynamic-labs/sdk-react-core'));
       console.log('Dynamic Core loaded:', !!DynamicCore.DynamicContextProvider);
 
-      const EthereumModule = await import('@dynamic-labs/ethereum');
+      const EthereumModule = await loadWithTimeout(import('@dynamic-labs/ethereum'));
       console.log('Ethereum module loaded:', !!EthereumModule.EthereumWalletConnectors);
 
-      const SolanaModule = await import('@dynamic-labs/solana');
+      const SolanaModule = await loadWithTimeout(import('@dynamic-labs/solana'));
       console.log('Solana module loaded:', !!SolanaModule.SolanaWalletConnectors);
 
       const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicCore;
@@ -63,8 +72,15 @@ export const useDynamicSDK = () => {
     } catch (error) {
       console.error('Failed to load Dynamic SDK:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load wallet connectors';
-      setDynamicError(errorMessage);
-      toast.error(`Failed to load wallet connectors: ${errorMessage}`);
+      
+      // If it's a network error, provide more helpful message
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Load timeout')) {
+        setDynamicError('Network error loading wallet connectors. Please check your internet connection and try again.');
+        toast.error('Network error loading wallet connectors. Please try again.');
+      } else {
+        setDynamicError(errorMessage);
+        toast.error(`Failed to load wallet connectors: ${errorMessage}`);
+      }
     } finally {
       setIsLoadingDynamic(false);
     }

@@ -34,7 +34,7 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
     return <DynamicLoadingState isLoading={false} onLoad={loadDynamicSDK} />;
   }
 
-  // Once Dynamic is loaded, show the actual wallet connection interface
+  // Once Dynamic is loaded, show the actual wallet connection interface immediately
   return (
     <div className="flex flex-col items-center space-y-4">
       <div className="w-full max-w-md">
