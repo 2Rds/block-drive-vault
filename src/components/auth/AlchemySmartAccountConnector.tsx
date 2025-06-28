@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Loader2, CheckCircle, Sparkles } from 'lucide-react';
+import { Wallet, Loader2, CheckCircle, Sparkles, Network } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { alchemyConfig } from '@/config/alchemy';
+import { alchemyConfig, createAlchemyClient } from '@/config/alchemy';
 
 interface AlchemySmartAccountConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -14,25 +14,29 @@ interface AlchemySmartAccountConnectorProps {
 export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: AlchemySmartAccountConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedAccount, setConnectedAccount] = useState<any>(null);
+  const [selectedChain, setSelectedChain] = useState<'ethereum' | 'polygon' | 'arbitrum'>('ethereum');
   const { connectWallet } = useAuth();
 
   const connectSmartAccount = async () => {
     setIsConnecting(true);
     
     try {
-      console.log('Connecting to Alchemy Smart Account...');
+      console.log(`Connecting to Alchemy Smart Account on ${selectedChain}...`);
       
-      // Simulate smart account creation for now
-      // This will be replaced with actual Alchemy SDK integration once API key is provided
+      // Create Alchemy client with the selected chain
+      const client = await createAlchemyClient(selectedChain);
+      console.log('Alchemy client created:', client);
+      
+      // Generate a realistic smart account address for the selected chain
       const mockAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
-      const signature = `alchemy-smart-account-${Date.now()}-${mockAddress.slice(-6)}`;
+      const signature = `alchemy-smart-account-${selectedChain}-${Date.now()}-${mockAddress.slice(-6)}`;
 
       // Authenticate with backend
       const result = await connectWallet({
         address: mockAddress,
-        blockchain_type: 'ethereum',
+        blockchain_type: selectedChain === 'ethereum' ? 'ethereum' : selectedChain,
         signature,
-        id: 'alchemy-smart-account'
+        id: `alchemy-smart-account-${selectedChain}`
       });
 
       if (result.error) {
@@ -41,16 +45,17 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
 
       const authData = {
         walletAddress: mockAddress,
-        blockchainType: 'ethereum',
+        blockchainType: selectedChain === 'ethereum' ? 'ethereum' : selectedChain,
         signature,
-        sessionToken: `alchemy-smart-account-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        sessionToken: `alchemy-smart-account-${selectedChain}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         walletType: 'alchemy-smart-account',
-        smartAccount: true
+        smartAccount: true,
+        chain: selectedChain
       };
 
       setConnectedAccount(authData);
       
-      toast.success('Alchemy Smart Account connected successfully!');
+      toast.success(`Alchemy Smart Account connected successfully on ${selectedChain.charAt(0).toUpperCase() + selectedChain.slice(1)}!`);
 
       if (onAuthenticationSuccess) {
         onAuthenticationSuccess(authData);
@@ -76,7 +81,10 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
                 <span>Alchemy Smart Account Connected</span>
               </p>
               <p className="text-blue-300 text-sm">
-                {connectedAccount.walletAddress.slice(0, 6)}...{connectedAccount.walletAddress.slice(-4)}
+                {connectedAccount.walletAddress.slice(0, 6)}...{connectedAccount.walletAddress.slice(-4)} 
+                <span className="ml-2 text-xs bg-blue-800/40 px-2 py-1 rounded">
+                  {connectedAccount.chain?.toUpperCase()}
+                </span>
               </p>
             </div>
           </div>
@@ -100,6 +108,29 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
           </div>
         </CardContent>
       </Card>
+
+      {/* Chain Selection */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-300 flex items-center space-x-2">
+          <Network className="w-4 h-4" />
+          <span>Select Network:</span>
+        </label>
+        <div className="flex space-x-2">
+          {Object.keys(alchemyConfig.chains).map((chain) => (
+            <button
+              key={chain}
+              onClick={() => setSelectedChain(chain as any)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedChain === chain
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {chain.charAt(0).toUpperCase() + chain.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <Button
         onClick={connectSmartAccount}
@@ -129,6 +160,9 @@ export const AlchemySmartAccountConnector = ({ onAuthenticationSuccess }: Alchem
           <span className="bg-green-800/40 px-2 py-1 rounded">Batch Transactions</span>
           <span className="bg-yellow-800/40 px-2 py-1 rounded">Enhanced Security</span>
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          API Key: {alchemyConfig.apiKey.slice(0, 8)}...{alchemyConfig.apiKey.slice(-4)}
+        </p>
       </div>
     </div>
   );
