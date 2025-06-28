@@ -30,11 +30,9 @@ const DynamicWrapper = ({ children }: { children: React.ReactNode }) => {
           appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
           // Simplified settings to reduce potential conflicts
           initialAuthenticationMode: 'connect-only',
-          networkValidationMode: 'disabled', // Disable network validation that might be causing issues
           enableVisitTrackingOnConnectOnly: false,
           shadowDOMEnabled: false,
           // Add retry and timeout settings
-          apiBaseUrl: undefined, // Let SDK use default
           debugError: false, // Disable debug to reduce console noise
         }}
       >
