@@ -15,7 +15,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   // Initialize the Dynamic provider
   useEffect(() => {
     if (DynamicComponents && !isInitialized) {
-      console.log('Initializing Dynamic components with Environment ID:', DynamicComponents.ENVIRONMENT_ID);
+      console.log('Initializing Dynamic components');
       setIsInitialized(true);
     }
   }, [DynamicComponents, isInitialized]);
@@ -79,7 +79,6 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
   // Early return if not available
   if (!DynamicComponents) {
-    console.log('DynamicComponents not available');
     return (
       <div className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
         Loading wallet connectors...
@@ -99,7 +98,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
 
   if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
-    console.error('Missing Dynamic components:', { DynamicContextProvider, DynamicWidget, useDynamicContext });
+    console.error('Missing Dynamic components');
     return (
       <div className="w-full bg-red-600 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
         Error: Missing Dynamic components
@@ -109,7 +108,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
   // Inner component that uses the Dynamic context
   const WalletConnector = () => {
-    const { primaryWallet, user, setShowAuthFlow } = useDynamicContext();
+    const { primaryWallet, user } = useDynamicContext();
     
     useEffect(() => {
       if (primaryWallet && user) {
@@ -118,67 +117,29 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
       }
     }, [primaryWallet, user]);
 
-    return (
-      <DynamicWidget 
-        innerButtonComponent={
-          <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200">
-            Connect Wallet
-          </button>
-        }
-      />
-    );
+    return <DynamicWidget />;
   };
 
-  try {
-    // Ensure wallet connectors are arrays before spreading
-    const ethereumConnectors = Array.isArray(DynamicComponents.EthereumWalletConnectors) 
-      ? DynamicComponents.EthereumWalletConnectors 
-      : [];
-    const solanaConnectors = Array.isArray(DynamicComponents.SolanaWalletConnectors) 
-      ? DynamicComponents.SolanaWalletConnectors 
-      : [];
+  const ethereumConnectors = DynamicComponents.EthereumWalletConnectors || [];
+  const solanaConnectors = DynamicComponents.SolanaWalletConnectors || [];
 
-    console.log('Using wallet connectors:', {
-      ethereum: ethereumConnectors.length,
-      solana: solanaConnectors.length,
-      total: ethereumConnectors.length + solanaConnectors.length
-    });
+  console.log('Rendering Dynamic provider with connectors:', {
+    ethereum: ethereumConnectors.length,
+    solana: solanaConnectors.length
+  });
 
-    return (
-      <DynamicContextProvider 
-        settings={{
-          environmentId: DynamicComponents.ENVIRONMENT_ID,
-          walletConnectors: [...ethereumConnectors, ...solanaConnectors],
-          appName: 'BlockDrive',
-          appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-          initialAuthenticationMode: 'connect-only',
-          enableVisitTrackingOnConnectOnly: false,
-          shadowDOMEnabled: false,
-          debugError: false,
-          cssOverrides: `
-            [data-dynamic-widget-theme="light"] {
-              color-scheme: dark;
-            }
-          `,
-          eventsCallbacks: {
-            onAuthSuccess: (args) => {
-              console.log('Dynamic auth success:', args);
-            },
-            onAuthFailure: (args) => {
-              console.log('Dynamic auth failure:', args);
-            }
-          }
-        }}
-      >
-        <WalletConnector />
-      </DynamicContextProvider>
-    );
-  } catch (error) {
-    console.error('Error rendering DynamicWalletHandler:', error);
-    return (
-      <div className="w-full bg-red-600 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
-        Error loading wallet connector: {error instanceof Error ? error.message : 'Unknown error'}
-      </div>
-    );
-  }
+  return (
+    <DynamicContextProvider 
+      settings={{
+        environmentId: DynamicComponents.ENVIRONMENT_ID,
+        walletConnectors: [...ethereumConnectors, ...solanaConnectors],
+        appName: 'BlockDrive',
+        appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
+        initialAuthenticationMode: 'connect-only',
+        enableVisitTrackingOnConnectOnly: false
+      }}
+    >
+      <WalletConnector />
+    </DynamicContextProvider>
+  );
 };

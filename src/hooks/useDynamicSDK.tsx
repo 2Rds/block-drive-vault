@@ -29,61 +29,45 @@ export const useDynamicSDK = () => {
       // Add a small delay to ensure DOM is ready
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Dynamically import the Dynamic SDK modules with error handling
+      // Import Dynamic SDK modules directly
       const [
-        { DynamicContextProvider, DynamicWidget, useDynamicContext },
+        DynamicCore,
         EthereumModule,
         SolanaModule
       ] = await Promise.all([
-        import('@dynamic-labs/sdk-react-core').catch(err => {
-          console.error('Failed to load Dynamic core:', err);
-          throw new Error('Failed to load Dynamic core SDK');
-        }),
-        import('@dynamic-labs/ethereum').catch(err => {
-          console.error('Failed to load Ethereum connectors:', err);
-          throw new Error('Failed to load Ethereum wallet connectors');
-        }),
-        import('@dynamic-labs/solana').catch(err => {
-          console.error('Failed to load Solana connectors:', err);
-          throw new Error('Failed to load Solana wallet connectors');
-        })
+        import('@dynamic-labs/sdk-react-core'),
+        import('@dynamic-labs/ethereum'),
+        import('@dynamic-labs/solana')
       ]);
 
       console.log('Dynamic SDK modules loaded successfully');
+
+      const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicCore;
+      const { EthereumWalletConnectors } = EthereumModule;
+      const { SolanaWalletConnectors } = SolanaModule;
 
       // Verify components are loaded
       if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
         throw new Error('Dynamic SDK components not properly loaded');
       }
 
-      // Extract wallet connectors properly
-      const EthereumWalletConnectors = EthereumModule.EthereumWalletConnectors || [];
-      const SolanaWalletConnectors = SolanaModule.SolanaWalletConnectors || [];
-
-      // Verify wallet connectors are properly loaded
-      if (!EthereumWalletConnectors && !SolanaWalletConnectors) {
-        throw new Error('Failed to load wallet connectors');
-      }
-
       console.log('Wallet connectors loaded:', {
-        ethereum: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors.length : 'Not array',
-        solana: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors.length : 'Not array',
-        ethereumType: typeof EthereumWalletConnectors,
-        solanaType: typeof SolanaWalletConnectors
+        ethereum: EthereumWalletConnectors?.length || 0,
+        solana: SolanaWalletConnectors?.length || 0
       });
 
-      // Store the components with properly formatted connectors
+      // Store the components
       setDynamicComponents({
         DynamicContextProvider,
         DynamicWidget,
         useDynamicContext,
-        EthereumWalletConnectors: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors : [],
-        SolanaWalletConnectors: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors : [],
+        EthereumWalletConnectors: EthereumWalletConnectors || [],
+        SolanaWalletConnectors: SolanaWalletConnectors || [],
         ENVIRONMENT_ID
       });
       
       setIsDynamicLoaded(true);
-      console.log('Dynamic SDK loaded successfully with Environment ID:', ENVIRONMENT_ID);
+      console.log('Dynamic SDK loaded successfully');
       toast.success('Wallet connectors loaded successfully!');
     } catch (error) {
       console.error('Failed to load Dynamic SDK:', error);
