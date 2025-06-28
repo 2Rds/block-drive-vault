@@ -120,33 +120,26 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     return <DynamicWidget />;
   };
 
-  // Safely handle wallet connectors - ensure they are arrays
-  const ethereumConnectors = Array.isArray(DynamicComponents.EthereumWalletConnectors) 
-    ? DynamicComponents.EthereumWalletConnectors 
-    : [];
-  const solanaConnectors = Array.isArray(DynamicComponents.SolanaWalletConnectors) 
-    ? DynamicComponents.SolanaWalletConnectors 
-    : [];
+  // Get wallet connectors with safe defaults
+  const ethereumConnectors = DynamicComponents.EthereumWalletConnectors || [];
+  const solanaConnectors = DynamicComponents.SolanaWalletConnectors || [];
 
   console.log('Rendering Dynamic provider with connectors:', {
     ethereum: ethereumConnectors.length,
-    solana: solanaConnectors.length
+    solana: solanaConnectors.length,
+    environmentId: DynamicComponents.ENVIRONMENT_ID
   });
 
-  // Combine connectors safely
-  const allConnectors = [...ethereumConnectors, ...solanaConnectors];
+  // Create settings object with minimal required configuration
+  const dynamicSettings = {
+    environmentId: DynamicComponents.ENVIRONMENT_ID,
+    walletConnectors: [...ethereumConnectors, ...solanaConnectors],
+    appName: 'BlockDrive',
+    appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png'
+  };
 
   return (
-    <DynamicContextProvider 
-      settings={{
-        environmentId: DynamicComponents.ENVIRONMENT_ID,
-        walletConnectors: allConnectors,
-        appName: 'BlockDrive',
-        appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-only',
-        enableVisitTrackingOnConnectOnly: false
-      }}
-    >
+    <DynamicContextProvider settings={dynamicSettings}>
       <WalletConnector />
     </DynamicContextProvider>
   );

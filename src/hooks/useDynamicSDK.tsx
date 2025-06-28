@@ -26,43 +26,34 @@ export const useDynamicSDK = () => {
 
       console.log('Using Environment ID:', ENVIRONMENT_ID);
       
-      // Add a small delay to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Import Dynamic SDK modules
-      const [
-        DynamicCore,
-        EthereumModule,
-        SolanaModule
-      ] = await Promise.all([
-        import('@dynamic-labs/sdk-react-core'),
-        import('@dynamic-labs/ethereum'),
-        import('@dynamic-labs/solana')
-      ]);
+      // Import Dynamic SDK modules with better error handling
+      const DynamicCore = await import('@dynamic-labs/sdk-react-core');
+      console.log('Dynamic Core loaded:', !!DynamicCore.DynamicContextProvider);
 
-      console.log('Dynamic SDK modules loaded successfully');
+      const EthereumModule = await import('@dynamic-labs/ethereum');
+      console.log('Ethereum module loaded:', !!EthereumModule.EthereumWalletConnectors);
+
+      const SolanaModule = await import('@dynamic-labs/solana');
+      console.log('Solana module loaded:', !!SolanaModule.SolanaWalletConnectors);
 
       const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicCore;
-      const { EthereumWalletConnectors } = EthereumModule;
-      const { SolanaWalletConnectors } = SolanaModule;
+      const { EthereumWalletConnectors = [] } = EthereumModule;
+      const { SolanaWalletConnectors = [] } = SolanaModule;
 
       // Verify components are loaded
       if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
         throw new Error('Dynamic SDK components not properly loaded');
       }
 
-      console.log('Wallet connectors loaded:', {
-        ethereum: EthereumWalletConnectors?.length || 0,
-        solana: SolanaWalletConnectors?.length || 0
-      });
+      console.log('All Dynamic components loaded successfully');
 
-      // Store the components
+      // Store the components with safe defaults
       setDynamicComponents({
         DynamicContextProvider,
         DynamicWidget,
         useDynamicContext,
-        EthereumWalletConnectors: EthereumWalletConnectors || [],
-        SolanaWalletConnectors: SolanaWalletConnectors || [],
+        EthereumWalletConnectors: Array.isArray(EthereumWalletConnectors) ? EthereumWalletConnectors : [],
+        SolanaWalletConnectors: Array.isArray(SolanaWalletConnectors) ? SolanaWalletConnectors : [],
         ENVIRONMENT_ID
       });
       
