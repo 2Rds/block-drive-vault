@@ -13,7 +13,7 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
   const [isDynamicLoaded, setIsDynamicLoaded] = useState(false);
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [dynamicError, setDynamicError] = useState<string | null>(null);
-  const [dynamicSDK, setDynamicSDK] = useState<any>(null);
+  const [DynamicComponents, setDynamicComponents] = useState<any>(null);
   
   const { connectWallet } = useAuth();
 
@@ -43,8 +43,8 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
         throw new Error('Missing Dynamic Environment ID');
       }
 
-      // Store the SDK components for later use
-      setDynamicSDK({
+      // Store the components
+      setDynamicComponents({
         DynamicContextProvider,
         DynamicWidget,
         useDynamicContext,
@@ -122,12 +122,13 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
     }
   };
 
-  // Dynamic Wallet Component - only renders when SDK is loaded
+  // Dynamic Wallet Component with proper context handling
   const DynamicWalletComponent = () => {
-    if (!dynamicSDK) return null;
+    if (!DynamicComponents) return null;
 
-    const { DynamicContextProvider, DynamicWidget, useDynamicContext } = dynamicSDK;
+    const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
 
+    // Create the wallet handler as a separate component to properly use context
     const WalletHandler = () => {
       const { primaryWallet, user } = useDynamicContext();
       
@@ -147,8 +148,8 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
     return (
       <DynamicContextProvider 
         settings={{
-          environmentId: dynamicSDK.ENVIRONMENT_ID,
-          walletConnectors: [dynamicSDK.EthereumWalletConnectors, dynamicSDK.SolanaWalletConnectors],
+          environmentId: DynamicComponents.ENVIRONMENT_ID,
+          walletConnectors: [DynamicComponents.EthereumWalletConnectors, DynamicComponents.SolanaWalletConnectors],
           appName: 'BlockDrive',
           appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
           initialAuthenticationMode: 'connect-only',
