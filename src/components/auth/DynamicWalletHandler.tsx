@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Wallet, AlertCircle } from 'lucide-react';
 
 interface DynamicWalletHandlerProps {
   DynamicComponents: any;
@@ -11,6 +13,7 @@ interface DynamicWalletHandlerProps {
 export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: DynamicWalletHandlerProps) => {
   const { connectWallet } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Initialize the Dynamic provider
   useEffect(() => {
@@ -77,6 +80,16 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     }
   };
 
+  // Fallback to Web3 MFA when Dynamic fails
+  const handleFallbackConnection = () => {
+    console.log('Using Web3 MFA fallback connection method');
+    toast.info('Using alternative wallet connection method');
+    
+    // Trigger Web3 MFA connector
+    const web3MFAEvent = new CustomEvent('trigger-web3-mfa');
+    window.dispatchEvent(web3MFAEvent);
+  };
+
   // Early return if not available
   if (!DynamicComponents) {
     return (
@@ -94,35 +107,78 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     );
   }
 
-  // Destructure components after validation
+  // Check if Dynamic components are properly loaded
   const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
 
   if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
-    console.error('Missing Dynamic components');
+    console.error('Missing Dynamic components, showing fallback');
     return (
-      <div className="w-full bg-red-600 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
-        Error: Missing Dynamic components
+      <div className="space-y-4">
+        <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400" />
+            <div>
+              <p className="text-yellow-400 font-medium">Dynamic SDK Loading Issue</p>
+              <p className="text-yellow-300 text-sm">Using alternative connection method</p>
+            </div>
+          </div>
+        </div>
+        <Button 
+          onClick={handleFallbackConnection}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
+        >
+          <Wallet className="w-4 h-4 mr-2" />
+          Connect Wallet (Alternative Method)
+        </Button>
       </div>
     );
   }
 
   // Inner component that uses the Dynamic context
   const WalletConnector = () => {
-    const { primaryWallet, user } = useDynamicContext();
+    const [contextError, setContextError] = useState<string | null>(null);
     
-    useEffect(() => {
-      if (primaryWallet && user) {
-        console.log('Wallet and user detected, initiating connection');
-        handleWalletConnection(primaryWallet, user);
-      }
-    }, [primaryWallet, user]);
+    try {
+      const { primaryWallet, user } = useDynamicContext();
+      
+      useEffect(() => {
+        if (primaryWallet && user) {
+          console.log('Wallet and user detected, initiating connection');
+          handleWalletConnection(primaryWallet, user);
+        }
+      }, [primaryWallet, user]);
 
-    return <DynamicWidget />;
+      return <DynamicWidget />;
+    } catch (error: any) {
+      console.error('Dynamic context error:', error);
+      if (!contextError) {
+        setContextError(error.message);
+        setTimeout(() => {
+          handleFallbackConnection();
+        }, 1000);
+      }
+      
+      return (
+        <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-red-400 font-medium">Dynamic Widget Error</p>
+              <p className="text-red-300 text-sm">Switching to alternative connection...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
   };
 
-  // Get wallet connectors with safe defaults
-  const ethereumConnectors = DynamicComponents.EthereumWalletConnectors || [];
-  const solanaConnectors = DynamicComponents.SolanaWalletConnectors || [];
+  // Get wallet connectors with safe defaults and additional validation
+  const ethereumConnectors = Array.isArray(DynamicComponents.EthereumWalletConnectors) 
+    ? DynamicComponents.EthereumWalletConnectors 
+    : [];
+  const solanaConnectors = Array.isArray(DynamicComponents.SolanaWalletConnectors) 
+    ? DynamicComponents.SolanaWalletConnectors 
+    : [];
 
   console.log('Rendering Dynamic provider with connectors:', {
     ethereum: ethereumConnectors.length,
@@ -138,9 +194,48 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png'
   };
 
-  return (
-    <DynamicContextProvider settings={dynamicSettings}>
-      <WalletConnector />
-    </DynamicContextProvider>
-  );
+  // Validate settings before rendering
+  if (!dynamicSettings.environmentId) {
+    console.error('Missing environment ID');
+    return (
+      <Button 
+        onClick={handleFallbackConnection}
+        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
+      >
+        <Wallet className="w-4 h-4 mr-2" />
+        Connect Wallet
+      </Button>
+    );
+  }
+
+  try {
+    return (
+      <DynamicContextProvider settings={dynamicSettings}>
+        <WalletConnector />
+      </DynamicContextProvider>
+    );
+  } catch (error: any) {
+    console.error('Dynamic provider error:', error);
+    setHasError(true);
+    return (
+      <div className="space-y-4">
+        <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-red-400 font-medium">Dynamic Provider Error</p>
+              <p className="text-red-300 text-sm">{error.message}</p>
+            </div>
+          </div>
+        </div>
+        <Button 
+          onClick={handleFallbackConnection}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium"
+        >
+          <Wallet className="w-4 h-4 mr-2" />
+          Use Alternative Connection
+        </Button>
+      </div>
+    );
+  }
 };
