@@ -17,6 +17,15 @@ export const useDynamicSDK = () => {
     try {
       console.log('Loading Dynamic SDK...');
       
+      // Use the correct environment ID
+      const ENVIRONMENT_ID = '63b19e36-1946-4cfa-a62d-3c6edea09860';
+      
+      if (!ENVIRONMENT_ID) {
+        throw new Error('Missing Dynamic Environment ID');
+      }
+
+      console.log('Using Environment ID:', ENVIRONMENT_ID);
+      
       // Dynamically import the Dynamic SDK modules
       const [
         { DynamicContextProvider, DynamicWidget, useDynamicContext },
@@ -28,11 +37,7 @@ export const useDynamicSDK = () => {
         import('@dynamic-labs/solana')
       ]);
 
-      const ENVIRONMENT_ID = '63b19e36-1946-4cfa-a62d-3c6edea09860';
-      
-      if (!ENVIRONMENT_ID) {
-        throw new Error('Missing Dynamic Environment ID');
-      }
+      console.log('Dynamic SDK modules loaded successfully');
 
       // Store the components
       setDynamicComponents({
@@ -45,7 +50,7 @@ export const useDynamicSDK = () => {
       });
       
       setIsDynamicLoaded(true);
-      console.log('Dynamic SDK loaded successfully');
+      console.log('Dynamic SDK loaded successfully with Environment ID:', ENVIRONMENT_ID);
       toast.success('Wallet connectors loaded successfully!');
     } catch (error) {
       console.error('Failed to load Dynamic SDK:', error);

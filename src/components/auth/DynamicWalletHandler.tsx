@@ -15,7 +15,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
   // Initialize the Dynamic provider
   useEffect(() => {
     if (DynamicComponents && !isInitialized) {
-      console.log('Initializing Dynamic components');
+      console.log('Initializing Dynamic components with Environment ID:', DynamicComponents.ENVIRONMENT_ID);
       setIsInitialized(true);
     }
   }, [DynamicComponents, isInitialized]);
@@ -77,7 +77,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     }
   };
 
-  // Early return if not initialized
+  // Early return if not available
   if (!DynamicComponents) {
     console.log('DynamicComponents not available');
     return (
@@ -97,6 +97,15 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
 
   // Destructure components after validation
   const { DynamicContextProvider, DynamicWidget, useDynamicContext } = DynamicComponents;
+
+  if (!DynamicContextProvider || !DynamicWidget || !useDynamicContext) {
+    console.error('Missing Dynamic components:', { DynamicContextProvider, DynamicWidget, useDynamicContext });
+    return (
+      <div className="w-full bg-red-600 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
+        Error: Missing Dynamic components
+      </div>
+    );
+  }
 
   // Inner component that uses the Dynamic context
   const WalletConnector = () => {
@@ -127,7 +136,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
           initialAuthenticationMode: 'connect-only',
           enableVisitTrackingOnConnectOnly: false,
           shadowDOMEnabled: false,
-          debugError: false,
+          debugError: true,
         }}
       >
         <WalletConnector />
@@ -137,7 +146,7 @@ export const DynamicWalletHandler = ({ DynamicComponents, onWalletConnected }: D
     console.error('Error rendering DynamicWalletHandler:', error);
     return (
       <div className="w-full bg-red-600 text-white border-0 px-6 py-3 rounded-lg font-medium text-center">
-        Error loading wallet connector
+        Error loading wallet connector: {error instanceof Error ? error.message : 'Unknown error'}
       </div>
     );
   }
