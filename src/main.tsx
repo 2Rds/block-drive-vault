@@ -23,6 +23,10 @@ createRoot(document.getElementById("root")!).render(
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
         networkValidationMode: 'always',
         initialAuthenticationMode: 'connect-only',
+        // Add error handling and retry logic
+        enableVisitTrackingOnConnectOnly: false,
+        // Reduce network calls that might be causing issues
+        shadowDOMEnabled: false,
       }}
     >
       <App />

@@ -10,17 +10,30 @@ import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 const Auth = () => {
   const { user, session } = useAuth();
-  const { primaryWallet, sdkHasLoaded, networkConfigurations } = useDynamicContext();
+  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
+  const [sdkError, setSdkError] = useState(false);
 
   useEffect(() => {
-    // Check if Dynamic SDK has loaded
+    // Set a timeout to handle cases where SDK fails to load
+    const timeout = setTimeout(() => {
+      if (!sdkHasLoaded && !dynamicReady) {
+        console.warn('Dynamic SDK failed to load within timeout, enabling fallback');
+        setSdkError(true);
+        setDynamicReady(true); // Enable fallback UI
+      }
+    }, 10000); // 10 second timeout
+
     if (sdkHasLoaded) {
       setDynamicReady(true);
+      setSdkError(false);
+      clearTimeout(timeout);
       console.log('Dynamic SDK loaded successfully');
     }
-  }, [sdkHasLoaded]);
+
+    return () => clearTimeout(timeout);
+  }, [sdkHasLoaded, dynamicReady]);
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -32,8 +45,6 @@ const Auth = () => {
 
   const handleWeb3MFASuccess = (authData: any) => {
     console.log('Web3 MFA authentication successful:', authData);
-    // The actual authentication will be handled by the Web3AuthService
-    // This is just for logging and potential additional processing
   };
 
   return (
@@ -72,7 +83,7 @@ const Auth = () => {
             </div>
 
             {/* Dynamic SDK Status */}
-            {!dynamicReady && (
+            {!dynamicReady && !sdkError && (
               <div className="bg-yellow-800/40 border border-yellow-700 rounded-xl p-4">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
@@ -81,9 +92,30 @@ const Auth = () => {
               </div>
             )}
 
+            {/* SDK Error Fallback */}
+            {sdkError && (
+              <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4 text-red-400" />
+                  <span className="text-red-200 text-sm">
+                    Dynamic SDK failed to load. Using fallback authentication methods.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Dynamic Wallet Connector */}
-            {dynamicReady ? (
+            {dynamicReady && !sdkError ? (
               <DynamicWalletConnector onWalletConnected={() => {}} />
+            ) : dynamicReady && sdkError ? (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <div className="text-center">
+                  <h3 className="text-white font-semibold mb-2">Alternative Authentication</h3>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Primary wallet connector is unavailable. Please use the Web3 MFA option below.
+                  </p>
+                </div>
+              </div>
             ) : (
               <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
                 <div className="text-center">
@@ -100,7 +132,7 @@ const Auth = () => {
               </div>
             )}
 
-            {/* Web3 MFA Connector */}
+            {/* Web3 MFA Connector - Always available */}
             <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">

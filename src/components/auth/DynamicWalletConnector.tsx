@@ -76,7 +76,11 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
       
       // Disconnect the wallet if authentication fails
       if (handleLogOut) {
-        await handleLogOut();
+        try {
+          await handleLogOut();
+        } catch (logoutError) {
+          console.error('Error during logout:', logoutError);
+        }
       }
     }
   };
