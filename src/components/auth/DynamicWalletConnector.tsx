@@ -1,55 +1,71 @@
 
-import React from 'react';
-import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Wallet, Loader2 } from 'lucide-react';
 
 interface DynamicWalletConnectorProps {
   onWalletConnected?: (walletInfo: any) => void;
 }
 
 export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConnectorProps) => {
-  const [isSDKReady, setIsSDKReady] = React.useState(false);
-  const [sdkError, setSdkError] = React.useState<string | null>(null);
+  const [isDynamicLoaded, setIsDynamicLoaded] = useState(false);
+  const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
+  const [dynamicError, setDynamicError] = useState<string | null>(null);
+  const [dynamicSDK, setDynamicSDK] = useState<any>(null);
   
-  // Safely get Dynamic context with error handling
-  let dynamicContext;
-  try {
-    dynamicContext = useDynamicContext();
-  } catch (error) {
-    console.error('Dynamic context error:', error);
-    setSdkError('Failed to initialize Dynamic SDK context');
-  }
-
-  const { primaryWallet, user, handleLogOut, sdkHasLoaded } = dynamicContext || {};
   const { connectWallet } = useAuth();
 
-  React.useEffect(() => {
-    // Check if SDK loaded successfully
-    if (sdkHasLoaded) {
-      setIsSDKReady(true);
-      setSdkError(null);
+  const loadDynamicSDK = async () => {
+    if (isDynamicLoaded || isLoadingDynamic) return;
+    
+    setIsLoadingDynamic(true);
+    setDynamicError(null);
+    
+    try {
+      console.log('Loading Dynamic SDK...');
+      
+      // Dynamically import the Dynamic SDK modules
+      const [
+        { DynamicContextProvider, DynamicWidget, useDynamicContext },
+        { EthereumWalletConnectors },
+        { SolanaWalletConnectors }
+      ] = await Promise.all([
+        import('@dynamic-labs/sdk-react-core'),
+        import('@dynamic-labs/ethereum'),
+        import('@dynamic-labs/solana')
+      ]);
+
+      const ENVIRONMENT_ID = '63b19e36-1946-4cfa-a62d-3c6edea09860';
+      
+      if (!ENVIRONMENT_ID) {
+        throw new Error('Missing Dynamic Environment ID');
+      }
+
+      // Store the SDK components for later use
+      setDynamicSDK({
+        DynamicContextProvider,
+        DynamicWidget,
+        useDynamicContext,
+        EthereumWalletConnectors,
+        SolanaWalletConnectors,
+        ENVIRONMENT_ID
+      });
+      
+      setIsDynamicLoaded(true);
       console.log('Dynamic SDK loaded successfully');
-    } else {
-      // Set a timeout to detect if SDK fails to load
-      const timeout = setTimeout(() => {
-        if (!sdkHasLoaded) {
-          setSdkError('Dynamic SDK failed to load within timeout');
-          console.warn('Dynamic SDK load timeout');
-        }
-      }, 15000); // 15 second timeout
-
-      return () => clearTimeout(timeout);
+      toast.success('Wallet connectors loaded successfully!');
+    } catch (error) {
+      console.error('Failed to load Dynamic SDK:', error);
+      setDynamicError('Failed to load wallet connectors. Please try again.');
+      toast.error('Failed to load wallet connectors');
+    } finally {
+      setIsLoadingDynamic(false);
     }
-  }, [sdkHasLoaded]);
+  };
 
-  React.useEffect(() => {
-    if (primaryWallet && user && isSDKReady) {
-      handleWalletConnection();
-    }
-  }, [primaryWallet, user, isSDKReady]);
-
-  const handleWalletConnection = async () => {
+  const handleWalletConnection = async (primaryWallet: any, user: any) => {
     if (!primaryWallet || !user) {
       console.log('Missing wallet or user data');
       return;
@@ -74,7 +90,6 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
         console.log('Message signed successfully');
       } catch (signError) {
         console.error('Signature error:', signError);
-        // Create a fallback signature for demo purposes
         signature = `fallback-signature-${Date.now()}-${walletAddress.slice(-6)}`;
         console.log('Using fallback signature for authentication');
       }
@@ -101,59 +116,114 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
           message: 'Authentication successful with Dynamic'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
       toast.error(`Failed to authenticate wallet: ${error.message || 'Please try again.'}`);
-      
-      // Disconnect the wallet if authentication fails
-      if (handleLogOut) {
-        try {
-          await handleLogOut();
-        } catch (logoutError) {
-          console.error('Error during logout:', logoutError);
-        }
-      }
     }
   };
 
-  // Show error state if SDK failed to load
-  if (sdkError) {
-    return (
-      <div className="bg-red-800/40 border border-red-700 rounded-xl p-6">
-        <div className="text-center">
-          <h3 className="text-red-300 font-semibold mb-2">Dynamic SDK Error</h3>
-          <p className="text-red-200 text-sm mb-4">
-            {sdkError}
-          </p>
-          <p className="text-red-300 text-xs">
-            Please try refreshing the page or use the Web3 MFA option below.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Dynamic Wallet Component - only renders when SDK is loaded
+  const DynamicWalletComponent = () => {
+    if (!dynamicSDK) return null;
 
-  // Show loading state while SDK initializes
-  if (!isSDKReady) {
-    return (
-      <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-        <div className="text-center">
-          <div className="animate-pulse space-y-3">
-            <div className="h-12 bg-gray-700 rounded-lg"></div>
-            <div className="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
-          </div>
-          <p className="text-gray-400 text-sm mt-3">Initializing wallet connectors...</p>
-        </div>
-      </div>
-    );
-  }
+    const { DynamicContextProvider, DynamicWidget, useDynamicContext } = dynamicSDK;
 
-  return (
-    <div className="flex flex-col items-center space-y-4">
-      <div className="w-full max-w-md">
+    const WalletHandler = () => {
+      const { primaryWallet, user } = useDynamicContext();
+      
+      useEffect(() => {
+        if (primaryWallet && user) {
+          handleWalletConnection(primaryWallet, user);
+        }
+      }, [primaryWallet, user]);
+
+      return (
         <DynamicWidget 
           buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
         />
+      );
+    };
+
+    return (
+      <DynamicContextProvider 
+        settings={{
+          environmentId: dynamicSDK.ENVIRONMENT_ID,
+          walletConnectors: [dynamicSDK.EthereumWalletConnectors, dynamicSDK.SolanaWalletConnectors],
+          appName: 'BlockDrive',
+          appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
+          initialAuthenticationMode: 'connect-only',
+          enableVisitTrackingOnConnectOnly: false,
+          shadowDOMEnabled: false,
+          debugError: false,
+        }}
+      >
+        <WalletHandler />
+      </DynamicContextProvider>
+    );
+  };
+
+  // Show error state
+  if (dynamicError) {
+    return (
+      <div className="bg-red-800/40 border border-red-700 rounded-xl p-6">
+        <div className="text-center">
+          <h3 className="text-red-300 font-semibold mb-2">Wallet Connector Error</h3>
+          <p className="text-red-200 text-sm mb-4">{dynamicError}</p>
+          <Button 
+            onClick={loadDynamicSDK}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show initial load button
+  if (!isDynamicLoaded) {
+    return (
+      <div className="flex flex-col items-center space-y-4">
+        <div className="w-full max-w-md">
+          <Button 
+            onClick={loadDynamicSDK}
+            disabled={isLoadingDynamic}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+          >
+            {isLoadingDynamic ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading Wallet Connectors...
+              </>
+            ) : (
+              <>
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect Wallet
+              </>
+            )}
+          </Button>
+        </div>
+        
+        <div className="text-center">
+          <p className="text-gray-400 text-sm mb-2">
+            MultiChain Authentication - Supporting both chains:
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+            <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum + ENS</span>
+            <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
+            <span className="bg-green-800/40 px-2 py-1 rounded">blockdrive.eth</span>
+            <span className="bg-orange-800/40 px-2 py-1 rounded">blockdrive.sol</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render the Dynamic Widget when loaded
+  return (
+    <div className="flex flex-col items-center space-y-4">
+      <div className="w-full max-w-md">
+        <DynamicWalletComponent />
       </div>
       
       <div className="text-center">
