@@ -19,17 +19,22 @@ export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConne
     loadDynamicSDK
   } = useDynamicSDK();
 
-  // Show error state
+  // Show error state with retry option
   if (dynamicError) {
     return <DynamicErrorState error={dynamicError} onRetry={loadDynamicSDK} />;
   }
 
-  // Show initial load button
-  if (!isDynamicLoaded) {
-    return <DynamicLoadingState isLoading={isLoadingDynamic} onLoad={loadDynamicSDK} />;
+  // Show loading state while Dynamic SDK is being loaded
+  if (isLoadingDynamic) {
+    return <DynamicLoadingState isLoading={true} onLoad={() => {}} />;
   }
 
-  // Render the Dynamic Widget when loaded
+  // Show initial "Connect Wallet" button when Dynamic is not loaded yet
+  if (!isDynamicLoaded) {
+    return <DynamicLoadingState isLoading={false} onLoad={loadDynamicSDK} />;
+  }
+
+  // Once Dynamic is loaded, show the actual wallet connection interface
   return (
     <div className="flex flex-col items-center space-y-4">
       <div className="w-full max-w-md">
