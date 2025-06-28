@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Shield, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Wallet, Shield, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,20 +13,7 @@ interface Web3MFAConnectorProps {
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const [shouldShow, setShouldShow] = useState(false);
   const { connectWallet } = useAuth();
-
-  // Listen for fallback trigger events
-  useEffect(() => {
-    const handleFallbackTrigger = () => {
-      console.log('Web3 MFA fallback triggered');
-      setShouldShow(true);
-      toast.info('Using alternative wallet connection method');
-    };
-
-    window.addEventListener('trigger-web3-mfa', handleFallbackTrigger);
-    return () => window.removeEventListener('trigger-web3-mfa', handleFallbackTrigger);
-  }, []);
 
   const connectWeb3Wallet = async (walletType: 'metamask' | 'phantom') => {
     setIsConnecting(true);
@@ -139,32 +126,15 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
     );
   }
 
-  // Show always if triggered as fallback, or if no other method is available
-  if (!shouldShow) {
-    return (
-      <Card className="bg-gray-800/40 border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-3">
-            <Shield className="w-5 h-5 text-blue-400" />
-            <div>
-              <p className="text-blue-400 font-medium">Alternative Wallet Connection</p>
-              <p className="text-gray-300 text-sm">Direct browser wallet connection method</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <Card className="bg-blue-900/20 border-blue-800">
         <CardContent className="p-4">
           <div className="flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-blue-400" />
+            <Shield className="w-5 h-5 text-blue-400" />
             <div>
-              <p className="text-blue-400 font-medium">Alternative Wallet Connection</p>
-              <p className="text-blue-300 text-sm">Connect directly using your browser wallet</p>
+              <p className="text-blue-400 font-medium">Web3 Wallet Connection</p>
+              <p className="text-blue-300 text-sm">Connect your browser wallet to authenticate</p>
             </div>
           </div>
         </CardContent>

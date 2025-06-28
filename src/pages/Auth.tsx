@@ -4,7 +4,7 @@ import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
-import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
+import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 
 const Auth = () => {
   const { user, session } = useAuth();
@@ -17,6 +17,11 @@ const Auth = () => {
       navigate('/index');
     }
   }, [user, session, navigate]);
+
+  const handleWalletConnected = (walletInfo: any) => {
+    console.log('Wallet connected successfully:', walletInfo);
+    // Navigation will be handled by the auth context
+  };
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -53,8 +58,8 @@ const Auth = () => {
               </p>
             </div>
 
-            {/* Dynamic Wallet Connector */}
-            <DynamicWalletConnector onWalletConnected={() => {}} />
+            {/* Web3MFA Connector - Always visible */}
+            <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
               <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
