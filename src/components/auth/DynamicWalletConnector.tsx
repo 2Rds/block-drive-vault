@@ -9,14 +9,14 @@ interface DynamicWalletConnectorProps {
 }
 
 export const DynamicWalletConnector = ({ onWalletConnected }: DynamicWalletConnectorProps) => {
-  const { primaryWallet, user, handleLogOut, isAuthenticated } = useDynamicContext();
+  const { primaryWallet, user, handleLogOut } = useDynamicContext();
   const { connectWallet } = useAuth();
 
   React.useEffect(() => {
-    if (primaryWallet && user && isAuthenticated) {
+    if (primaryWallet && user) {
       handleWalletConnection();
     }
-  }, [primaryWallet, user, isAuthenticated]);
+  }, [primaryWallet, user]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || !user) {
