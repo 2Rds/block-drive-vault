@@ -1,6 +1,6 @@
 
 import React, { useEffect, createContext } from 'react';
-import { AuthContextType, WalletData } from '@/types/auth';
+import { AuthContextType, WalletData, User } from '@/types/auth';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 
@@ -56,19 +56,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const authData = event.detail;
       
       // Create session data for Web3 MFA authentication
-      const sessionData = {
-        user: {
-          id: authData.sessionToken,
-          email: `${authData.walletAddress}@blockdrive.${authData.blockchainType}`,
+      const user: User = {
+        id: authData.sessionToken,
+        email: `${authData.walletAddress}@blockdrive.${authData.blockchainType}`,
+        wallet_address: authData.walletAddress,
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        user_metadata: {
           wallet_address: authData.walletAddress,
-          user_metadata: {
-            wallet_address: authData.walletAddress,
-            blockchain_type: authData.blockchainType,
-            auth_type: 'web3-mfa',
-            subdomain: authData.subdomain,
-            username: `${authData.blockchainType.charAt(0).toUpperCase() + authData.blockchainType.slice(1)} MFA User`,
-          }
-        },
+          blockchain_type: authData.blockchainType,
+          username: `${authData.blockchainType.charAt(0).toUpperCase() + authData.blockchainType.slice(1)} MFA User`,
+        }
+      };
+
+      const sessionData = {
+        user,
         access_token: authData.sessionToken,
         refresh_token: authData.sessionToken,
         expires_at: Date.now() + (24 * 60 * 60 * 1000),

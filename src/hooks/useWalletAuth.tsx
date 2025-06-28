@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { WalletData, WalletAuthData, AuthSessionData } from '@/types/auth';
+import { WalletData, WalletAuthData, AuthSessionData, User } from '@/types/auth';
 
 export const useWalletAuth = () => {
   const [walletData, setWalletData] = useState<WalletData | null>(null);
@@ -42,17 +42,22 @@ export const useWalletAuth = () => {
         console.log('Wallet authentication successful, creating session...');
         
         // Create a comprehensive session using the auth token
-        const sessionData: AuthSessionData = {
-          user: {
-            id: data.authToken,
-            email: `${walletAddress}@blockdrive.wallet`,
+        const user: User = {
+          id: data.authToken,
+          email: `${walletAddress}@blockdrive.wallet`,
+          wallet_address: walletAddress,
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+          user_metadata: {
             wallet_address: walletAddress,
-            user_metadata: {
-              wallet_address: walletAddress,
-              blockchain_type: blockchainType,
-              username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
-            }
-          },
+            blockchain_type: blockchainType,
+            username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+          }
+        };
+
+        const sessionData: AuthSessionData = {
+          user,
           access_token: data.authToken,
           refresh_token: data.authToken,
           expires_at: Date.now() + (24 * 60 * 60 * 1000),

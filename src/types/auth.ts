@@ -1,10 +1,11 @@
 
-import { User, Session } from '@supabase/supabase-js';
-
 export interface User {
   id: string;
   email?: string;
   wallet_address?: string;
+  app_metadata?: any;
+  aud?: string;
+  created_at?: string;
   user_metadata?: {
     wallet_address?: string;
     blockchain_type?: string;
