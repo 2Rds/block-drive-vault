@@ -7,12 +7,28 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from 'lucide-react';
 import { WelcomeModal } from '@/components/auth/WelcomeModal';
+import { MetricsCards } from '@/components/dashboard/MetricsCards';
+import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { WalletInfo } from '@/components/WalletInfo';
 
 const Index = () => {
   const { user, session, signOut, walletData } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+
+  // Mock stats for now - replace with real data later
+  const [stats] = useState({
+    totalStorage: 0,
+    totalFiles: 0,
+    totalTransactions: 0,
+    networkHealth: 100
+  });
+
+  // Mock activities for now - replace with real data later
+  const [activities] = useState([
+    // Empty for now - will be populated with real data
+  ]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -111,8 +127,22 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-semibold mb-4">Dashboard</h1>
-        <p className="text-gray-400">Welcome to your BlockDrive account!</p>
+        <div className="space-y-8">
+          {/* Welcome Section */}
+          <div>
+            <h1 className="text-3xl font-semibold mb-2">Dashboard</h1>
+            <p className="text-gray-400">Welcome to your BlockDrive account!</p>
+          </div>
+
+          {/* Wallet Info */}
+          <WalletInfo />
+
+          {/* Metrics Cards */}
+          <MetricsCards stats={stats} loading={false} />
+
+          {/* Recent Activity */}
+          <RecentActivity activities={activities} />
+        </div>
       </main>
 
       <footer className="bg-gray-900 border-t border-gray-800 py-4 text-center text-gray-500">
