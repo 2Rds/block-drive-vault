@@ -1,3 +1,4 @@
+
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplexConfig';
 
@@ -14,13 +15,14 @@ export class CollectionService {
   private static readonly COLLECTION_METADATA = {
     name: 'BlockDrive Soulbound Collection',
     symbol: 'BDRIVE',
-    description: 'Official BlockDrive soulbound NFT collection for subdomain authentication',
-    image: 'https://blockdrive.sol/collection-image.png',
+    description: 'Official BlockDrive soulbound NFT collection for subdomain authentication and access to BlockDrive.sol services',
+    image: 'https://pbs.twimg.com/profile_images/1937677924661968896/yp52TeC3_400x400.jpg',
     external_url: 'https://blockdrive.sol',
     attributes: [
       { trait_type: 'Type', value: 'Soulbound' },
       { trait_type: 'Network', value: 'Solana' },
-      { trait_type: 'Purpose', value: 'Authentication' }
+      { trait_type: 'Purpose', value: 'Authentication' },
+      { trait_type: 'Platform', value: 'BlockDrive' }
     ]
   };
 
@@ -32,6 +34,7 @@ export class CollectionService {
       const metaplex = await MetaplexConfig.initializeMetaplex();
 
       console.log('Creating BlockDrive Soulbound Collection...');
+      console.log('Using BlockDrive logo:', this.COLLECTION_METADATA.image);
 
       // Upload collection metadata
       const { uri: metadataUri } = await metaplex.nfts().uploadMetadata(this.COLLECTION_METADATA);
@@ -56,9 +59,10 @@ export class CollectionService {
 
       this.collectionAddress = collection.address.toString();
 
-      console.log('BlockDrive Collection created successfully!');
-      console.log('Collection Address:', this.collectionAddress);
-      console.log('Collection Mint:', collection.mint.address.toString());
+      console.log('🎉 BlockDrive Collection created successfully!');
+      console.log('📍 Collection Address:', this.collectionAddress);
+      console.log('🏷️  Collection Mint:', collection.mint.address.toString());
+      console.log('🖼️  Collection Image:', this.COLLECTION_METADATA.image);
 
       return {
         success: true,

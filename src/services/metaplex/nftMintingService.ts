@@ -1,3 +1,4 @@
+
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplexConfig';
 import { CollectionService } from './collectionService';
@@ -87,9 +88,9 @@ export class NFTMintingService {
         collectionMintAddress: new PublicKey(collectionAddress),
       });
 
-      console.log('Soulbound NFT minted successfully!');
-      console.log('NFT Address:', nft.address.toString());
-      console.log('NFT Mint:', nft.mint.address.toString());
+      console.log('🎉 Soulbound NFT minted successfully!');
+      console.log('📍 NFT Address:', nft.address.toString());
+      console.log('🏷️  NFT Mint:', nft.mint.address.toString());
 
       return {
         success: true,
@@ -123,7 +124,7 @@ export class NFTMintingService {
     return {
       name: `BlockDrive Authentication #${userId.slice(0, 8)}`,
       description: `Official BlockDrive authentication NFT for secure access to BlockDrive.sol services`,
-      image: 'https://blockdrive.sol/nft-image.png',
+      image: 'https://pbs.twimg.com/profile_images/1937677924661968896/yp52TeC3_400x400.jpg',
       attributes: [
         { trait_type: 'Type', value: 'Authentication' },
         { trait_type: 'Platform', value: 'BlockDrive' },
