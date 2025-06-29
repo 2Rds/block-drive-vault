@@ -46,7 +46,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
         
         const mockSignature = `auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Connect wallet with blockchain type detection
+        // Connect wallet - simplified flow
         await connectWallet({
           address: primaryWallet.address,
           blockchain_type: blockchainType,
