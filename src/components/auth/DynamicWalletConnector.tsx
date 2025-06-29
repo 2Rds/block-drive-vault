@@ -22,32 +22,39 @@ export const DynamicWalletConnector = ({
     connectWallet
   } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [userInitiatedConnection, setUserInitiatedConnection] = useState(false);
+  const [userExplicitlyClicked, setUserExplicitlyClicked] = useState(false);
+  const [connectionInitiated, setConnectionInitiated] = useState(false);
 
-  // SECURITY: Only process wallet connection if user explicitly initiated it
+  // SECURITY: Only process wallet connection if user explicitly clicked the connect button
   React.useEffect(() => {
     console.log('Dynamic context state:', {
       primaryWallet: !!primaryWallet,
       user: !!user,
       walletAddress: primaryWallet?.address,
       chain: primaryWallet?.chain,
-      userInitiatedConnection
+      userExplicitlyClicked,
+      connectionInitiated
     });
 
-    // SECURITY: Only proceed if user explicitly clicked to connect AND wallet is present
-    if (primaryWallet && userInitiatedConnection && !isProcessing) {
-      console.log('User-initiated wallet connection detected, processing authentication...');
+    // SECURITY: Only proceed if user explicitly clicked AND wallet is present AND connection was initiated
+    if (primaryWallet && userExplicitlyClicked && connectionInitiated && !isProcessing) {
+      console.log('User explicitly initiated wallet connection, processing authentication...');
       handleWalletConnection();
-    } else if (primaryWallet && !userInitiatedConnection) {
-      console.log('SECURITY: Wallet detected but user did not initiate connection - ignoring automatic connection');
+    } else if (primaryWallet && !userExplicitlyClicked) {
+      console.log('MAXIMUM SECURITY: Wallet detected but user did not explicitly click - blocking automatic connection');
+      // Immediately disconnect any automatically connected wallet
+      if (handleLogOut) {
+        handleLogOut().catch(console.error);
+      }
     }
-  }, [primaryWallet, user, userInitiatedConnection, isProcessing]);
+  }, [primaryWallet, user, userExplicitlyClicked, connectionInitiated, isProcessing]);
 
   const handleWalletConnection = async () => {
-    if (!primaryWallet || isProcessing) {
-      console.log('Missing wallet data for authentication', {
+    if (!primaryWallet || isProcessing || !userExplicitlyClicked) {
+      console.log('Blocking wallet connection - missing requirements:', {
         primaryWallet: !!primaryWallet,
-        isProcessing
+        isProcessing,
+        userExplicitlyClicked
       });
       return;
     }
@@ -134,20 +141,22 @@ export const DynamicWalletConnector = ({
       }
     } finally {
       setIsProcessing(false);
-      setUserInitiatedConnection(false); // Reset the flag
+      setUserExplicitlyClicked(false); // Reset the flag
+      setConnectionInitiated(false); // Reset the flag
     }
   };
 
   // Handler for when user clicks the connect button
   const handleConnectClick = () => {
-    console.log('User explicitly clicked to connect wallet');
-    setUserInitiatedConnection(true);
+    console.log('User explicitly clicked to connect wallet - initiating secure connection');
+    setUserExplicitlyClicked(true);
+    setConnectionInitiated(true);
   };
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {/* Hide the connect button when auth flow is showing */}
-      <div className={`w-full max-w-md transition-opacity duration-200 ${showAuthFlow ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      {/* Always show the connect button - no hiding */}
+      <div className="w-full max-w-md">
         <div onClick={handleConnectClick}>
           <DynamicWidget 
             buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
@@ -177,14 +186,25 @@ export const DynamicWalletConnector = ({
           <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
         </div>
         
-        {/* Debug info */}
-        {primaryWallet && (
-          <div className="mt-2 text-xs text-green-400">
-            Wallet Available: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
-            {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
-            {!userInitiatedConnection && <span className="ml-2 text-red-400">Click to Connect</span>}
-          </div>
-        )}
+        {/* Security status */}
+        <div className="mt-2 text-xs">
+          {primaryWallet && userExplicitlyClicked && (
+            <span className="text-green-400">
+              Wallet Ready: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
+              {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
+            </span>
+          )}
+          {primaryWallet && !userExplicitlyClicked && (
+            <span className="text-red-400">
+              Click "Connect Wallet" to authenticate securely
+            </span>
+          )}
+          {!primaryWallet && (
+            <span className="text-gray-400">
+              Click "Connect Wallet" to begin secure authentication
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

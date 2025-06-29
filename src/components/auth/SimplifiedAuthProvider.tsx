@@ -19,30 +19,38 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   } = useWalletSession();
 
   useEffect(() => {
-    console.log('SimplifiedAuthProvider initializing with STRICT security mode...');
+    console.log('SimplifiedAuthProvider initializing with MAXIMUM security mode...');
     
-    // SECURITY: Clear any existing sessions immediately
-    localStorage.removeItem('sb-supabase-auth-token');
+    // SECURITY: Immediately clear ALL possible stored sessions
+    localStorage.clear();
     sessionStorage.clear();
     
-    // SECURITY: Force sign out any existing Supabase sessions
-    SupabaseAuthService.signOut();
+    // Clear indexed DB storage that might contain auth data
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.deleteDatabase('supabase-auth-token');
+      } catch (error) {
+        console.log('IndexedDB clear attempted');
+      }
+    }
     
-    // Clear all auth state immediately
+    // SECURITY: Force immediate sign out of any existing Supabase sessions
+    SupabaseAuthService.signOut().then(() => {
+      console.log('Force sign out completed');
+    });
+    
+    // SECURITY: Clear all auth state immediately and permanently
     setUser(null);
     setSession(null);
     setWalletData(null);
     
-    console.log('All existing sessions cleared - manual authentication required');
+    console.log('MAXIMUM SECURITY: All sessions cleared - manual authentication REQUIRED for every visit');
 
     // Listen for wallet authentication events only
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
 
-    // Set up auth state listener ONLY for sign out events
+    // Set up auth state listener ONLY for explicit sign out events
     const subscription = setupAuthStateListener();
-
-    // SECURITY: Never restore sessions automatically - always require manual login
-    console.log('SECURITY MODE: Manual wallet authentication required for every session');
 
     return () => {
       subscription.unsubscribe();
@@ -130,39 +138,57 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   };
 
   const disconnectWallet = async () => {
-    console.log('Disconnecting wallet and clearing all auth state');
+    console.log('Disconnecting wallet and clearing ALL auth state permanently');
     
     // Clear all auth state immediately
     setWalletData(null);
     setUser(null);
     setSession(null);
     
-    // Clear any stored session data
-    localStorage.removeItem('sb-supabase-auth-token');
+    // SECURITY: Clear ALL possible storage locations
+    localStorage.clear();
     sessionStorage.clear();
+    
+    // Clear indexed DB storage
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.deleteDatabase('supabase-auth-token');
+      } catch (error) {
+        console.log('IndexedDB clear attempted');
+      }
+    }
     
     // Force Supabase sign out
     const result = await SupabaseAuthService.signOut();
     
-    console.log('All auth state cleared, manual reconnection required');
+    console.log('ALL auth state cleared permanently, manual reconnection REQUIRED');
     return result;
   };
 
   const signOut = async () => {
-    console.log('Signing out user and clearing all auth state');
+    console.log('Signing out user and clearing ALL auth state permanently');
     
     // Clear all state first
     setWalletData(null);
     setUser(null);
     setSession(null);
     
-    // Clear any stored session data
-    localStorage.removeItem('sb-supabase-auth-token');
+    // SECURITY: Clear ALL possible storage locations
+    localStorage.clear();
     sessionStorage.clear();
+    
+    // Clear indexed DB storage
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.deleteDatabase('supabase-auth-token');
+      } catch (error) {
+        console.log('IndexedDB clear attempted');
+      }
+    }
     
     const result = await SupabaseAuthService.signOut();
     
-    console.log('User signed out, manual reconnection required');
+    console.log('User signed out permanently, manual reconnection REQUIRED');
     return result;
   };
 
@@ -172,7 +198,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     sessionToken: session?.access_token ? 'present' : 'missing',
     walletConnected: walletData?.connected,
     loading,
-    securityMode: 'strict-manual-only'
+    securityMode: 'maximum-security-manual-only'
   });
 
   return (

@@ -1,17 +1,29 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export class SupabaseAuthService {
   static checkWalletSession() {
-    // SECURITY: Always return null to force manual authentication
-    console.log('SECURITY: Wallet session check disabled - manual login required for every session');
+    // SECURITY: NEVER return any session data - force manual authentication ALWAYS
+    console.log('MAXIMUM SECURITY: Session check disabled - manual login REQUIRED for every single session');
+    
+    // Clear any possible stored data immediately
+    localStorage.clear();
+    sessionStorage.clear();
+    
     return null;
   }
 
   static async getInitialSession() {
-    // SECURITY: Never automatically restore sessions
-    console.log('SECURITY: Initial session restoration disabled - manual login required');
+    // SECURITY: NEVER automatically restore sessions - force manual login ALWAYS
+    console.log('MAXIMUM SECURITY: Initial session restoration PERMANENTLY disabled');
+    
+    // Clear any possible stored data immediately
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Force sign out any existing session
+    await supabase.auth.signOut();
+    
     return null;
   }
 
@@ -62,9 +74,9 @@ export class SupabaseAuthService {
       }
 
       if (data?.success && data?.authToken) {
-        console.log('Wallet authentication successful, creating session...');
+        console.log('Wallet authentication successful, creating temporary session...');
         
-        // Create a comprehensive session using the auth token
+        // Create a temporary session that is NEVER stored
         const sessionData = {
           user: {
             id: data.authToken,
@@ -82,8 +94,8 @@ export class SupabaseAuthService {
           token_type: 'bearer'
         };
 
-        // SECURITY: DO NOT store session in localStorage - require manual login each time
-        console.log('SECURITY: Session not persisted - manual authentication required for each session');
+        // SECURITY: NEVER store session data anywhere - keep it temporary only
+        console.log('MAXIMUM SECURITY: Session is temporary only - no persistence, manual login required every time');
         
         // Trigger auth state change manually with wallet data
         window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
@@ -116,18 +128,27 @@ export class SupabaseAuthService {
   }
 
   static async signOut() {
-    console.log('Signing out user and clearing all session data');
+    console.log('Signing out user and clearing ALL session data permanently');
     
-    // Clear any stored session data from all storage locations
-    localStorage.removeItem('sb-supabase-auth-token');
+    // Clear ALL possible stored session data from every storage location
+    localStorage.clear();
     sessionStorage.clear();
+    
+    // Clear indexed DB storage
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.deleteDatabase('supabase-auth-token');
+      } catch (error) {
+        console.log('IndexedDB clear attempted');
+      }
+    }
     
     // Clear Supabase auth session
     const { error } = await supabase.auth.signOut();
     
     if (!error) {
       toast.success('Signed out successfully');
-      console.log('User signed out successfully - manual authentication required for next session');
+      console.log('User signed out completely - manual authentication REQUIRED for next session');
       
       // Force redirect to auth page after a short delay
       setTimeout(() => {

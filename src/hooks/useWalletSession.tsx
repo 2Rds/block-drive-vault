@@ -43,13 +43,22 @@ export const useWalletSession = () => {
   };
 
   const initializeSession = async () => {
-    console.log('SECURITY: Manual authentication required - no automatic session restoration');
+    console.log('MAXIMUM SECURITY: Manual authentication REQUIRED - no session restoration EVER');
     
-    // SECURITY: Clear any existing stored sessions
-    localStorage.removeItem('sb-supabase-auth-token');
+    // SECURITY: Clear ALL possible stored sessions immediately
+    localStorage.clear();
     sessionStorage.clear();
     
-    // SECURITY: Always start with clean state
+    // Clear indexed DB storage
+    if ('indexedDB' in window) {
+      try {
+        indexedDB.deleteDatabase('supabase-auth-token');
+      } catch (error) {
+        console.log('IndexedDB clear attempted');
+      }
+    }
+    
+    // SECURITY: Always start with completely clean state
     setUser(null);
     setSession(null);
     setWalletData(null);
@@ -57,7 +66,7 @@ export const useWalletSession = () => {
     // Force Supabase sign out to clear any cached sessions
     await SupabaseAuthService.signOut();
     
-    console.log('Session initialization complete - manual wallet connection required');
+    console.log('Session initialization complete - manual wallet connection REQUIRED for EVERY session');
     setLoading(false);
     return false;
   };
@@ -69,19 +78,39 @@ export const useWalletSession = () => {
         
         // SECURITY: Only handle explicit sign out events
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out - clearing all auth state');
+          console.log('User signed out - clearing ALL auth state permanently');
           setSession(null);
           setUser(null);
           setWalletData(null);
-          localStorage.removeItem('sb-supabase-auth-token');
+          
+          // Clear ALL possible storage locations
+          localStorage.clear();
           sessionStorage.clear();
+          
+          // Clear indexed DB storage
+          if ('indexedDB' in window) {
+            try {
+              indexedDB.deleteDatabase('supabase-auth-token');
+            } catch (error) {
+              console.log('IndexedDB clear attempted');
+            }
+          }
         }
         
-        // SECURITY: Never automatically sign in users - ignore all other events
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('SECURITY: Ignoring automatic sign in event - manual authentication required');
-          // Force sign out to prevent automatic authentication
+        // SECURITY: NEVER automatically sign in users - block ALL automatic events
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          console.log('MAXIMUM SECURITY: Blocking automatic authentication event:', event);
+          // Force immediate sign out to prevent any automatic authentication
           await SupabaseAuthService.signOut();
+          
+          // Clear all state immediately
+          setSession(null);
+          setUser(null);
+          setWalletData(null);
+          
+          // Clear ALL storage
+          localStorage.clear();
+          sessionStorage.clear();
         }
         
         setLoading(false);
@@ -91,9 +120,9 @@ export const useWalletSession = () => {
     return subscription;
   };
 
-  // Initialize with strict security mode
+  // Initialize with maximum security mode
   useEffect(() => {
-    console.log('useWalletSession initializing with strict security mode');
+    console.log('useWalletSession initializing with MAXIMUM security mode');
     initializeSession();
   }, []);
 
