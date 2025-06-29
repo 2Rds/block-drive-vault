@@ -23,10 +23,21 @@ createRoot(document.getElementById("root")!).render(
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
         networkValidationMode: 'always',
         initialAuthenticationMode: 'connect-only',
-        // Add error handling and retry logic
+        // Enhanced error handling and retry logic
         enableVisitTrackingOnConnectOnly: false,
-        // Reduce network calls that might be causing issues
         shadowDOMEnabled: false,
+        // Add retry configuration to handle network issues
+        retryConfiguration: {
+          maxRetries: 3,
+          backoffMs: 1000
+        }
+      }}
+      onLoad={(isLoaded) => {
+        if (isLoaded) {
+          console.log('Dynamic SDK loaded successfully with retry configuration')
+        } else {
+          console.error('Dynamic SDK failed to load after retries')
+        }
       }}
     >
       <App />

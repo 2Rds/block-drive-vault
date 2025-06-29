@@ -14,21 +14,27 @@ export const DynamicWalletConnector = ({
   const {
     primaryWallet,
     user,
-    handleLogOut
+    handleLogOut,
+    isAuthenticated
   } = useDynamicContext();
   const {
     connectWallet
   } = useAuth();
 
   React.useEffect(() => {
-    if (primaryWallet && user) {
+    if (primaryWallet && user && isAuthenticated) {
+      console.log('Dynamic wallet authentication detected:', {
+        wallet: primaryWallet.address,
+        user: user.userId,
+        authenticated: isAuthenticated
+      });
       handleWalletConnection();
     }
-  }, [primaryWallet, user]);
+  }, [primaryWallet, user, isAuthenticated]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || !user) {
-      console.log('Missing wallet or user data');
+      console.log('Missing wallet or user data for authentication');
       return;
     }
 
@@ -36,7 +42,7 @@ export const DynamicWalletConnector = ({
       const walletAddress = primaryWallet.address;
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
       
-      console.log('Dynamic wallet connected:', {
+      console.log('Processing Dynamic wallet connection:', {
         address: walletAddress,
         chain: primaryWallet.chain,
         blockchainType,
@@ -48,7 +54,7 @@ export const DynamicWalletConnector = ({
       try {
         const message = 'Sign this message to authenticate with BlockDrive';
         signature = await primaryWallet.signMessage(message);
-        console.log('Message signed successfully');
+        console.log('Message signed successfully for authentication');
       } catch (signError) {
         console.error('Signature error:', signError);
         // Create a fallback signature for demo purposes
@@ -56,7 +62,7 @@ export const DynamicWalletConnector = ({
         console.log('Using fallback signature for authentication');
       }
 
-      // Authenticate with backend - this should create the proper session
+      // Authenticate with backend
       const result = await connectWallet({
         address: walletAddress,
         blockchain_type: blockchainType,
@@ -68,7 +74,7 @@ export const DynamicWalletConnector = ({
         throw new Error(result.error.message || 'Authentication failed');
       }
 
-      console.log('Wallet authentication successful, redirecting to dashboard');
+      console.log('Dynamic wallet authentication successful');
       toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
       
       if (onWalletConnected) {
@@ -80,9 +86,13 @@ export const DynamicWalletConnector = ({
         });
       }
 
-      // The connectWallet function already handles the redirect
+      // Force redirect to dashboard after successful authentication
+      setTimeout(() => {
+        console.log('Redirecting to dashboard after successful authentication');
+        window.location.href = '/index';
+      }, 1000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
       toast.error(`Failed to authenticate wallet: ${error.message || 'Please try again.'}`);
 
@@ -100,7 +110,16 @@ export const DynamicWalletConnector = ({
   return (
     <div className="flex flex-col items-center space-y-4">
       <div className="w-full max-w-md">
-        <DynamicWidget buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200" />
+        <DynamicWidget 
+          buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+          onWalletConnectionSuccess={() => {
+            console.log('Dynamic wallet connection success callback triggered');
+          }}
+          onWalletConnectionFailure={(error) => {
+            console.error('Dynamic wallet connection failure:', error);
+            toast.error('Wallet connection failed. Please try again.');
+          }}
+        />
       </div>
       
       <div className="text-center">
