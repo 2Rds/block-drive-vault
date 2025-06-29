@@ -24,7 +24,8 @@ export const DynamicWalletConnector = ({
     if (primaryWallet && user) {
       console.log('Dynamic wallet connection detected:', {
         wallet: primaryWallet.address,
-        user: user.userId
+        user: user.userId,
+        userVerified: user.verifiedCredentials
       });
       handleWalletConnection();
     }
@@ -44,7 +45,8 @@ export const DynamicWalletConnector = ({
         address: walletAddress,
         chain: primaryWallet.chain,
         blockchainType,
-        connector: primaryWallet.connector?.name
+        connector: primaryWallet.connector?.name,
+        userId: user.userId
       });
 
       // Create a signature for authentication
@@ -61,12 +63,22 @@ export const DynamicWalletConnector = ({
       }
 
       // Authenticate with backend
-      const result = await connectWallet({
+      console.log('Calling connectWallet with data:', {
         address: walletAddress,
         blockchain_type: blockchainType,
         signature,
         id: blockchainType
       });
+
+      const result = await connectWallet({
+        address: walletAddress,
+        blockchain_type: blockchainType,
+        signature,
+        id: blockchainType,
+        userId: user.userId
+      });
+
+      console.log('connectWallet result:', result);
 
       if (result.error) {
         throw new Error(result.error.message || 'Authentication failed');
@@ -88,7 +100,7 @@ export const DynamicWalletConnector = ({
       setTimeout(() => {
         console.log('Redirecting to dashboard after successful authentication');
         window.location.href = '/index';
-      }, 1000);
+      }, 1500);
 
     } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
@@ -121,6 +133,13 @@ export const DynamicWalletConnector = ({
           <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum + ENS</span>
           <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
         </div>
+        
+        {/* Debug info */}
+        {primaryWallet && (
+          <div className="mt-2 text-xs text-green-400">
+            Connected: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
+          </div>
+        )}
       </div>
     </div>
   );
