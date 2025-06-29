@@ -10,7 +10,7 @@ interface DynamicWalletAuthProps {
 }
 
 export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletAuthProps) => {
-  const { primaryWallet, user, isAuthenticated } = useDynamicContext();
+  const { primaryWallet, user } = useDynamicContext();
   const { connectWallet } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -19,9 +19,9 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
 
   useEffect(() => {
     const handleWalletConnection = async () => {
-      console.log('Dynamic state:', { primaryWallet: !!primaryWallet, user: !!user, isAuthenticated });
+      console.log('Dynamic state:', { primaryWallet: !!primaryWallet, user: !!user });
       
-      if (!primaryWallet || !user || !isAuthenticated) {
+      if (!primaryWallet || !user) {
         // Reset states if wallet is disconnected
         setNeedsOnboarding(false);
         setWalletAddress('');
@@ -110,7 +110,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
     };
 
     handleWalletConnection();
-  }, [primaryWallet, user, isAuthenticated, connectWallet, onAuthenticationSuccess]);
+  }, [primaryWallet, user, connectWallet, onAuthenticationSuccess]);
 
   const handleOnboardingComplete = async () => {
     if (!walletAddress) return;
