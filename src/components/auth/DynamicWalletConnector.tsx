@@ -1,8 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { Card, CardContent } from '@/components/ui/card';
-import { Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -109,20 +107,6 @@ export const DynamicWalletConnector = ({
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-blue-400 font-semibold text-lg">Connect Your Wallet</h3>
-              <p className="text-blue-300 text-sm">Secure Web3 authentication with multi-chain support</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="flex justify-center">
         <div onClick={handleConnect} className="w-full max-w-sm">
           <DynamicWidget 
