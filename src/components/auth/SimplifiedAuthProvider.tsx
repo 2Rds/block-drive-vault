@@ -3,6 +3,7 @@ import { useEffect, ReactNode } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
 import { useWalletSession } from '@/hooks/useWalletSession';
 import { SupabaseAuthService } from '@/services/supabaseAuthService';
+import { User, Session } from '@supabase/supabase-js';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -50,8 +51,42 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     // If successful, manually trigger state updates
     if (!result.error && result.data) {
       console.log('Setting user and session from connectWallet result');
-      setUser(result.data.user);
-      setSession(result.data);
+      
+      // Create a proper User object matching Supabase's User type
+      const supabaseUser: User = {
+        id: result.data.user.id,
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: result.data.user.email,
+        email_confirmed_at: new Date().toISOString(),
+        phone: '',
+        confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        app_metadata: {},
+        user_metadata: result.data.user.user_metadata || {
+          wallet_address: walletAddress,
+          blockchain_type: blockchainType,
+          username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+          full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
+        },
+        identities: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_anonymous: false
+      };
+
+      // Create a proper Session object matching Supabase's Session type
+      const supabaseSession: Session = {
+        user: supabaseUser,
+        access_token: result.data.access_token,
+        refresh_token: result.data.refresh_token,
+        expires_at: Math.floor(result.data.expires_at / 1000), // Convert to seconds
+        expires_in: 86400, // 24 hours in seconds
+        token_type: result.data.token_type || 'bearer'
+      };
+
+      setUser(supabaseUser);
+      setSession(supabaseSession);
       
       // Set wallet data
       const processedWalletData = {
@@ -68,8 +103,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       setWalletData(processedWalletData);
       
       console.log('Auth state updated:', {
-        userId: result.data.user?.id,
-        hasSession: !!result.data.access_token,
+        userId: supabaseUser.id,
+        hasSession: !!supabaseSession.access_token,
         walletAddress
       });
     }
