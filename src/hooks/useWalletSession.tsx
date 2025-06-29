@@ -43,12 +43,21 @@ export const useWalletSession = () => {
   };
 
   const initializeSession = async () => {
-    console.log('Security: Skipping automatic session restoration - requiring manual wallet connection');
+    console.log('SECURITY: Manual authentication required - no automatic session restoration');
     
-    // Clear any existing stored sessions to force manual login
+    // SECURITY: Clear any existing stored sessions
     localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.clear();
     
-    // Do not restore sessions automatically - force manual authentication
+    // SECURITY: Always start with clean state
+    setUser(null);
+    setSession(null);
+    setWalletData(null);
+    
+    // Force Supabase sign out to clear any cached sessions
+    await SupabaseAuthService.signOut();
+    
+    console.log('Session initialization complete - manual wallet connection required');
     setLoading(false);
     return false;
   };
@@ -58,13 +67,21 @@ export const useWalletSession = () => {
       async (event, session) => {
         console.log('Supabase auth state changed:', event, session?.user?.id);
         
-        // Only handle explicit sign out events
+        // SECURITY: Only handle explicit sign out events
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
+          console.log('User signed out - clearing all auth state');
           setSession(null);
           setUser(null);
           setWalletData(null);
           localStorage.removeItem('sb-supabase-auth-token');
+          sessionStorage.clear();
+        }
+        
+        // SECURITY: Never automatically sign in users - ignore all other events
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('SECURITY: Ignoring automatic sign in event - manual authentication required');
+          // Force sign out to prevent automatic authentication
+          await SupabaseAuthService.signOut();
         }
         
         setLoading(false);
@@ -73,6 +90,12 @@ export const useWalletSession = () => {
 
     return subscription;
   };
+
+  // Initialize with strict security mode
+  useEffect(() => {
+    console.log('useWalletSession initializing with strict security mode');
+    initializeSession();
+  }, []);
 
   return {
     user,

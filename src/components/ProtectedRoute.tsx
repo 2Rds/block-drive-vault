@@ -9,33 +9,34 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, session, loading } = useAuth();
 
-  console.log('ProtectedRoute - Detailed state check:', { 
+  console.log('ProtectedRoute - STRICT security check:', { 
     loading, 
     userId: user?.id, 
     hasSession: !!session,
     accessToken: session?.access_token ? 'exists' : 'none',
     userEmail: user?.email,
     sessionExpiresAt: session?.expires_at,
-    userMetadata: user?.user_metadata
+    userMetadata: user?.user_metadata,
+    securityMode: 'strict-manual-authentication-required'
   });
 
   if (loading) {
-    console.log('ProtectedRoute - Still loading auth state');
+    console.log('ProtectedRoute - Loading auth state...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-lg">Loading authentication...</div>
+        <div className="text-white text-lg">Verifying authentication...</div>
       </div>
     );
   }
 
-  // More strict authentication check - require BOTH valid session AND valid user
+  // SECURITY: Strict authentication check - require BOTH valid session AND valid user
   const hasValidSession = session && session.access_token;
   const hasValidUser = user && user.id;
   
-  // Require both session and user for authentication
+  // SECURITY: Require both session and user for authentication
   const hasValidAuth = hasValidSession && hasValidUser;
 
-  console.log('ProtectedRoute - Authentication validation:', {
+  console.log('ProtectedRoute - STRICT authentication validation:', {
     hasValidSession: !!hasValidSession,
     hasValidUser: !!hasValidUser,
     hasValidAuth: hasValidAuth,
@@ -49,17 +50,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       userId: user?.id,
       userEmail: user?.email,
       hasUserMetadata: !!user?.user_metadata
-    }
+    },
+    securityEnforcement: 'manual-wallet-authentication-required'
   });
 
   if (!hasValidAuth) {
-    console.log('ProtectedRoute - No valid authentication, redirecting to auth');
+    console.log('ProtectedRoute - SECURITY BLOCK: No valid authentication, redirecting to /auth');
     console.log('ProtectedRoute - Redirect reason:', {
       noSession: !session,
       noAccessToken: !session?.access_token,
       noUser: !user,
       noUserId: !user?.id,
-      bothMissing: !hasValidSession || !hasValidUser
+      authenticationRequired: 'manual-wallet-connection'
     });
     return <Navigate to="/auth" replace />;
   }

@@ -19,24 +19,30 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   } = useWalletSession();
 
   useEffect(() => {
-    console.log('SimplifiedAuthProvider initializing...');
+    console.log('SimplifiedAuthProvider initializing with STRICT security mode...');
     
-    // DO NOT automatically restore sessions - force manual login
-    console.log('Requiring manual wallet connection for security');
+    // SECURITY: Clear any existing sessions immediately
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.clear();
+    
+    // SECURITY: Force sign out any existing Supabase sessions
+    SupabaseAuthService.signOut();
+    
+    // Clear all auth state immediately
+    setUser(null);
+    setSession(null);
+    setWalletData(null);
+    
+    console.log('All existing sessions cleared - manual authentication required');
 
-    // Listen for wallet authentication events
+    // Listen for wallet authentication events only
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
 
-    // Set up auth state listener for regular Supabase auth
+    // Set up auth state listener ONLY for sign out events
     const subscription = setupAuthStateListener();
 
-    // Set loading to false immediately - no auto-login
-    setTimeout(() => {
-      if (loading) {
-        console.log('Setting loading to false - manual authentication required');
-        // This will be handled by the useWalletSession hook
-      }
-    }, 100);
+    // SECURITY: Never restore sessions automatically - always require manual login
+    console.log('SECURITY MODE: Manual wallet authentication required for every session');
 
     return () => {
       subscription.unsubscribe();
@@ -87,8 +93,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         user: supabaseUser,
         access_token: result.data.access_token,
         refresh_token: result.data.refresh_token,
-        expires_at: Math.floor(result.data.expires_at / 1000), // Convert to seconds
-        expires_in: 86400, // 24 hours in seconds
+        expires_at: Math.floor(result.data.expires_at / 1000),
+        expires_in: 86400,
         token_type: result.data.token_type || 'bearer'
       };
 
@@ -118,36 +124,45 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         walletAddress,
         sessionExpiresAt: supabaseSession.expires_at
       });
-
-      // Force a small delay to ensure state propagation
-      setTimeout(() => {
-        console.log('Final auth state check:', {
-          user: !!supabaseUser,
-          session: !!supabaseSession,
-          walletConnected: processedWalletData.connected
-        });
-      }, 100);
     }
     
     return result;
   };
 
   const disconnectWallet = async () => {
-    // Clear wallet data and sign out
+    console.log('Disconnecting wallet and clearing all auth state');
+    
+    // Clear all auth state immediately
     setWalletData(null);
     setUser(null);
     setSession(null);
+    
+    // Clear any stored session data
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.clear();
+    
+    // Force Supabase sign out
     const result = await SupabaseAuthService.signOut();
+    
+    console.log('All auth state cleared, manual reconnection required');
     return result;
   };
 
   const signOut = async () => {
+    console.log('Signing out user and clearing all auth state');
+    
+    // Clear all state first
+    setWalletData(null);
+    setUser(null);
+    setSession(null);
+    
+    // Clear any stored session data
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.clear();
+    
     const result = await SupabaseAuthService.signOut();
-    if (!result.error) {
-      setWalletData(null);
-      setUser(null);
-      setSession(null);
-    }
+    
+    console.log('User signed out, manual reconnection required');
     return result;
   };
 
@@ -156,7 +171,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     hasSession: !!session,
     sessionToken: session?.access_token ? 'present' : 'missing',
     walletConnected: walletData?.connected,
-    loading
+    loading,
+    securityMode: 'strict-manual-only'
   });
 
   return (

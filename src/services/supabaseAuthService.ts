@@ -4,14 +4,14 @@ import { toast } from 'sonner';
 
 export class SupabaseAuthService {
   static checkWalletSession() {
-    // Always return null to force manual authentication
-    console.log('Security: Wallet session check disabled - requiring manual login');
+    // SECURITY: Always return null to force manual authentication
+    console.log('SECURITY: Wallet session check disabled - manual login required for every session');
     return null;
   }
 
   static async getInitialSession() {
-    // Don't automatically restore sessions
-    console.log('Security: Initial session check disabled - requiring manual login');
+    // SECURITY: Never automatically restore sessions
+    console.log('SECURITY: Initial session restoration disabled - manual login required');
     return null;
   }
 
@@ -82,8 +82,8 @@ export class SupabaseAuthService {
           token_type: 'bearer'
         };
 
-        // DO NOT store session in localStorage - require manual login each time
-        console.log('Security: Session not stored - manual authentication required for each session');
+        // SECURITY: DO NOT store session in localStorage - require manual login each time
+        console.log('SECURITY: Session not persisted - manual authentication required for each session');
         
         // Trigger auth state change manually with wallet data
         window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
@@ -116,15 +116,27 @@ export class SupabaseAuthService {
   }
 
   static async signOut() {
-    // Clear any stored session data
-    localStorage.removeItem('sb-supabase-auth-token');
+    console.log('Signing out user and clearing all session data');
     
+    // Clear any stored session data from all storage locations
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.clear();
+    
+    // Clear Supabase auth session
     const { error } = await supabase.auth.signOut();
+    
     if (!error) {
       toast.success('Signed out successfully');
-      // Redirect to auth page
-      window.location.href = '/auth';
+      console.log('User signed out successfully - manual authentication required for next session');
+      
+      // Force redirect to auth page after a short delay
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 500);
+    } else {
+      console.error('Sign out error:', error);
     }
+    
     return { error };
   }
 }
