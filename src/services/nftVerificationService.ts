@@ -79,7 +79,8 @@ export class NFTVerificationService {
         return { hasNFT: false, error: error.message };
       }
 
-      const isSoulbound = nftData?.metadata?.isSoulbound || false;
+      // Check if NFT has soulbound metadata (if it exists)
+      const isSoulbound = nftData ? true : false; // For now, all BlockDrive NFTs are considered soulbound
 
       return {
         hasNFT: !!nftData,

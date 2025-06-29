@@ -121,7 +121,8 @@ serve(async (req) => {
       transactionHash = `mock_tx_${Date.now()}`
     }
 
-    // Insert NFT record with soulbound flag
+    // Insert NFT record with soulbound flag - but we need to check if metadata column exists
+    // For now, we'll skip metadata until the schema is updated
     const { data: nftData, error: insertError } = await supabase
       .from('blockdrive_nfts')
       .insert({
@@ -131,15 +132,7 @@ serve(async (req) => {
         nft_token_id: nftTokenId,
         nft_contract_address: contractAddress,
         transaction_hash: transactionHash,
-        is_active: true,
-        // Add metadata to indicate this is a soulbound NFT
-        metadata: {
-          isSoulbound: true,
-          mintedAt: new Date().toISOString(),
-          purpose: 'BlockDrive Authentication',
-          transferable: false,
-          permanentlyFrozen: blockchainType === 'solana'
-        }
+        is_active: true
       })
       .select()
       .single()

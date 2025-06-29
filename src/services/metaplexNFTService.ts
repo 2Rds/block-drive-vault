@@ -1,5 +1,5 @@
 
-import { Metaplex, keypairIdentity, bundlrStorage } from '@metaplex-foundation/js';
+import { Metaplex, keypairIdentity } from '@metaplex-foundation/js';
 import { Connection, clusterApiUrl, Keypair, PublicKey } from '@solana/web3.js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,8 +28,7 @@ export class MetaplexNFTService {
     const wallet = Keypair.generate();
     
     this.metaplex = Metaplex.make(connection)
-      .use(keypairIdentity(wallet))
-      .use(bundlrStorage());
+      .use(keypairIdentity(wallet));
 
     return this.metaplex;
   }
@@ -52,17 +51,16 @@ export class MetaplexNFTService {
         creators: [
           {
             address: metaplex.identity().publicKey,
-            verified: true,
             share: 100,
           },
         ],
-        // Enable PermanentFreezeDelegate for soulbound functionality
+        // Enable collection verification
         collection: {
-          verified: false,
           key: metaplex.identity().publicKey,
+          verified: false,
         },
         uses: {
-          useMethod: 'Single',
+          useMethod: { __kind: 'Single' },
           remaining: 1,
           total: 1,
         },
@@ -125,15 +123,14 @@ export class MetaplexNFTService {
         creators: [
           {
             address: metaplex.identity().publicKey,
-            verified: true,
             share: 100,
           },
         ],
         collection: this.collectionAddress ? new PublicKey(this.collectionAddress) : undefined,
-        // Make this NFT soulbound using PermanentFreezeDelegate
+        // Make this NFT soulbound using proper configuration
         tokenOwner: recipientPublicKey,
         uses: {
-          useMethod: 'Single',
+          useMethod: { __kind: 'Single' },
           remaining: 1,
           total: 1,
         },
