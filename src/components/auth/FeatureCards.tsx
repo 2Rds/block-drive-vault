@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Database, Lock, Globe, Layers, Zap } from 'lucide-react';
-
 export const FeatureCards = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card className="bg-gray-900/40 border-gray-800 border-blue-500/30">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
@@ -39,17 +36,7 @@ export const FeatureCards = () => {
       </Card>
 
       <Card className="bg-gray-900/40 border-gray-800">
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-4">
-            <div className="p-3 bg-purple-600/20 rounded-lg">
-              <Lock className="w-6 h-6 text-purple-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white mb-2">Enhanced 2FA Security</h3>
-              <p className="text-gray-300 text-sm">After account creation, receive non-transferable BlockDrive NFTs as additional authentication factors. Combined with wallet verification, this creates a robust multi-factor authentication system.</p>
-            </div>
-          </div>
-        </CardContent>
+        
       </Card>
 
       <Card className="bg-gray-900/40 border-gray-800 border-orange-500/30">
@@ -102,6 +89,5 @@ export const FeatureCards = () => {
           <span>Multi-Chain • Wallet Secured • AI Optimized</span>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
