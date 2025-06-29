@@ -32,6 +32,10 @@ const Index = () => {
     createFolder(folderName);
   };
 
+  const handleFolderSelect = (folder: string) => {
+    setSelectedFolder(folder);
+  };
+
   // Filter files based on search term and selected folder
   const filteredFiles = userFiles.filter((file: IPFSFile) => {
     const matchesSearch = file.filename.toLowerCase().includes(searchTerm.toLowerCase());
@@ -65,7 +69,13 @@ const Index = () => {
       <Header />
       
       <div className="flex">
-        <Sidebar />
+        <Sidebar 
+          selectedFolder={selectedFolder}
+          onFolderSelect={handleFolderSelect}
+          userFolders={folders}
+          onFolderClick={(folderPath: string) => setSelectedFolder(folderPath)}
+          openFolders={[]}
+        />
         
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-6">

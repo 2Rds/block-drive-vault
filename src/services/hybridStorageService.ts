@@ -4,7 +4,7 @@ import { HybridFileUploader } from './storage/hybridFileUploader';
 import { HybridFileDownloader } from './storage/hybridFileDownloader';
 import { IPFSFile } from '@/types/ipfs';
 
-export { StorageStrategy, HybridStorageResult };
+export type { StorageStrategy, HybridStorageResult };
 
 export class HybridStorageService {
   
