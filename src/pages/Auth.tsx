@@ -1,6 +1,5 @@
 
 import React, { useEffect } from 'react';
-import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
@@ -19,8 +18,8 @@ const Auth = () => {
   }, [user, session, navigate]);
 
   const handleWalletConnected = (walletInfo: any) => {
-    console.log('Base wallet connected successfully:', walletInfo);
-    // Navigation will be handled by the auth context or after onboarding completion
+    console.log('Wallet connected successfully:', walletInfo);
+    // Navigation will be handled automatically by the auth system
   };
 
   return (
@@ -34,7 +33,7 @@ const Auth = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-gray-300">Base L2 Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Decentralized Web3 Storage Platform</p>
             </div>
           </div>
         </div>
@@ -49,28 +48,28 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Base L2 Authentication
+                  Secure Web3 Storage
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Secure your account with Base L2 soulbound NFT 2FA. 
-                New users will be guided through minting their free soulbound NFT and creating a blockdrive.eth subdomain.
+                Connect your wallet to access decentralized storage. 
+                New users will automatically get a BlockDrive account created.
               </p>
             </div>
 
-            {/* Web3MFA Connector - Handles onboarding flow */}
+            {/* Simplified Web3 Connector */}
             <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">🔐 Base L2 Soulbound 2FA Security</h4>
+              <h4 className="font-semibold text-white mb-3">🔐 Simple Web3 Authentication</h4>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start space-x-3">
                   <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mt-0.5">
                     <span className="text-white text-xs">1</span>
                   </div>
                   <div>
-                    <p className="text-blue-400 font-medium">Base Soulbound NFT</p>
-                    <p className="text-gray-400">Free mint from Collectify launchpad on Base L2</p>
+                    <p className="text-blue-400 font-medium">Connect Wallet</p>
+                    <p className="text-gray-400">Connect your EVM-compatible wallet</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -78,14 +77,14 @@ const Auth = () => {
                     <span className="text-white text-xs">2</span>
                   </div>
                   <div>
-                    <p className="text-purple-400 font-medium">Base Subdomain</p>
-                    <p className="text-gray-400">Create your blockdrive.eth subdomain on Base</p>
+                    <p className="text-purple-400 font-medium">Start Using BlockDrive</p>
+                    <p className="text-gray-400">Access your decentralized storage instantly</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2 text-xs text-green-400 mt-4 pt-3 border-t border-gray-700">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>Base L2 Network • Soulbound NFTs • Dynamic Token Gating</span>
+                <span>Multi-Chain Support • MetaMask • Coinbase Wallet • WalletConnect</span>
               </div>
             </div>
           </div>

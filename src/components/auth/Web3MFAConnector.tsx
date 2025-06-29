@@ -1,12 +1,8 @@
 
 import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
 import { DynamicWalletConnector } from './DynamicWalletConnector';
 import { ConnectedWalletDisplay } from './ConnectedWalletDisplay';
-import { BaseOnboardingFlow } from './BaseOnboardingFlow';
 import { useDynamicWalletAuth } from '@/hooks/useDynamicWalletAuth';
-import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 interface Web3MFAConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -14,31 +10,21 @@ interface Web3MFAConnectorProps {
 
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const { primaryWallet } = useDynamicContext();
-  const { needsOnboarding, walletAddress, authError, handleOnboardingComplete } = useDynamicWalletAuth({
+  const { authError } = useDynamicWalletAuth({
     onAuthenticationSuccess: (authData) => {
       setConnectedWallet(authData);
       onAuthenticationSuccess?.(authData);
     }
   });
 
-  // Show onboarding flow if user needs to complete setup OR if there's an auth error (token gate block)
-  if ((needsOnboarding && walletAddress) || (authError && primaryWallet)) {
-    const addressToUse = walletAddress || primaryWallet?.address || '';
-    
+  // Show error if authentication failed
+  if (authError) {
     return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold text-white mb-2">Complete Your Base Setup</h3>
-          <p className="text-gray-300">
-            Welcome to BlockDrive! Complete these steps to secure your account with Base 2FA.
-          </p>
+      <div className="text-center py-6">
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 mb-4">
+          <p className="text-red-300 text-sm">{authError}</p>
         </div>
-        
-        <BaseOnboardingFlow
-          walletAddress={addressToUse}
-          onComplete={handleOnboardingComplete}
-        />
+        <DynamicWalletConnector onAuthenticationSuccess={onAuthenticationSuccess} />
       </div>
     );
   }
@@ -47,7 +33,7 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
   if (connectedWallet) {
     return (
       <ConnectedWalletDisplay 
-        walletType={connectedWallet.walletType || 'Base'}
+        walletType={connectedWallet.blockchain || 'EVM'}
         walletAddress={connectedWallet.address}
       />
     );
