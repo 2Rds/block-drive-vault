@@ -23,6 +23,7 @@ function App() {
     <DynamicContextProvider
       settings={{
         environmentId: dynamicConfig.environmentId,
+        apiKey: dynamicConfig.apiKey,
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
       }}
     >
