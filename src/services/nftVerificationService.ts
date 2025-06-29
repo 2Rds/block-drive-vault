@@ -5,12 +5,13 @@ import { toast } from 'sonner';
 export interface NFTVerificationResult {
   hasNFT: boolean;
   nftData?: any;
+  isSoulbound?: boolean;
   error?: string;
 }
 
 export class NFTVerificationService {
   /**
-   * Mint BlockDrive NFT for new users
+   * Mint BlockDrive Soulbound NFT for new users
    */
   static async mintBlockDriveNFT(
     walletAddress: string, 
@@ -19,7 +20,7 @@ export class NFTVerificationService {
     message: string
   ): Promise<{ success: boolean; nft?: any; error?: string; isFirstTime?: boolean }> {
     try {
-      console.log('Minting BlockDrive NFT:', { walletAddress, blockchainType });
+      console.log('Minting BlockDrive Soulbound NFT:', { walletAddress, blockchainType });
       
       const { data, error } = await supabase.functions.invoke('mint-solbound-nft', {
         body: {
@@ -31,12 +32,13 @@ export class NFTVerificationService {
       });
 
       if (error) {
-        console.error('NFT minting error:', error);
-        return { success: false, error: error.message || 'Failed to mint NFT' };
+        console.error('Soulbound NFT minting error:', error);
+        return { success: false, error: error.message || 'Failed to mint soulbound NFT' };
       }
 
       if (data.success) {
-        toast.success(`BlockDrive NFT successfully minted to your ${blockchainType} wallet!`);
+        const nftType = blockchainType === 'solana' ? 'Soulbound' : 'BlockDrive';
+        toast.success(`🔒 ${nftType} NFT successfully minted to your ${blockchainType} wallet! This NFT is permanently bound to your wallet for authentication.`);
         return { 
           success: true, 
           nft: data.nft, 
@@ -45,24 +47,24 @@ export class NFTVerificationService {
       } else {
         return { 
           success: false, 
-          error: data.error || 'NFT minting failed' 
+          error: data.error || 'Soulbound NFT minting failed' 
         };
       }
     } catch (error: any) {
-      console.error('Mint NFT error:', error);
-      return { success: false, error: error.message || 'Failed to mint NFT' };
+      console.error('Mint soulbound NFT error:', error);
+      return { success: false, error: error.message || 'Failed to mint soulbound NFT' };
     }
   }
 
   /**
-   * Verify if user has BlockDrive NFT in their wallet
+   * Verify if user has BlockDrive Soulbound NFT in their wallet
    */
   static async verifyNFTOwnership(
     walletAddress: string, 
     blockchainType: 'ethereum' | 'solana'
   ): Promise<NFTVerificationResult> {
     try {
-      console.log('Verifying NFT ownership:', { walletAddress, blockchainType });
+      console.log('Verifying soulbound NFT ownership:', { walletAddress, blockchainType });
       
       const { data: nftData, error } = await supabase
         .from('blockdrive_nfts')
@@ -73,16 +75,19 @@ export class NFTVerificationService {
         .maybeSingle();
 
       if (error) {
-        console.error('NFT verification error:', error);
+        console.error('Soulbound NFT verification error:', error);
         return { hasNFT: false, error: error.message };
       }
 
+      const isSoulbound = nftData?.metadata?.isSoulbound || false;
+
       return {
         hasNFT: !!nftData,
-        nftData: nftData || undefined
+        nftData: nftData || undefined,
+        isSoulbound
       };
     } catch (error: any) {
-      console.error('NFT verification error:', error);
+      console.error('Soulbound NFT verification error:', error);
       return { hasNFT: false, error: error.message };
     }
   }
