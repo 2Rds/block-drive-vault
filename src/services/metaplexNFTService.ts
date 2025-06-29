@@ -1,5 +1,4 @@
-
-import { Metaplex, keypairIdentity, UseMethod } from '@metaplex-foundation/js';
+import { Metaplex, keypairIdentity } from '@metaplex-foundation/js';
 import { Connection, clusterApiUrl, Keypair, PublicKey } from '@solana/web3.js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,7 +56,7 @@ export class MetaplexNFTService {
         // Enable collection verification
         collection: metaplex.identity().publicKey,
         uses: {
-          useMethod: UseMethod.Single,
+          useMethod: 'Single',
           remaining: 1,
           total: 1,
         },
@@ -127,7 +126,7 @@ export class MetaplexNFTService {
         // Make this NFT soulbound using proper configuration
         tokenOwner: recipientPublicKey,
         uses: {
-          useMethod: UseMethod.Single,
+          useMethod: 'Single',
           remaining: 1,
           total: 1,
         },
