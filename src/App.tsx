@@ -1,58 +1,48 @@
 
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { 
-  DynamicContextProvider,
-  DynamicWidget,
-} from "@dynamic-labs/sdk-react-core";
-import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
-import { SolanaWalletConnectors } from "@dynamic-labs/solana";
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import { dynamicConfig } from "@/config/dynamic";
 
 const queryClient = new QueryClient();
 
-function App() {
+const App = () => {
+  console.log('App component rendering - routes being set up');
+  
   return (
-    <DynamicContextProvider
-      settings={{
-        environmentId: dynamicConfig.environmentId,
-        walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
-        appName: "BlockDrive",
-        appLogoUrl: "/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png",
-        enableVisitTrackingOnConnectOnly: true,
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster richColors position="top-right" />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route 
-                  path="/index" 
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="/" element={<Navigate to="/auth" replace />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/index" 
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/" 
+                element={<Navigate to="/index" replace />}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </AuthProvider>
-      </QueryClientProvider>
-    </DynamicContextProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

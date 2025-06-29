@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, Shield, Sparkles } from 'lucide-react';
-import { Web3MFAConnector } from './auth/Web3MFAConnector';
+import { ThirdwebWalletConnector } from './auth/ThirdwebWalletConnector';
 
 export const WalletConnector = () => {
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
@@ -30,7 +30,7 @@ export const WalletConnector = () => {
           <h3 className="text-xl font-semibold text-white">Web3 Wallets</h3>
         </div>
 
-        <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
+        <ThirdwebWalletConnector onWalletConnected={handleWalletConnected} />
       </div>
 
       <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">

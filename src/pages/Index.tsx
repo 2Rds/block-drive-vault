@@ -1,153 +1,157 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from 'lucide-react';
-import { WelcomeModal } from '@/components/auth/WelcomeModal';
-import { MetricsCards } from '@/components/dashboard/MetricsCards';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import React, { useState } from 'react';
+import { Header } from '@/components/Header';
+import { Sidebar } from '@/components/Sidebar';
+import { IPFSFileGrid } from '@/components/IPFSFileGrid';
+import { IPFSUploadArea } from '@/components/IPFSUploadArea';
+import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
+import { DataDashboard } from '@/components/DataDashboard';
+import { FileViewer } from '@/components/FileViewer';
+import { Button } from '@/components/ui/button';
+import { BarChart3, Files, Upload, Slack } from 'lucide-react';
+import { SlackIntegration } from '@/components/SlackIntegration';
+import { useFolderNavigation } from '@/hooks/useFolderNavigation';
+import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 
 const Index = () => {
-  const { user, session, signOut, walletData } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState('all');
+  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files');
+  const [userFolders, setUserFolders] = useState<string[]>([]);
+  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
+  
+  const {
+    currentPath,
+    openFolders,
+    selectedFile,
+    showFileViewer,
+    navigateToFolder,
+    toggleFolder,
+    selectFile,
+    closeFileViewer,
+    goBack
+  } = useFolderNavigation();
 
-  // Mock stats for now - replace with real data later
-  const [stats] = useState({
-    totalStorage: 0,
-    totalFiles: 0,
-    totalTransactions: 0,
-    networkHealth: 100
-  });
+  const { downloadFromIPFS } = useIPFSUpload();
 
-  // Mock activities for now - replace with real data later
-  const [activities] = useState([
-    // Empty for now - will be populated with real data
-  ]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      if (!user || !session) {
-        console.log('No session found, redirecting to auth');
-        navigate('/auth');
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, [user, session, navigate]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+  const handleCreateFolder = (folderName: string) => {
+    setUserFolders(prev => [...prev, folderName]);
+    console.log('User folders updated:', [...userFolders, folderName]);
   };
 
-  const profileDropdown = () => {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Open user menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>
-            Sign Out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
-
-  // Simplified welcome modal logic
-  const shouldShowWelcomeModal = useMemo(() => {    
-    if (!user?.user_metadata?.wallet_address) return false;
-    
-    const walletAddress = user.user_metadata.wallet_address;
-    const hasSeenWelcome = localStorage.getItem(`welcome-seen-${walletAddress}`);
-    
-    // Show welcome modal for new users or users who haven't seen it
-    return !hasSeenWelcome;
-  }, [user]);
-
-  const closeWelcomeModal = () => {
-    if (user?.user_metadata?.wallet_address) {
-      localStorage.setItem(`welcome-seen-${user.user_metadata.wallet_address}`, 'true');
-      setShowWelcomeModal(false);
-    }
+  const handleFolderClick = (folderPath: string) => {
+    console.log('Folder clicked:', folderPath);
+    toggleFolder(folderPath);
+    navigateToFolder(folderPath);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading BlockDrive...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleFileSelect = (file: any) => {
+    console.log('File selected:', file);
+    selectFile(file);
+  };
+
+  const handleDownloadFile = async (file: any) => {
+    await downloadFromIPFS(file.cid, file.filename);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Simplified Welcome Modal */}
-      {shouldShowWelcomeModal && user?.user_metadata?.wallet_address && (
-        <WelcomeModal
-          isOpen={showWelcomeModal}
-          onClose={closeWelcomeModal}
-          walletAddress={user.user_metadata.wallet_address}
-          blockchainType={(user.user_metadata.blockchain_type as string) || 'ethereum'}
+    <div className="min-h-screen bg-gray-900">
+      <Header />
+      <div className="flex">
+        <Sidebar 
+          selectedFolder={selectedFolder} 
+          onFolderSelect={setSelectedFolder}
+          userFolders={userFolders}
+          onFolderClick={handleFolderClick}
+          openFolders={openFolders}
+        />
+        <main className="flex-1 p-8 ml-64">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {activeView === 'dashboard' ? 'Analytics Dashboard' : 'IPFS File Storage'}
+                </h1>
+                <p className="text-gray-300 mt-1">
+                  {activeView === 'dashboard' 
+                    ? 'Comprehensive insights into your BlockDrive usage'
+                    : 'Decentralized file storage on the InterPlanetary File System'
+                  }
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setActiveView('dashboard')}
+                  variant={activeView === 'dashboard' ? 'default' : 'outline'}
+                  className={`${
+                    activeView === 'dashboard'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button
+                  onClick={() => setActiveView('files')}
+                  variant={activeView === 'files' ? 'default' : 'outline'}
+                  className={`${
+                    activeView === 'files'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
+                  }`}
+                >
+                  <Files className="w-4 h-4 mr-2" />
+                  IPFS Files
+                </Button>
+                <Button
+                  onClick={() => setShowSlackIntegration(true)}
+                  variant="outline"
+                  className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
+                >
+                  <Slack className="w-4 h-4 mr-2" />
+                  Slack
+                </Button>
+              </div>
+            </div>
+
+            <WalletInfo />
+
+            {activeView === 'dashboard' ? (
+              <DataDashboard />
+            ) : (
+              <>
+                <StatsCards />
+                <IPFSUploadArea 
+                  onCreateFolder={handleCreateFolder}
+                  selectedFolder={selectedFolder}
+                />
+                <IPFSFileGrid 
+                  selectedFolder={selectedFolder} 
+                  userFolders={userFolders}
+                  currentPath={currentPath}
+                  onGoBack={goBack}
+                  onFileSelect={handleFileSelect}
+                />
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* File Viewer Modal */}
+      {showFileViewer && selectedFile && (
+        <FileViewer
+          file={selectedFile}
+          onClose={closeFileViewer}
+          onDownload={handleDownloadFile}
         />
       )}
 
-      <header className="bg-gray-900 border-b border-gray-800">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <a href="/" className="text-xl font-bold">BlockDrive</a>
-          <nav>
-            <ul className="flex space-x-6">
-              <li><a href="/files" className="hover:text-gray-300">My Files</a></li>
-              <li><a href="/settings" className="hover:text-gray-300">Settings</a></li>
-            </ul>
-          </nav>
-          {profileDropdown()}
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Welcome Section */}
-          <div>
-            <h1 className="text-3xl font-semibold mb-2">Dashboard</h1>
-            <p className="text-gray-400">Welcome to your BlockDrive account!</p>
-          </div>
-
-          {/* Wallet Info */}
-          <WalletInfo />
-
-          {/* Metrics Cards */}
-          <MetricsCards stats={stats} loading={false} />
-
-          {/* Recent Activity */}
-          <RecentActivity activities={activities} />
-        </div>
-      </main>
-
-      <footer className="bg-gray-900 border-t border-gray-800 py-4 text-center text-gray-500">
-        <p>&copy; {new Date().getFullYear()} BlockDrive. All rights reserved.</p>
-      </footer>
+      <SlackIntegration
+        isOpen={showSlackIntegration}
+        onClose={() => setShowSlackIntegration(false)}
+      />
     </div>
   );
 };

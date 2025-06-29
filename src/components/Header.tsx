@@ -6,14 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [showWalletDialog, setShowWalletDialog] = useState(false);
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -26,11 +23,8 @@ export const Header = () => {
     setIsLoading(false);
   };
 
-  const handleWalletAuthSuccess = (authData: any) => {
-    console.log('Wallet authentication successful:', authData);
-    setShowWalletDialog(false);
-    toast.success('Wallet connected successfully!');
-    navigate('/index');
+  const handleSignInClick = () => {
+    navigate('/auth');
   };
 
   return (
@@ -96,20 +90,14 @@ export const Header = () => {
               </div>
             </>
           ) : (
-            // Unauthenticated user content - Wallet Connect button
-            <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200">
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-gray-900 border-gray-700">
-                <div className="p-6">
-                  <Web3MFAConnector onAuthenticationSuccess={handleWalletAuthSuccess} />
-                </div>
-              </DialogContent>
-            </Dialog>
+            // Unauthenticated user content - Sign In button moved to top right
+            <Button 
+              onClick={handleSignInClick}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In</span>
+            </Button>
           )}
         </div>
       </div>

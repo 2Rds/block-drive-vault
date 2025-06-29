@@ -21,7 +21,7 @@ serve(async (req) => {
 
     const { walletAddress, blockchainType, signature, message } = await req.json()
 
-    console.log('Soulbound NFT Minting request:', { walletAddress, blockchainType })
+    console.log('NFT Minting request:', { walletAddress, blockchainType })
 
     if (!walletAddress || !blockchainType) {
       throw new Error('Missing required fields: walletAddress and blockchainType')
@@ -50,7 +50,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Soulbound NFT already exists for this wallet',
+          error: 'NFT already exists for this wallet',
           nftExists: true
         }),
         { 
@@ -97,32 +97,15 @@ serve(async (req) => {
       userId = existingUser.id
     }
 
-    // For Solana, we'll use Metaplex to create actual soulbound NFTs
-    // For Ethereum, we'll continue with mock implementation for now
-    let nftResult: any
-    let nftTokenId: string
-    let contractAddress: string
-    let transactionHash: string
+    // Generate mock NFT token ID (in production, this would be from actual blockchain minting)
+    const nftTokenId = `blockdrive_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // Mock contract addresses (in production, these would be real smart contract addresses)
+    const contractAddress = blockchainType === 'ethereum' 
+      ? '0x1234567890123456789012345678901234567890'
+      : 'BlockDriveNFT1234567890123456789012345678'
 
-    if (blockchainType === 'solana') {
-      console.log('Creating actual soulbound NFT on Solana using Metaplex...')
-      
-      // In a real implementation, we would call the Metaplex service here
-      // For now, we'll simulate the soulbound NFT creation
-      nftTokenId = `soulbound_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      contractAddress = 'BlockDriveSoulbound123456789012345678901234'
-      transactionHash = `soulbound_tx_${Date.now()}`
-      
-      console.log('Soulbound NFT created with permanent freeze delegate')
-    } else {
-      // Ethereum implementation (mock for now)
-      nftTokenId = `blockdrive_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      contractAddress = '0x1234567890123456789012345678901234567890'
-      transactionHash = `mock_tx_${Date.now()}`
-    }
-
-    // Insert NFT record with soulbound flag - but we need to check if metadata column exists
-    // For now, we'll skip metadata until the schema is updated
+    // Insert NFT record
     const { data: nftData, error: insertError } = await supabase
       .from('blockdrive_nfts')
       .insert({
@@ -131,34 +114,25 @@ serve(async (req) => {
         blockchain_type: blockchainType,
         nft_token_id: nftTokenId,
         nft_contract_address: contractAddress,
-        transaction_hash: transactionHash,
+        transaction_hash: `mock_tx_${Date.now()}`,
         is_active: true
       })
       .select()
       .single()
 
     if (insertError) {
-      console.error('Error inserting soulbound NFT:', insertError)
-      throw new Error('Failed to mint soulbound NFT record')
+      console.error('Error inserting NFT:', insertError)
+      throw new Error('Failed to mint NFT record')
     }
 
-    console.log('Soulbound NFT minted successfully:', nftData)
+    console.log('NFT minted successfully:', nftData)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        nft: {
-          ...nftData,
-          isSoulbound: true,
-          permanentlyBound: true
-        },
-        message: `BlockDrive Soulbound NFT successfully minted to ${walletAddress}`,
-        isFirstTime: !existingUser,
-        soulboundFeatures: {
-          nonTransferrable: true,
-          permanentlyFrozen: blockchainType === 'solana',
-          authenticationPurpose: true
-        }
+        nft: nftData,
+        message: `BlockDrive NFT successfully minted to ${walletAddress}`,
+        isFirstTime: !existingUser
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -167,11 +141,11 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Soulbound NFT minting error:', error)
+    console.error('NFT minting error:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to mint soulbound NFT' 
+        error: error.message || 'Failed to mint NFT' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

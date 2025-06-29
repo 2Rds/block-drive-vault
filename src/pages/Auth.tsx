@@ -1,13 +1,39 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
+import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 const Auth = () => {
   const { user, session } = useAuth();
+  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
+  const [dynamicReady, setDynamicReady] = useState(false);
+  const [sdkError, setSdkError] = useState(false);
+
+  useEffect(() => {
+    // Set a timeout to handle cases where SDK fails to load
+    const timeout = setTimeout(() => {
+      if (!sdkHasLoaded && !dynamicReady) {
+        console.warn('Dynamic SDK failed to load within timeout, enabling fallback');
+        setSdkError(true);
+        setDynamicReady(true); // Enable fallback UI
+      }
+    }, 10000); // 10 second timeout
+
+    if (sdkHasLoaded) {
+      setDynamicReady(true);
+      setSdkError(false);
+      clearTimeout(timeout);
+      console.log('Dynamic SDK loaded successfully');
+    }
+
+    return () => clearTimeout(timeout);
+  }, [sdkHasLoaded, dynamicReady]);
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -17,9 +43,8 @@ const Auth = () => {
     }
   }, [user, session, navigate]);
 
-  const handleWalletConnected = (walletInfo: any) => {
-    console.log('Wallet connected successfully:', walletInfo);
-    // Navigation will be handled automatically by the auth system
+  const handleWeb3MFASuccess = (authData: any) => {
+    console.log('Web3 MFA authentication successful:', authData);
   };
 
   return (
@@ -33,7 +58,7 @@ const Auth = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-gray-300">Decentralized Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Next-Gen Web3 Storage Platform</p>
             </div>
           </div>
         </div>
@@ -48,43 +73,77 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Multi-Chain Web3 Storage
+                  Web3 Multi-Factor Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Connect your EVM or Solana wallet to access decentralized storage. 
-                New users will automatically get a BlockDrive account created.
+                Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
+                Connect your wallet for maximum security and decentralized storage access.
               </p>
             </div>
 
-            {/* Multi-Chain Web3 Connector */}
-            <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
-
-            <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">🔐 Multi-Chain Web3 Authentication</h4>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-start space-x-3">
-                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-white text-xs">1</span>
-                  </div>
-                  <div>
-                    <p className="text-blue-400 font-medium">Connect Your Wallet</p>
-                    <p className="text-gray-400">Choose from EVM (Ethereum, Base, Polygon) or Solana wallets</p>
-                  </div>
+            {/* Dynamic SDK Status */}
+            {!dynamicReady && !sdkError && (
+              <div className="bg-yellow-800/40 border border-yellow-700 rounded-xl p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
+                  <span className="text-yellow-200 text-sm">Loading wallet connectors...</span>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-white text-xs">2</span>
-                  </div>
-                  <div>
-                    <p className="text-purple-400 font-medium">Start Using BlockDrive</p>
-                    <p className="text-gray-400">Access your decentralized storage instantly across chains</p>
+              </div>
+            )}
+
+            {/* SDK Error Fallback */}
+            {sdkError && (
+              <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4 text-red-400" />
+                  <span className="text-red-200 text-sm">
+                    Dynamic SDK failed to load. Using fallback authentication methods.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Wallet Connector */}
+            {dynamicReady && !sdkError ? (
+              <DynamicWalletConnector onWalletConnected={() => {}} />
+            ) : dynamicReady && sdkError ? (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <div className="text-center">
+                  <h3 className="text-white font-semibold mb-2">Alternative Authentication</h3>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Primary wallet connector is unavailable. Please use the Web3 MFA option below.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+                <div className="text-center">
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-12 bg-gray-700 rounded-lg"></div>
+                    <div className="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
+                    <div className="flex justify-center space-x-2">
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-green-400 mt-4 pt-3 border-t border-gray-700">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>EVM & Solana Support • MetaMask • Phantom • Coinbase Wallet • WalletConnect</span>
+            )}
+
+            {/* Web3 MFA Connector - Always available */}
+            <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
+
+            <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+              <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
+              <p className="text-gray-400 text-sm mb-4">
+                Our Web3 MFA system leverages wallet signatures and decentralized authentication 
+                to create a secure and user-friendly login experience.
+              </p>
+              <div className="flex items-center space-x-2 text-xs text-purple-400">
+                <Shield className="w-4 h-4" />
+                <span>Wallet Authentication • Multi-Chain Support • Decentralized</span>
               </div>
             </div>
           </div>

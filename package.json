@@ -11,14 +11,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@alchemy/aa-accounts": "^3.19.0",
-    "@alchemy/aa-alchemy": "^3.19.0",
-    "@alchemy/aa-core": "^3.19.0",
     "@dynamic-labs/ethereum": "^4.20.9",
     "@dynamic-labs/sdk-react-core": "^4.20.9",
     "@dynamic-labs/solana": "^4.20.9",
     "@hookform/resolvers": "^3.9.0",
-    "@metaplex-foundation/js": "^0.20.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -55,7 +51,6 @@
     "@supabase/supabase-js": "^2.50.0",
     "@tanstack/react-query": "^5.56.2",
     "@web3-storage/w3up-client": "^17.3.0",
-    "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -77,8 +72,6 @@
     "tailwindcss-animate": "^1.0.7",
     "thirdweb": "^5.104.1",
     "vaul": "^0.9.3",
-    "viem": "^2.31.4",
-    "vite-plugin-node-polyfills": "^0.23.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
