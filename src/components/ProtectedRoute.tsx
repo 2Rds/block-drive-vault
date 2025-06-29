@@ -28,12 +28,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check for valid authentication - prioritize session with access token
-  const hasValidSession = session && session.access_token && session.user;
+  // Simplified authentication check - either valid session OR valid user
+  const hasValidSession = session && session.access_token;
   const hasValidUser = user && user.id;
   
-  // Allow access if we have a valid session OR both user and session
-  const hasValidAuth = hasValidSession || (hasValidUser && hasValidSession);
+  // Allow access if we have EITHER a valid session OR a valid user
+  const hasValidAuth = hasValidSession || hasValidUser;
 
   console.log('ProtectedRoute - Authentication validation:', {
     hasValidSession: hasValidSession,
@@ -51,8 +51,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     console.log('ProtectedRoute - Redirect reason:', {
       noSession: !session,
       noAccessToken: !session?.access_token,
-      noSessionUser: !session?.user,
-      noUser: !user
+      noUser: !user,
+      noUserId: !user?.id
     });
     return <Navigate to="/auth" replace />;
   }
