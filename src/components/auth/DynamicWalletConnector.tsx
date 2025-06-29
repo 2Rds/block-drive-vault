@@ -22,25 +22,26 @@ export const DynamicWalletConnector = ({
     connectWallet
   } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userInitiatedConnection, setUserInitiatedConnection] = useState(false);
 
+  // SECURITY: Only process wallet connection if user explicitly initiated it
   React.useEffect(() => {
     console.log('Dynamic context state:', {
       primaryWallet: !!primaryWallet,
       user: !!user,
       walletAddress: primaryWallet?.address,
-      chain: primaryWallet?.chain
+      chain: primaryWallet?.chain,
+      userInitiatedConnection
     });
 
-    // Handle wallet connection with or without Dynamic user
-    if (primaryWallet && !isProcessing) {
-      console.log('Dynamic wallet connection detected:', {
-        wallet: primaryWallet.address,
-        user: user?.userId || 'no-user',
-        chain: primaryWallet.chain
-      });
+    // SECURITY: Only proceed if user explicitly clicked to connect AND wallet is present
+    if (primaryWallet && userInitiatedConnection && !isProcessing) {
+      console.log('User-initiated wallet connection detected, processing authentication...');
       handleWalletConnection();
+    } else if (primaryWallet && !userInitiatedConnection) {
+      console.log('SECURITY: Wallet detected but user did not initiate connection - ignoring automatic connection');
     }
-  }, [primaryWallet, user, isProcessing]);
+  }, [primaryWallet, user, userInitiatedConnection, isProcessing]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || isProcessing) {
@@ -57,7 +58,7 @@ export const DynamicWalletConnector = ({
       const walletAddress = primaryWallet.address;
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
       
-      console.log('Processing Dynamic wallet connection:', {
+      console.log('Processing user-initiated Dynamic wallet connection:', {
         address: walletAddress,
         chain: primaryWallet.chain,
         blockchainType,
@@ -101,7 +102,7 @@ export const DynamicWalletConnector = ({
         throw new Error(result.error.message || 'Authentication failed');
       }
 
-      console.log('Dynamic wallet authentication successful');
+      console.log('User-initiated Dynamic wallet authentication successful');
       toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
       
       if (onWalletConnected) {
@@ -133,25 +134,36 @@ export const DynamicWalletConnector = ({
       }
     } finally {
       setIsProcessing(false);
+      setUserInitiatedConnection(false); // Reset the flag
     }
+  };
+
+  // Handler for when user clicks the connect button
+  const handleConnectClick = () => {
+    console.log('User explicitly clicked to connect wallet');
+    setUserInitiatedConnection(true);
   };
 
   return (
     <div className="flex flex-col items-center space-y-4">
       {/* Hide the connect button when auth flow is showing */}
       <div className={`w-full max-w-md transition-opacity duration-200 ${showAuthFlow ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        <DynamicWidget 
-          buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-        />
+        <div onClick={handleConnectClick}>
+          <DynamicWidget 
+            buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+          />
+        </div>
       </div>
       
       {/* Modal overlay when auth flow is showing */}
       {showAuthFlow && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center">
           <div className="relative">
-            <DynamicWidget 
-              buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
-            />
+            <div onClick={handleConnectClick}>
+              <DynamicWidget 
+                buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -168,8 +180,9 @@ export const DynamicWalletConnector = ({
         {/* Debug info */}
         {primaryWallet && (
           <div className="mt-2 text-xs text-green-400">
-            Connected: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
+            Wallet Available: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
             {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
+            {!userInitiatedConnection && <span className="ml-2 text-red-400">Click to Connect</span>}
           </div>
         )}
       </div>
