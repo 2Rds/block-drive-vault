@@ -15,21 +15,28 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     setSession,
     setWalletData,
     handleWalletAuth,
-    initializeSession,
     setupAuthStateListener
   } = useWalletSession();
 
   useEffect(() => {
     console.log('SimplifiedAuthProvider initializing...');
     
-    // Initialize session
-    initializeSession();
+    // DO NOT automatically restore sessions - force manual login
+    console.log('Requiring manual wallet connection for security');
 
     // Listen for wallet authentication events
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
 
     // Set up auth state listener for regular Supabase auth
     const subscription = setupAuthStateListener();
+
+    // Set loading to false immediately - no auto-login
+    setTimeout(() => {
+      if (loading) {
+        console.log('Setting loading to false - manual authentication required');
+        // This will be handled by the useWalletSession hook
+      }
+    }, 100);
 
     return () => {
       subscription.unsubscribe();

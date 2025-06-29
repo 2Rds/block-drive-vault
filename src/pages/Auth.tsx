@@ -56,10 +56,10 @@ const Auth = () => {
         userEmail: user.email
       });
       
-      // Use window.location.href for reliable redirect in production
-      window.location.href = '/index';
+      // Use navigate instead of window.location.href for better React Router handling
+      navigate('/index', { replace: true });
     }
-  }, [user, session]);
+  }, [user, session, navigate]);
 
   // Enhanced check for Dynamic wallet connection
   useEffect(() => {
@@ -111,12 +111,24 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Web3 Multi-Factor Authentication
+                  Secure Wallet Authentication Required
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
-                Connect your wallet for maximum security and decentralized storage access.
+                For your security, you must connect your wallet and sign a transaction for each session. 
+                This ensures maximum security for your decentralized storage access.
+              </p>
+            </div>
+
+            {/* Security Notice */}
+            <div className="bg-amber-800/40 border border-amber-700 rounded-xl p-4">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-amber-400" />
+                <span className="text-amber-200 font-semibold">Enhanced Security Mode</span>
+              </div>
+              <p className="text-amber-300 text-sm mt-2">
+                Manual wallet authentication is required for each session to ensure maximum security. 
+                Your session will not be automatically restored.
               </p>
             </div>
 
@@ -179,12 +191,12 @@ const Auth = () => {
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
               <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our Web3 MFA system leverages wallet signatures and decentralized authentication 
-                to create a secure and user-friendly login experience.
+                Our Web3 authentication system requires active wallet signatures for each session, 
+                ensuring maximum security for your decentralized storage access.
               </p>
               <div className="flex items-center space-x-2 text-xs text-purple-400">
                 <Shield className="w-4 h-4" />
-                <span>Wallet Authentication • Multi-Chain Support • Decentralized</span>
+                <span>Manual Authentication • Session Security • Decentralized</span>
               </div>
             </div>
           </div>

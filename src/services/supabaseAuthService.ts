@@ -4,30 +4,15 @@ import { toast } from 'sonner';
 
 export class SupabaseAuthService {
   static checkWalletSession() {
-    const storedSession = localStorage.getItem('sb-supabase-auth-token');
-    if (storedSession) {
-      try {
-        const sessionData = JSON.parse(storedSession);
-        console.log('Found stored wallet session:', sessionData.user?.id);
-        
-        // Check if session is still valid
-        if (sessionData.expires_at > Date.now()) {
-          return sessionData;
-        } else {
-          // Session expired, remove it
-          localStorage.removeItem('sb-supabase-auth-token');
-        }
-      } catch (error) {
-        console.error('Error parsing stored session:', error);
-        localStorage.removeItem('sb-supabase-auth-token');
-      }
-    }
+    // Always return null to force manual authentication
+    console.log('Security: Wallet session check disabled - requiring manual login');
     return null;
   }
 
   static async getInitialSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
+    // Don't automatically restore sessions
+    console.log('Security: Initial session check disabled - requiring manual login');
+    return null;
   }
 
   static setupAuthStateListener(callback: (event: string, session: any) => void) {
@@ -97,24 +82,21 @@ export class SupabaseAuthService {
           token_type: 'bearer'
         };
 
-        // Store session in localStorage for persistence
-        localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
-        
-        // Set wallet data immediately for UI consistency
-        const walletData = {
-          address: walletAddress,
-          publicKey: null,
-          adapter: null,
-          connected: true,
-          autoConnect: false,
-          id: blockchainType,
-          wallet_address: walletAddress,
-          blockchain_type: blockchainType
-        };
+        // DO NOT store session in localStorage - require manual login each time
+        console.log('Security: Session not stored - manual authentication required for each session');
         
         // Trigger auth state change manually with wallet data
         window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
-          detail: { ...sessionData, walletData }
+          detail: { ...sessionData, walletData: {
+            address: walletAddress,
+            publicKey: null,
+            adapter: null,
+            connected: true,
+            autoConnect: false,
+            id: blockchainType,
+            wallet_address: walletAddress,
+            blockchain_type: blockchainType
+          }}
         }));
 
         if (data.isFirstTime) {
@@ -134,7 +116,7 @@ export class SupabaseAuthService {
   }
 
   static async signOut() {
-    // Clear custom session
+    // Clear any stored session data
     localStorage.removeItem('sb-supabase-auth-token');
     
     const { error } = await supabase.auth.signOut();

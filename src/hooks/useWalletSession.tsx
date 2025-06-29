@@ -43,42 +43,12 @@ export const useWalletSession = () => {
   };
 
   const initializeSession = async () => {
-    // First check for wallet session
-    const walletSession = SupabaseAuthService.checkWalletSession();
-    if (walletSession) {
-      setSession(walletSession as Session);
-      setUser(walletSession.user as User);
-      
-      // Set wallet data from session metadata
-      if (walletSession.user?.user_metadata?.wallet_address) {
-        const walletInfo = {
-          address: walletSession.user.user_metadata.wallet_address,
-          publicKey: null,
-          adapter: null,
-          connected: true,
-          autoConnect: false,
-          id: walletSession.user.user_metadata.blockchain_type || 'ethereum',
-          wallet_address: walletSession.user.user_metadata.wallet_address,
-          blockchain_type: walletSession.user.user_metadata.blockchain_type || 'ethereum'
-        };
-        setWalletData(walletInfo);
-        console.log('Set wallet data from session:', walletInfo);
-      }
-      
-      setLoading(false);
-      return true;
-    }
-
-    // Then check for regular Supabase session
-    const session = await SupabaseAuthService.getInitialSession();
-    console.log('Initial Supabase session check:', session?.user?.id);
+    console.log('Security: Skipping automatic session restoration - requiring manual wallet connection');
     
-    if (session?.user) {
-      setSession(session);
-      setUser(session.user);
-      loadWalletData(session.user.id);
-    }
+    // Clear any existing stored sessions to force manual login
+    localStorage.removeItem('sb-supabase-auth-token');
     
+    // Do not restore sessions automatically - force manual authentication
     setLoading(false);
     return false;
   };
@@ -88,40 +58,7 @@ export const useWalletSession = () => {
       async (event, session) => {
         console.log('Supabase auth state changed:', event, session?.user?.id);
         
-        // Don't override wallet sessions
-        const hasWalletSession = localStorage.getItem('sb-supabase-auth-token');
-        if (hasWalletSession && event !== 'SIGNED_OUT') {
-          return;
-        }
-        
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          
-          // Load wallet data when user is authenticated
-          setTimeout(() => {
-            loadWalletData(session.user.id);
-          }, 0);
-        } else {
-          setSession(null);
-          setUser(null);
-          setWalletData(null);
-        }
-        
-        setLoading(false);
-
-        // Handle successful sign in
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('User signed in successfully');
-          toast.success('Welcome to BlockDrive!');
-          
-          // Redirect to index if on auth page
-          if (window.location.pathname === '/auth') {
-            window.location.href = '/index';
-          }
-        }
-
-        // Handle sign out
+        // Only handle explicit sign out events
         if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setSession(null);
@@ -129,6 +66,8 @@ export const useWalletSession = () => {
           setWalletData(null);
           localStorage.removeItem('sb-supabase-auth-token');
         }
+        
+        setLoading(false);
       }
     );
 
