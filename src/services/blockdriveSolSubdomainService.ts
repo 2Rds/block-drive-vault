@@ -1,4 +1,3 @@
-
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplex/metaplexConfig';
 import { CollectionService } from './metaplex/collectionService';
@@ -45,10 +44,10 @@ export class BlockDriveSolSubdomainService {
       // Filter for BlockDrive NFTs from our collection
       const blockDriveNFTs = [];
       
-      for (const nft of nfts) {
+      for (const nftMetadata of nfts) {
         try {
           // Load full NFT data to check collection
-          const fullNft = await metaplex.nfts().load({ metadata: nft });
+          const fullNft = await metaplex.nfts().load({ metadata: nftMetadata });
           
           if (fullNft.collection?.address.toString() === collectionAddress ||
               fullNft.symbol === 'BDNFT') {
