@@ -10,7 +10,7 @@ interface DynamicWalletConnectorProps {
 }
 
 export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalletConnectorProps) => {
-  const { user, primaryWallet, isAuthenticated } = useDynamicContext();
+  const { user, primaryWallet } = useDynamicContext();
 
   // Debug current environment
   useEffect(() => {
@@ -19,9 +19,9 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
     console.log('Dynamic Context State:', { 
       user: user?.userId, 
       primaryWallet: primaryWallet?.address, 
-      isAuthenticated 
+      isAuthenticated: !!(user && primaryWallet)
     });
-  }, []);
+  }, [user, primaryWallet]);
 
   useEffect(() => {
     if (user && primaryWallet) {
