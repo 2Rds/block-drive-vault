@@ -50,14 +50,19 @@ export class MetaplexNFTService {
   }
 
   /**
-   * Verify soulbound NFT ownership
+   * Verify SPL token ownership (updated to use correct method)
    */
   static async verifySoulboundNFT(walletAddress: string): Promise<{
     hasNFT: boolean;
     nfts: any[];
     error?: string;
   }> {
-    return await NFTVerificationService.verifySoulboundNFT(walletAddress);
+    const result = await NFTVerificationService.verifySPLToken(walletAddress);
+    return {
+      hasNFT: result.hasNFT,
+      nfts: result.nfts,
+      error: result.error
+    };
   }
 
   /**
