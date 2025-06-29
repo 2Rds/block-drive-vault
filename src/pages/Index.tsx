@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { IPFSFileGrid } from '@/components/IPFSFileGrid';
@@ -8,17 +8,22 @@ import { StatsCards } from '@/components/StatsCards';
 import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
 import { FileViewer } from '@/components/FileViewer';
+import { WelcomeModal } from '@/components/auth/WelcomeModal';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Files, Upload, Slack } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files');
   const [userFolders, setUserFolders] = useState<string[]>([]);
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  
+  const { walletData } = useAuth();
   
   const {
     currentPath,
@@ -33,6 +38,23 @@ const Index = () => {
   } = useFolderNavigation();
 
   const { downloadFromIPFS } = useIPFSUpload();
+
+  // Check if this is a first-time user and show welcome modal
+  useEffect(() => {
+    if (walletData?.address) {
+      const hasSeenWelcome = localStorage.getItem(`welcome-seen-${walletData.address}`);
+      if (!hasSeenWelcome) {
+        setShowWelcomeModal(true);
+      }
+    }
+  }, [walletData?.address]);
+
+  const handleWelcomeComplete = () => {
+    if (walletData?.address) {
+      localStorage.setItem(`welcome-seen-${walletData.address}`, 'true');
+    }
+    setShowWelcomeModal(false);
+  };
 
   const handleCreateFolder = (folderName: string) => {
     setUserFolders(prev => [...prev, folderName]);
@@ -145,6 +167,16 @@ const Index = () => {
           file={selectedFile}
           onClose={closeFileViewer}
           onDownload={handleDownloadFile}
+        />
+      )}
+
+      {/* Welcome Modal for new users */}
+      {showWelcomeModal && walletData && (
+        <WelcomeModal
+          isOpen={showWelcomeModal}
+          onClose={handleWelcomeComplete}
+          walletAddress={walletData.address}
+          blockchainType={walletData.blockchain_type}
         />
       )}
 
