@@ -68,7 +68,7 @@ export const DynamicWalletConnector = ({
         throw new Error(result.error.message || 'Authentication failed');
       }
 
-      console.log('Wallet authentication successful, should redirect to dashboard');
+      console.log('Wallet authentication successful, redirecting to dashboard');
       toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
       
       if (onWalletConnected) {
@@ -80,13 +80,7 @@ export const DynamicWalletConnector = ({
         });
       }
 
-      // The connectWallet function should handle the redirect, but let's ensure it happens
-      setTimeout(() => {
-        if (window.location.pathname === '/auth') {
-          console.log('Manually redirecting to dashboard after successful auth');
-          window.location.href = '/index';
-        }
-      }, 1500);
+      // The connectWallet function already handles the redirect
 
     } catch (error) {
       console.error('Dynamic wallet authentication error:', error);

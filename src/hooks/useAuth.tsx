@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -266,11 +265,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
         }
         
-        // Force a redirect after setting all state
+        // Immediate redirect after setting all state
         console.log('Redirecting to dashboard...');
-        setTimeout(() => {
-          window.location.href = '/index';
-        }, 500);
+        window.location.href = '/index';
 
         return { error: null, data: sessionData };
       } else {
