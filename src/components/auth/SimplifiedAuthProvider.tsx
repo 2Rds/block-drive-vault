@@ -85,6 +85,9 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         token_type: result.data.token_type || 'bearer'
       };
 
+      console.log('Created Supabase-compatible user and session objects');
+      
+      // Set the state immediately
       setUser(supabaseUser);
       setSession(supabaseSession);
       
@@ -102,11 +105,21 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       setWalletData(processedWalletData);
       
-      console.log('Auth state updated:', {
+      console.log('Auth state updated successfully:', {
         userId: supabaseUser.id,
         hasSession: !!supabaseSession.access_token,
-        walletAddress
+        walletAddress,
+        sessionExpiresAt: supabaseSession.expires_at
       });
+
+      // Force a small delay to ensure state propagation
+      setTimeout(() => {
+        console.log('Final auth state check:', {
+          user: !!supabaseUser,
+          session: !!supabaseSession,
+          walletConnected: processedWalletData.connected
+        });
+      }, 100);
     }
     
     return result;
@@ -131,9 +144,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     return result;
   };
 
-  console.log('SimplifiedAuthProvider state:', {
+  console.log('SimplifiedAuthProvider current state:', {
     userId: user?.id,
     hasSession: !!session,
+    sessionToken: session?.access_token ? 'present' : 'missing',
     walletConnected: walletData?.connected,
     loading
   });

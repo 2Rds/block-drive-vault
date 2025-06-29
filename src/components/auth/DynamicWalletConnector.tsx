@@ -96,11 +96,11 @@ export const DynamicWalletConnector = ({
         });
       }
 
-      // Force redirect to dashboard after successful authentication
+      // Wait a moment for state to update, then redirect
       setTimeout(() => {
         console.log('Redirecting to dashboard after successful authentication');
         window.location.href = '/index';
-      }, 1500);
+      }, 2000);
 
     } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);

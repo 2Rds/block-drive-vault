@@ -9,12 +9,14 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, session, loading } = useAuth();
 
-  console.log('ProtectedRoute - State check:', { 
+  console.log('ProtectedRoute - Detailed state check:', { 
     loading, 
     userId: user?.id, 
     hasSession: !!session,
     accessToken: session?.access_token ? 'exists' : 'none',
-    userEmail: user?.email 
+    userEmail: user?.email,
+    sessionExpiresAt: session?.expires_at,
+    userMetadata: user?.user_metadata
   });
 
   if (loading) {
@@ -26,17 +28,31 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Allow access if we have either a user with session OR a valid wallet session
-  const hasValidAuth = (user && session) || 
-                      (session && session.access_token && session.user);
+  // Check for valid authentication - prioritize session with access token
+  const hasValidSession = session && session.access_token && session.user;
+  const hasValidUser = user && user.id;
+  
+  // Allow access if we have a valid session OR both user and session
+  const hasValidAuth = hasValidSession || (hasValidUser && hasValidSession);
+
+  console.log('ProtectedRoute - Authentication validation:', {
+    hasValidSession: hasValidSession,
+    hasValidUser: hasValidUser,
+    hasValidAuth: hasValidAuth,
+    sessionDetails: {
+      hasAccessToken: !!session?.access_token,
+      hasSessionUser: !!session?.user,
+      sessionUserId: session?.user?.id
+    }
+  });
 
   if (!hasValidAuth) {
     console.log('ProtectedRoute - No valid authentication, redirecting to auth');
-    console.log('ProtectedRoute - Details:', {
-      hasUser: !!user,
-      hasSession: !!session,
-      hasAccessToken: !!session?.access_token,
-      sessionUser: !!session?.user
+    console.log('ProtectedRoute - Redirect reason:', {
+      noSession: !session,
+      noAccessToken: !session?.access_token,
+      noSessionUser: !session?.user,
+      noUser: !user
     });
     return <Navigate to="/auth" replace />;
   }
