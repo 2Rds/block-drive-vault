@@ -4,6 +4,7 @@ import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DynamicWalletConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -11,6 +12,7 @@ interface DynamicWalletConnectorProps {
 
 export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalletConnectorProps) => {
   const { user, primaryWallet } = useDynamicContext();
+  const { connectWallet } = useAuth();
 
   // Debug current environment
   useEffect(() => {
@@ -28,18 +30,54 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
       console.log('Dynamic user authenticated:', user);
       console.log('Primary wallet:', primaryWallet);
       
-      toast.success('Wallet connected successfully via Dynamic!');
+      // Authenticate with your backend system
+      const authenticateWithBackend = async () => {
+        try {
+          const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
+          const walletAddress = primaryWallet.address;
+          
+          console.log('Authenticating with backend:', { walletAddress, blockchainType });
+          
+          // Create authentication data for your backend
+          const authResult = await connectWallet({
+            address: walletAddress,
+            blockchain_type: blockchainType,
+            signature: `dynamic-auth-${Date.now()}`,
+            id: blockchainType
+          });
+          
+          if (authResult.error) {
+            console.error('Backend authentication failed:', authResult.error);
+            toast.error('Failed to authenticate with backend');
+            return;
+          }
+          
+          console.log('Backend authentication successful');
+          toast.success('Wallet connected successfully via Dynamic!');
+          
+          if (onAuthenticationSuccess) {
+            onAuthenticationSuccess({
+              user,
+              wallet: primaryWallet,
+              address: primaryWallet.address,
+              blockchainType
+            });
+          }
+          
+          // Redirect to dashboard
+          setTimeout(() => {
+            window.location.href = '/index';
+          }, 1000);
+          
+        } catch (error) {
+          console.error('Authentication error:', error);
+          toast.error('Authentication failed');
+        }
+      };
       
-      if (onAuthenticationSuccess) {
-        onAuthenticationSuccess({
-          user,
-          wallet: primaryWallet,
-          address: primaryWallet.address,
-          blockchainType: primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum'
-        });
-      }
+      authenticateWithBackend();
     }
-  }, [user, primaryWallet, onAuthenticationSuccess]);
+  }, [user, primaryWallet, connectWallet, onAuthenticationSuccess]);
 
   const handleConnect = () => {
     console.log('Connect button clicked');
@@ -74,6 +112,9 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
       <div className="text-center text-xs text-gray-500 mt-4">
         <p>Environment ID: {process.env.NODE_ENV}</p>
         <p>Origin: {window.location.origin}</p>
+        {user && primaryWallet && (
+          <p className="text-green-400">Wallet Connected: {primaryWallet.address.slice(0, 6)}...{primaryWallet.address.slice(-4)}</p>
+        )}
       </div>
 
       <div className="text-center">
