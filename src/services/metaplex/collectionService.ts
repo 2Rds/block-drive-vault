@@ -1,4 +1,3 @@
-
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplexConfig';
 
@@ -50,7 +49,6 @@ export class CollectionService {
           {
             address: metaplex.identity().publicKey,
             share: 100,
-            verified: true,
           },
         ],
         isMutable: false, // Collection is immutable for security

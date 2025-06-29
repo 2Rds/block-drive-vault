@@ -1,5 +1,5 @@
 
-import { Metaplex, keypairIdentity, bundlrStorage } from '@metaplex-foundation/js';
+import { Metaplex, keypairIdentity } from '@metaplex-foundation/js';
 import { Connection, clusterApiUrl, Keypair } from '@solana/web3.js';
 
 export class MetaplexConfig {
@@ -21,12 +21,7 @@ export class MetaplexConfig {
     console.log('BlockDrive Collection Authority:', this.wallet.publicKey.toString());
     
     this.metaplex = Metaplex.make(connection)
-      .use(keypairIdentity(this.wallet))
-      .use(bundlrStorage({
-        address: 'https://devnet.bundlr.network',
-        providerUrl: 'https://api.devnet.solana.com',
-        timeout: 60000,
-      }));
+      .use(keypairIdentity(this.wallet));
 
     return this.metaplex;
   }

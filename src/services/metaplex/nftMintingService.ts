@@ -1,4 +1,3 @@
-
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplexConfig';
 import { CollectionService } from './collectionService';
@@ -74,7 +73,6 @@ export class NFTMintingService {
           {
             address: metaplex.identity().publicKey,
             share: 100,
-            verified: true,
           },
         ],
         collection: new PublicKey(collectionAddress),
