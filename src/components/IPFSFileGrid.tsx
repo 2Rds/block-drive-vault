@@ -1,213 +1,258 @@
 
-import React from 'react';
-import { Download, Trash2, FileText, Image, Video, Music, Archive, File, Globe, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useHybridStorage } from '@/hooks/useHybridStorage';
+import React, { useEffect } from 'react';
+import { File, Folder, Download, Archive, Database, Globe, ExternalLink, ArrowLeft, Eye } from 'lucide-react';
+import { useIPFSUpload } from '@/hooks/useIPFSUpload';
+import { useAuth } from '@/hooks/useAuth';
 import { IPFSFile } from '@/types/ipfs';
-import { formatBytes, formatDate } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface IPFSFileGridProps {
-  files: IPFSFile[];
-  loading: boolean;
   selectedFolder: string;
-  onCreateFolder?: (folderName: string) => void;
+  userFolders?: string[];
+  currentPath?: string;
+  onGoBack?: () => void;
+  onFileSelect?: (file: IPFSFile) => void;
 }
 
-export const IPFSFileGrid = ({ files, loading, selectedFolder }: IPFSFileGridProps) => {
-  const { downloadFile, deleteFile, downloading } = useHybridStorage();
+export const IPFSFileGrid = ({ 
+  selectedFolder, 
+  userFolders = [], 
+  currentPath = '/',
+  onGoBack,
+  onFileSelect
+}: IPFSFileGridProps) => {
+  const { user } = useAuth();
+  const { userFiles, loadUserFiles, downloading, downloadFromIPFS, deleteFromIPFS } = useIPFSUpload();
 
-  const getFileIcon = (contentType: string) => {
-    if (contentType.startsWith('image/')) return Image;
-    if (contentType.startsWith('video/')) return Video;
-    if (contentType.startsWith('audio/')) return Music;
-    if (contentType.includes('zip') || contentType.includes('rar')) return Archive;
-    if (contentType.includes('pdf') || contentType.includes('document')) return FileText;
-    return File;
+  useEffect(() => {
+    if (user) {
+      loadUserFiles();
+    }
+  }, [user]);
+
+  // Filter files based on selected folder and current path
+  const filteredFiles = selectedFolder === 'all' 
+    ? userFiles.filter(file => {
+        if (currentPath === '/') return true;
+        const folderPath = file.folderPath || '/';
+        return folderPath.startsWith(currentPath);
+      })
+    : userFiles.filter(file => {
+        const folderPath = file.folderPath || '/';
+        if (selectedFolder === 'documents') {
+          return file.contentType?.includes('pdf') || 
+                 file.contentType?.includes('document') || 
+                 file.contentType?.includes('text');
+        }
+        if (selectedFolder === 'images') {
+          return file.contentType?.startsWith('image/');
+        }
+        if (selectedFolder === 'videos') {
+          return file.contentType?.startsWith('video/');
+        }
+        if (selectedFolder === 'audio') {
+          return file.contentType?.startsWith('audio/');
+        }
+        return folderPath.includes(`/${selectedFolder}`);
+      });
+
+  const getFileIcon = (file: IPFSFile) => {
+    if (file.contentType?.startsWith('image/')) return File;
+    if (file.contentType?.startsWith('video/')) return File;
+    if (file.contentType?.startsWith('audio/')) return File;
+    if (file.contentType?.includes('pdf') || file.contentType?.includes('document')) return File;
+    return Database;
   };
 
-  const getStorageTypeInfo = (file: IPFSFile) => {
-    const storageType = file.metadata?.storage_type || 'ipfs';
-    
-    if (storageType === 'solana-inscription') {
-      return {
-        type: 'Solana Inscription',
-        icon: Zap,
-        color: 'bg-orange-500',
-        textColor: 'text-orange-100',
-        description: 'Permanent on-chain storage',
-        permanence: 'Permanent'
-      };
-    }
-    
-    return {
-      type: 'IPFS',
-      icon: Globe,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-100',
-      description: 'Distributed storage',
-      permanence: 'Temporary'
-    };
+  const getFileColor = (file: IPFSFile) => {
+    if (file.contentType?.startsWith('image/')) return 'text-green-400';
+    if (file.contentType?.startsWith('video/')) return 'text-red-400';
+    if (file.contentType?.startsWith('audio/')) return 'text-purple-400';
+    if (file.contentType?.includes('pdf') || file.contentType?.includes('document')) return 'text-blue-400';
+    return 'text-gray-400';
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
   const handleDownload = async (file: IPFSFile) => {
-    try {
-      await downloadFile(file);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+    await downloadFromIPFS(file.cid, file.filename);
   };
 
   const handleDelete = async (file: IPFSFile) => {
-    if (window.confirm(`Are you sure you want to delete "${file.filename}"?`)) {
-      try {
-        await deleteFile(file.id, file.cid);
-      } catch (error) {
-        console.error('Delete failed:', error);
-      }
+    if (confirm(`Are you sure you want to delete ${file.filename} from BlockDrive IPFS?`)) {
+      await deleteFromIPFS(file.id, file.cid);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-        <span className="ml-3 text-gray-300">Loading your files...</span>
-      </div>
-    );
-  }
+  const handleViewOnIPFS = (file: IPFSFile) => {
+    // Use the Pinata gateway for viewing files
+    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${file.cid}`;
+    window.open(ipfsUrl, '_blank');
+  };
 
-  if (files.length === 0) {
+  const handleFileClick = (file: IPFSFile) => {
+    if (onFileSelect) {
+      onFileSelect(file);
+    }
+  };
+
+  if (!user) {
     return (
-      <Card className="border-gray-700 bg-gray-800/50">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <FileText className="h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No files found</h3>
-          <p className="text-gray-400 text-center">
-            {selectedFolder === 'all' 
-              ? 'Upload your first file using the hybrid storage system above'
-              : `No files in the "${selectedFolder}" folder`
-            }
+      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+        <div className="text-center py-12">
+          <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">Connect Your Wallet</h3>
+          <p className="text-gray-500">
+            Please connect your wallet to view your BlockDrive IPFS files
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold text-white">
-          {selectedFolder === 'all' ? 'All Files' : `Files in "${selectedFolder}"`}
-        </h3>
+    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          {currentPath !== '/' && onGoBack && (
+            <Button
+              onClick={onGoBack}
+              variant="outline"
+              size="sm"
+              className="bg-gray-600/20 border-gray-600/50 text-gray-400 hover:bg-gray-600/30"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-400" />
+            {selectedFolder === 'all' ? 'BlockDrive IPFS Storage' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
+            {currentPath !== '/' && (
+              <span className="text-sm text-gray-400 font-normal">
+                {currentPath}
+              </span>
+            )}
+          </h2>
+        </div>
         <div className="flex items-center space-x-2 text-sm text-gray-400">
-          <span>{files.length} file{files.length !== 1 ? 's' : ''}</span>
+          <span>{filteredFiles.length} files</span>
+          <Button
+            onClick={loadUserFiles}
+            variant="outline"
+            size="sm"
+            className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30"
+          >
+            Refresh
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {files.map((file) => {
-          const FileIcon = getFileIcon(file.contentType);
-          const storageInfo = getStorageTypeInfo(file);
-          const StorageIcon = storageInfo.icon;
-
-          return (
-            <Card 
-              key={file.id} 
-              className="border-gray-700 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 group"
-            >
-              <CardContent className="p-4">
+      {filteredFiles.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredFiles.map((file) => {
+            const IconComponent = getFileIcon(file);
+            const iconColor = getFileColor(file);
+            
+            return (
+              <div
+                key={file.id}
+                className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group cursor-pointer"
+                onClick={() => handleFileClick(file)}
+              >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2 flex-1 min-w-0">
-                    <FileIcon className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                    <span className="text-sm font-medium text-white truncate">
-                      {file.filename}
-                    </span>
+                  <IconComponent className={`w-8 h-8 ${iconColor}`} />
+                  <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileClick(file);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      title="View File"
+                    >
+                      <Eye className="w-4 h-4 text-blue-400" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewOnIPFS(file);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      title="View on IPFS"
+                    >
+                      <ExternalLink className="w-4 h-4 text-blue-400" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
+                      className="p-1 rounded hover:bg-white/10"
+                      title="Download from IPFS"
+                      disabled={downloading}
+                    >
+                      <Download className="w-4 h-4 text-green-400" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Storage Type Badge */}
-                <div className="mb-3">
-                  <Badge 
-                    variant="secondary" 
-                    className={`${storageInfo.color} ${storageInfo.textColor} text-xs`}
-                  >
-                    <StorageIcon className="w-3 h-3 mr-1" />
-                    {storageInfo.type}
-                  </Badge>
+                
+                <div className="space-y-1">
+                  <h3 className="font-medium text-white text-sm truncate" title={file.filename}>
+                    {file.filename}
+                  </h3>
+                  <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                  <p className="text-xs text-gray-500">Uploaded {formatDate(file.uploadedAt)}</p>
                 </div>
-
-                {/* File Details */}
-                <div className="space-y-1 text-xs text-gray-400 mb-4">
-                  <div className="flex justify-between">
-                    <span>Size:</span>
-                    <span>{formatBytes(file.size)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Type:</span>
-                    <span className="truncate ml-2">{file.contentType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Storage:</span>
-                    <span>{storageInfo.permanence}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Uploaded:</span>
-                    <span>{formatDate(file.uploadedAt)}</span>
-                  </div>
-                  {file.metadata?.shard_count && (
-                    <div className="flex justify-between">
-                      <span>Shards:</span>
-                      <span>{file.metadata.shard_count}</span>
+                
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-gray-400">IPFS Pinned</span>
                     </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(file)}
-                    disabled={downloading}
-                    className="flex-1 text-xs border-gray-600 hover:border-blue-500 hover:text-blue-400"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    {downloading ? 'Downloading...' : 'Download'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(file)}
-                    className="border-gray-600 hover:border-red-500 hover:text-red-400"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-
-                {/* Storage Details Tooltip */}
-                <div className="mt-2 p-2 bg-gray-900/50 rounded text-xs text-gray-300">
-                  <div className="flex items-center space-x-1 mb-1">
-                    <StorageIcon className="w-3 h-3" />
-                    <span className="font-medium">{storageInfo.description}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(file);
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Delete
+                    </button>
                   </div>
-                  {file.metadata?.storage_type === 'solana-inscription' && (
-                    <div className="text-orange-400 text-xs">
-                      ID: {file.cid.slice(0, 8)}...{file.cid.slice(-8)}
-                    </div>
-                  )}
-                  {file.metadata?.storage_type === 'ipfs' && (
-                    <div className="text-blue-400 text-xs">
-                      CID: {file.cid.slice(0, 8)}...{file.cid.slice(-8)}
-                    </div>
-                  )}
+                  <div className="mt-1">
+                    <p className="text-xs text-gray-500 truncate" title={file.cid}>
+                      CID: {file.cid.substring(0, 12)}...
+                    </p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <Globe className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">No files in IPFS storage</h3>
+          <p className="text-gray-500">
+            {selectedFolder === 'all' 
+              ? 'Upload some files to your BlockDrive IPFS storage to get started'
+              : `No ${selectedFolder} files found in your IPFS storage`
+            }
+          </p>
+        </div>
+      )}
     </div>
   );
 };

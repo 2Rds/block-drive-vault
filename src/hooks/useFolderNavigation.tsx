@@ -7,7 +7,6 @@ interface FolderNavigationState {
   openFolders: string[];
   selectedFile: IPFSFile | null;
   showFileViewer: boolean;
-  selectedFolder: string;
 }
 
 export const useFolderNavigation = () => {
@@ -15,8 +14,7 @@ export const useFolderNavigation = () => {
     currentPath: '/',
     openFolders: [],
     selectedFile: null,
-    showFileViewer: false,
-    selectedFolder: 'all'
+    showFileViewer: false
   });
 
   const navigateToFolder = (folderPath: string) => {
@@ -24,16 +22,7 @@ export const useFolderNavigation = () => {
       ...prev,
       currentPath: folderPath,
       selectedFile: null,
-      showFileViewer: false,
-      selectedFolder: folderPath === '/' ? 'all' : folderPath
-    }));
-  };
-
-  const setSelectedFolder = (folder: string) => {
-    setState(prev => ({
-      ...prev,
-      selectedFolder: folder,
-      currentPath: folder === 'all' ? '/' : folder
+      showFileViewer: false
     }));
   };
 
@@ -71,23 +60,15 @@ export const useFolderNavigation = () => {
     }
   };
 
-  const createFolder = (folderName: string) => {
-    // Implementation for creating folders
-    console.log(`Creating folder: ${folderName}`);
-  };
-
   return {
     currentPath: state.currentPath,
     openFolders: state.openFolders,
     selectedFile: state.selectedFile,
     showFileViewer: state.showFileViewer,
-    selectedFolder: state.selectedFolder,
     navigateToFolder,
-    setSelectedFolder,
     toggleFolder,
     selectFile,
     closeFileViewer,
-    goBack,
-    createFolder
+    goBack
   };
 };
