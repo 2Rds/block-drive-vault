@@ -1,12 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+
 interface DynamicWalletConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
 }
+
 export const DynamicWalletConnector = ({
   onAuthenticationSuccess
 }: DynamicWalletConnectorProps) => {
@@ -29,6 +32,7 @@ export const DynamicWalletConnector = ({
       isAuthenticated: !!(user && primaryWallet)
     });
   }, [user, primaryWallet]);
+
   useEffect(() => {
     if (user && primaryWallet && !isProcessing) {
       console.log('Dynamic user authenticated:', user);
@@ -52,23 +56,27 @@ export const DynamicWalletConnector = ({
             signature: `dynamic-auth-${Date.now()}`,
             id: blockchainType
           });
+
           if (authResult.error) {
             console.error('Backend authentication failed:', authResult.error);
             toast.error('Failed to authenticate with backend');
             setIsProcessing(false);
             return;
           }
+
           console.log('Backend authentication successful');
 
           // Check if this is a new user and if it's Ethereum to trigger subdomain creation
           const isNewUser = authResult.data?.isFirstTime || false;
           const isEthereum = blockchainType === 'ethereum';
+
           if (isNewUser && isEthereum) {
             console.log('New Ethereum user detected - subdomain creation will be handled in WelcomeModal');
             toast.success('Ethereum wallet connected! Please create your BlockDrive subdomain to complete setup.');
           } else {
-            toast.success('Wallet connected successfully via Dynamic!');
+            toast.success('Wallet connected successfully!');
           }
+
           if (onAuthenticationSuccess) {
             onAuthenticationSuccess({
               user,
@@ -90,57 +98,64 @@ export const DynamicWalletConnector = ({
           setIsProcessing(false);
         }
       };
+
       authenticateWithBackend();
     }
   }, [user, primaryWallet, connectWallet, onAuthenticationSuccess, isProcessing]);
+
   const handleConnect = () => {
     console.log('Connect button clicked');
   };
-  return <div className="space-y-4">
+
+  return (
+    <div className="space-y-6">
       <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-blue-400 font-medium">Dynamic Wallet SDK</p>
-              <p className="text-blue-300 text-sm">Multi-chain wallet connection with embedded auth</p>
+              <h3 className="text-blue-400 font-semibold text-lg">Connect Your Wallet</h3>
+              <p className="text-blue-300 text-sm">Secure Web3 authentication with multi-chain support</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <div className="flex justify-center">
-        <div onClick={handleConnect}>
-          <DynamicWidget innerButtonComponent="Connect Wallet" variant="modal" />
+        <div onClick={handleConnect} className="w-full max-w-sm">
+          <DynamicWidget 
+            innerButtonComponent="Connect Wallet" 
+            variant="modal"
+            buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+          />
         </div>
       </div>
 
-      {/* Debug info */}
-      <div className="text-center text-xs text-gray-500 mt-4">
-        <p>Environment ID: {process.env.NODE_ENV}</p>
-        <p>Origin: {window.location.origin}</p>
-        {user && primaryWallet && <p className="text-green-400">Wallet Connected: {primaryWallet.address.slice(0, 6)}...{primaryWallet.address.slice(-4)}</p>}
-        {isProcessing && <p className="text-yellow-400">Processing authentication...</p>}
-      </div>
+      {/* Processing state */}
+      {isProcessing && (
+        <div className="text-center">
+          <p className="text-yellow-400 text-sm">Processing authentication...</p>
+        </div>
+      )}
 
+      {/* Supported networks info */}
       <div className="text-center">
-        <p className="text-gray-400 text-sm mb-2">
+        <p className="text-gray-400 text-sm mb-3">
           Supported Networks:
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
-          <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum</span>
-          <span className="bg-purple-800/40 px-2 py-1 rounded">Solana</span>
-          
-          
+          <span className="bg-blue-800/40 px-3 py-1 rounded-full">Ethereum</span>
+          <span className="bg-purple-800/40 px-3 py-1 rounded-full">Solana</span>
         </div>
         
-        <div className="mt-3 p-3 bg-blue-800/20 rounded-lg border border-blue-700/50">
-          <p className="text-blue-300 text-xs">
+        <div className="mt-4 p-4 bg-blue-800/20 rounded-lg border border-blue-700/50">
+          <p className="text-blue-300 text-sm">
             <strong>New Ethereum users:</strong> You'll be prompted to create a <code>blockdrive.eth</code> subdomain after connecting
           </p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
