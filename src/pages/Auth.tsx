@@ -1,11 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
-import { Shield, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Shield, AlertTriangle, RefreshCw, Database, Globe, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+
 const Auth = () => {
   const {
     user,
@@ -19,6 +21,7 @@ const Auth = () => {
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
   useEffect(() => {
     console.log('Auth page - SDK state:', {
       sdkHasLoaded,
@@ -43,6 +46,7 @@ const Auth = () => {
     }
     return () => clearTimeout(timeout);
   }, [sdkHasLoaded, dynamicReady, retryCount]);
+
   useEffect(() => {
     // Only redirect if we have BOTH user and session with proper validation
     if (user && user.id && session && session.access_token) {
@@ -68,10 +72,12 @@ const Auth = () => {
       });
     }
   }, [sdkHasLoaded, primaryWallet]);
+
   const handleWeb3MFASuccess = (authData: any) => {
     console.log('Web3 MFA authentication successful:', authData);
     // The auth context will handle the redirect automatically
   };
+
   const handleRetry = () => {
     console.log('Retrying Dynamic SDK initialization...');
     setSdkError(false);
@@ -80,7 +86,9 @@ const Auth = () => {
     // Force page reload to reinitialize SDK
     window.location.reload();
   };
-  return <div className="min-h-screen bg-gray-950">
+
+  return (
+    <div className="min-h-screen bg-gray-950">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
@@ -90,7 +98,7 @@ const Auth = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-gray-300">Next-Gen Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Next-Gen Web3 Data Management Platform</p>
             </div>
           </div>
         </div>
@@ -105,30 +113,45 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Secure Wallet Authentication Required
+                  Next-Generation Web3 Data Management
                 </span>
               </h2>
-              <p className="text-gray-300 text-lg">
-                For your security, you must connect your wallet and sign a transaction for each session. 
-                This ensures maximum security for your decentralized storage access.
+              <p className="text-gray-300 text-lg mb-4">
+                Transform how you store, manage, and share data across the decentralized web. 
+                BlockDrive combines the power of IPFS, blockchain technology, and multi-chain wallet integration 
+                to deliver enterprise-grade data management with complete ownership control.
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="flex items-center justify-center p-3 bg-blue-900/30 rounded-lg border border-blue-800/50">
+                  <Database className="w-5 h-5 text-blue-400 mr-2" />
+                  <span className="text-blue-200 text-sm font-medium">Decentralized Storage</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-purple-900/30 rounded-lg border border-purple-800/50">
+                  <Globe className="w-5 h-5 text-purple-400 mr-2" />
+                  <span className="text-purple-200 text-sm font-medium">Multi-Chain Support</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-green-900/30 rounded-lg border border-green-800/50">
+                  <Zap className="w-5 h-5 text-green-400 mr-2" />
+                  <span className="text-green-200 text-sm font-medium">Lightning Fast</span>
+                </div>
+              </div>
             </div>
 
-            {/* Security Notice */}
-            
-
             {/* Enhanced Dynamic SDK Status */}
-            {!dynamicReady && !sdkError && <div className="bg-blue-800/40 border border-blue-700 rounded-xl p-4">
+            {!dynamicReady && !sdkError && (
+              <div className="bg-blue-800/40 border border-blue-700 rounded-xl p-4">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
                   <span className="text-blue-200 text-sm">
                     Initializing wallet connections... (this may take up to 20 seconds)
                   </span>
                 </div>
-              </div>}
+              </div>
+            )}
 
             {/* Enhanced SDK Error with Retry */}
-            {sdkError && <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
+            {sdkError && (
+              <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
                   <div className="flex-1">
@@ -141,21 +164,29 @@ const Auth = () => {
                       <li>Firewall or ad blocker restrictions</li>
                       <li>Temporary service disruption</li>
                     </ul>
-                    <button onClick={handleRetry} className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors">
+                    <button 
+                      onClick={handleRetry} 
+                      className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors"
+                    >
                       <RefreshCw className="w-4 h-4" />
                       <span>Retry Connection</span>
                     </button>
                   </div>
                 </div>
-              </div>}
+              </div>
+            )}
 
             {/* Dynamic Wallet Connector */}
-            {dynamicReady && !sdkError ? <div className="space-y-4">
+            {dynamicReady && !sdkError ? (
+              <div className="space-y-4">
                 <DynamicWalletConnector onWalletConnected={() => {}} />
-                {sdkHasLoaded && <div className="text-center">
+                {sdkHasLoaded && (
+                  <div className="text-center">
                     <p className="text-green-400 text-xs">✓ Wallet services ready</p>
-                  </div>}
-              </div> : null}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Always show Web3 MFA as fallback */}
             <div className="border-t border-gray-700 pt-6">
@@ -163,14 +194,14 @@ const Auth = () => {
             </div>
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
+              <h4 className="font-semibold text-white mb-3">Enterprise-Grade Security</h4>
               <p className="text-gray-400 text-sm mb-4">
-                Our Web3 authentication system requires active wallet signatures for each session, 
-                ensuring maximum security for your decentralized storage access.
+                Connect your wallet to access BlockDrive's comprehensive data management suite. 
+                Your private keys remain secure while enabling seamless interaction with decentralized storage networks.
               </p>
               <div className="flex items-center space-x-2 text-xs text-purple-400">
                 <Shield className="w-4 h-4" />
-                <span>Manual Authentication • Session Security • Decentralized</span>
+                <span>Wallet Secured • Zero-Knowledge • Self-Custody</span>
               </div>
             </div>
           </div>
@@ -179,6 +210,8 @@ const Auth = () => {
           <FeatureCards />
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Auth;
