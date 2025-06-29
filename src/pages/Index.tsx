@@ -9,7 +9,7 @@ import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
 import { FileViewer } from '@/components/FileViewer';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Upload, Slack } from 'lucide-react';
+import { BarChart3, Files, Slack } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
