@@ -10,7 +10,7 @@ import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 const Auth = () => {
   const { user, session } = useAuth();
-  const { primaryWallet, sdkHasLoaded, isAuthenticated } = useDynamicContext();
+  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
@@ -43,16 +43,15 @@ const Auth = () => {
     }
   }, [user, session, navigate]);
 
-  // Enhanced check for Dynamic wallet authentication
+  // Enhanced check for Dynamic wallet connection
   useEffect(() => {
-    if (sdkHasLoaded && isAuthenticated && primaryWallet) {
-      console.log('Dynamic authentication state detected:', {
-        isAuthenticated,
+    if (sdkHasLoaded && primaryWallet) {
+      console.log('Dynamic wallet connection state detected:', {
         walletAddress: primaryWallet.address,
         chain: primaryWallet.chain
       });
     }
-  }, [sdkHasLoaded, isAuthenticated, primaryWallet]);
+  }, [sdkHasLoaded, primaryWallet]);
 
   const handleWeb3MFASuccess = (authData: any) => {
     console.log('Web3 MFA authentication successful:', authData);

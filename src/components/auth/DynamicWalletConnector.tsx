@@ -14,23 +14,21 @@ export const DynamicWalletConnector = ({
   const {
     primaryWallet,
     user,
-    handleLogOut,
-    isAuthenticated
+    handleLogOut
   } = useDynamicContext();
   const {
     connectWallet
   } = useAuth();
 
   React.useEffect(() => {
-    if (primaryWallet && user && isAuthenticated) {
-      console.log('Dynamic wallet authentication detected:', {
+    if (primaryWallet && user) {
+      console.log('Dynamic wallet connection detected:', {
         wallet: primaryWallet.address,
-        user: user.userId,
-        authenticated: isAuthenticated
+        user: user.userId
       });
       handleWalletConnection();
     }
-  }, [primaryWallet, user, isAuthenticated]);
+  }, [primaryWallet, user]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || !user) {
@@ -112,13 +110,6 @@ export const DynamicWalletConnector = ({
       <div className="w-full max-w-md">
         <DynamicWidget 
           buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
-          onWalletConnectionSuccess={() => {
-            console.log('Dynamic wallet connection success callback triggered');
-          }}
-          onWalletConnectionFailure={(error) => {
-            console.error('Dynamic wallet connection failure:', error);
-            toast.error('Wallet connection failed. Please try again.');
-          }}
         />
       </div>
       
