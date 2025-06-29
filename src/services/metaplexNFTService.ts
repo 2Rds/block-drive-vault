@@ -3,6 +3,7 @@ import { MetaplexConfig } from './metaplex/metaplexConfig';
 import { CollectionService, CollectionResult } from './metaplex/collectionService';
 import { NFTMintingService, NFTMintResult, NFTMetadata } from './metaplex/nftMintingService';
 import { NFTVerificationService, NFTVerificationResult } from './metaplex/nftVerificationService';
+import { BlockDriveSolSubdomainService } from './blockdriveSolSubdomainService';
 
 export interface MetaplexNFTResult {
   success: boolean;
@@ -14,9 +15,9 @@ export interface MetaplexNFTResult {
 
 export class MetaplexNFTService {
   /**
-   * Create BlockDrive NFT Collection with Soulbound capabilities
+   * Initialize BlockDrive Collection
    */
-  static async createBlockDriveCollection(): Promise<MetaplexNFTResult> {
+  static async initializeBlockDriveCollection(): Promise<MetaplexNFTResult> {
     const result = await CollectionService.createBlockDriveCollection();
     return {
       success: result.success,
@@ -32,13 +33,13 @@ export class MetaplexNFTService {
   static async mintSoulboundNFT(
     walletAddress: string,
     userId: string,
-    metadata: {
-      name: string;
-      description: string;
-      image: string;
-      attributes: Array<{ trait_type: string; value: string }>;
-    }
+    customMetadata?: Partial<NFTMetadata>
   ): Promise<MetaplexNFTResult> {
+    // Create default BlockDrive metadata or use custom
+    const metadata = customMetadata ? 
+      { ...NFTMintingService.createBlockDriveMetadata(walletAddress, userId), ...customMetadata } :
+      NFTMintingService.createBlockDriveMetadata(walletAddress, userId);
+
     const result = await NFTMintingService.mintSoulboundNFT(walletAddress, userId, metadata);
     return {
       success: result.success,
@@ -57,5 +58,36 @@ export class MetaplexNFTService {
     error?: string;
   }> {
     return await NFTVerificationService.verifySoulboundNFT(walletAddress);
+  }
+
+  /**
+   * Register BlockDrive.sol subdomain (NFT holders only)
+   */
+  static async registerBlockDriveSubdomain(
+    walletAddress: string,
+    subdomainName: string
+  ) {
+    return await BlockDriveSolSubdomainService.registerBlockDriveSubdomain(walletAddress, subdomainName);
+  }
+
+  /**
+   * Verify BlockDrive NFT ownership for subdomain registration
+   */
+  static async verifyNFTForSubdomain(walletAddress: string) {
+    return await BlockDriveSolSubdomainService.verifyBlockDriveNFTOwnership(walletAddress);
+  }
+
+  /**
+   * Get the BlockDrive collection address
+   */
+  static getCollectionAddress(): string | null {
+    return CollectionService.getCollectionAddress();
+  }
+
+  /**
+   * Get authority address for the collection
+   */
+  static getAuthorityAddress(): string | null {
+    return MetaplexConfig.getAuthorityAddress();
   }
 }

@@ -1,26 +1,41 @@
 
-import { Metaplex, keypairIdentity } from '@metaplex-foundation/js';
+import { Metaplex, keypairIdentity, bundlrStorage } from '@metaplex-foundation/js';
 import { Connection, clusterApiUrl, Keypair } from '@solana/web3.js';
 
 export class MetaplexConfig {
   private static metaplex: Metaplex | null = null;
+  private static wallet: Keypair | null = null;
 
   /**
-   * Initialize Metaplex instance
+   * Initialize Metaplex instance with proper configuration
    */
   static async initializeMetaplex(): Promise<Metaplex> {
     if (this.metaplex) return this.metaplex;
 
     const connection = new Connection(clusterApiUrl('devnet'));
     
-    // In production, this would be a secure keypair from environment variables
-    // For demo purposes, we'll create a temporary one
-    const wallet = Keypair.generate();
+    // Create or load the authority wallet for BlockDrive collection
+    // In production, this should be loaded from secure environment variables
+    this.wallet = Keypair.generate();
+    
+    console.log('BlockDrive Collection Authority:', this.wallet.publicKey.toString());
     
     this.metaplex = Metaplex.make(connection)
-      .use(keypairIdentity(wallet));
+      .use(keypairIdentity(this.wallet))
+      .use(bundlrStorage({
+        address: 'https://devnet.bundlr.network',
+        providerUrl: 'https://api.devnet.solana.com',
+        timeout: 60000,
+      }));
 
     return this.metaplex;
+  }
+
+  /**
+   * Get the authority wallet public key
+   */
+  static getAuthorityAddress(): string | null {
+    return this.wallet?.publicKey.toString() || null;
   }
 
   /**

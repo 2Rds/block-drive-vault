@@ -5,47 +5,67 @@ import { MetaplexConfig } from './metaplexConfig';
 export interface CollectionResult {
   success: boolean;
   collection?: any;
+  collectionAddress?: string;
   error?: string;
   signature?: string;
 }
 
 export class CollectionService {
   private static collectionAddress: string | null = null;
+  private static readonly COLLECTION_METADATA = {
+    name: 'BlockDrive Soulbound Collection',
+    symbol: 'BDRIVE',
+    description: 'Official BlockDrive soulbound NFT collection for subdomain authentication',
+    image: 'https://blockdrive.sol/collection-image.png',
+    external_url: 'https://blockdrive.sol',
+    attributes: [
+      { trait_type: 'Type', value: 'Soulbound' },
+      { trait_type: 'Network', value: 'Solana' },
+      { trait_type: 'Purpose', value: 'Authentication' }
+    ]
+  };
 
   /**
-   * Create BlockDrive NFT Collection with Soulbound capabilities
+   * Create BlockDrive Soulbound NFT Collection
    */
   static async createBlockDriveCollection(): Promise<CollectionResult> {
     try {
       const metaplex = await MetaplexConfig.initializeMetaplex();
 
-      console.log('Creating BlockDrive Soulbound NFT Collection...');
+      console.log('Creating BlockDrive Soulbound Collection...');
 
+      // Upload collection metadata
+      const { uri: metadataUri } = await metaplex.nfts().uploadMetadata(this.COLLECTION_METADATA);
+      
+      console.log('Collection metadata uploaded:', metadataUri);
+
+      // Create the collection NFT
       const { nft: collection } = await metaplex.nfts().create({
-        uri: 'https://blockdrive.net/collection-metadata.json',
-        name: 'BlockDrive Authentication',
-        symbol: 'BDAUTH',
+        uri: metadataUri,
+        name: this.COLLECTION_METADATA.name,
+        symbol: this.COLLECTION_METADATA.symbol,
         sellerFeeBasisPoints: 0,
         isCollection: true,
         creators: [
           {
             address: metaplex.identity().publicKey,
             share: 100,
+            verified: true,
           },
         ],
-        // Enable collection verification
-        collection: metaplex.identity().publicKey,
-        // This makes the NFTs in this collection soulbound
-        ruleSet: null, // Will be configured for soulbound behavior
+        isMutable: false, // Collection is immutable for security
       });
 
       this.collectionAddress = collection.address.toString();
 
-      console.log('BlockDrive Collection created:', collection.address.toString());
+      console.log('BlockDrive Collection created successfully!');
+      console.log('Collection Address:', this.collectionAddress);
+      console.log('Collection Mint:', collection.mint.address.toString());
 
       return {
         success: true,
         collection: collection,
+        collectionAddress: this.collectionAddress,
         signature: collection.address.toString()
       };
 
@@ -53,7 +73,7 @@ export class CollectionService {
       console.error('Collection creation error:', error);
       return {
         success: false,
-        error: error.message || 'Failed to create collection'
+        error: error.message || 'Failed to create BlockDrive collection'
       };
     }
   }
@@ -66,9 +86,29 @@ export class CollectionService {
   }
 
   /**
-   * Set collection address
+   * Set collection address (for when loading existing collection)
    */
   static setCollectionAddress(address: string): void {
     this.collectionAddress = address;
+  }
+
+  /**
+   * Verify collection exists and get details
+   */
+  static async verifyCollection(collectionAddress: string): Promise<{ exists: boolean; collection?: any }> {
+    try {
+      const metaplex = await MetaplexConfig.initializeMetaplex();
+      const collection = await metaplex.nfts().findByMint({
+        mintAddress: new PublicKey(collectionAddress)
+      });
+
+      return {
+        exists: true,
+        collection
+      };
+    } catch (error) {
+      console.error('Collection verification failed:', error);
+      return { exists: false };
+    }
   }
 }
