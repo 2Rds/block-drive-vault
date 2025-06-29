@@ -22,21 +22,15 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
 
       // Accept all EVM-compatible chains since Base L2 is EVM-compatible
       // Dynamic might report different chain identifiers
-      if (!primaryWallet.connector?.includes('evm') && 
-          primaryWallet.chain !== 'BASE' && 
-          primaryWallet.chain !== 'ETH' &&
-          primaryWallet.chain !== 'ETHEREUM') {
-        console.log('Chain info:', {
-          chain: primaryWallet.chain,
-          connector: primaryWallet.connector
-        });
-        
-        // Only show error for clearly non-EVM chains
-        if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
-          toast.error('Only Base L2 network is supported');
-          return;
-        }
+      if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
+        toast.error('Only Base L2 network is supported');
+        return;
       }
+
+      console.log('Chain info:', {
+        chain: primaryWallet.chain,
+        connector: primaryWallet.connector
+      });
 
       setIsProcessing(true);
       setWalletAddress(primaryWallet.address);
