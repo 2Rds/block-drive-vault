@@ -1,157 +1,130 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useHybridStorage } from '@/hooks/useHybridStorage';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { HybridUploadArea } from '@/components/HybridUploadArea';
 import { IPFSFileGrid } from '@/components/IPFSFileGrid';
-import { IPFSUploadArea } from '@/components/IPFSUploadArea';
 import { StatsCards } from '@/components/StatsCards';
-import { WalletInfo } from '@/components/WalletInfo';
-import { DataDashboard } from '@/components/DataDashboard';
-import { FileViewer } from '@/components/FileViewer';
-import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Upload, Slack } from 'lucide-react';
-import { SlackIntegration } from '@/components/SlackIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
-import { useIPFSUpload } from '@/hooks/useIPFSUpload';
+import { IPFSFile } from '@/types/ipfs';
 
 const Index = () => {
-  const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files');
-  const [userFolders, setUserFolders] = useState<string[]>([]);
-  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
-  
-  const {
-    currentPath,
-    openFolders,
-    selectedFile,
-    showFileViewer,
-    navigateToFolder,
-    toggleFolder,
-    selectFile,
-    closeFileViewer,
-    goBack
-  } = useFolderNavigation();
+  const { user } = useAuth();
+  const { userFiles, loading, loadUserFiles } = useHybridStorage();
+  const { selectedFolder, setSelectedFolder, createFolder } = useFolderNavigation();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const { downloadFromIPFS } = useIPFSUpload();
+  useEffect(() => {
+    if (user) {
+      console.log('Loading hybrid storage files for authenticated user');
+      loadUserFiles();
+    }
+  }, [user, loadUserFiles]);
+
+  const handleUploadComplete = () => {
+    console.log('Hybrid upload completed, refreshing file list');
+    loadUserFiles();
+  };
 
   const handleCreateFolder = (folderName: string) => {
-    setUserFolders(prev => [...prev, folderName]);
-    console.log('User folders updated:', [...userFolders, folderName]);
+    createFolder(folderName);
   };
 
-  const handleFolderClick = (folderPath: string) => {
-    console.log('Folder clicked:', folderPath);
-    toggleFolder(folderPath);
-    navigateToFolder(folderPath);
-  };
+  // Filter files based on search term and selected folder
+  const filteredFiles = userFiles.filter((file: IPFSFile) => {
+    const matchesSearch = file.filename.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFolder = selectedFolder === 'all' || file.folderPath === `/${selectedFolder}` || file.folderPath === selectedFolder;
+    return matchesSearch && matchesFolder;
+  });
 
-  const handleFileSelect = (file: any) => {
-    console.log('File selected:', file);
-    selectFile(file);
-  };
+  // Get unique folders from files
+  const folders = Array.from(new Set(
+    userFiles
+      .map((file: IPFSFile) => file.folderPath?.replace(/^\//, '') || '')
+      .filter(folder => folder && folder !== '/')
+  ));
 
-  const handleDownloadFile = async (file: any) => {
-    await downloadFromIPFS(file.cid, file.filename);
-  };
+  // Calculate storage statistics
+  const totalFiles = userFiles.length;
+  const totalSize = userFiles.reduce((sum, file) => sum + (file.size || 0), 0);
+  const solanaFiles = userFiles.filter(file => file.metadata?.storage_type === 'solana-inscription').length;
+  const ipfsFiles = userFiles.filter(file => file.metadata?.storage_type === 'ipfs' || !file.metadata?.storage_type).length;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-lg">Please connect your wallet to access BlockDrive</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <Header 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
+      
       <div className="flex">
         <Sidebar 
-          selectedFolder={selectedFolder} 
+          folders={folders}
+          selectedFolder={selectedFolder}
           onFolderSelect={setSelectedFolder}
-          userFolders={userFolders}
-          onFolderClick={handleFolderClick}
-          openFolders={openFolders}
         />
-        <main className="flex-1 p-8 ml-64">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  {activeView === 'dashboard' ? 'Analytics Dashboard' : 'IPFS File Storage'}
-                </h1>
-                <p className="text-gray-300 mt-1">
-                  {activeView === 'dashboard' 
-                    ? 'Comprehensive insights into your BlockDrive usage'
-                    : 'Decentralized file storage on the InterPlanetary File System'
-                  }
-                </p>
+        
+        <main className="flex-1 p-6 ml-64">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Enhanced Stats Cards with Hybrid Storage Info */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <StatsCards 
+                totalFiles={totalFiles}
+                totalSize={totalSize}
+                selectedFolder={selectedFolder}
+              />
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-400">Solana Files</p>
+                    <p className="text-2xl font-bold text-white">{solanaFiles}</p>
+                  </div>
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">S</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Permanent on-chain storage</p>
               </div>
-              <div className="flex items-center space-x-4">
-                <Button
-                  onClick={() => setActiveView('dashboard')}
-                  variant={activeView === 'dashboard' ? 'default' : 'outline'}
-                  className={`${
-                    activeView === 'dashboard'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button
-                  onClick={() => setActiveView('files')}
-                  variant={activeView === 'files' ? 'default' : 'outline'}
-                  className={`${
-                    activeView === 'files'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
-                  }`}
-                >
-                  <Files className="w-4 h-4 mr-2" />
-                  IPFS Files
-                </Button>
-                <Button
-                  onClick={() => setShowSlackIntegration(true)}
-                  variant="outline"
-                  className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
-                >
-                  <Slack className="w-4 h-4 mr-2" />
-                  Slack
-                </Button>
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-400">IPFS Files</p>
+                    <p className="text-2xl font-bold text-white">{ipfsFiles}</p>
+                  </div>
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">I</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Distributed storage</p>
               </div>
             </div>
 
-            <WalletInfo />
+            {/* Hybrid Upload Area */}
+            <HybridUploadArea
+              folderPath={selectedFolder !== 'all' ? selectedFolder : undefined}
+              onUploadComplete={handleUploadComplete}
+            />
 
-            {activeView === 'dashboard' ? (
-              <DataDashboard />
-            ) : (
-              <>
-                <StatsCards />
-                <IPFSUploadArea 
-                  onCreateFolder={handleCreateFolder}
-                  selectedFolder={selectedFolder}
-                />
-                <IPFSFileGrid 
-                  selectedFolder={selectedFolder} 
-                  userFolders={userFolders}
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                />
-              </>
-            )}
+            {/* Files Grid */}
+            <IPFSFileGrid 
+              files={filteredFiles}
+              loading={loading}
+              selectedFolder={selectedFolder}
+              onCreateFolder={handleCreateFolder}
+            />
           </div>
         </main>
       </div>
-
-      {/* File Viewer Modal */}
-      {showFileViewer && selectedFile && (
-        <FileViewer
-          file={selectedFile}
-          onClose={closeFileViewer}
-          onDownload={handleDownloadFile}
-        />
-      )}
-
-      <SlackIntegration
-        isOpen={showSlackIntegration}
-        onClose={() => setShowSlackIntegration(false)}
-      />
     </div>
   );
 };
