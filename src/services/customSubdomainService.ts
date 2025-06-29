@@ -1,4 +1,9 @@
 
+import { NFTService } from './nftService';
+import { SubdomainService } from './subdomainService';
+import { TwoFactorAuthService } from './twoFactorAuthService';
+import { OnboardingService } from './onboardingService';
+
 // Main service that exports all functionality for backward compatibility
 export { NFTService } from './nftService';
 export { SubdomainService } from './subdomainService';
