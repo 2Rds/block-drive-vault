@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
@@ -13,6 +13,7 @@ interface DynamicWalletConnectorProps {
 export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalletConnectorProps) => {
   const { user, primaryWallet } = useDynamicContext();
   const { connectWallet } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Debug current environment
   useEffect(() => {
@@ -26,9 +27,11 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
   }, [user, primaryWallet]);
 
   useEffect(() => {
-    if (user && primaryWallet) {
+    if (user && primaryWallet && !isProcessing) {
       console.log('Dynamic user authenticated:', user);
       console.log('Primary wallet:', primaryWallet);
+      
+      setIsProcessing(true);
       
       // Authenticate with your backend system
       const authenticateWithBackend = async () => {
@@ -49,18 +52,31 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
           if (authResult.error) {
             console.error('Backend authentication failed:', authResult.error);
             toast.error('Failed to authenticate with backend');
+            setIsProcessing(false);
             return;
           }
           
           console.log('Backend authentication successful');
-          toast.success('Wallet connected successfully via Dynamic!');
+          
+          // Check if this is a new user and if it's Ethereum to trigger subdomain creation
+          const isNewUser = authResult.data?.isFirstTime || false;
+          const isEthereum = blockchainType === 'ethereum';
+          
+          if (isNewUser && isEthereum) {
+            console.log('New Ethereum user detected - subdomain creation will be handled in WelcomeModal');
+            toast.success('Ethereum wallet connected! Please create your BlockDrive subdomain to complete setup.');
+          } else {
+            toast.success('Wallet connected successfully via Dynamic!');
+          }
           
           if (onAuthenticationSuccess) {
             onAuthenticationSuccess({
               user,
               wallet: primaryWallet,
               address: primaryWallet.address,
-              blockchainType
+              blockchainType,
+              isNewUser,
+              requiresSubdomain: isNewUser && isEthereum
             });
           }
           
@@ -72,12 +88,13 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
         } catch (error) {
           console.error('Authentication error:', error);
           toast.error('Authentication failed');
+          setIsProcessing(false);
         }
       };
       
       authenticateWithBackend();
     }
-  }, [user, primaryWallet, connectWallet, onAuthenticationSuccess]);
+  }, [user, primaryWallet, connectWallet, onAuthenticationSuccess, isProcessing]);
 
   const handleConnect = () => {
     console.log('Connect button clicked');
@@ -115,6 +132,9 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
         {user && primaryWallet && (
           <p className="text-green-400">Wallet Connected: {primaryWallet.address.slice(0, 6)}...{primaryWallet.address.slice(-4)}</p>
         )}
+        {isProcessing && (
+          <p className="text-yellow-400">Processing authentication...</p>
+        )}
       </div>
 
       <div className="text-center">
@@ -126,6 +146,12 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
           <span className="bg-purple-800/40 px-2 py-1 rounded">Solana</span>
           <span className="bg-green-800/40 px-2 py-1 rounded">Polygon</span>
           <span className="bg-yellow-800/40 px-2 py-1 rounded">BSC</span>
+        </div>
+        
+        <div className="mt-3 p-3 bg-blue-800/20 rounded-lg border border-blue-700/50">
+          <p className="text-blue-300 text-xs">
+            <strong>New Ethereum users:</strong> You'll be prompted to create a <code>blockdrive.eth</code> subdomain after connecting
+          </p>
         </div>
       </div>
     </div>
