@@ -15,7 +15,8 @@ export const DynamicWalletConnector = ({
     primaryWallet,
     user,
     handleLogOut,
-    setShowAuthFlow
+    setShowAuthFlow,
+    showAuthFlow
   } = useDynamicContext();
   const {
     connectWallet
@@ -135,29 +136,25 @@ export const DynamicWalletConnector = ({
     }
   };
 
-  const handleManualConnect = () => {
-    console.log('Manual connect triggered');
-    if (setShowAuthFlow) {
-      setShowAuthFlow(true);
-    }
-  };
-
   return (
     <div className="flex flex-col items-center space-y-4">
-      <div className="w-full max-w-md">
+      {/* Hide the connect button when auth flow is showing */}
+      <div className={`w-full max-w-md transition-opacity duration-200 ${showAuthFlow ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <DynamicWidget 
-          buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
-          innerButtonComponent={
-            <button 
-              onClick={handleManualConnect}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Connecting...' : 'Connect Wallet'}
-            </button>
-          }
+          buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
         />
       </div>
+      
+      {/* Modal overlay when auth flow is showing */}
+      {showAuthFlow && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="relative">
+            <DynamicWidget 
+              buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+            />
+          </div>
+        </div>
+      )}
       
       <div className="text-center">
         <p className="text-gray-400 text-sm mb-2">
