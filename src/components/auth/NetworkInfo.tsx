@@ -19,10 +19,10 @@ export const NetworkInfo = () => {
             <strong>New Users:</strong> Automatic BlockDrive NFT airdrop for blockchain authentication
           </p>
           <p className="text-purple-200">
-            <strong>Ethereum Users:</strong> Create blockdrive.eth subdomain for full 2FA setup
+            <strong>All Users:</strong> Create BlockDrive subdomain for full 2FA setup
           </p>
           <p className="text-green-200">
-            <strong>Solana Users:</strong> NFT-based authentication with simplified flow
+            <strong>Both Chains:</strong> NFT + Subdomain authentication for enhanced security
           </p>
         </div>
       </div>

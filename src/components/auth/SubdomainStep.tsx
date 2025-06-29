@@ -26,10 +26,10 @@ export const SubdomainStep = ({
       
       <div className="space-y-4 mt-6">
         <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
-          <h4 className="text-blue-300 font-medium mb-2">Subdomain Required for Full Access</h4>
+          <h4 className="text-blue-300 font-medium mb-2">Subdomain Required for All Users</h4>
           <p className="text-blue-200 text-sm">
             Both Ethereum and Solana users need to create a BlockDrive subdomain as the second factor of our 2FA system. 
-            This works alongside your NFT authentication.
+            This works alongside your NFT authentication for maximum security.
           </p>
         </div>
         

@@ -79,7 +79,7 @@ const Auth = () => {
                   </div>
                   <div>
                     <p className="text-purple-400 font-medium">Subdomain Authentication</p>
-                    <p className="text-gray-400">Ethereum users create blockdrive.eth subdomains</p>
+                    <p className="text-gray-400">All users create BlockDrive subdomains for enhanced security</p>
                   </div>
                 </div>
               </div>

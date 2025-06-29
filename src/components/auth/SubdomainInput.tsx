@@ -38,7 +38,7 @@ export const SubdomainInput = ({
         </div>
       </div>
       <p className="text-xs text-gray-400">
-        Will create: {subdomainName || '[name]'}.blockdrive.eth
+        Will create: {subdomainName || '[name]'}.blockdrive.net
       </p>
       {isSubdomainAvailable === false && (
         <p className="text-xs text-red-400">
