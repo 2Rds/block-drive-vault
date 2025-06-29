@@ -75,6 +75,7 @@
     "tailwindcss-animate": "^1.0.7",
     "thirdweb": "^5.104.1",
     "vaul": "^0.9.3",
+    "viem": "^2.31.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
