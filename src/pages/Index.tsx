@@ -62,27 +62,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Header 
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+      <Header />
       
       <div className="flex">
-        <Sidebar 
-          folders={folders}
-          selectedFolder={selectedFolder}
-          onFolderSelect={setSelectedFolder}
-        />
+        <Sidebar />
         
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Enhanced Stats Cards with Hybrid Storage Info */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <StatsCards 
-                totalFiles={totalFiles}
-                totalSize={totalSize}
-                selectedFolder={selectedFolder}
-              />
+              <StatsCards />
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
