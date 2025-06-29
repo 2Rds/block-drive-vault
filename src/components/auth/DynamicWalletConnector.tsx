@@ -30,21 +30,21 @@ export const DynamicWalletConnector = ({
       chain: primaryWallet?.chain
     });
 
-    if (primaryWallet && user && !isProcessing) {
+    // Handle wallet connection with or without Dynamic user
+    if (primaryWallet && !isProcessing) {
       console.log('Dynamic wallet connection detected:', {
         wallet: primaryWallet.address,
-        user: user.userId,
-        userVerified: user.verifiedCredentials
+        user: user?.userId || 'no-user',
+        chain: primaryWallet.chain
       });
       handleWalletConnection();
     }
   }, [primaryWallet, user, isProcessing]);
 
   const handleWalletConnection = async () => {
-    if (!primaryWallet || !user || isProcessing) {
-      console.log('Missing wallet or user data for authentication', {
+    if (!primaryWallet || isProcessing) {
+      console.log('Missing wallet data for authentication', {
         primaryWallet: !!primaryWallet,
-        user: !!user,
         isProcessing
       });
       return;
@@ -61,7 +61,7 @@ export const DynamicWalletConnector = ({
         chain: primaryWallet.chain,
         blockchainType,
         connector: primaryWallet.connector?.name,
-        userId: user.userId
+        userId: user?.userId || 'wallet-only'
       });
 
       // Create a signature for authentication
@@ -82,7 +82,8 @@ export const DynamicWalletConnector = ({
         address: walletAddress,
         blockchain_type: blockchainType,
         signature,
-        id: blockchainType
+        id: blockchainType,
+        userId: user?.userId || `dynamic-${walletAddress.slice(-8)}`
       });
 
       const result = await connectWallet({
@@ -90,7 +91,7 @@ export const DynamicWalletConnector = ({
         blockchain_type: blockchainType,
         signature,
         id: blockchainType,
-        userId: user.userId
+        userId: user?.userId || `dynamic-${walletAddress.slice(-8)}`
       });
 
       console.log('connectWallet result:', result);
@@ -113,7 +114,9 @@ export const DynamicWalletConnector = ({
 
       // Force immediate redirect to dashboard
       console.log('Redirecting to dashboard after successful authentication');
-      window.location.href = '/index';
+      setTimeout(() => {
+        window.location.href = '/index';
+      }, 500);
 
     } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
