@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,6 +24,9 @@ function App() {
       settings={{
         environmentId: dynamicConfig.environmentId,
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
+        appName: "BlockDrive",
+        appLogoUrl: "/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png",
+        enableVisitTrackingOnConnectOnly: true,
       }}
     >
       <QueryClientProvider client={queryClient}>

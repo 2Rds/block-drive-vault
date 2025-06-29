@@ -1,14 +1,35 @@
 
-import React from 'react';
-import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import React, { useEffect } from 'react';
+import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface DynamicWalletConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
 }
 
 export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalletConnectorProps) => {
+  const { user, primaryWallet } = useDynamicContext();
+
+  useEffect(() => {
+    if (user && primaryWallet) {
+      console.log('Dynamic user authenticated:', user);
+      console.log('Primary wallet:', primaryWallet);
+      
+      toast.success('Wallet connected successfully via Dynamic!');
+      
+      if (onAuthenticationSuccess) {
+        onAuthenticationSuccess({
+          user,
+          wallet: primaryWallet,
+          address: primaryWallet.address,
+          blockchainType: primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum'
+        });
+      }
+    }
+  }, [user, primaryWallet, onAuthenticationSuccess]);
+
   return (
     <div className="space-y-4">
       <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800">
@@ -26,7 +47,10 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
       </Card>
 
       <div className="flex justify-center">
-        <DynamicWidget />
+        <DynamicWidget 
+          innerButtonComponent="Connect Wallet"
+          variant="modal"
+        />
       </div>
 
       <div className="text-center">
