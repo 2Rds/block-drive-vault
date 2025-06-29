@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Shield, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,18 +6,26 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { DynamicWalletConnector } from '@/components/auth/DynamicWalletConnector';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-
 const Auth = () => {
-  const { user, session } = useAuth();
-  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
+  const {
+    user,
+    session
+  } = useAuth();
+  const {
+    primaryWallet,
+    sdkHasLoaded
+  } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-
   useEffect(() => {
-    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError });
-    
+    console.log('Auth page - SDK state:', {
+      sdkHasLoaded,
+      dynamicReady,
+      sdkError
+    });
+
     // Enhanced timeout handling for Dynamic SDK
     const timeout = setTimeout(() => {
       if (!sdkHasLoaded && !dynamicReady) {
@@ -34,10 +41,8 @@ const Auth = () => {
       clearTimeout(timeout);
       console.log('Dynamic SDK loaded successfully');
     }
-
     return () => clearTimeout(timeout);
   }, [sdkHasLoaded, dynamicReady, retryCount]);
-
   useEffect(() => {
     // Redirect authenticated users to dashboard
     if (user && session) {
@@ -55,11 +60,9 @@ const Auth = () => {
       });
     }
   }, [sdkHasLoaded, primaryWallet]);
-
   const handleWeb3MFASuccess = (authData: any) => {
     console.log('Web3 MFA authentication successful:', authData);
   };
-
   const handleRetry = () => {
     console.log('Retrying Dynamic SDK initialization...');
     setSdkError(false);
@@ -68,9 +71,7 @@ const Auth = () => {
     // Force page reload to reinitialize SDK
     window.location.reload();
   };
-
-  return (
-    <div className="min-h-screen bg-gray-950">
+  return <div className="min-h-screen bg-gray-950">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
@@ -105,20 +106,17 @@ const Auth = () => {
             </div>
 
             {/* Enhanced Dynamic SDK Status */}
-            {!dynamicReady && !sdkError && (
-              <div className="bg-blue-800/40 border border-blue-700 rounded-xl p-4">
+            {!dynamicReady && !sdkError && <div className="bg-blue-800/40 border border-blue-700 rounded-xl p-4">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
                   <span className="text-blue-200 text-sm">
                     Initializing wallet connections... (this may take up to 20 seconds)
                   </span>
                 </div>
-              </div>
-            )}
+              </div>}
 
             {/* Enhanced SDK Error with Retry */}
-            {sdkError && (
-              <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
+            {sdkError && <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
                   <div className="flex-1">
@@ -131,33 +129,25 @@ const Auth = () => {
                       <li>Firewall or ad blocker restrictions</li>
                       <li>Temporary service disruption</li>
                     </ul>
-                    <button 
-                      onClick={handleRetry}
-                      className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors"
-                    >
+                    <button onClick={handleRetry} className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors">
                       <RefreshCw className="w-4 h-4" />
                       <span>Retry Connection</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              </div>}
 
             {/* Dynamic Wallet Connector */}
-            {dynamicReady && !sdkError ? (
-              <div className="space-y-4">
+            {dynamicReady && !sdkError ? <div className="space-y-4">
                 <DynamicWalletConnector onWalletConnected={() => {}} />
-                {sdkHasLoaded && (
-                  <div className="text-center">
+                {sdkHasLoaded && <div className="text-center">
                     <p className="text-green-400 text-xs">✓ Wallet services ready</p>
-                  </div>
-                )}
-              </div>
-            ) : null}
+                  </div>}
+              </div> : null}
 
             {/* Always show Web3 MFA as fallback */}
             <div className="border-t border-gray-700 pt-6">
-              <h3 className="text-white font-semibold mb-3 text-center">Alternative Authentication</h3>
+              
               <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
             </div>
 
@@ -178,8 +168,6 @@ const Auth = () => {
           <FeatureCards />
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
