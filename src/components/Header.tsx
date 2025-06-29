@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -49,6 +50,8 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          <ThemeToggle />
+          
           {user ? (
             // Authenticated user content
             <>
