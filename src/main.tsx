@@ -25,10 +25,7 @@ createRoot(document.getElementById("root")!).render(
         initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: false,
         shadowDOMEnabled: false,
-        apiBaseUrl: 'https://app.dynamicauth.com/api/v0',
-        onError: (error) => {
-          console.error('Dynamic SDK Error:', error);
-        }
+        apiBaseUrl: 'https://app.dynamicauth.com/api/v0'
       }}
     >
       <App />
