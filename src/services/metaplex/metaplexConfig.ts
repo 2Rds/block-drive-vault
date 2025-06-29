@@ -1,6 +1,6 @@
 
 import { Metaplex, keypairIdentity } from '@metaplex-foundation/js';
-import { Connection, clusterApiUrl, Keypair } from '@solana/web3.js';
+import { Connection, clusterApiUrl, Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 
 export class MetaplexConfig {
@@ -9,6 +9,9 @@ export class MetaplexConfig {
   
   // BlockDrive official Solana wallet
   private static readonly BLOCKDRIVE_WALLET_ADDRESS = 'FJ6jvjHVEKPmcGWrSe1b8HJ8maZp68PY5AzZ8PQnNtZ3';
+  
+  // Your custom SPL token address
+  private static readonly BLOCKDRIVE_SPL_TOKEN = 'Coue3he4D9JMesMg9C3X9EzjkUkX1DUmrjghheWMD6cp';
 
   /**
    * Initialize Metaplex instance with BlockDrive official wallet
@@ -25,6 +28,7 @@ export class MetaplexConfig {
     
     console.log('BlockDrive Collection Authority (Demo):', this.wallet.publicKey.toString());
     console.log('Target BlockDrive Wallet:', this.BLOCKDRIVE_WALLET_ADDRESS);
+    console.log('BlockDrive SPL Token:', this.BLOCKDRIVE_SPL_TOKEN);
     
     this.metaplex = Metaplex.make(connection)
       .use(keypairIdentity(this.wallet));
@@ -44,6 +48,13 @@ export class MetaplexConfig {
    */
   static getBlockDriveWalletAddress(): string {
     return this.BLOCKDRIVE_WALLET_ADDRESS;
+  }
+
+  /**
+   * Get the BlockDrive SPL token address
+   */
+  static getBlockDriveSPLToken(): string {
+    return this.BLOCKDRIVE_SPL_TOKEN;
   }
 
   /**

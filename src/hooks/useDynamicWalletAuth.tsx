@@ -57,28 +57,30 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: UseDynamicWall
 
           console.log('Backend authentication successful');
 
-          // Check if this is a new user
-          const isNewUser = authResult.data?.isFirstTime || false;
+          // Check if this is a new user by verifying 2FA factors
+          const verification = await CustomSubdomainService.verify2FA(walletAddress, blockchainType);
+          
+          if (!verification.hasNFT) {
+            console.log('New user detected - starting token/NFT airdrop and onboarding flow');
+            
+            const tokenType = blockchainType === 'solana' ? 'SPL token' : 'NFT';
+            toast.success(`Welcome to BlockDrive! Starting ${blockchainType.toUpperCase()} ${tokenType} airdrop...`);
 
-          if (isNewUser) {
-            console.log('New user detected - starting NFT airdrop and onboarding flow');
-            toast.success(`Welcome to BlockDrive! Starting ${blockchainType.toUpperCase()} onboarding...`);
-
-            // Start the NFT airdrop process for new users
+            // Start the token/NFT airdrop process for new users
             const onboardingResult = await CustomSubdomainService.completeNewUserOnboarding(
               walletAddress,
               blockchainType
             );
 
             if (!onboardingResult.nftResult.success) {
-              console.error('NFT airdrop failed:', onboardingResult.nftResult.error);
-              toast.error('NFT airdrop failed. Please contact support.');
+              console.error('Token/NFT airdrop failed:', onboardingResult.nftResult.error);
+              toast.error(`${tokenType} airdrop failed. Please contact support.`);
               setIsProcessing(false);
               return;
             }
 
-            // NFT airdrop successful
-            console.log('NFT airdrop completed successfully');
+            // Token/NFT airdrop successful
+            console.log(`${tokenType} airdrop completed successfully`);
 
             if (onAuthenticationSuccess) {
               onAuthenticationSuccess({
@@ -87,28 +89,36 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: UseDynamicWall
                 address: walletAddress,
                 blockchainType,
                 isNewUser: true,
-                requiresSubdomain: blockchainType === 'ethereum',
-                nftAirdropped: true,
-                nftData: onboardingResult.nftResult.nft
+                requiresSubdomain: true, // Both chains now need subdomains
+                tokenAirdropped: true,
+                tokenData: onboardingResult.nftResult.nft,
+                tokenType: blockchainType === 'solana' ? 'SPL' : 'NFT'
               });
             }
-          } else {
-            // Existing user - verify they have required 2FA factors
-            console.log('Existing user - verifying 2FA factors');
+          } else if (!verification.hasSubdomain) {
+            // User has token/NFT but needs subdomain (incomplete 2FA)
+            toast.error(`Authentication incomplete. You have your ${blockchainType === 'solana' ? 'SPL token' : 'NFT'} but need to create your BlockDrive subdomain.`);
             
-            const verification = await CustomSubdomainService.verify2FA(walletAddress, blockchainType);
-            
-            if (!verification.isFullyVerified) {
-              const missingFactors = [];
-              if (!verification.hasNFT) missingFactors.push('BlockDrive NFT');
-              if (blockchainType === 'ethereum' && !verification.hasSubdomain) missingFactors.push('BlockDrive subdomain');
-              
-              toast.error(`Authentication incomplete. Missing: ${missingFactors.join(', ')}`);
-              setIsProcessing(false);
-              return;
+            if (onAuthenticationSuccess) {
+              onAuthenticationSuccess({
+                user,
+                wallet: primaryWallet,
+                address: walletAddress,
+                blockchainType,
+                isNewUser: false,
+                requiresSubdomain: true,
+                hasToken: true,
+                tokenType: blockchainType === 'solana' ? 'SPL' : 'NFT'
+              });
             }
-
-            toast.success('Welcome back! Full 2FA verification successful.');
+            setIsProcessing(false);
+            return;
+          } else {
+            // Existing user with full 2FA - both token/NFT and subdomain
+            console.log('Existing user - full 2FA verification successful');
+            
+            const tokenType = blockchainType === 'solana' ? 'SPL token' : 'NFT';
+            toast.success(`Welcome back! Full 2FA verification successful (${tokenType} + subdomain).`);
 
             if (onAuthenticationSuccess) {
               onAuthenticationSuccess({
@@ -119,7 +129,8 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: UseDynamicWall
                 isNewUser: false,
                 has2FA: verification.isFullyVerified,
                 hasNFT: verification.hasNFT,
-                hasSubdomain: verification.hasSubdomain
+                hasSubdomain: verification.hasSubdomain,
+                tokenType: blockchainType === 'solana' ? 'SPL' : 'NFT'
               });
             }
           }

@@ -1,25 +1,34 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { SPLTokenService } from './metaplex/splTokenService';
 import { TwoFactorVerification } from '@/types/subdomain';
 
 export class TwoFactorAuthService {
   /**
-   * Verify user has both factors for 2FA (NFT + Subdomain for both chains)
+   * Verify user has both factors for 2FA (SPL Token + Subdomain)
    */
   static async verify2FA(walletAddress: string, blockchainType: 'ethereum' | 'solana'): Promise<TwoFactorVerification> {
     try {
-      // Check NFT ownership (Factor 1)
-      const { data: nftData } = await supabase
-        .from('blockdrive_nfts')
-        .select('*')
-        .eq('wallet_address', walletAddress)
-        .eq('blockchain_type', blockchainType)
-        .eq('is_active', true)
-        .maybeSingle();
+      let hasNFT = false;
+      
+      if (blockchainType === 'solana') {
+        // For Solana: Check SPL token ownership (Factor 1)
+        const splVerification = await SPLTokenService.verifyBlockDriveSPLToken(walletAddress);
+        hasNFT = splVerification.hasToken;
+      } else {
+        // For Ethereum: Check NFT ownership in database (Factor 1)
+        const { data: nftData } = await supabase
+          .from('blockdrive_nfts')
+          .select('*')
+          .eq('wallet_address', walletAddress)
+          .eq('blockchain_type', blockchainType)
+          .eq('is_active', true)
+          .maybeSingle();
 
-      const hasNFT = !!nftData;
+        hasNFT = !!nftData;
+      }
 
-      // Check subdomain ownership (Factor 2) - now required for both chains
+      // Check subdomain ownership (Factor 2) - required for both chains
       const { data: subdomainData } = await supabase
         .from('subdomain_registrations')
         .select('*')
@@ -30,7 +39,7 @@ export class TwoFactorAuthService {
 
       const hasSubdomain = !!subdomainData;
 
-      // Both chains now need NFT + Subdomain for full 2FA
+      // Both chains need Token/NFT + Subdomain for full 2FA
       const isFullyVerified = hasNFT && hasSubdomain;
 
       return {

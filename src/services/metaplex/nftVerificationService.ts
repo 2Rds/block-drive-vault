@@ -1,51 +1,54 @@
 
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplexConfig';
-import { CollectionService } from './collectionService';
+import { SPLTokenService } from './splTokenService';
 
 export interface NFTVerificationResult {
   hasNFT: boolean;
   nfts: any[];
+  hasSPLToken: boolean;
+  splTokenBalance?: number;
   error?: string;
 }
 
 export class NFTVerificationService {
   /**
-   * Verify soulbound NFT ownership
+   * Verify BlockDrive SPL token ownership (new first factor)
    */
-  static async verifySoulboundNFT(walletAddress: string): Promise<NFTVerificationResult> {
+  static async verifySPLToken(walletAddress: string): Promise<NFTVerificationResult> {
     try {
-      const metaplex = await MetaplexConfig.initializeMetaplex();
-      const ownerPublicKey = new PublicKey(walletAddress);
-
-      // Find all NFTs owned by the wallet
-      const nfts = await metaplex.nfts().findAllByOwner({
-        owner: ownerPublicKey,
-      });
-
-      // Filter for BlockDrive NFTs
-      const blockDriveNFTs = nfts.filter(nft => 
-        nft.symbol === 'BDNFT' || 
-        (CollectionService.getCollectionAddress() && 
-         nft.collection?.address.toString() === CollectionService.getCollectionAddress())
-      );
+      console.log('Verifying BlockDrive SPL token ownership:', walletAddress);
+      
+      const splVerification = await SPLTokenService.verifyBlockDriveSPLToken(walletAddress);
+      
+      if (splVerification.error) {
+        return {
+          hasNFT: false,
+          nfts: [],
+          hasSPLToken: false,
+          error: splVerification.error
+        };
+      }
 
       return {
-        hasNFT: blockDriveNFTs.length > 0,
-        nfts: blockDriveNFTs.map(nft => ({
-          address: nft.address.toString(),
-          name: nft.name,
-          symbol: nft.symbol,
-          uri: nft.uri,
-          isSoulbound: true
-        }))
+        hasNFT: splVerification.hasToken, // Using SPL token as NFT equivalent
+        nfts: splVerification.hasToken ? [{
+          type: 'SPL_TOKEN',
+          address: MetaplexConfig.getBlockDriveSPLToken(),
+          balance: splVerification.balance,
+          name: 'BlockDrive Access Token',
+          symbol: 'BDRIVE'
+        }] : [],
+        hasSPLToken: splVerification.hasToken,
+        splTokenBalance: splVerification.balance
       };
 
     } catch (error: any) {
-      console.error('NFT verification error:', error);
+      console.error('SPL token verification error:', error);
       return {
         hasNFT: false,
         nfts: [],
+        hasSPLToken: false,
         error: error.message
       };
     }
