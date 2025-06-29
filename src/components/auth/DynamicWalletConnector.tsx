@@ -10,7 +10,18 @@ interface DynamicWalletConnectorProps {
 }
 
 export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalletConnectorProps) => {
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet, isAuthenticated } = useDynamicContext();
+
+  // Debug current environment
+  useEffect(() => {
+    console.log('Current URL:', window.location.href);
+    console.log('Current Origin:', window.location.origin);
+    console.log('Dynamic Context State:', { 
+      user: user?.userId, 
+      primaryWallet: primaryWallet?.address, 
+      isAuthenticated 
+    });
+  }, []);
 
   useEffect(() => {
     if (user && primaryWallet) {
@@ -30,6 +41,10 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
     }
   }, [user, primaryWallet, onAuthenticationSuccess]);
 
+  const handleConnect = () => {
+    console.log('Connect button clicked');
+  };
+
   return (
     <div className="space-y-4">
       <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-800">
@@ -47,10 +62,18 @@ export const DynamicWalletConnector = ({ onAuthenticationSuccess }: DynamicWalle
       </Card>
 
       <div className="flex justify-center">
-        <DynamicWidget 
-          innerButtonComponent="Connect Wallet"
-          variant="modal"
-        />
+        <div onClick={handleConnect}>
+          <DynamicWidget 
+            innerButtonComponent="Connect Wallet"
+            variant="modal"
+          />
+        </div>
+      </div>
+
+      {/* Debug info */}
+      <div className="text-center text-xs text-gray-500 mt-4">
+        <p>Environment ID: {process.env.NODE_ENV}</p>
+        <p>Origin: {window.location.origin}</p>
       </div>
 
       <div className="text-center">
