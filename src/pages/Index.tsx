@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from 'lucide-react';
-import { EnhancedWelcomeModal } from '@/components/auth/EnhancedWelcomeModal';
+import { WelcomeModal } from '@/components/auth/WelcomeModal';
 
 const Index = () => {
   const { user, session, signOut, walletData } = useAuth();
@@ -56,7 +56,7 @@ const Index = () => {
     )
   }
 
-  // Enhanced welcome modal logic for new custom flow
+  // Simplified welcome modal logic
   const shouldShowWelcomeModal = useMemo(() => {    
     if (!user?.user_metadata?.wallet_address) return false;
     
@@ -87,15 +87,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Enhanced Welcome Modal */}
+      {/* Simplified Welcome Modal */}
       {shouldShowWelcomeModal && user?.user_metadata?.wallet_address && (
-        <EnhancedWelcomeModal
+        <WelcomeModal
           isOpen={showWelcomeModal}
           onClose={closeWelcomeModal}
           walletAddress={user.user_metadata.wallet_address}
-          blockchainType={(user.user_metadata.blockchain_type as 'ethereum' | 'solana') || 'ethereum'}
-          isNewUser={true}
-          nftAirdropped={true}
+          blockchainType={(user.user_metadata.blockchain_type as string) || 'ethereum'}
         />
       )}
 
