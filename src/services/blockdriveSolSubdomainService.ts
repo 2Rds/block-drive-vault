@@ -1,3 +1,4 @@
+
 import { PublicKey } from '@solana/web3.js';
 import { MetaplexConfig } from './metaplex/metaplexConfig';
 import { CollectionService } from './metaplex/collectionService';
@@ -37,21 +38,30 @@ export class BlockDriveSolSubdomainService {
       console.log('Collection address:', collectionAddress);
 
       // Find all NFTs owned by the wallet
-      const nfts = await metaplex.nfts().findAllByOwner({
+      const nftMetadataList = await metaplex.nfts().findAllByOwner({
         owner: ownerPublicKey,
       });
 
       // Filter for BlockDrive NFTs from our collection
       const blockDriveNFTs = [];
       
-      for (const nftMetadata of nfts) {
+      for (const nftMetadata of nftMetadataList) {
         try {
-          // Load full NFT data to check collection
-          const fullNft = await metaplex.nfts().load({ metadata: nftMetadata });
-          
-          if (fullNft.collection?.address.toString() === collectionAddress ||
-              fullNft.symbol === 'BDNFT') {
-            blockDriveNFTs.push(fullNft);
+          // Check if this is already a full NFT or just metadata
+          if ('model' in nftMetadata && nftMetadata.model === 'nft') {
+            // This is already a full NFT
+            const fullNft = nftMetadata as any;
+            if (fullNft.collection?.address.toString() === collectionAddress ||
+                fullNft.symbol === 'BDNFT') {
+              blockDriveNFTs.push(fullNft);
+            }
+          } else {
+            // This is metadata, need to load the full NFT
+            const fullNft = await metaplex.nfts().load({ metadata: nftMetadata });
+            if (fullNft.collection?.address.toString() === collectionAddress ||
+                fullNft.symbol === 'BDNFT') {
+              blockDriveNFTs.push(fullNft);
+            }
           }
         } catch (error) {
           console.log('Error loading NFT:', error);
