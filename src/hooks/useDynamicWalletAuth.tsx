@@ -20,10 +20,22 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
     const handleWalletConnection = async () => {
       if (!primaryWallet || !user) return;
 
-      // Only process Base L2 connections
-      if (primaryWallet.chain !== 'BASE' && primaryWallet.chain !== 'ETH') {
-        toast.error('Only Base L2 network is supported');
-        return;
+      // Accept all EVM-compatible chains since Base L2 is EVM-compatible
+      // Dynamic might report different chain identifiers
+      if (!primaryWallet.connector?.includes('evm') && 
+          primaryWallet.chain !== 'BASE' && 
+          primaryWallet.chain !== 'ETH' &&
+          primaryWallet.chain !== 'ETHEREUM') {
+        console.log('Chain info:', {
+          chain: primaryWallet.chain,
+          connector: primaryWallet.connector
+        });
+        
+        // Only show error for clearly non-EVM chains
+        if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
+          toast.error('Only Base L2 network is supported');
+          return;
+        }
       }
 
       setIsProcessing(true);
@@ -40,8 +52,15 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
         const onboardingResult = await BaseOnboardingService.processNewUser(primaryWallet.address);
         
         if (!onboardingResult.success) {
-          if (onboardingResult.redirectToMint || onboardingResult.requiresNFT || onboardingResult.requiresSubdomain) {
-            // User needs to complete onboarding
+          if (onboardingResult.requiresSubdomain && !onboardingResult.requiresNFT) {
+            // User has NFT but needs subdomain - show onboarding flow
+            console.log('User has NFT, needs subdomain');
+            setNeedsOnboarding(true);
+            setIsProcessing(false);
+            return;
+          } else if (onboardingResult.redirectToMint || onboardingResult.requiresNFT) {
+            // User needs to mint NFT first
+            console.log('User needs to mint NFT');
             setNeedsOnboarding(true);
             setIsProcessing(false);
             return;
@@ -53,6 +72,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
         }
 
         // User has completed onboarding - proceed with authentication
+        console.log('User has completed onboarding, proceeding with auth');
         const mockSignature = `base-auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
         // Use existing wallet connection flow

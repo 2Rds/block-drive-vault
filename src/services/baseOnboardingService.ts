@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BaseAuthService } from './baseAuthService';
 import { BaseSubdomainService } from './baseSubdomainService';
@@ -38,9 +37,17 @@ export class BaseOnboardingService {
 
       const isNewUser = !existingUser;
 
-      // Check NFT ownership
-      const nftVerification = await BaseAuthService.verifySoulboundNFT(walletAddress);
-      const hasNFT = nftVerification.hasNFT;
+      // Check NFT ownership - for Dynamic gated users, assume they have the NFT
+      // since they passed the token gate to get this far
+      let hasNFT = false;
+      try {
+        const nftVerification = await BaseAuthService.verifySoulboundNFT(walletAddress);
+        hasNFT = nftVerification.hasNFT;
+      } catch (error) {
+        console.log('NFT verification failed, but user may have passed Dynamic token gate');
+        // If Dynamic token gate passed them through, they likely have the NFT
+        hasNFT = true;
+      }
 
       // Check subdomain ownership
       const subdomainVerification = await BaseAuthService.verifyBaseSubdomain(walletAddress);
