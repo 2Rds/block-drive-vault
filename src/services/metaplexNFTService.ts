@@ -3,7 +3,7 @@ import { MetaplexConfig } from './metaplex/metaplexConfig';
 import { CollectionService, CollectionResult } from './metaplex/collectionService';
 import { NFTMintingService, NFTMintResult, NFTMetadata } from './metaplex/nftMintingService';
 import { NFTVerificationService, NFTVerificationResult } from './metaplex/nftVerificationService';
-import { BlockDriveSolSubdomainService } from './blockdriveSolSubdomainService';
+import { BlockDriveSubdomainService } from './solana/blockDriveSubdomainService';
 
 export interface MetaplexNFTResult {
   success: boolean;
@@ -67,14 +67,14 @@ export class MetaplexNFTService {
     walletAddress: string,
     subdomainName: string
   ) {
-    return await BlockDriveSolSubdomainService.registerBlockDriveSubdomain(walletAddress, subdomainName);
+    return await BlockDriveSubdomainService.registerBlockDriveSubdomain(walletAddress, subdomainName);
   }
 
   /**
    * Verify BlockDrive NFT ownership for subdomain registration
    */
   static async verifyNFTForSubdomain(walletAddress: string) {
-    return await BlockDriveSolSubdomainService.verifyBlockDriveNFTOwnership(walletAddress);
+    return await BlockDriveSubdomainService.verifyBlockDriveNFTOwnership(walletAddress);
   }
 
   /**
