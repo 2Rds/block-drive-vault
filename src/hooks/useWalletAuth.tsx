@@ -42,6 +42,7 @@ export const useWalletAuth = () => {
         console.log('Wallet authentication successful, creating session...');
         
         // Create a comprehensive session using the auth token
+        const blockchainDisplayName = blockchainType === 'solana' ? 'Solana' : 'EVM';
         const user: User = {
           id: data.authToken,
           email: `${walletAddress}@blockdrive.wallet`,
@@ -52,7 +53,7 @@ export const useWalletAuth = () => {
           user_metadata: {
             wallet_address: walletAddress,
             blockchain_type: blockchainType,
-            username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+            username: `${blockchainDisplayName} User`,
           }
         };
 
@@ -81,9 +82,9 @@ export const useWalletAuth = () => {
         console.log('Wallet connected successfully:', processedWalletData);
         
         if (data.isFirstTime) {
-          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully! Welcome to BlockDrive!`);
+          toast.success(`${blockchainDisplayName} wallet registered successfully! Welcome to BlockDrive!`);
         } else {
-          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
+          toast.success(`${blockchainDisplayName} wallet authenticated successfully! Welcome back!`);
         }
         
         // Redirect to dashboard

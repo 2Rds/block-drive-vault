@@ -24,12 +24,6 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
         return;
       }
 
-      // Skip Solana wallets - only support EVM chains
-      if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
-        toast.error('Only EVM-compatible wallets are supported');
-        return;
-      }
-
       console.log('Processing wallet connection:', {
         address: primaryWallet.address,
         chain: primaryWallet.chain,
@@ -40,24 +34,34 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
       setAuthError('');
       
       try {
-        // Simple wallet authentication - determine blockchain type
-        const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
+        // Determine blockchain type based on chain
+        let blockchainType = 'ethereum'; // default
+        
+        if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
+          blockchainType = 'solana';
+        } else {
+          // EVM chains (Ethereum, Base, Polygon, etc.)
+          blockchainType = 'ethereum';
+        }
+        
         const mockSignature = `auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Connect wallet directly without NFT/subdomain verification
+        // Connect wallet with blockchain type detection
         await connectWallet({
           address: primaryWallet.address,
           blockchain_type: blockchainType,
           signature: mockSignature,
-          id: primaryWallet.chain || 'ethereum'
+          id: primaryWallet.chain || blockchainType
         });
 
-        toast.success('Wallet connected successfully!');
+        const walletTypeName = blockchainType === 'solana' ? 'Solana' : 'EVM';
+        toast.success(`${walletTypeName} wallet connected successfully!`);
         
         if (onAuthenticationSuccess) {
           onAuthenticationSuccess({
             address: primaryWallet.address,
             blockchain: primaryWallet.chain,
+            blockchainType,
             signature: mockSignature,
             isAuthenticated: true
           });
