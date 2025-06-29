@@ -4,11 +4,22 @@ import { TwoFactorVerification } from '@/types/subdomain';
 
 export class TwoFactorAuthService {
   /**
-   * Verify user has subdomain for authentication (removed NFT requirement)
+   * Verify user has both factors for 2FA (NFT + Subdomain for both chains)
    */
   static async verify2FA(walletAddress: string, blockchainType: 'ethereum' | 'solana'): Promise<TwoFactorVerification> {
     try {
-      // Check subdomain ownership (primary authentication factor)
+      // Check NFT ownership (Factor 1)
+      const { data: nftData } = await supabase
+        .from('blockdrive_nfts')
+        .select('*')
+        .eq('wallet_address', walletAddress)
+        .eq('blockchain_type', blockchainType)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      const hasNFT = !!nftData;
+
+      // Check subdomain ownership (Factor 2) - now required for both chains
       const { data: subdomainData } = await supabase
         .from('subdomain_registrations')
         .select('*')
@@ -19,11 +30,11 @@ export class TwoFactorAuthService {
 
       const hasSubdomain = !!subdomainData;
 
-      // Authentication is now based solely on subdomain ownership
-      const isFullyVerified = hasSubdomain;
+      // Both chains now need NFT + Subdomain for full 2FA
+      const isFullyVerified = hasNFT && hasSubdomain;
 
       return {
-        hasNFT: false, // No longer checking NFT
+        hasNFT,
         hasSubdomain,
         isFullyVerified
       };

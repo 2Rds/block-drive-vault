@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { toast } from 'sonner';
@@ -58,28 +57,71 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: UseDynamicWall
 
           console.log('Backend authentication successful');
 
-          // Check subdomain ownership for authentication
-          const verification = await CustomSubdomainService.verify2FA(walletAddress, blockchainType);
-          
-          if (!verification.isFullyVerified) {
-            const subdomainType = blockchainType === 'ethereum' ? 'blockdrive.eth' : 'blockdrive.sol';
-            toast.error(`Authentication requires a ${subdomainType} subdomain. Please register one to continue.`);
-            setIsProcessing(false);
-            return;
-          }
+          // Check if this is a new user
+          const isNewUser = authResult.data?.isFirstTime || false;
 
-          toast.success('Welcome! Subdomain verification successful.');
+          if (isNewUser) {
+            console.log('New user detected - starting NFT airdrop and onboarding flow');
+            toast.success(`Welcome to BlockDrive! Starting ${blockchainType.toUpperCase()} onboarding...`);
 
-          if (onAuthenticationSuccess) {
-            onAuthenticationSuccess({
-              user,
-              wallet: primaryWallet,
-              address: walletAddress,
-              blockchainType,
-              isNewUser: false,
-              hasSubdomain: verification.hasSubdomain,
-              authMethod: 'subdomain'
-            });
+            // Start the NFT airdrop process for new users
+            const onboardingResult = await CustomSubdomainService.completeNewUserOnboarding(
+              walletAddress,
+              blockchainType
+            );
+
+            if (!onboardingResult.nftResult.success) {
+              console.error('NFT airdrop failed:', onboardingResult.nftResult.error);
+              toast.error('NFT airdrop failed. Please contact support.');
+              setIsProcessing(false);
+              return;
+            }
+
+            // NFT airdrop successful
+            console.log('NFT airdrop completed successfully');
+
+            if (onAuthenticationSuccess) {
+              onAuthenticationSuccess({
+                user,
+                wallet: primaryWallet,
+                address: walletAddress,
+                blockchainType,
+                isNewUser: true,
+                requiresSubdomain: blockchainType === 'ethereum',
+                nftAirdropped: true,
+                nftData: onboardingResult.nftResult.nft
+              });
+            }
+          } else {
+            // Existing user - verify they have required 2FA factors
+            console.log('Existing user - verifying 2FA factors');
+            
+            const verification = await CustomSubdomainService.verify2FA(walletAddress, blockchainType);
+            
+            if (!verification.isFullyVerified) {
+              const missingFactors = [];
+              if (!verification.hasNFT) missingFactors.push('BlockDrive NFT');
+              if (blockchainType === 'ethereum' && !verification.hasSubdomain) missingFactors.push('BlockDrive subdomain');
+              
+              toast.error(`Authentication incomplete. Missing: ${missingFactors.join(', ')}`);
+              setIsProcessing(false);
+              return;
+            }
+
+            toast.success('Welcome back! Full 2FA verification successful.');
+
+            if (onAuthenticationSuccess) {
+              onAuthenticationSuccess({
+                user,
+                wallet: primaryWallet,
+                address: walletAddress,
+                blockchainType,
+                isNewUser: false,
+                has2FA: verification.isFullyVerified,
+                hasNFT: verification.hasNFT,
+                hasSubdomain: verification.hasSubdomain
+              });
+            }
           }
 
           // Redirect to dashboard after successful authentication

@@ -2,7 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SubdomainCreationResult } from '@/types/subdomain';
-import { BaseRegistryService } from './baseRegistryService';
 
 export class SubdomainService {
   /**
@@ -10,7 +9,6 @@ export class SubdomainService {
    */
   static async checkSubdomainAvailability(subdomainName: string, blockchainType: 'ethereum' | 'solana'): Promise<boolean> {
     try {
-      // Check database first
       const { data: existingSubdomain, error } = await supabase
         .from('subdomain_registrations')
         .select('id')
@@ -24,25 +22,7 @@ export class SubdomainService {
         return false;
       }
 
-      // If found in database, it's not available
-      if (existingSubdomain) {
-        return false;
-      }
-
-      // For Ethereum subdomains, also check the Base registry
-      if (blockchainType === 'ethereum' && window.ethereum) {
-        try {
-          const isAvailable = await BaseRegistryService.isSubdomainAvailable(
-            subdomainName,
-            window.ethereum
-          );
-          return isAvailable;
-        } catch (error) {
-          console.log('Could not check Base registry, falling back to database check');
-        }
-      }
-
-      return true;
+      return !existingSubdomain;
     } catch (error) {
       console.error('Subdomain availability check failed:', error);
       return false;
@@ -50,7 +30,7 @@ export class SubdomainService {
   }
 
   /**
-   * Create custom subdomain (now integrates with Base registry for Ethereum)
+   * Create custom subdomain with NFT verification (supports both chains)
    */
   static async createSubdomain(
     walletAddress: string,
@@ -59,6 +39,23 @@ export class SubdomainService {
   ): Promise<SubdomainCreationResult> {
     try {
       console.log('Creating subdomain:', { walletAddress, blockchainType, subdomainName });
+
+      // First, verify user has the required NFT
+      const { data: nftData, error: nftError } = await supabase
+        .from('blockdrive_nfts')
+        .select('*')
+        .eq('wallet_address', walletAddress)
+        .eq('blockchain_type', blockchainType)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (nftError || !nftData) {
+        console.error('NFT verification failed:', nftError);
+        return {
+          success: false,
+          error: 'BlockDrive NFT required for subdomain creation. Please ensure you have the required NFT.'
+        };
+      }
 
       // Check subdomain availability
       const isAvailable = await this.checkSubdomainAvailability(subdomainName, blockchainType);
@@ -69,41 +66,19 @@ export class SubdomainService {
         };
       }
 
+      // Create the subdomain record for both chains
       const fullDomain = `${subdomainName}.blockdrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'}`;
-      let txHash = `subdomain_tx_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // For Ethereum subdomains, register on Base registry
-      if (blockchainType === 'ethereum' && window.ethereum) {
-        try {
-          const registryResult = await BaseRegistryService.registerSubdomain(
-            subdomainName,
-            walletAddress,
-            window.ethereum
-          );
-
-          if (registryResult.success && registryResult.txHash) {
-            txHash = registryResult.txHash;
-            console.log('Subdomain registered on Base registry:', txHash);
-          } else {
-            console.log('Base registry registration failed, continuing with database only');
-          }
-        } catch (error) {
-          console.log('Base registry not available, continuing with database registration');
-        }
-      }
-
-      // Create database record
-      const mockUserId = crypto.randomUUID();
+      const mockTxHash = `subdomain_tx_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const { data: subdomainData, error: subdomainError } = await supabase
         .from('subdomain_registrations')
         .insert({
-          user_id: mockUserId,
+          user_id: nftData.user_id,
           wallet_address: walletAddress,
           blockchain_type: blockchainType,
           subdomain_name: subdomainName.toLowerCase(),
           full_domain: fullDomain,
-          registration_transaction: txHash,
+          registration_transaction: mockTxHash,
           is_active: true
         })
         .select()
@@ -122,7 +97,7 @@ export class SubdomainService {
       return {
         success: true,
         subdomain: fullDomain,
-        txHash: txHash
+        txHash: mockTxHash
       };
 
     } catch (error: any) {

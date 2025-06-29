@@ -43,7 +43,7 @@ export class SubdomainVerificationService {
   }
 
   /**
-   * Register subdomain for user (primary authentication factor)
+   * Register subdomain for user (completes second factor setup)
    */
   static async registerSubdomain(
     walletAddress: string,
@@ -53,13 +53,23 @@ export class SubdomainVerificationService {
     try {
       const fullDomain = `${subdomainName}.blockdrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'}`;
       
-      // Create subdomain without NFT dependency
-      const mockUserId = crypto.randomUUID();
+      // Get user ID from NFT record
+      const { data: nftData, error: nftError } = await supabase
+        .from('blockdrive_nfts')
+        .select('user_id')
+        .eq('wallet_address', walletAddress)
+        .eq('blockchain_type', blockchainType)
+        .eq('is_active', true)
+        .single();
+
+      if (nftError || !nftData) {
+        return { success: false, error: 'NFT verification required before subdomain registration' };
+      }
 
       const { data: subdomainData, error: subdomainError } = await supabase
         .from('subdomain_registrations')
         .insert({
-          user_id: mockUserId,
+          user_id: nftData.user_id,
           wallet_address: walletAddress,
           blockchain_type: blockchainType,
           subdomain_name: subdomainName,
