@@ -15,8 +15,7 @@ export const DynamicWalletConnector = ({
     primaryWallet,
     user,
     handleLogOut,
-    setShowAuthFlow,
-    isAuthenticated
+    setShowAuthFlow
   } = useDynamicContext();
   const {
     connectWallet
@@ -27,7 +26,6 @@ export const DynamicWalletConnector = ({
     console.log('Dynamic context state:', {
       primaryWallet: !!primaryWallet,
       user: !!user,
-      isAuthenticated,
       walletAddress: primaryWallet?.address,
       chain: primaryWallet?.chain
     });
@@ -40,7 +38,7 @@ export const DynamicWalletConnector = ({
       });
       handleWalletConnection();
     }
-  }, [primaryWallet, user, isAuthenticated, isProcessing]);
+  }, [primaryWallet, user, isProcessing]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || !user || isProcessing) {
@@ -113,11 +111,9 @@ export const DynamicWalletConnector = ({
         });
       }
 
-      // Wait for state to propagate before redirecting
-      setTimeout(() => {
-        console.log('Redirecting to dashboard after state update');
-        window.location.href = '/index';
-      }, 1000);
+      // Force immediate redirect to dashboard
+      console.log('Redirecting to dashboard after successful authentication');
+      window.location.href = '/index';
 
     } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
