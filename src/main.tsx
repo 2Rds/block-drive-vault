@@ -24,7 +24,15 @@ createRoot(document.getElementById("root")!).render(
         networkValidationMode: 'always',
         initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: false,
-        shadowDOMEnabled: false
+        shadowDOMEnabled: false,
+        // Add timeout and retry settings
+        apiBaseUrl: 'https://app.dynamicauth.com/api/v0',
+        // Increase timeout for network issues
+        fetchTimeoutMs: 30000,
+        // Add error handling
+        onError: (error) => {
+          console.error('Dynamic SDK Error:', error);
+        }
       }}
     >
       <App />

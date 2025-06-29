@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
@@ -14,16 +14,19 @@ const Auth = () => {
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError });
+    
     // Enhanced timeout handling for Dynamic SDK
     const timeout = setTimeout(() => {
       if (!sdkHasLoaded && !dynamicReady) {
-        console.warn('Dynamic SDK failed to load within 15 seconds, enabling fallback');
+        console.warn('Dynamic SDK failed to load within 20 seconds, enabling fallback');
         setSdkError(true);
         setDynamicReady(true);
       }
-    }, 15000); // Increased timeout to 15 seconds
+    }, 20000); // Increased timeout to 20 seconds
 
     if (sdkHasLoaded) {
       setDynamicReady(true);
@@ -33,7 +36,7 @@ const Auth = () => {
     }
 
     return () => clearTimeout(timeout);
-  }, [sdkHasLoaded, dynamicReady]);
+  }, [sdkHasLoaded, dynamicReady, retryCount]);
 
   useEffect(() => {
     // Redirect authenticated users to dashboard
@@ -55,6 +58,15 @@ const Auth = () => {
 
   const handleWeb3MFASuccess = (authData: any) => {
     console.log('Web3 MFA authentication successful:', authData);
+  };
+
+  const handleRetry = () => {
+    console.log('Retrying Dynamic SDK initialization...');
+    setSdkError(false);
+    setDynamicReady(false);
+    setRetryCount(prev => prev + 1);
+    // Force page reload to reinitialize SDK
+    window.location.reload();
   };
 
   return (
@@ -94,77 +106,60 @@ const Auth = () => {
 
             {/* Enhanced Dynamic SDK Status */}
             {!dynamicReady && !sdkError && (
-              <div className="bg-yellow-800/40 border border-yellow-700 rounded-xl p-4">
+              <div className="bg-blue-800/40 border border-blue-700 rounded-xl p-4">
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
-                  <span className="text-yellow-200 text-sm">
-                    Loading Dynamic wallet connectors... (this may take a moment)
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                  <span className="text-blue-200 text-sm">
+                    Initializing wallet connections... (this may take up to 20 seconds)
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Enhanced SDK Error Fallback */}
+            {/* Enhanced SDK Error with Retry */}
             {sdkError && (
               <div className="bg-red-800/40 border border-red-700 rounded-xl p-4">
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4 text-red-400" />
-                  <div>
-                    <span className="text-red-200 text-sm block">
-                      Dynamic SDK failed to load due to network issues.
-                    </span>
-                    <span className="text-red-300 text-xs">
-                      Please try refreshing the page or use the Web3 MFA option below.
-                    </span>
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-red-200 font-semibold mb-1">Connection Issue</h3>
+                    <p className="text-red-300 text-sm mb-3">
+                      Unable to connect to wallet services due to network issues. This might be caused by:
+                    </p>
+                    <ul className="text-red-300 text-xs list-disc list-inside mb-3 space-y-1">
+                      <li>Network connectivity problems</li>
+                      <li>Firewall or ad blocker restrictions</li>
+                      <li>Temporary service disruption</li>
+                    </ul>
+                    <button 
+                      onClick={handleRetry}
+                      className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Retry Connection</span>
+                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Dynamic Wallet Connector with better error handling */}
+            {/* Dynamic Wallet Connector */}
             {dynamicReady && !sdkError ? (
               <div className="space-y-4">
                 <DynamicWalletConnector onWalletConnected={() => {}} />
                 {sdkHasLoaded && (
                   <div className="text-center">
-                    <p className="text-green-400 text-xs">✓ Dynamic SDK loaded successfully</p>
+                    <p className="text-green-400 text-xs">✓ Wallet services ready</p>
                   </div>
                 )}
               </div>
-            ) : dynamicReady && sdkError ? (
-              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-                <div className="text-center">
-                  <h3 className="text-white font-semibold mb-2">Alternative Authentication</h3>
-                  <p className="text-gray-400 text-sm mb-4">
-                    Primary wallet connector is unavailable due to network issues. 
-                    Please refresh the page or use the Web3 MFA option below.
-                  </p>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    Refresh Page
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-                <div className="text-center">
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-12 bg-gray-700 rounded-lg"></div>
-                    <div className="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
-                    <div className="flex justify-center space-x-2">
-                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
-                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
-                      <div className="h-6 w-16 bg-gray-700 rounded"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            ) : null}
 
-            {/* Web3 MFA Connector - Always available as fallback */}
-            <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
+            {/* Always show Web3 MFA as fallback */}
+            <div className="border-t border-gray-700 pt-6">
+              <h3 className="text-white font-semibold mb-3 text-center">Alternative Authentication</h3>
+              <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
+            </div>
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
               <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>

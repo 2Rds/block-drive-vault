@@ -28,21 +28,27 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Simplified authentication check - either valid session OR valid user
+  // Enhanced authentication check with better logging
   const hasValidSession = session && session.access_token;
   const hasValidUser = user && user.id;
   
-  // Allow access if we have EITHER a valid session OR a valid user
+  // More permissive check - allow if we have EITHER valid session OR valid user
   const hasValidAuth = hasValidSession || hasValidUser;
 
   console.log('ProtectedRoute - Authentication validation:', {
-    hasValidSession: hasValidSession,
-    hasValidUser: hasValidUser,
+    hasValidSession: !!hasValidSession,
+    hasValidUser: !!hasValidUser,
     hasValidAuth: hasValidAuth,
     sessionDetails: {
       hasAccessToken: !!session?.access_token,
       hasSessionUser: !!session?.user,
-      sessionUserId: session?.user?.id
+      sessionUserId: session?.user?.id,
+      sessionExpiry: session?.expires_at
+    },
+    userDetails: {
+      userId: user?.id,
+      userEmail: user?.email,
+      hasUserMetadata: !!user?.user_metadata
     }
   });
 
@@ -52,7 +58,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       noSession: !session,
       noAccessToken: !session?.access_token,
       noUser: !user,
-      noUserId: !user?.id
+      noUserId: !user?.id,
+      bothMissing: !hasValidSession && !hasValidUser
     });
     return <Navigate to="/auth" replace />;
   }

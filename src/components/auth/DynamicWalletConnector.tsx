@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -14,14 +14,25 @@ export const DynamicWalletConnector = ({
   const {
     primaryWallet,
     user,
-    handleLogOut
+    handleLogOut,
+    setShowAuthFlow,
+    isAuthenticated
   } = useDynamicContext();
   const {
     connectWallet
   } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   React.useEffect(() => {
-    if (primaryWallet && user) {
+    console.log('Dynamic context state:', {
+      primaryWallet: !!primaryWallet,
+      user: !!user,
+      isAuthenticated,
+      walletAddress: primaryWallet?.address,
+      chain: primaryWallet?.chain
+    });
+
+    if (primaryWallet && user && !isProcessing) {
       console.log('Dynamic wallet connection detected:', {
         wallet: primaryWallet.address,
         user: user.userId,
@@ -29,13 +40,19 @@ export const DynamicWalletConnector = ({
       });
       handleWalletConnection();
     }
-  }, [primaryWallet, user]);
+  }, [primaryWallet, user, isAuthenticated, isProcessing]);
 
   const handleWalletConnection = async () => {
-    if (!primaryWallet || !user) {
-      console.log('Missing wallet or user data for authentication');
+    if (!primaryWallet || !user || isProcessing) {
+      console.log('Missing wallet or user data for authentication', {
+        primaryWallet: !!primaryWallet,
+        user: !!user,
+        isProcessing
+      });
       return;
     }
+
+    setIsProcessing(true);
 
     try {
       const walletAddress = primaryWallet.address;
@@ -96,9 +113,11 @@ export const DynamicWalletConnector = ({
         });
       }
 
-      // Force immediate redirect to dashboard after successful authentication
-      console.log('Redirecting to dashboard immediately after successful authentication');
-      window.location.href = '/index';
+      // Wait for state to propagate before redirecting
+      setTimeout(() => {
+        console.log('Redirecting to dashboard after state update');
+        window.location.href = '/index';
+      }, 1000);
 
     } catch (error: any) {
       console.error('Dynamic wallet authentication error:', error);
@@ -112,6 +131,15 @@ export const DynamicWalletConnector = ({
           console.error('Error during logout:', logoutError);
         }
       }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleManualConnect = () => {
+    console.log('Manual connect triggered');
+    if (setShowAuthFlow) {
+      setShowAuthFlow(true);
     }
   };
 
@@ -120,6 +148,15 @@ export const DynamicWalletConnector = ({
       <div className="w-full max-w-md">
         <DynamicWidget 
           buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+          innerButtonComponent={
+            <button 
+              onClick={handleManualConnect}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          }
         />
       </div>
       
@@ -136,6 +173,7 @@ export const DynamicWalletConnector = ({
         {primaryWallet && (
           <div className="mt-2 text-xs text-green-400">
             Connected: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
+            {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
           </div>
         )}
       </div>
