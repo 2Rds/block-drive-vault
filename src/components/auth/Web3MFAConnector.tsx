@@ -6,6 +6,7 @@ import { DynamicWalletConnector } from './DynamicWalletConnector';
 import { ConnectedWalletDisplay } from './ConnectedWalletDisplay';
 import { BaseOnboardingFlow } from './BaseOnboardingFlow';
 import { useDynamicWalletAuth } from '@/hooks/useDynamicWalletAuth';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 interface Web3MFAConnectorProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -13,15 +14,18 @@ interface Web3MFAConnectorProps {
 
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const { needsOnboarding, walletAddress, handleOnboardingComplete } = useDynamicWalletAuth({
+  const { primaryWallet } = useDynamicContext();
+  const { needsOnboarding, walletAddress, authError, handleOnboardingComplete } = useDynamicWalletAuth({
     onAuthenticationSuccess: (authData) => {
       setConnectedWallet(authData);
       onAuthenticationSuccess?.(authData);
     }
   });
 
-  // Show onboarding flow if user needs to complete setup
-  if (needsOnboarding && walletAddress) {
+  // Show onboarding flow if user needs to complete setup OR if there's an auth error (token gate block)
+  if ((needsOnboarding && walletAddress) || (authError && primaryWallet)) {
+    const addressToUse = walletAddress || primaryWallet?.address || '';
+    
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -32,7 +36,7 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
         </div>
         
         <BaseOnboardingFlow
-          walletAddress={walletAddress}
+          walletAddress={addressToUse}
           onComplete={handleOnboardingComplete}
         />
       </div>

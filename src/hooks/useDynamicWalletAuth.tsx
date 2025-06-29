@@ -10,18 +10,26 @@ interface DynamicWalletAuthProps {
 }
 
 export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletAuthProps) => {
-  const { primaryWallet, user } = useDynamicContext();
+  const { primaryWallet, user, isAuthenticated } = useDynamicContext();
   const { connectWallet } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [authError, setAuthError] = useState<string>('');
 
   useEffect(() => {
     const handleWalletConnection = async () => {
-      if (!primaryWallet || !user) return;
+      console.log('Dynamic state:', { primaryWallet: !!primaryWallet, user: !!user, isAuthenticated });
+      
+      if (!primaryWallet || !user || !isAuthenticated) {
+        // Reset states if wallet is disconnected
+        setNeedsOnboarding(false);
+        setWalletAddress('');
+        setAuthError('');
+        return;
+      }
 
       // Accept all EVM-compatible chains since Base L2 is EVM-compatible
-      // Dynamic might report different chain identifiers
       if (primaryWallet.chain === 'SOL' || primaryWallet.chain === 'SOLANA') {
         toast.error('Only Base L2 network is supported');
         return;
@@ -34,6 +42,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
 
       setIsProcessing(true);
       setWalletAddress(primaryWallet.address);
+      setAuthError('');
       
       try {
         console.log('Processing Base wallet connection:', {
@@ -60,6 +69,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
             return;
           } else {
             toast.error(onboardingResult.error || 'Authentication setup required');
+            setAuthError(onboardingResult.error || 'Authentication setup required');
             setIsProcessing(false);
             return;
           }
@@ -91,14 +101,16 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
 
       } catch (error: any) {
         console.error('Base wallet authentication error:', error);
-        toast.error('Failed to authenticate Base wallet');
+        const errorMessage = 'Failed to authenticate Base wallet';
+        toast.error(errorMessage);
+        setAuthError(errorMessage);
       } finally {
         setIsProcessing(false);
       }
     };
 
     handleWalletConnection();
-  }, [primaryWallet, user, connectWallet, onAuthenticationSuccess]);
+  }, [primaryWallet, user, isAuthenticated, connectWallet, onAuthenticationSuccess]);
 
   const handleOnboardingComplete = async () => {
     if (!walletAddress) return;
@@ -140,6 +152,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
     walletAddress,
     wallet: primaryWallet,
     user,
+    authError,
     handleOnboardingComplete
   };
 };
