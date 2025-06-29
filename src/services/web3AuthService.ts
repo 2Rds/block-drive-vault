@@ -1,5 +1,4 @@
 
-import { NFTVerificationService, NFTVerificationResult } from './nftVerificationService';
 import { SubdomainVerificationService, SubdomainVerificationResult } from './subdomainVerificationService';
 import { AuthSessionService } from './authSessionService';
 
@@ -14,17 +13,7 @@ export interface AuthenticationResult {
 export class Web3AuthService {
   
   /**
-   * Verify if user has BlockDrive NFT in their wallet
-   */
-  static async verifyNFTOwnership(
-    walletAddress: string, 
-    blockchainType: 'ethereum' | 'solana'
-  ): Promise<NFTVerificationResult> {
-    return NFTVerificationService.verifyNFTOwnership(walletAddress, blockchainType);
-  }
-
-  /**
-   * Verify subdomain ownership and wallet match
+   * Verify subdomain ownership and wallet match (primary authentication factor)
    */
   static async verifySubdomainOwnership(
     walletAddress: string,
@@ -34,7 +23,7 @@ export class Web3AuthService {
   }
 
   /**
-   * Complete Web3 Authentication (simplified version)
+   * Complete Web3 Authentication (subdomain-based only)
    */
   static async authenticateUser(
     walletAddress: string,
@@ -45,9 +34,20 @@ export class Web3AuthService {
     try {
       console.log('Starting Web3 authentication:', { walletAddress, blockchainType });
 
-      // Create auth session directly
+      // Verify subdomain ownership first
+      const subdomainResult = await this.verifySubdomainOwnership(walletAddress, blockchainType);
+      
+      if (!subdomainResult.hasSubdomain) {
+        return {
+          success: false,
+          requiresSubdomain: true,
+          error: `Please register a ${blockchainType === 'ethereum' ? 'blockdrive.eth' : 'blockdrive.sol'} subdomain to authenticate`
+        };
+      }
+
+      // Create auth session with subdomain verification
       const sessionResult = await AuthSessionService.createAuthSession(
-        { walletAddress, blockchainType },
+        { user_id: subdomainResult.subdomainData.user_id },
         walletAddress,
         blockchainType
       );

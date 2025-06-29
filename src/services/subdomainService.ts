@@ -30,7 +30,7 @@ export class SubdomainService {
   }
 
   /**
-   * Create custom subdomain with NFT verification (supports both chains)
+   * Create custom subdomain (no longer requires NFT verification)
    */
   static async createSubdomain(
     walletAddress: string,
@@ -39,23 +39,6 @@ export class SubdomainService {
   ): Promise<SubdomainCreationResult> {
     try {
       console.log('Creating subdomain:', { walletAddress, blockchainType, subdomainName });
-
-      // First, verify user has the required NFT
-      const { data: nftData, error: nftError } = await supabase
-        .from('blockdrive_nfts')
-        .select('*')
-        .eq('wallet_address', walletAddress)
-        .eq('blockchain_type', blockchainType)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (nftError || !nftData) {
-        console.error('NFT verification failed:', nftError);
-        return {
-          success: false,
-          error: 'BlockDrive NFT required for subdomain creation. Please ensure you have the required NFT.'
-        };
-      }
 
       // Check subdomain availability
       const isAvailable = await this.checkSubdomainAvailability(subdomainName, blockchainType);
@@ -66,14 +49,17 @@ export class SubdomainService {
         };
       }
 
-      // Create the subdomain record for both chains
+      // Create the subdomain record without NFT requirement
       const fullDomain = `${subdomainName}.blockdrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'}`;
       const mockTxHash = `subdomain_tx_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create a mock user ID for now (in production, this would come from authenticated user)
+      const mockUserId = crypto.randomUUID();
 
       const { data: subdomainData, error: subdomainError } = await supabase
         .from('subdomain_registrations')
         .insert({
-          user_id: nftData.user_id,
+          user_id: mockUserId,
           wallet_address: walletAddress,
           blockchain_type: blockchainType,
           subdomain_name: subdomainName.toLowerCase(),
