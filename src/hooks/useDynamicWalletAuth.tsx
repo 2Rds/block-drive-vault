@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { BaseAuthService } from '@/services/baseAuthService';
+import { BaseOnboardingService } from '@/services/baseOnboardingService';
 
 interface DynamicWalletAuthProps {
   onAuthenticationSuccess?: (authData: any) => void;
@@ -13,6 +13,8 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
   const { primaryWallet, user } = useDynamicContext();
   const { connectWallet } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string>('');
 
   useEffect(() => {
     const handleWalletConnection = async () => {
@@ -25,6 +27,7 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
       }
 
       setIsProcessing(true);
+      setWalletAddress(primaryWallet.address);
       
       try {
         console.log('Processing Base wallet connection:', {
@@ -33,50 +36,43 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
           connector: primaryWallet.connector
         });
 
-        // Create mock signature for demo
-        const mockSignature = `base-auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        // Check onboarding status first
+        const onboardingResult = await BaseOnboardingService.processNewUser(primaryWallet.address);
         
-        // First check if user has Base soulbound NFT
-        const nftVerification = await BaseAuthService.verifySoulboundNFT(primaryWallet.address);
-        
-        if (!nftVerification.hasNFT) {
-          console.log('No Base soulbound NFT found, redirecting to mint...');
-          BaseAuthService.redirectToSoulboundNFTMint();
-          toast.info('Please mint your free Base soulbound NFT first');
-          setIsProcessing(false);
-          return;
+        if (!onboardingResult.success) {
+          if (onboardingResult.redirectToMint || onboardingResult.requiresNFT || onboardingResult.requiresSubdomain) {
+            // User needs to complete onboarding
+            setNeedsOnboarding(true);
+            setIsProcessing(false);
+            return;
+          } else {
+            toast.error(onboardingResult.error || 'Authentication setup required');
+            setIsProcessing(false);
+            return;
+          }
         }
 
-        // Authenticate with Base 2FA
-        const authResult = await BaseAuthService.authenticateWithBase2FA(
-          primaryWallet.address,
-          mockSignature,
-          'Sign this message to authenticate with BlockDrive on Base L2'
-        );
+        // User has completed onboarding - proceed with authentication
+        const mockSignature = `base-auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Use existing wallet connection flow
+        await connectWallet({
+          address: primaryWallet.address,
+          blockchain_type: 'ethereum', // Base L2 uses ethereum type
+          signature: mockSignature,
+          id: 'base'
+        });
 
-        if (authResult.success) {
-          // Use existing wallet connection flow
-          await connectWallet({
+        toast.success('Base L2 authentication successful!');
+        setNeedsOnboarding(false);
+        
+        if (onAuthenticationSuccess) {
+          onAuthenticationSuccess({
             address: primaryWallet.address,
-            blockchain_type: 'ethereum', // Base L2 uses ethereum type
+            blockchain: 'base',
             signature: mockSignature,
-            id: 'base'
+            isFullyVerified: true
           });
-
-          toast.success('Base L2 authentication successful!');
-          
-          if (onAuthenticationSuccess) {
-            onAuthenticationSuccess({
-              address: primaryWallet.address,
-              blockchain: 'base',
-              signature: mockSignature,
-              isFullyVerified: true
-            });
-          }
-        } else if (authResult.requiresSubdomain) {
-          toast.info('Please create your blockdrive.eth subdomain to complete setup');
-        } else {
-          toast.error(authResult.error || 'Base authentication failed');
         }
 
       } catch (error: any) {
@@ -90,9 +86,46 @@ export const useDynamicWalletAuth = ({ onAuthenticationSuccess }: DynamicWalletA
     handleWalletConnection();
   }, [primaryWallet, user, connectWallet, onAuthenticationSuccess]);
 
+  const handleOnboardingComplete = async () => {
+    if (!walletAddress) return;
+    
+    setIsProcessing(true);
+    try {
+      // Complete authentication after onboarding
+      const mockSignature = `base-auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      await connectWallet({
+        address: walletAddress,
+        blockchain_type: 'ethereum',
+        signature: mockSignature,
+        id: 'base'
+      });
+
+      toast.success('Welcome to BlockDrive! Authentication complete.');
+      setNeedsOnboarding(false);
+      
+      if (onAuthenticationSuccess) {
+        onAuthenticationSuccess({
+          address: walletAddress,
+          blockchain: 'base',
+          signature: mockSignature,
+          isFullyVerified: true
+        });
+      }
+    } catch (error: any) {
+      console.error('Post-onboarding authentication error:', error);
+      toast.error('Failed to complete authentication');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return {
     isProcessing,
+    needsOnboarding,
+    walletAddress,
     wallet: primaryWallet,
-    user
+    user,
+    handleOnboardingComplete
   };
 };

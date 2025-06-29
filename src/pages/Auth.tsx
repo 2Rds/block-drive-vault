@@ -1,10 +1,10 @@
+
 import React, { useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
-import { CollectionManager } from '@/components/auth/CollectionManager';
 
 const Auth = () => {
   const { user, session } = useAuth();
@@ -20,7 +20,7 @@ const Auth = () => {
 
   const handleWalletConnected = (walletInfo: any) => {
     console.log('Base wallet connected successfully:', walletInfo);
-    // Navigation will be handled by the auth context or DynamicWalletConnector
+    // Navigation will be handled by the auth context or after onboarding completion
   };
 
   return (
@@ -53,16 +53,16 @@ const Auth = () => {
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience secure Base L2 authentication with soulbound NFT 2FA. 
-                Mint your free Base soulbound NFT and create your blockdrive.eth subdomain for maximum security.
+                Secure your account with Base L2 soulbound NFT 2FA. 
+                New users will be guided through minting their free soulbound NFT and creating a blockdrive.eth subdomain.
               </p>
             </div>
 
-            {/* Web3MFA Connector - Always visible */}
+            {/* Web3MFA Connector - Handles onboarding flow */}
             <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">🚀 Base L2 Soulbound 2FA Security</h4>
+              <h4 className="font-semibold text-white mb-3">🔐 Base L2 Soulbound 2FA Security</h4>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start space-x-3">
                   <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mt-0.5">
@@ -85,7 +85,7 @@ const Auth = () => {
               </div>
               <div className="flex items-center space-x-2 text-xs text-green-400 mt-4 pt-3 border-t border-gray-700">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>Base L2 Network • Soulbound NFTs • Decentralized Identity</span>
+                <span>Base L2 Network • Soulbound NFTs • Dynamic Token Gating</span>
               </div>
             </div>
           </div>
