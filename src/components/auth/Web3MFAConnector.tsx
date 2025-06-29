@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Wallet, Shield, Loader2, CheckCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { AlchemySmartAccountConnector } from './AlchemySmartAccountConnector';
 import { DynamicWalletConnector } from './DynamicWalletConnector';
 
 interface Web3MFAConnectorProps {
@@ -15,7 +14,7 @@ interface Web3MFAConnectorProps {
 export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<any>(null);
-  const [selectedMethod, setSelectedMethod] = useState<'dynamic' | 'traditional' | 'smart-account'>('dynamic');
+  const [selectedMethod, setSelectedMethod] = useState<'dynamic' | 'traditional'>('dynamic');
   const { connectWallet } = useAuth();
 
   const connectWeb3Wallet = async (walletType: 'metamask' | 'phantom') => {
@@ -153,21 +152,11 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
         >
           Traditional
         </button>
-        <button
-          onClick={() => setSelectedMethod('smart-account')}
-          className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            selectedMethod === 'smart-account'
-              ? 'bg-purple-600 text-white'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-        >
-          Smart Accounts
-        </button>
       </div>
 
       {selectedMethod === 'dynamic' ? (
         <DynamicWalletConnector onAuthenticationSuccess={onAuthenticationSuccess} />
-      ) : selectedMethod === 'traditional' ? (
+      ) : (
         <div className="space-y-4">
           <Card className="bg-blue-900/20 border-blue-800">
             <CardContent className="p-4">
@@ -179,7 +168,7 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button
@@ -209,8 +198,6 @@ export const Web3MFAConnector = ({ onAuthenticationSuccess }: Web3MFAConnectorPr
             </Button>
           </div>
         </div>
-      ) : (
-        <AlchemySmartAccountConnector onAuthenticationSuccess={onAuthenticationSuccess} />
       )}
     </div>
   );
