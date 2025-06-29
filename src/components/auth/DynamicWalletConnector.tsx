@@ -155,14 +155,16 @@ export const DynamicWalletConnector = ({
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {/* Always show the connect button - no hiding */}
-      <div className="w-full max-w-md">
-        <div onClick={handleConnectClick}>
-          <DynamicWidget 
-            buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-          />
+      {/* Only show the connect button when auth flow is NOT showing */}
+      {!showAuthFlow && (
+        <div className="w-full max-w-md">
+          <div onClick={handleConnectClick}>
+            <DynamicWidget 
+              buttonClassName="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+            />
+          </div>
         </div>
-      </div>
+      )}
       
       {/* Modal overlay when auth flow is showing */}
       {showAuthFlow && (
@@ -177,35 +179,38 @@ export const DynamicWalletConnector = ({
         </div>
       )}
       
-      <div className="text-center">
-        <p className="text-gray-400 text-sm mb-2">
-          MultiChain Authentication - Supporting both chains:
-        </p>
-        <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
-          <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum + ENS</span>
-          <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
+      {/* Show status info only when auth flow is not showing */}
+      {!showAuthFlow && (
+        <div className="text-center">
+          <p className="text-gray-400 text-sm mb-2">
+            MultiChain Authentication - Supporting both chains:
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+            <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum + ENS</span>
+            <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
+          </div>
+          
+          {/* Security status */}
+          <div className="mt-2 text-xs">
+            {primaryWallet && userExplicitlyClicked && (
+              <span className="text-green-400">
+                Wallet Ready: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
+                {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
+              </span>
+            )}
+            {primaryWallet && !userExplicitlyClicked && (
+              <span className="text-red-400">
+                Click "Connect Wallet" to authenticate securely
+              </span>
+            )}
+            {!primaryWallet && (
+              <span className="text-gray-400">
+                Click "Connect Wallet" to begin secure authentication
+              </span>
+            )}
+          </div>
         </div>
-        
-        {/* Security status */}
-        <div className="mt-2 text-xs">
-          {primaryWallet && userExplicitlyClicked && (
-            <span className="text-green-400">
-              Wallet Ready: {primaryWallet.address?.slice(0, 6)}...{primaryWallet.address?.slice(-4)}
-              {isProcessing && <span className="ml-2 text-yellow-400">Processing...</span>}
-            </span>
-          )}
-          {primaryWallet && !userExplicitlyClicked && (
-            <span className="text-red-400">
-              Click "Connect Wallet" to authenticate securely
-            </span>
-          )}
-          {!primaryWallet && (
-            <span className="text-gray-400">
-              Click "Connect Wallet" to begin secure authentication
-            </span>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
