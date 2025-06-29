@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Link, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { ethers } from 'ethers';
 import { BaseRegistryService } from '@/services/baseRegistryService';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
