@@ -26,13 +26,6 @@ createRoot(document.getElementById("root")!).render(
         enableVisitTrackingOnConnectOnly: false,
         shadowDOMEnabled: false
       }}
-      onLoad={(isLoaded) => {
-        if (isLoaded) {
-          console.log('Dynamic SDK loaded successfully')
-        } else {
-          console.error('Dynamic SDK failed to load')
-        }
-      }}
     >
       <App />
     </DynamicContextProvider>
