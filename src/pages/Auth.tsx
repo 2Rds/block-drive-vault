@@ -20,7 +20,7 @@ const Auth = () => {
 
   const handleWalletConnected = (walletInfo: any) => {
     console.log('Wallet connected successfully:', walletInfo);
-    // Navigation will be handled by the auth context
+    // Navigation will be handled by the auth context or DynamicWalletConnector
   };
 
   return (
@@ -53,8 +53,8 @@ const Auth = () => {
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience secure Web3 authentication with support for both Solana and EVM ecosystems. 
-                Connect your wallet for maximum security and decentralized storage access.
+                Experience secure Web3 authentication with NFT-based 2FA and support for both Solana and EVM ecosystems. 
+                New users receive automatic NFT airdrops for enhanced security.
               </p>
             </div>
 
@@ -62,14 +62,30 @@ const Auth = () => {
             <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">Advanced Web3 Security</h4>
-              <p className="text-gray-400 text-sm mb-4">
-                Our Web3 authentication system leverages wallet signatures and decentralized authentication 
-                to create a secure and user-friendly login experience.
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-purple-400">
-                <Shield className="w-4 h-4" />
-                <span>Wallet Authentication • Multi-Chain Support • Decentralized</span>
+              <h4 className="font-semibold text-white mb-3">🚀 Enhanced 2FA Security</h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start space-x-3">
+                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-white text-xs">1</span>
+                  </div>
+                  <div>
+                    <p className="text-blue-400 font-medium">NFT Authentication</p>
+                    <p className="text-gray-400">Automatic BlockDrive NFT airdrop for new users</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-white text-xs">2</span>
+                  </div>
+                  <div>
+                    <p className="text-purple-400 font-medium">Subdomain Authentication</p>
+                    <p className="text-gray-400">Ethereum users create blockdrive.eth subdomains</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 text-xs text-green-400 mt-4 pt-3 border-t border-gray-700">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span>Multi-Chain Support • NFT Gating • Decentralized Identity</span>
               </div>
             </div>
           </div>
