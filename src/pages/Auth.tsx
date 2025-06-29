@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +19,7 @@ const Auth = () => {
   }, [user, session, navigate]);
 
   const handleWalletConnected = (walletInfo: any) => {
-    console.log('Wallet connected successfully:', walletInfo);
+    console.log('Base wallet connected successfully:', walletInfo);
     // Navigation will be handled by the auth context or DynamicWalletConnector
   };
 
@@ -35,7 +34,7 @@ const Auth = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-              <p className="text-xs text-gray-300">Next-Gen Web3 Storage Platform</p>
+              <p className="text-xs text-gray-300">Base L2 Web3 Storage Platform</p>
             </div>
           </div>
         </div>
@@ -50,31 +49,28 @@ const Auth = () => {
                 Welcome to BlockDrive
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-                  Web3 Authentication
+                  Base L2 Authentication
                 </span>
               </h2>
               <p className="text-gray-300 text-lg">
-                Experience secure Web3 authentication with NFT-based 2FA and support for both Solana and EVM ecosystems. 
-                New users receive automatic NFT airdrops for enhanced security.
+                Experience secure Base L2 authentication with soulbound NFT 2FA. 
+                Mint your free Base soulbound NFT and create your blockdrive.eth subdomain for maximum security.
               </p>
             </div>
 
             {/* Web3MFA Connector - Always visible */}
             <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
 
-            {/* Collection Manager - Added for testing */}
-            <CollectionManager />
-
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-              <h4 className="font-semibold text-white mb-3">🚀 Enhanced 2FA Security</h4>
+              <h4 className="font-semibold text-white mb-3">🚀 Base L2 Soulbound 2FA Security</h4>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start space-x-3">
                   <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mt-0.5">
                     <span className="text-white text-xs">1</span>
                   </div>
                   <div>
-                    <p className="text-blue-400 font-medium">NFT Authentication</p>
-                    <p className="text-gray-400">Automatic BlockDrive NFT airdrop for new users</p>
+                    <p className="text-blue-400 font-medium">Base Soulbound NFT</p>
+                    <p className="text-gray-400">Free mint from Collectify launchpad on Base L2</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -82,14 +78,14 @@ const Auth = () => {
                     <span className="text-white text-xs">2</span>
                   </div>
                   <div>
-                    <p className="text-purple-400 font-medium">Subdomain Authentication</p>
-                    <p className="text-gray-400">All users create BlockDrive subdomains for enhanced security</p>
+                    <p className="text-purple-400 font-medium">Base Subdomain</p>
+                    <p className="text-gray-400">Create your blockdrive.eth subdomain on Base</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2 text-xs text-green-400 mt-4 pt-3 border-t border-gray-700">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>Multi-Chain Support • NFT Gating • Decentralized Identity</span>
+                <span>Base L2 Network • Soulbound NFTs • Decentralized Identity</span>
               </div>
             </div>
           </div>

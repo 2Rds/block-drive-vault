@@ -1,21 +1,19 @@
 
 import { createThirdwebClient } from "thirdweb";
 import { createWallet } from "thirdweb/wallets";
-import { ethereum } from "thirdweb/chains";
+import { base } from "thirdweb/chains";
 
 export const thirdwebClient = createThirdwebClient({
   clientId: "cf74fd6b0c10ccf7ff0ab35e790c369a",
 });
 
 export const supportedWallets = [
-  // Ethereum and EVM-compatible wallets
+  // Base L2 compatible wallets
   createWallet("io.metamask"),
-  createWallet("com.coinbase.wallet"),
+  createWallet("com.coinbase.wallet"), // Coinbase Wallet has native Base support
   createWallet("walletConnect"),
-  createWallet("com.trustwallet.app"),
-  createWallet("io.rabby"),
   createWallet("me.rainbow"),
-  createWallet("app.phantom"), // Phantom supports both Ethereum and Solana
+  createWallet("io.rabby"),
 ];
 
-export const supportedChains = [ethereum];
+export const supportedChains = [base]; // Only Base L2

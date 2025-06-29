@@ -2,7 +2,7 @@
 import React from 'react';
 import { ConnectButton } from "thirdweb/react";
 import { thirdwebClient, supportedWallets } from '@/config/thirdweb';
-import { ethereum } from "thirdweb/chains";
+import { base } from "thirdweb/chains";
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -14,113 +14,92 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
   const { connectWallet } = useAuth();
 
   const handleLogin = async (params: any) => {
-    console.log('Thirdweb login params:', params);
+    console.log('Thirdweb Base login params:', params);
     
     try {
-      // Extract wallet information from Thirdweb params
       let walletAddress = '';
       let signature = '';
       
-      // Handle different parameter structures from Thirdweb v5
       if (params.payload) {
-        // Standard Thirdweb auth flow with payload
         walletAddress = params.payload.address || params.payload.sub;
         signature = params.signature;
         
-        console.log('Using payload structure:', {
+        console.log('Using payload structure for Base:', {
           address: walletAddress,
           payload: params.payload
         });
       } else if (params.address) {
-        // Direct address structure
         walletAddress = params.address;
         signature = params.signature || 'mock-signature';
         
-        console.log('Using direct address structure:', {
+        console.log('Using direct address structure for Base:', {
           address: walletAddress
         });
       } else {
-        console.error('No valid address found in params:', params);
-        throw new Error('Could not extract wallet address from authentication parameters');
+        console.error('No valid address found in Base auth params:', params);
+        throw new Error('Could not extract wallet address from Base authentication parameters');
       }
       
       if (!walletAddress) {
-        console.error('Missing wallet address:', params);
-        throw new Error('Wallet address is required for authentication');
+        console.error('Missing Base wallet address:', params);
+        throw new Error('Base wallet address is required for authentication');
       }
       
-      // For demo purposes, create a mock signature if none exists
       if (!signature) {
-        signature = `mock-signature-${Date.now()}`;
-        console.log('Created mock signature for demo:', signature);
+        signature = `base-signature-${Date.now()}`;
+        console.log('Created mock signature for Base demo:', signature);
       }
       
-      console.log('Extracted wallet address:', walletAddress);
-      console.log('Using signature:', signature);
+      console.log('Extracted Base wallet address:', walletAddress);
+      console.log('Using Base signature:', signature);
       
-      // Determine blockchain type based on address format
-      let blockchainType: 'solana' | 'ethereum' = 'ethereum';
-      
-      // Ethereum addresses start with 0x and are 42 characters
-      if (walletAddress.startsWith('0x') && walletAddress.length === 42) {
-        blockchainType = 'ethereum';
-      } else if (walletAddress.length >= 32 && walletAddress.length <= 44 && !walletAddress.startsWith('0x')) {
-        // Solana addresses are base58 encoded and typically 32-44 characters
-        blockchainType = 'solana';
-      }
-
-      console.log('Determined blockchain type:', blockchainType);
-
-      // Authenticate with our backend - using the updated function signature
+      // Authenticate with Base L2 - always use ethereum as blockchain type for Base
       await connectWallet({
         address: walletAddress,
-        blockchain_type: blockchainType,
+        blockchain_type: 'ethereum', // Base L2 uses ethereum type
         signature,
-        id: blockchainType
+        id: 'base'
       });
       
-      toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
+      toast.success('Base L2 wallet connected successfully!');
       
       if (onWalletConnected) {
         onWalletConnected({
           address: walletAddress,
-          blockchain: blockchainType,
+          blockchain: 'base',
           signature,
-          message: params.payload?.statement || 'Authentication successful'
+          message: params.payload?.statement || 'Base L2 authentication successful'
         });
       }
     } catch (error) {
-      console.error('Wallet authentication error:', error);
-      toast.error('Failed to connect wallet. Please try again.');
+      console.error('Base wallet authentication error:', error);
+      toast.error('Failed to connect Base wallet. Please try again.');
       throw error;
     }
   };
 
   const handleLogout = async () => {
-    console.log('Thirdweb logout called');
-    // Handle logout if needed
+    console.log('Base wallet logout called');
   };
 
   const getLoginPayload = async (params: { address: string; chainId?: number }) => {
-    console.log('Getting login payload for:', params);
+    console.log('Getting login payload for Base:', params);
     
-    // Return a proper LoginPayload object for Thirdweb
     return {
       domain: window.location.hostname,
       address: params.address,
-      statement: "Sign this message to authenticate with BlockDrive",
+      statement: "Sign this message to authenticate with BlockDrive on Base L2",
       uri: window.location.origin,
       version: "1",
-      chain_id: params.chainId?.toString() || "1",
+      chain_id: params.chainId?.toString() || "8453", // Base mainnet
       nonce: crypto.randomUUID(),
       issued_at: new Date().toISOString(),
-      expiration_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      expiration_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       invalid_before: new Date().toISOString(),
     };
   };
 
   const isLoggedIn = async () => {
-    // Check if user is already authenticated
     const session = localStorage.getItem('sb-supabase-auth-token');
     return !!session;
   };
@@ -131,12 +110,12 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
         client={thirdwebClient}
         wallets={supportedWallets}
         connectButton={{ 
-          label: "Connect Web3 Wallet",
+          label: "Connect Base Wallet",
           className: "bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
         }}
         connectModal={{ 
           size: "compact",
-          title: "Connect to BlockDrive",
+          title: "Connect to BlockDrive on Base L2",
           showThirdwebBranding: false
         }}
         auth={{
@@ -146,21 +125,20 @@ export const ThirdwebWalletConnector = ({ onWalletConnected }: ThirdwebWalletCon
           isLoggedIn: isLoggedIn,
         }}
         accountAbstraction={{
-          chain: ethereum,
+          chain: base,
           sponsorGas: false,
         }}
       />
       
       <div className="text-center">
         <p className="text-gray-400 text-sm mb-2">
-          Supports Web3 wallets including:
+          Supports Base L2 wallets including:
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
           <span className="bg-gray-800/40 px-2 py-1 rounded">MetaMask</span>
-          <span className="bg-gray-800/40 px-2 py-1 rounded">Coinbase</span>
+          <span className="bg-gray-800/40 px-2 py-1 rounded">Coinbase Wallet</span>
           <span className="bg-gray-800/40 px-2 py-1 rounded">WalletConnect</span>
-          <span className="bg-gray-800/40 px-2 py-1 rounded">Trust Wallet</span>
-          <span className="bg-gray-800/40 px-2 py-1 rounded">Phantom</span>
+          <span className="bg-gray-800/40 px-2 py-1 rounded">Rainbow</span>
           <span className="bg-gray-800/40 px-2 py-1 rounded">+ more</span>
         </div>
       </div>

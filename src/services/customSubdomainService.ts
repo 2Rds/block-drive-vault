@@ -1,20 +1,23 @@
 
 import { NFTService } from './nftService';
 import { SubdomainService } from './subdomainService';
-import { TwoFactorAuthService } from './twoFactorAuthService';
-import { OnboardingService } from './onboardingService';
+import { BaseAuthService } from './baseAuthService';
+import { BaseSubdomainService } from './baseSubdomainService';
 
 // Main service that exports all functionality for backward compatibility
 export { NFTService } from './nftService';
 export { SubdomainService } from './subdomainService';
-export { TwoFactorAuthService } from './twoFactorAuthService';
-export { OnboardingService } from './onboardingService';
+export { BaseAuthService } from './baseAuthService';
+export { BaseSubdomainService } from './baseSubdomainService';
 
-// Legacy class for backward compatibility
+// Legacy class for backward compatibility - now uses Base only
 export class CustomSubdomainService {
   static checkSubdomainAvailability = SubdomainService.checkSubdomainAvailability;
   static airdropBlockDriveNFT = NFTService.airdropBlockDriveNFT;
   static createSubdomain = SubdomainService.createSubdomain;
-  static completeNewUserOnboarding = OnboardingService.completeNewUserOnboarding;
-  static verify2FA = TwoFactorAuthService.verify2FA;
+  
+  // New Base-specific methods
+  static authenticateWithBase2FA = BaseAuthService.authenticateWithBase2FA;
+  static verifyBase2FA = BaseSubdomainService.verifyBase2FA;
+  static redirectToBaseSoulboundNFTMint = BaseAuthService.redirectToSoulboundNFTMint;
 }
