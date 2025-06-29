@@ -55,12 +55,9 @@ export class MetaplexNFTService {
           },
         ],
         // Enable collection verification
-        collection: {
-          key: metaplex.identity().publicKey,
-          verified: false,
-        },
+        collection: metaplex.identity().publicKey,
         uses: {
-          useMethod: { __kind: 'Single' },
+          useMethod: 'Single',
           remaining: 1,
           total: 1,
         },
@@ -130,7 +127,7 @@ export class MetaplexNFTService {
         // Make this NFT soulbound using proper configuration
         tokenOwner: recipientPublicKey,
         uses: {
-          useMethod: { __kind: 'Single' },
+          useMethod: 'Single',
           remaining: 1,
           total: 1,
         },
