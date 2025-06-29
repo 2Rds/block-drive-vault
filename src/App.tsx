@@ -32,9 +32,10 @@ const App = () => {
                   </ProtectedRoute>
                 } 
               />
+              {/* Redirect root to auth instead of index */}
               <Route 
                 path="/" 
-                element={<Navigate to="/index" replace />}
+                element={<Navigate to="/auth" replace />}
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
