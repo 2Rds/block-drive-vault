@@ -33,8 +33,8 @@ export const EnhancedWelcomeModal = ({
   const [step, setStep] = useState<'welcome' | 'subdomain'>('welcome');
   const [isSubdomainAvailable, setIsSubdomainAvailable] = useState<boolean | null>(null);
 
-  const isEthereum = blockchainType === 'ethereum';
-  const requiresSubdomain = isEthereum && isNewUser;
+  // Both chains now require subdomain creation (Factor 2 of 2FA)
+  const requiresSubdomain = isNewUser;
 
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (!subdomain || subdomain.length < 3) {
@@ -65,9 +65,9 @@ export const EnhancedWelcomeModal = ({
     setIsCompleting(true);
     
     try {
-      // If Ethereum user needs subdomain creation
+      // Both Ethereum and Solana users need subdomain creation for full 2FA
       if (requiresSubdomain && subdomainName) {
-        console.log('Creating subdomain:', `${subdomainName}.blockdrive.eth`);
+        console.log('Creating subdomain:', `${subdomainName}.blockdrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'}`);
         
         const subdomainResult = await CustomSubdomainService.createSubdomain(
           walletAddress,
@@ -82,12 +82,12 @@ export const EnhancedWelcomeModal = ({
         }
         
         // Store the subdomain association
-        localStorage.setItem('ens-subdomain', subdomainResult.subdomain || '');
+        localStorage.setItem(`${blockchainType}-subdomain`, subdomainResult.subdomain || '');
         localStorage.setItem(`welcome-seen-${walletAddress}`, 'true');
         
         toast.success(`🎉 Setup complete! Your ${subdomainResult.subdomain} is ready!`);
       } else {
-        // For non-Ethereum users or existing users, just mark as completed
+        // For existing users, just mark as completed
         localStorage.setItem(`welcome-seen-${walletAddress}`, 'true');
         
         if (isNewUser && nftAirdropped) {
@@ -166,7 +166,7 @@ export const EnhancedWelcomeModal = ({
           >
             {isCompleting ? 'Setting up...' : 
              step === 'subdomain' ? 'Create Subdomain & Complete Setup' : 
-             requiresSubdomain ? 'Next: Create BlockDrive Subdomain' : 'Complete Setup'}
+             requiresSubdomain ? `Next: Create BlockDrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'} Subdomain` : 'Complete Setup'}
           </Button>
           
           <Button

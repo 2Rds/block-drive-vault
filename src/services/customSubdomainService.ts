@@ -94,7 +94,7 @@ export class CustomSubdomainService {
   }
 
   /**
-   * Create custom subdomain with NFT verification
+   * Create custom subdomain with NFT verification (now supports both chains)
    */
   static async createSubdomain(
     walletAddress: string,
@@ -130,7 +130,7 @@ export class CustomSubdomainService {
         };
       }
 
-      // Create the subdomain record
+      // Create the subdomain record for both chains
       const fullDomain = `${subdomainName}.blockdrive.${blockchainType === 'ethereum' ? 'eth' : 'sol'}`;
       const mockTxHash = `subdomain_tx_${blockchainType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -174,7 +174,7 @@ export class CustomSubdomainService {
   }
 
   /**
-   * Complete new user onboarding: NFT airdrop + subdomain creation
+   * Complete new user onboarding: NFT airdrop + subdomain creation (both chains)
    */
   static async completeNewUserOnboarding(
     walletAddress: string,
@@ -183,15 +183,15 @@ export class CustomSubdomainService {
   ): Promise<{ nftResult: NFTAirdropResult; subdomainResult?: SubdomainCreationResult }> {
     console.log('Starting complete onboarding for:', { walletAddress, blockchainType, subdomainName });
 
-    // Step 1: Airdrop NFT
+    // Step 1: Airdrop NFT (Factor 1 of 2FA)
     const nftResult = await this.airdropBlockDriveNFT(walletAddress, blockchainType);
     
     if (!nftResult.success) {
       return { nftResult };
     }
 
-    // Step 2: Create subdomain if provided (mainly for Ethereum users)
-    if (subdomainName && blockchainType === 'ethereum') {
+    // Step 2: Create subdomain if provided (Factor 2 of 2FA - now for both chains)
+    if (subdomainName) {
       // Wait a moment for NFT to be confirmed
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -203,7 +203,7 @@ export class CustomSubdomainService {
   }
 
   /**
-   * Verify user has both factors for 2FA (NFT + Subdomain for Ethereum, just NFT for Solana)
+   * Verify user has both factors for 2FA (NFT + Subdomain for both chains)
    */
   static async verify2FA(walletAddress: string, blockchainType: 'ethereum' | 'solana'): Promise<{
     hasNFT: boolean;
@@ -222,7 +222,7 @@ export class CustomSubdomainService {
 
       const hasNFT = !!nftData;
 
-      // Check subdomain ownership (Factor 2) - required for Ethereum
+      // Check subdomain ownership (Factor 2) - now required for both chains
       const { data: subdomainData } = await supabase
         .from('subdomain_registrations')
         .select('*')
@@ -233,10 +233,8 @@ export class CustomSubdomainService {
 
       const hasSubdomain = !!subdomainData;
 
-      // Determine if fully verified based on blockchain type
-      const isFullyVerified = blockchainType === 'ethereum' 
-        ? (hasNFT && hasSubdomain)  // Ethereum needs both factors
-        : hasNFT;                   // Solana only needs NFT
+      // Both chains now need NFT + Subdomain for full 2FA
+      const isFullyVerified = hasNFT && hasSubdomain;
 
       return {
         hasNFT,

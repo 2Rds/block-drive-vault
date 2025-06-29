@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -92,7 +93,7 @@ const Index = () => {
           isOpen={showWelcomeModal}
           onClose={closeWelcomeModal}
           walletAddress={user.user_metadata.wallet_address}
-          blockchainType={user.user_metadata.blockchain_type || 'ethereum'}
+          blockchainType={(user.user_metadata.blockchain_type as 'ethereum' | 'solana') || 'ethereum'}
           isNewUser={true}
           nftAirdropped={true}
         />
