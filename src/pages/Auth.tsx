@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCards } from '@/components/auth/FeatureCards';
 import { Web3MFAConnector } from '@/components/auth/Web3MFAConnector';
+import { CollectionManager } from '@/components/auth/CollectionManager';
 
 const Auth = () => {
   const { user, session } = useAuth();
@@ -60,6 +61,9 @@ const Auth = () => {
 
             {/* Web3MFA Connector - Always visible */}
             <Web3MFAConnector onAuthenticationSuccess={handleWalletConnected} />
+
+            {/* Collection Manager - Added for testing */}
+            <CollectionManager />
 
             <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
               <h4 className="font-semibold text-white mb-3">🚀 Enhanced 2FA Security</h4>
