@@ -14,6 +14,18 @@ export interface AuthenticationResult {
 export class Web3AuthService {
   
   /**
+   * Mint BlockDrive NFT for new users
+   */
+  static async mintBlockDriveNFT(
+    walletAddress: string, 
+    blockchainType: 'ethereum' | 'solana',
+    signature: string,
+    message: string
+  ) {
+    return NFTVerificationService.mintBlockDriveNFT(walletAddress, blockchainType, signature, message);
+  }
+
+  /**
    * Verify if user has BlockDrive NFT in their wallet
    */
   static async verifyNFTOwnership(
@@ -34,7 +46,7 @@ export class Web3AuthService {
   }
 
   /**
-   * Complete Web3 Authentication (simplified version)
+   * Complete Web3 Multi-Factor Authentication
    */
   static async authenticateUser(
     walletAddress: string,
@@ -43,11 +55,45 @@ export class Web3AuthService {
     message: string
   ): Promise<AuthenticationResult> {
     try {
-      console.log('Starting Web3 authentication:', { walletAddress, blockchainType });
+      console.log('Starting Web3 MFA:', { walletAddress, blockchainType });
 
-      // Create auth session directly
+      // Step 1: Verify NFT ownership (First Factor)
+      const nftVerification = await this.verifyNFTOwnership(walletAddress, blockchainType);
+      
+      if (!nftVerification.hasNFT) {
+        // If no NFT, this might be a first-time user - try to mint NFT
+        console.log('No NFT found, attempting to mint for new user...');
+        
+        const mintResult = await this.mintBlockDriveNFT(walletAddress, blockchainType, signature, message);
+        
+        if (mintResult.success) {
+          return {
+            success: true,
+            isFirstTime: true,
+            requiresSubdomain: true // User needs to create subdomain next
+          };
+        } else {
+          return {
+            success: false,
+            error: 'Authentication failed: No BlockDrive NFT found and unable to mint new NFT'
+          };
+        }
+      }
+
+      // Step 2: Verify subdomain ownership (Second Factor)
+      const subdomainVerification = await this.verifySubdomainOwnership(walletAddress, blockchainType);
+      
+      if (!subdomainVerification.hasSubdomain) {
+        return {
+          success: false,
+          requiresSubdomain: true,
+          error: 'Authentication incomplete: Please create your BlockDrive subdomain to complete setup'
+        };
+      }
+
+      // Both factors verified - create auth session
       const sessionResult = await AuthSessionService.createAuthSession(
-        { walletAddress, blockchainType },
+        nftVerification.nftData,
         walletAddress,
         blockchainType
       );
@@ -66,7 +112,7 @@ export class Web3AuthService {
       };
 
     } catch (error: any) {
-      console.error('Web3 authentication error:', error);
+      console.error('Web3 MFA error:', error);
       return {
         success: false,
         error: error.message || 'Authentication failed'
@@ -75,7 +121,7 @@ export class Web3AuthService {
   }
 
   /**
-   * Register subdomain for user
+   * Register subdomain for user (completes second factor setup)
    */
   static async registerSubdomain(
     walletAddress: string,

@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: [
+      '@metaplex-foundation/js',
       '@solana/web3.js',
       'bs58',
     ],
