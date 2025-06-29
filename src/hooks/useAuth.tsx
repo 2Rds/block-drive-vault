@@ -238,9 +238,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Store session in localStorage for persistence
         localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
         
-        // Set user and session data
+        // Set user and session data immediately
         setUser(sessionData.user);
         setSession(sessionData);
+        console.log('Session data set:', { user: sessionData.user.id, session: !!sessionData.access_token });
 
         // Process wallet data
         const processedWalletData: WalletData = {
@@ -255,6 +256,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
 
         setWalletData(processedWalletData);
+        setLoading(false);
 
         console.log('Wallet connected successfully:', processedWalletData);
         
@@ -264,10 +266,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
         }
         
-        // Redirect to dashboard
+        // Force a redirect after setting all state
+        console.log('Redirecting to dashboard...');
         setTimeout(() => {
           window.location.href = '/index';
-        }, 1000);
+        }, 500);
 
         return { error: null, data: sessionData };
       } else {
@@ -276,9 +279,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       console.error('Wallet connection failed:', error);
       toast.error(`Failed to connect wallet: ${error.message}`);
-      return { error: { message: error.message } };
-    } finally {
       setLoading(false);
+      return { error: { message: error.message } };
     }
   };
 
@@ -321,6 +323,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error };
     }
   };
+
+  console.log('Auth state:', { 
+    userId: user?.id, 
+    hasSession: !!session, 
+    walletConnected: walletData?.connected,
+    loading 
+  });
 
   return (
     <AuthContext.Provider value={{
