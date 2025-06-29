@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
@@ -43,16 +42,17 @@ const Index = () => {
   useEffect(() => {
     if (walletData?.address) {
       const hasSeenWelcome = localStorage.getItem(`welcome-seen-${walletData.address}`);
+      console.log('Checking welcome status for:', walletData.address, 'Has seen:', hasSeenWelcome);
+      
       if (!hasSeenWelcome) {
+        console.log('Showing welcome modal for new user');
         setShowWelcomeModal(true);
       }
     }
   }, [walletData?.address]);
 
   const handleWelcomeComplete = () => {
-    if (walletData?.address) {
-      localStorage.setItem(`welcome-seen-${walletData.address}`, 'true');
-    }
+    console.log('Welcome modal completed');
     setShowWelcomeModal(false);
   };
 
@@ -175,8 +175,8 @@ const Index = () => {
         <WelcomeModal
           isOpen={showWelcomeModal}
           onClose={handleWelcomeComplete}
-          walletAddress={walletData.address}
-          blockchainType={walletData.blockchain_type}
+          walletAddress={walletData.address || ''}
+          blockchainType={walletData.blockchain_type || 'ethereum'}
         />
       )}
 

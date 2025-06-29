@@ -65,14 +65,18 @@ export const WelcomeModal = ({ isOpen, onClose, walletAddress, blockchainType }:
         
         // Store the subdomain association
         localStorage.setItem('ens-subdomain', `${subdomainName}.blockdrive.eth`);
+        localStorage.setItem(`welcome-seen-${walletAddress}`, 'true');
         
         toast.success(`ENS subdomain ${subdomainName}.blockdrive.eth created successfully!`);
+      } else {
+        // For non-Ethereum users, just mark as completed
+        localStorage.setItem(`welcome-seen-${walletAddress}`, 'true');
+        toast.success('Welcome to BlockDrive! Setup complete.');
       }
       
       // Complete setup
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      toast.success('Welcome to BlockDrive! Setup complete.');
       onClose();
       
     } catch (error) {
@@ -83,8 +87,14 @@ export const WelcomeModal = ({ isOpen, onClose, walletAddress, blockchainType }:
     }
   };
 
+  const handleLogout = () => {
+    // Clear session and redirect to auth
+    localStorage.removeItem('sb-supabase-auth-token');
+    window.location.href = '/auth';
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-md bg-gray-900 border-gray-800">
         <DialogHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
@@ -189,7 +199,7 @@ export const WelcomeModal = ({ isOpen, onClose, walletAddress, blockchainType }:
           </Button>
           
           <Button
-            onClick={onClose}
+            onClick={handleLogout}
             variant="ghost"
             className="w-full text-gray-400 hover:text-white"
           >
