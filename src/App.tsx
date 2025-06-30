@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { PricingPage } from "@/components/subscription/PricingPage";
 
 const queryClient = new QueryClient();
 
@@ -26,8 +27,17 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/pricing" element={<PricingPage />} />
                 <Route 
                   path="/index" 
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard" 
                   element={
                     <ProtectedRoute>
                       <Index />

@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface PricingTier {
   name: string;
@@ -77,11 +78,12 @@ const pricingTiers: PricingTier[] = [
 
 export const PricingPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
     if (!user) {
-      toast.error('Please log in to subscribe');
+      navigate('/auth');
       return;
     }
 
@@ -97,8 +99,8 @@ export const PricingPage = () => {
 
       if (error) throw error;
 
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
+      // Open Stripe checkout in the same tab
+      window.location.href = data.url;
     } catch (error: any) {
       console.error('Subscription error:', error);
       toast.error(`Failed to start subscription: ${error.message}`);
@@ -110,6 +112,18 @@ export const PricingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-16">
       <div className="container mx-auto px-4">
+        <div className="flex items-center mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="text-gray-400 hover:text-white"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold text-white mb-4">
             Choose Your BlockDrive Plan
