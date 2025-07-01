@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { PricingButton } from '@/components/PricingButton';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -55,6 +56,8 @@ export const Header = () => {
           {user ? (
             // Authenticated user content
             <>
+              <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white" />
+              
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
                 <Bell className="w-5 h-5" />
               </Button>
@@ -94,13 +97,17 @@ export const Header = () => {
             </>
           ) : (
             // Unauthenticated user content - Sign In button moved to top right
-            <Button 
-              onClick={handleSignInClick}
-              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Sign In</span>
-            </Button>
+            <>
+              <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white mr-2" />
+              
+              <Button 
+                onClick={handleSignInClick}
+                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In</span>
+              </Button>
+            </>
           )}
         </div>
       </div>

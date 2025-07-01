@@ -35,6 +35,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     logStep("Extracting user from token");
     
+    // Try to get user with the provided token
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {

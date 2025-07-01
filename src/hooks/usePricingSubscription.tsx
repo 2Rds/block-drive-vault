@@ -7,12 +7,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
 
 export const usePricingSubscription = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
-    if (!user) {
+    if (!user || !session) {
       toast.error('Please sign in to subscribe');
       navigate('/auth');
       return;
@@ -27,12 +27,11 @@ export const usePricingSubscription = () => {
     setLoading(tier.name);
 
     try {
-      // Get the current session to ensure we have a valid token
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !currentUser) {
-        throw new Error('Authentication required. Please sign in again.');
-      }
+      console.log('Current user and session:', {
+        userId: user.id,
+        hasSession: !!session,
+        sessionToken: session.access_token ? 'present' : 'missing'
+      });
 
       console.log('Calling create-checkout with:', {
         priceId: tier.priceId,
@@ -57,11 +56,20 @@ export const usePricingSubscription = () => {
         throw new Error('No checkout URL received');
       }
 
+      console.log('Checkout URL received:', data.url);
+
       // Open Stripe checkout in the same tab
       window.location.href = data.url;
     } catch (error: any) {
       console.error('Subscription error:', error);
-      toast.error(`Failed to start subscription: ${error.message}`);
+      
+      // If it's an authentication error, redirect to auth page
+      if (error.message?.includes('Authentication') || error.message?.includes('auth')) {
+        toast.error('Please sign in again to continue');
+        navigate('/auth');
+      } else {
+        toast.error(`Failed to start subscription: ${error.message}`);
+      }
     } finally {
       setLoading(null);
     }
