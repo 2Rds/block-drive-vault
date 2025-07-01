@@ -13,6 +13,7 @@ export const usePricingSubscription = () => {
 
   const handleSubscribe = async (tier: PricingTier) => {
     if (!user) {
+      toast.error('Please sign in to subscribe');
       navigate('/auth');
       return;
     }
@@ -26,6 +27,19 @@ export const usePricingSubscription = () => {
     setLoading(tier.name);
 
     try {
+      // Get the current session to ensure we have a valid token
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !currentUser) {
+        throw new Error('Authentication required. Please sign in again.');
+      }
+
+      console.log('Calling create-checkout with:', {
+        priceId: tier.priceId,
+        tier: tier.name,
+        hasTrial: tier.hasTrial
+      });
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tier.priceId,
@@ -34,7 +48,14 @@ export const usePricingSubscription = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
+      }
 
       // Open Stripe checkout in the same tab
       window.location.href = data.url;

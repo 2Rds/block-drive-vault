@@ -26,11 +26,32 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("No authorization header found");
+      throw new Error("No authorization header provided");
+    }
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    logStep("Extracting user from token");
+    
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError) {
+      logStep("User authentication error", { error: userError.message });
+      throw new Error(`Authentication failed: ${userError.message}`);
+    }
+    
+    const user = userData.user;
+    if (!user) {
+      logStep("No user found in token");
+      throw new Error("User not found");
+    }
+    
+    if (!user.email) {
+      logStep("User email not available", { userId: user.id });
+      throw new Error("User email not available");
+    }
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
