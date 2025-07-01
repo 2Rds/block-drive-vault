@@ -34,8 +34,8 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { priceId, tier } = await req.json();
-    logStep("Request body parsed", { priceId, tier });
+    const { priceId, tier, hasTrial } = await req.json();
+    logStep("Request body parsed", { priceId, tier, hasTrial });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
@@ -51,8 +51,8 @@ serve(async (req) => {
       logStep("No existing customer, will create during checkout");
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Create checkout session with trial if applicable
+    const sessionConfig: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
@@ -68,7 +68,17 @@ serve(async (req) => {
         user_id: user.id,
         tier: tier,
       },
-    });
+    };
+
+    // Add trial period for Starter tier
+    if (hasTrial) {
+      sessionConfig.subscription_data = {
+        trial_period_days: 7,
+      };
+      logStep("Added 7-day trial period for Starter tier");
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 

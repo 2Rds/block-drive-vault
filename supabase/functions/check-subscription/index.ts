@@ -13,11 +13,13 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Tier limits configuration
+// Updated tier limits configuration
 const TIER_LIMITS = {
-  Individual: { storage: 100, bandwidth: 500, seats: 1 },
-  Business: { storage: 1000, bandwidth: 2000, seats: 10 },
-  Enterprise: { storage: 10000, bandwidth: 10000, seats: 100 }
+  Starter: { storage: 50, bandwidth: 100, seats: 1 },
+  Pro: { storage: 150, bandwidth: 300, seats: 1 },
+  'Pro Plus': { storage: 300, bandwidth: 600, seats: 3 },
+  Business: { storage: 500, bandwidth: 1000, seats: 999 }, // Unlimited represented as high number
+  Enterprise: { storage: 99999, bandwidth: 99999, seats: 999 } // Unlimited represented as high number
 };
 
 serve(async (req) => {
@@ -95,18 +97,18 @@ serve(async (req) => {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       
-      // Determine subscription tier from price amount
+      // Determine subscription tier from price ID
       const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const amount = price.unit_amount || 0;
       
-      if (amount === 999) { // $9.99
-        subscriptionTier = "Individual";
-      } else if (amount === 2999) { // $29.99
-        subscriptionTier = "Business";
-      } else if (amount === 9999) { // $99.99
-        subscriptionTier = "Enterprise";
-      }
+      // Map price IDs to tiers
+      const priceIdToTier: { [key: string]: string } = {
+        'price_1RfquDCXWi8NqmFCLUCGHtkZ': 'Starter',
+        'price_1Rfr9KCXWi8NqmFCoglqEMRH': 'Pro', 
+        'price_1RfrEICXWi8NqmFChG0fYrRy': 'Pro Plus',
+        'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Business'
+      };
+      
+      subscriptionTier = priceIdToTier[priceId] || null;
       
       if (subscriptionTier && TIER_LIMITS[subscriptionTier]) {
         limits = TIER_LIMITS[subscriptionTier];
@@ -116,6 +118,7 @@ serve(async (req) => {
         subscriptionId: subscription.id, 
         endDate: subscriptionEnd,
         tier: subscriptionTier,
+        priceId,
         limits 
       });
     } else {

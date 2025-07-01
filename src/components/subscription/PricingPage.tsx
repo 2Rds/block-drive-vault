@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, ArrowLeft } from 'lucide-react';
+import { Check, Star, ArrowLeft, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,66 +12,109 @@ import { useNavigate } from 'react-router-dom';
 interface PricingTier {
   name: string;
   price: string;
-  priceId: string;
+  priceId?: string;
   description: string;
   features: string[];
   storage: string;
   bandwidth: string;
   seats: string;
   popular?: boolean;
+  isEnterprise?: boolean;
+  hasTrial?: boolean;
 }
 
 const pricingTiers: PricingTier[] = [
   {
-    name: 'Individual',
+    name: 'Starter',
     price: '$9.99',
-    priceId: 'price_individual', // Replace with your actual Stripe price ID
-    description: 'Perfect for personal use and small projects',
-    storage: '100 GB',
-    bandwidth: '500 GB',
+    priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
+    description: 'Perfect for personal use with 7-day free trial',
+    storage: '50 GB',
+    bandwidth: '100 GB',
     seats: '1 user',
+    hasTrial: true,
     features: [
-      '100 GB secure storage',
-      '500 GB bandwidth',
+      '50 GB secure storage',
+      '100 GB bandwidth',
       'Blockchain authentication',
       'File encryption',
-      'Basic support'
+      'Basic support',
+      '7-day free trial'
+    ]
+  },
+  {
+    name: 'Pro',
+    price: '$19.99',
+    priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
+    description: 'Enhanced storage for growing needs',
+    storage: '150 GB',
+    bandwidth: '300 GB',
+    seats: '1 user',
+    features: [
+      '150 GB secure storage',
+      '300 GB bandwidth',
+      'Advanced blockchain features',
+      'Priority support',
+      'Enhanced file encryption',
+      'Advanced sharing options'
+    ]
+  },
+  {
+    name: 'Pro Plus',
+    price: '$39.99',
+    priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
+    description: 'Ideal for small teams and collaboration',
+    storage: '300 GB',
+    bandwidth: '600 GB',
+    seats: '3 users',
+    popular: true,
+    features: [
+      '300 GB secure storage',
+      '600 GB bandwidth',
+      'Up to 3 team members',
+      'Team collaboration tools',
+      'Advanced blockchain features',
+      'Priority support',
+      'Shared workspaces'
     ]
   },
   {
     name: 'Business',
-    price: '$29.99',
-    priceId: 'price_business', // Replace with your actual Stripe price ID
-    description: 'Ideal for growing teams and businesses',
-    storage: '1 TB',
-    bandwidth: '2 TB',
-    seats: '10 users',
-    popular: true,
+    price: '$79.99',
+    priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
+    description: 'Scalable solution for growing businesses',
+    storage: '500 GB per seat',
+    bandwidth: '1 TB',
+    seats: 'Unlimited users',
     features: [
-      '1 TB secure storage',
-      '2 TB bandwidth',
-      'Up to 10 team members',
-      'Advanced blockchain features',
-      'Priority support',
-      'Team collaboration tools'
+      '500 GB secure storage per seat',
+      '1 TB bandwidth',
+      'Unlimited team members',
+      'Advanced analytics',
+      'Custom blockchain solutions',
+      '24/7 priority support',
+      'Advanced integrations',
+      'Custom branding'
     ]
   },
   {
     name: 'Enterprise',
-    price: '$99.99',
-    priceId: 'price_enterprise', // Replace with your actual Stripe price ID
-    description: 'For large organizations with advanced needs',
-    storage: '10 TB',
-    bandwidth: '10 TB',
-    seats: '100 users',
+    price: 'Custom',
+    description: 'Tailored solutions for large organizations',
+    storage: 'Unlimited',
+    bandwidth: 'Unlimited',
+    seats: 'Unlimited users',
+    isEnterprise: true,
     features: [
-      '10 TB secure storage',
-      '10 TB bandwidth',
-      'Up to 100 team members',
-      'Custom blockchain solutions',
-      '24/7 dedicated support',
-      'Advanced analytics',
-      'Custom integrations'
+      'Unlimited secure storage',
+      'Unlimited bandwidth',
+      'Unlimited team members',
+      'Dedicated account manager',
+      'Custom blockchain infrastructure',
+      'White-label solutions',
+      'Advanced compliance features',
+      'SLA guarantees',
+      'On-premise deployment options'
     ]
   }
 ];
@@ -87,13 +130,20 @@ export const PricingPage = () => {
       return;
     }
 
+    if (tier.isEnterprise) {
+      // Handle enterprise contact
+      window.open('mailto:sales@blockdrive.com?subject=Enterprise Plan Inquiry', '_blank');
+      return;
+    }
+
     setLoading(tier.name);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tier.priceId,
-          tier: tier.name
+          tier: tier.name,
+          hasTrial: tier.hasTrial
         }
       });
 
@@ -107,6 +157,18 @@ export const PricingPage = () => {
     } finally {
       setLoading(null);
     }
+  };
+
+  const getButtonText = (tier: PricingTier) => {
+    if (loading === tier.name) return 'Processing...';
+    if (tier.isEnterprise) return 'Book a Meeting';
+    if (tier.hasTrial) return 'Start Free Trial';
+    return `Subscribe to ${tier.name}`;
+  };
+
+  const getButtonIcon = (tier: PricingTier) => {
+    if (tier.isEnterprise) return <Calendar className="w-4 h-4 mr-2" />;
+    return null;
   };
 
   return (
@@ -134,13 +196,13 @@ export const PricingPage = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
           {pricingTiers.map((tier) => (
             <Card 
               key={tier.name} 
               className={`relative bg-gray-800/40 border-gray-700/50 ${
                 tier.popular ? 'ring-2 ring-blue-500' : ''
-              }`}
+              } ${tier.isEnterprise ? 'ring-2 ring-purple-500' : ''}`}
             >
               {tier.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -151,19 +213,35 @@ export const PricingPage = () => {
                 </div>
               )}
               
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-white">{tier.name}</CardTitle>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {tier.price}
-                  <span className="text-sm font-normal text-gray-400">/month</span>
+              {tier.isEnterprise && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                    <Star className="w-3 h-3" />
+                    Enterprise
+                  </Badge>
                 </div>
-                <CardDescription className="text-gray-300">
+              )}
+              
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
+                <div className="text-2xl font-bold text-white mb-2">
+                  {tier.price}
+                  {!tier.isEnterprise && (
+                    <span className="text-sm font-normal text-gray-400">/month</span>
+                  )}
+                </div>
+                {tier.hasTrial && (
+                  <div className="text-sm text-green-400 font-medium">
+                    7-day free trial
+                  </div>
+                )}
+                <CardDescription className="text-gray-300 text-sm">
                   {tier.description}
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 gap-2 text-sm">
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Storage:</span>
                     <span className="text-white font-medium">{tier.storage}</span>
@@ -178,11 +256,11 @@ export const PricingPage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {tier.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-gray-300 text-sm">{feature}</span>
+                    <div key={index} className="flex items-start gap-2">
+                      <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-300 text-xs">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -190,13 +268,16 @@ export const PricingPage = () => {
                 <Button
                   onClick={() => handleSubscribe(tier)}
                   disabled={loading === tier.name}
-                  className={`w-full ${
+                  className={`w-full text-sm ${
                     tier.popular 
                       ? 'bg-blue-600 hover:bg-blue-700' 
+                      : tier.isEnterprise
+                      ? 'bg-purple-600 hover:bg-purple-700'
                       : 'bg-gray-700 hover:bg-gray-600'
                   }`}
                 >
-                  {loading === tier.name ? 'Processing...' : `Subscribe to ${tier.name}`}
+                  {getButtonIcon(tier)}
+                  {getButtonText(tier)}
                 </Button>
               </CardContent>
             </Card>
@@ -207,7 +288,10 @@ export const PricingPage = () => {
           <p className="text-gray-400 text-sm">
             All plans include blockchain authentication, end-to-end encryption, and secure file storage.
             <br />
-            Cancel anytime. No hidden fees.
+            {!pricingTiers.some(t => t.isEnterprise) ? 'Cancel anytime. No hidden fees.' : 'Cancel anytime. No hidden fees. Enterprise plans include custom SLAs.'}
+          </p>
+          <p className="text-gray-500 text-xs mt-2">
+            * Free trial requires payment information. You'll be charged automatically after the trial period ends.
           </p>
         </div>
       </div>
