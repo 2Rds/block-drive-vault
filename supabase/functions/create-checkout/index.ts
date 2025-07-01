@@ -29,29 +29,41 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No authorization header found");
-      throw new Error("No authorization header provided");
+      return new Response(JSON.stringify({ error: "No authorization header provided" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
     const token = authHeader.replace("Bearer ", "");
     logStep("Extracting user from token");
     
-    // Try to get user with the provided token
+    // Get user with proper error handling
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
       logStep("User authentication error", { error: userError.message });
-      throw new Error(`Authentication failed: ${userError.message}`);
+      return new Response(JSON.stringify({ error: `Authentication failed: ${userError.message}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
     
     const user = userData.user;
     if (!user) {
       logStep("No user found in token");
-      throw new Error("User not found");
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
     
     if (!user.email) {
       logStep("User email not available", { userId: user.id });
-      throw new Error("User email not available");
+      return new Response(JSON.stringify({ error: "User email not available" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     
     logStep("User authenticated", { userId: user.id, email: user.email });
@@ -68,10 +80,23 @@ serve(async (req) => {
     ];
 
     if (!validPriceIds.includes(priceId)) {
-      throw new Error(`Invalid price ID: ${priceId}`);
+      logStep("Invalid price ID", { priceId });
+      return new Response(JSON.stringify({ error: `Invalid price ID: ${priceId}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      logStep("Stripe secret key not configured");
+      return new Response(JSON.stringify({ error: "Stripe configuration error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    const stripe = new Stripe(stripeKey, { 
       apiVersion: "2023-10-16" 
     });
 

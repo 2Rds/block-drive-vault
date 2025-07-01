@@ -27,13 +27,24 @@ export const usePricingSubscription = () => {
     setLoading(tier.name);
 
     try {
-      console.log('Current user and session:', {
-        userId: user.id,
-        hasSession: !!session,
-        sessionToken: session.access_token ? 'present' : 'missing'
-      });
+      console.log('Starting subscription process for tier:', tier.name);
+      
+      // Get a fresh session token
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Unable to get current session');
+      }
 
-      console.log('Calling create-checkout with:', {
+      if (!currentSession) {
+        console.error('No current session found');
+        toast.error('Please sign in again to continue');
+        navigate('/auth');
+        return;
+      }
+
+      console.log('Session valid, calling create-checkout with:', {
         priceId: tier.priceId,
         tier: tier.name,
         hasTrial: tier.hasTrial
@@ -49,11 +60,11 @@ export const usePricingSubscription = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to create checkout session');
       }
 
       if (!data?.url) {
-        throw new Error('No checkout URL received');
+        throw new Error('No checkout URL received from server');
       }
 
       console.log('Checkout URL received:', data.url);
@@ -63,9 +74,9 @@ export const usePricingSubscription = () => {
     } catch (error: any) {
       console.error('Subscription error:', error);
       
-      // If it's an authentication error, redirect to auth page
-      if (error.message?.includes('Authentication') || error.message?.includes('auth')) {
-        toast.error('Please sign in again to continue');
+      // Handle specific error cases
+      if (error.message?.includes('JWT') || error.message?.includes('claim') || error.message?.includes('auth')) {
+        toast.error('Session expired. Please sign in again.');
         navigate('/auth');
       } else {
         toast.error(`Failed to start subscription: ${error.message}`);
