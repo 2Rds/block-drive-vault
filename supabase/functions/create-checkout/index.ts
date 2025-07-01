@@ -37,6 +37,18 @@ serve(async (req) => {
     const { priceId, tier, hasTrial } = await req.json();
     logStep("Request body parsed", { priceId, tier, hasTrial });
 
+    // Validate that we have the correct price ID
+    const validPriceIds = [
+      'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
+      'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
+      'price_1RfrEICXWi8NqmFChG0fYrRy', // Pro Plus
+      'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Business
+    ];
+
+    if (!validPriceIds.includes(priceId)) {
+      throw new Error(`Invalid price ID: ${priceId}`);
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
       apiVersion: "2023-10-16" 
     });
@@ -71,7 +83,7 @@ serve(async (req) => {
     };
 
     // Add trial period for Starter tier
-    if (hasTrial) {
+    if (hasTrial && tier === 'Starter') {
       sessionConfig.subscription_data = {
         trial_period_days: 7,
       };

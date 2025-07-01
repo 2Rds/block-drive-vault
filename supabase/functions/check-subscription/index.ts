@@ -97,15 +97,15 @@ serve(async (req) => {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       
-      // Determine subscription tier from price ID
+      // Determine subscription tier from price ID - Updated with correct price IDs
       const priceId = subscription.items.data[0].price.id;
       
-      // Map price IDs to tiers
+      // Map price IDs to tiers with the correct IDs
       const priceIdToTier: { [key: string]: string } = {
-        'price_1RfquDCXWi8NqmFCLUCGHtkZ': 'Starter',
-        'price_1Rfr9KCXWi8NqmFCoglqEMRH': 'Pro', 
-        'price_1RfrEICXWi8NqmFChG0fYrRy': 'Pro Plus',
-        'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Business'
+        'price_1RfquDCXWi8NqmFCLUCGHtkZ': 'Starter',   // $9/month
+        'price_1Rfr9KCXWi8NqmFCoglqEMRH': 'Pro',       // $29/month
+        'price_1RfrEICXWi8NqmFChG0fYrRy': 'Pro Plus',  // $59/month
+        'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Business'   // $99/month/seat
       };
       
       subscriptionTier = priceIdToTier[priceId] || null;

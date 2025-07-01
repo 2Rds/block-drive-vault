@@ -4,7 +4,7 @@ import { PricingTier } from '@/types/pricing';
 export const pricingTiers: PricingTier[] = [
   {
     name: 'Starter',
-    price: '$9.99',
+    price: '$9',
     priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
     description: 'Perfect for personal use with 7-day free trial',
     storage: '50 GB',
@@ -22,7 +22,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Pro',
-    price: '$19.99',
+    price: '$29',
     priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
     description: 'Enhanced storage for growing needs',
     storage: '150 GB',
@@ -39,7 +39,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Pro Plus',
-    price: '$39.99',
+    price: '$59',
     priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
     description: 'Ideal for small teams and collaboration',
     storage: '300 GB',
@@ -58,7 +58,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Business',
-    price: '$79.99',
+    price: '$99',
     priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
     description: 'Scalable solution for growing businesses',
     storage: '500 GB per seat',

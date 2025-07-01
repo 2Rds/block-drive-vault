@@ -25,6 +25,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
     return null;
   };
 
+  const getPriceDisplay = (tier: PricingTier) => {
+    if (tier.isEnterprise) return tier.price;
+    if (tier.name === 'Business') return `${tier.price}/month/seat`;
+    return `${tier.price}/month`;
+  };
+
   return (
     <Card 
       className={`relative bg-gray-800/40 border-gray-700/50 ${
@@ -52,10 +58,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
       <CardHeader className="text-center">
         <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
         <div className="text-2xl font-bold text-white mb-2">
-          {tier.price}
-          {!tier.isEnterprise && (
-            <span className="text-sm font-normal text-gray-400">/month</span>
-          )}
+          {getPriceDisplay(tier)}
         </div>
         {tier.hasTrial && (
           <div className="text-sm text-green-400 font-medium">
