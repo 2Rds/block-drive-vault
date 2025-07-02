@@ -10,8 +10,10 @@ import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
 import { FileViewer } from '@/components/FileViewer';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Slack, Settings } from 'lucide-react';
+import { BarChart3, Files, Settings } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
+import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
+import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 
@@ -20,6 +22,8 @@ const Index = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [userFolders, setUserFolders] = useState<string[]>([]);
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
+  const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
+  const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
   
   const {
     currentPath,
@@ -75,6 +79,9 @@ const Index = () => {
           userFolders={userFolders}
           onFolderClick={handleFolderClick}
           openFolders={openFolders}
+          onSlackClick={() => setShowSlackIntegration(true)}
+          onOneDriveClick={() => setShowOneDriveIntegration(true)}
+          onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
         />
         <main className="flex-1 p-8 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -111,14 +118,6 @@ const Index = () => {
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
                 </Button>
-                <Button
-                  onClick={() => setShowSlackIntegration(true)}
-                  variant="outline"
-                  className="bg-accent/10 border-accent/30 text-accent hover:bg-accent/20 hover:border-accent/50"
-                >
-                  <Slack className="w-4 h-4 mr-2" />
-                  Slack
-                </Button>
               </div>
             </div>
 
@@ -148,9 +147,20 @@ const Index = () => {
         />
       )}
 
+      {/* Integration Modals */}
       <SlackIntegration
         isOpen={showSlackIntegration}
         onClose={() => setShowSlackIntegration(false)}
+      />
+
+      <OneDriveIntegration
+        isOpen={showOneDriveIntegration}
+        onClose={() => setShowOneDriveIntegration(false)}
+      />
+
+      <GoogleDriveIntegration
+        isOpen={showGoogleDriveIntegration}
+        onClose={() => setShowGoogleDriveIntegration(false)}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video, ChevronRight, ChevronDown } from 'lucide-react';
+import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video, ChevronRight, ChevronDown, Slack, Cloud, HardDrive } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
 interface SidebarProps {
@@ -9,6 +9,9 @@ interface SidebarProps {
   userFolders?: string[];
   onFolderClick?: (folderPath: string) => void;
   openFolders?: string[];
+  onSlackClick?: () => void;
+  onOneDriveClick?: () => void;
+  onGoogleDriveClick?: () => void;
 }
 
 export const Sidebar = ({ 
@@ -16,7 +19,10 @@ export const Sidebar = ({
   onFolderSelect, 
   userFolders = [], 
   onFolderClick,
-  openFolders = []
+  openFolders = [],
+  onSlackClick,
+  onOneDriveClick,
+  onGoogleDriveClick
 }: SidebarProps) => {
   const { stats, loading } = useUserData();
 
@@ -96,6 +102,31 @@ export const Sidebar = ({
     // Always select the folder for filtering
     onFolderSelect(folder.id);
   };
+
+  // Integration options
+  const integrations = [
+    {
+      id: 'slack',
+      name: 'Slack',
+      icon: Slack,
+      color: 'text-blue-400',
+      onClick: onSlackClick
+    },
+    {
+      id: 'onedrive',
+      name: 'OneDrive',
+      icon: Cloud,
+      color: 'text-blue-600',
+      onClick: onOneDriveClick
+    },
+    {
+      id: 'googledrive',
+      name: 'Google Drive',
+      icon: HardDrive,
+      color: 'text-green-500',
+      onClick: onGoogleDriveClick
+    }
+  ];
 
   // Calculate recent activity stats from live data
   const recentUploads = loading ? 0 : stats.recentActivity.filter(activity => 
@@ -198,6 +229,23 @@ export const Sidebar = ({
           </nav>
         </div>
 
+        {/* Integrations Section */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Integrations</h3>
+          <div className="space-y-2">
+            {integrations.map((integration) => (
+              <button
+                key={integration.id}
+                onClick={integration.onClick}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all hover:scale-[1.02] text-muted-foreground hover:bg-primary/10 hover:text-primary border border-border/50 hover:border-primary/30"
+              >
+                <integration.icon className={`w-5 h-5 ${integration.color}`} />
+                <span className="text-sm font-medium">{integration.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-4">Storage Overview</h3>
           <div className="space-y-4">
@@ -218,7 +266,7 @@ export const Sidebar = ({
         <div className="bg-accent/10 rounded-lg p-4 border border-accent/20">
           <div className="text-sm font-semibold text-foreground mb-1">Pro Tip</div>
           <div className="text-xs text-muted-foreground">
-            Click on folders to expand and view files. Click on files to preview and download.
+            Connect your cloud storage accounts to easily migrate files to BlockDrive.
           </div>
         </div>
       </div>
