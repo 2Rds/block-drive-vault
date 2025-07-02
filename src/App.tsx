@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { PricingPage } from "@/components/subscription/PricingPage";
@@ -40,7 +41,7 @@ const App = () => {
                   path="/dashboard" 
                   element={
                     <ProtectedRoute>
-                      <Index />
+                      <Dashboard />
                     </ProtectedRoute>
                   } 
                 />

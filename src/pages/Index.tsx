@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { IPFSFileGrid } from '@/components/IPFSFileGrid';
@@ -15,8 +16,8 @@ import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeView, setActiveView] = useState<'dashboard' | 'files'>('files');
   const [userFolders, setUserFolders] = useState<string[]>([]);
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
   
@@ -54,6 +55,10 @@ const Index = () => {
     await downloadFromIPFS(file.cid, file.filename);
   };
 
+  const handleDashboardClick = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
@@ -70,36 +75,24 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
-                  {activeView === 'dashboard' ? 'Analytics Dashboard' : 'IPFS File Storage'}
+                  IPFS File Storage
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  {activeView === 'dashboard' 
-                    ? 'Comprehensive insights into your BlockDrive usage'
-                    : 'Decentralized file storage on the InterPlanetary File System'
-                  }
+                  Decentralized file storage on the InterPlanetary File System
                 </p>
               </div>
               <div className="flex items-center space-x-4">
                 <Button
-                  onClick={() => setActiveView('dashboard')}
-                  variant={activeView === 'dashboard' ? 'default' : 'outline'}
-                  className={`${
-                    activeView === 'dashboard'
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                      : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50'
-                  }`}
+                  onClick={handleDashboardClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
                 </Button>
                 <Button
-                  onClick={() => setActiveView('files')}
-                  variant={activeView === 'files' ? 'default' : 'outline'}
-                  className={`${
-                    activeView === 'files'
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                      : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50'
-                  }`}
+                  variant="default"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
@@ -116,25 +109,18 @@ const Index = () => {
             </div>
 
             <WalletInfo />
-
-            {activeView === 'dashboard' ? (
-              <DataDashboard />
-            ) : (
-              <>
-                <StatsCards />
-                <IPFSUploadArea 
-                  onCreateFolder={handleCreateFolder}
-                  selectedFolder={selectedFolder}
-                />
-                <IPFSFileGrid 
-                  selectedFolder={selectedFolder} 
-                  userFolders={userFolders}
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                />
-              </>
-            )}
+            <StatsCards />
+            <IPFSUploadArea 
+              onCreateFolder={handleCreateFolder}
+              selectedFolder={selectedFolder}
+            />
+            <IPFSFileGrid 
+              selectedFolder={selectedFolder} 
+              userFolders={userFolders}
+              currentPath={currentPath}
+              onGoBack={goBack}
+              onFileSelect={handleFileSelect}
+            />
           </div>
         </main>
       </div>
