@@ -6,7 +6,7 @@ import { Shield, Globe, HardDrive, Zap } from 'lucide-react';
 export const FeatureCards = () => {
   return (
     <div className="space-y-6">
-      <Card className="bg-card/40 border-border border-primary/30">{/* Using semantic colors */}
+      <Card className="bg-card/40 border-border border-primary/30">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <div className="p-3 bg-primary/20 rounded-lg">
@@ -24,7 +24,7 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/40 border-border">{/* Using semantic colors */}
+      <Card className="bg-card/40 border-border">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <div className="p-3 bg-secondary/20 rounded-lg">
@@ -38,16 +38,16 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/40 border-border border-accent/30">{/* Using semantic colors */}
+      <Card className="bg-card/40 border-gradient-to-r from-blue-600/30 via-blue-500/30 to-purple-600/30 border-2">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
-            <div className="p-3 bg-accent/20 rounded-lg">
-              <HardDrive className="w-6 h-6 text-accent-foreground" />
+            <div className="p-3 bg-gradient-to-r from-blue-600/20 via-blue-500/20 to-purple-600/20 rounded-lg">
+              <HardDrive className="w-6 h-6 text-blue-400" />
             </div>
             <div>
               <h3 className="font-semibold text-card-foreground mb-2">Decentralized File Storage</h3>
               <p className="text-muted-foreground text-sm mb-3">Store your files on IPFS with blockchain-verified ownership. Upload documents, images, and media with cryptographic proof of authenticity and permanent availability.</p>
-              <div className="flex items-center space-x-2 text-xs text-accent-foreground">
+              <div className="flex items-center space-x-2 text-xs text-blue-400">
                 <HardDrive className="w-3 h-3" />
                 <span>IPFS Storage • Blockchain Verified • Permanent Access</span>
               </div>
@@ -56,7 +56,7 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/40 border-border border-muted/30">{/* Using semantic colors */}
+      <Card className="bg-card/40 border-border border-muted/30">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <div className="p-3 bg-muted/40 rounded-lg">
@@ -74,7 +74,7 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <div className="bg-card/40 border border-border rounded-xl p-4">{/* Using semantic colors */}
+      <div className="bg-card/40 border border-border rounded-xl p-4">
         <h4 className="font-semibold text-card-foreground mb-2 text-sm">Ready to experience Web3 storage?</h4>
         <p className="text-muted-foreground text-xs mb-3">
           Connect your wallet above to access decentralized storage with multi-chain support.

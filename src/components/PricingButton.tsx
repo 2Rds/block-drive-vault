@@ -28,7 +28,7 @@ export const PricingButton: React.FC<PricingButtonProps> = ({
       onClick={handleClick}
       variant={variant}
       size={size}
-      className={`${className} bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0`}
+      className={`${className} bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 text-white border-0`}
     >
       <Crown className="w-4 h-4 mr-2" />
       {children || 'View Pricing'}

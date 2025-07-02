@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Shield, AlertTriangle, RefreshCw, Database, Globe, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -88,17 +87,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">{/* Using semantic background color */}
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">{/* Using semantic border and card colors */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-8 py-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center">
               <img src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" alt="BlockDrive Logo" className="w-10 h-10 object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">BlockDrive</h1>{/* Using semantic foreground color */}
-              <p className="text-xs text-muted-foreground">Next-Gen Web3 Data Management Platform</p>{/* Using semantic muted text */}
+              <h1 className="text-2xl font-bold text-foreground">BlockDrive</h1>
+              <p className="text-xs text-muted-foreground">Next-Gen Web3 Data Management Platform</p>
             </div>
           </div>
         </div>
@@ -109,28 +108,28 @@ const Auth = () => {
           {/* Left Side - Authentication */}
           <div className="space-y-6">
             <div className="text-center lg:text-left">
-              <h2 className="text-4xl font-bold text-foreground mb-4">{/* Using semantic foreground */}
+              <h2 className="text-4xl font-bold text-foreground mb-4">
                 Welcome to BlockDrive
                 <br />
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{/* Using semantic primary and accent */}
+                <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 bg-clip-text text-transparent">
                   Next-Generation Web3 Data Management
                 </span>
               </h2>
-              <p className="text-muted-foreground text-lg mb-4">{/* Using semantic muted foreground */}
+              <p className="text-muted-foreground text-lg mb-4">
                 Transform how you store, manage, and share data across the decentralized web. 
                 BlockDrive combines the power of IPFS, blockchain technology, and multi-chain wallet integration 
                 to deliver enterprise-grade data management with complete ownership control.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="flex items-center justify-center p-3 bg-primary/10 rounded-lg border border-primary/20">{/* Using semantic primary colors */}
+                <div className="flex items-center justify-center p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <Database className="w-5 h-5 text-primary mr-2" />
                   <span className="text-primary text-sm font-medium">Decentralized Storage</span>
                 </div>
-                <div className="flex items-center justify-center p-3 bg-accent/10 rounded-lg border border-accent/20">{/* Using semantic accent colors */}
-                  <Globe className="w-5 h-5 text-accent-foreground mr-2" />
-                  <span className="text-accent-foreground text-sm font-medium">Multi-Chain Support</span>
+                <div className="flex items-center justify-center p-3 bg-gradient-to-r from-blue-600/10 via-blue-500/10 to-purple-600/10 rounded-lg border border-blue-500/30">
+                  <Globe className="w-5 h-5 text-blue-400 mr-2" />
+                  <span className="text-blue-400 text-sm font-medium">Multi-Chain Support</span>
                 </div>
-                <div className="flex items-center justify-center p-3 bg-secondary/20 rounded-lg border border-secondary/30">{/* Using semantic secondary colors */}
+                <div className="flex items-center justify-center p-3 bg-secondary/20 rounded-lg border border-secondary/30">
                   <Zap className="w-5 h-5 text-secondary-foreground mr-2" />
                   <span className="text-secondary-foreground text-sm font-medium">Lightning Fast</span>
                 </div>
@@ -139,7 +138,7 @@ const Auth = () => {
 
             {/* Enhanced Dynamic SDK Status */}
             {!dynamicReady && !sdkError && (
-              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">{/* Using semantic primary colors */}
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
                   <span className="text-primary text-sm">
@@ -151,7 +150,7 @@ const Auth = () => {
 
             {/* Enhanced SDK Error with Retry */}
             {sdkError && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">{/* Using semantic destructive colors */}
+              <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
                   <div className="flex-1">
@@ -182,18 +181,18 @@ const Auth = () => {
                 <DynamicWalletConnector onWalletConnected={() => {}} />
                 {sdkHasLoaded && (
                   <div className="text-center">
-                    <p className="text-primary text-xs">✓ Wallet services ready</p>{/* Using semantic primary color */}
+                    <p className="text-primary text-xs">✓ Wallet services ready</p>
                   </div>
                 )}
               </div>
             ) : null}
 
             {/* Always show Web3 MFA as fallback */}
-            <div className="border-t border-border pt-6">{/* Using semantic border color */}
+            <div className="border-t border-border pt-6">
               <Web3MFAConnector onAuthenticationSuccess={handleWeb3MFASuccess} />
             </div>
 
-            <div className="bg-card/40 border border-border rounded-xl p-6">{/* Using semantic card and border colors */}
+            <div className="bg-card/40 border border-border rounded-xl p-6">
               <h4 className="font-semibold text-card-foreground mb-3">Enterprise-Grade Security</h4>
               <p className="text-muted-foreground text-sm mb-4">
                 Connect your wallet to access BlockDrive's comprehensive data management suite. 
