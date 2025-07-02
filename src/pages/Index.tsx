@@ -56,10 +56,12 @@ const Index = () => {
   };
 
   const handleDashboardClick = () => {
+    console.log('Navigating to dashboard');
     navigate('/dashboard');
   };
 
   const handleAccountClick = () => {
+    console.log('Navigating to account');
     navigate('/account');
   };
 
@@ -92,7 +94,7 @@ const Index = () => {
                   className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
-                  Analytics
+                  Dashboard
                 </Button>
                 <Button
                   onClick={handleAccountClick}
