@@ -10,7 +10,7 @@ import { WalletInfo } from '@/components/WalletInfo';
 import { DataDashboard } from '@/components/DataDashboard';
 import { FileViewer } from '@/components/FileViewer';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Slack } from 'lucide-react';
+import { BarChart3, Files, Slack, Settings } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
@@ -59,6 +59,10 @@ const Index = () => {
     navigate('/dashboard');
   };
 
+  const handleAccountClick = () => {
+    navigate('/account');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
@@ -88,7 +92,15 @@ const Index = () => {
                   className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
+                  Analytics
+                </Button>
+                <Button
+                  onClick={handleAccountClick}
+                  variant="outline"
+                  className="bg-secondary/10 border-secondary/30 text-secondary hover:bg-secondary/20 hover:border-secondary/50"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Account
                 </Button>
                 <Button
                   variant="default"

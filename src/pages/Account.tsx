@@ -2,10 +2,10 @@
 import React from 'react';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { DataDashboard } from "@/components/DataDashboard";
+import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 
-const Dashboard = () => {
+const Account = () => {
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const [selectedFolder, setSelectedFolder] = React.useState('all');
 
@@ -18,7 +18,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <Header />
       <div className="flex">
         <Sidebar 
@@ -28,13 +28,13 @@ const Dashboard = () => {
           openFolders={openFolders}
         />
         <main className="flex-1 p-6 ml-64">
-          <div className="max-w-7xl mx-auto space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Analytics Dashboard</h1>
-              <p className="text-muted-foreground">View your data usage, file activity, and blockchain analytics</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Account Management</h1>
+              <p className="text-gray-400">Manage your BlockDrive account and subscription</p>
             </div>
             
-            <DataDashboard />
+            <SubscriptionManager />
           </div>
         </main>
       </div>
@@ -42,4 +42,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Account;
