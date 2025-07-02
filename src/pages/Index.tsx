@@ -55,7 +55,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
       <div className="flex">
         <Sidebar 
@@ -69,10 +69,10 @@ const Index = () => {
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white">
+                <h1 className="text-3xl font-bold text-foreground">
                   {activeView === 'dashboard' ? 'Analytics Dashboard' : 'IPFS File Storage'}
                 </h1>
-                <p className="text-gray-300 mt-1">
+                <p className="text-muted-foreground mt-1">
                   {activeView === 'dashboard' 
                     ? 'Comprehensive insights into your BlockDrive usage'
                     : 'Decentralized file storage on the InterPlanetary File System'
@@ -85,8 +85,8 @@ const Index = () => {
                   variant={activeView === 'dashboard' ? 'default' : 'outline'}
                   className={`${
                     activeView === 'dashboard'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                      : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50'
                   }`}
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -97,8 +97,8 @@ const Index = () => {
                   variant={activeView === 'files' ? 'default' : 'outline'}
                   className={`${
                     activeView === 'files'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300'
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                      : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50'
                   }`}
                 >
                   <Files className="w-4 h-4 mr-2" />
@@ -107,7 +107,7 @@ const Index = () => {
                 <Button
                   onClick={() => setShowSlackIntegration(true)}
                   variant="outline"
-                  className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
+                  className="bg-accent/10 border-accent/30 text-accent hover:bg-accent/20 hover:border-accent/50"
                 >
                   <Slack className="w-4 h-4 mr-2" />
                   Slack

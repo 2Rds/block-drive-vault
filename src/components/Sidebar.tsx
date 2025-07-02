@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Folder, FolderPlus, Database, Archive, Upload, Download, FileText, Image, Video, ChevronRight, ChevronDown } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
@@ -32,7 +33,7 @@ export const Sidebar = ({
       name: 'All Files', 
       icon: Database, 
       count: loading ? 0 : stats.totalFiles, 
-      color: 'text-gray-400',
+      color: 'text-muted-foreground',
       isExpandable: true,
       path: '/'
     },
@@ -41,7 +42,7 @@ export const Sidebar = ({
       name: 'Documents', 
       icon: FileText, 
       count: getFileCountByType('Documents'), 
-      color: 'text-gray-400',
+      color: 'text-muted-foreground',
       isExpandable: true,
       path: '/documents'
     },
@@ -50,7 +51,7 @@ export const Sidebar = ({
       name: 'Images', 
       icon: Image, 
       count: getFileCountByType('Images'), 
-      color: 'text-gray-400',
+      color: 'text-muted-foreground',
       isExpandable: true,
       path: '/images'
     },
@@ -59,7 +60,7 @@ export const Sidebar = ({
       name: 'Videos', 
       icon: Video, 
       count: getFileCountByType('Videos'), 
-      color: 'text-gray-400',
+      color: 'text-muted-foreground',
       isExpandable: true,
       path: '/videos'
     },
@@ -68,7 +69,7 @@ export const Sidebar = ({
       name: 'Archived', 
       icon: Archive, 
       count: 0, 
-      color: 'text-gray-400',
+      color: 'text-muted-foreground',
       isExpandable: false,
       path: '/archived'
     },
@@ -80,7 +81,7 @@ export const Sidebar = ({
     name: folderName,
     icon: Folder,
     count: 0,
-    color: 'text-gray-400',
+    color: 'text-muted-foreground',
     isExpandable: true,
     path: `/${folderName.toLowerCase().replace(/\s+/g, '_')}`
   }));
@@ -108,39 +109,39 @@ export const Sidebar = ({
       label: 'Storage Used', 
       value: loading ? '0 GB' : `${stats.totalStorage} GB`, 
       icon: Database, 
-      color: 'text-gray-400' 
+      color: 'text-muted-foreground' 
     },
     { 
       label: 'Files Uploaded', 
       value: loading ? '0' : stats.totalFiles.toString(), 
       icon: Upload, 
-      color: 'text-gray-400' 
+      color: 'text-muted-foreground' 
     },
     { 
       label: 'Downloads', 
       value: loading ? '0' : recentDownloads.toString(), 
       icon: Download, 
-      color: 'text-gray-400' 
+      color: 'text-muted-foreground' 
     },
   ];
 
   if (loading) {
     return (
-      <aside className="w-64 bg-gray-800/40 backdrop-blur-sm border-r border-gray-700 h-screen fixed left-0 top-16 overflow-y-auto">
+      <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-screen fixed left-0 top-16 overflow-y-auto">
         <div className="p-6 space-y-8">
           <div className="animate-pulse">
-            <div className="h-6 bg-gray-600 rounded mb-6 w-20"></div>
+            <div className="h-6 bg-muted rounded mb-6 w-20"></div>
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-12 bg-gray-700/30 rounded-xl"></div>
+                <div key={i} className="h-12 bg-muted/50 rounded-xl"></div>
               ))}
             </div>
           </div>
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-600 rounded mb-4 w-32"></div>
+            <div className="h-4 bg-muted rounded mb-4 w-32"></div>
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-gray-700/30 rounded-xl"></div>
+                <div key={i} className="h-20 bg-muted/50 rounded-xl"></div>
               ))}
             </div>
           </div>
@@ -150,12 +151,12 @@ export const Sidebar = ({
   }
 
   return (
-    <aside className="w-64 bg-gray-800/40 backdrop-blur-sm border-r border-gray-700 h-screen fixed left-0 top-16 overflow-y-auto">
+    <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-screen fixed left-0 top-16 overflow-y-auto">
       <div className="p-6 space-y-8">
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Folders</h2>
-            <button className="text-gray-400 hover:text-white hover:bg-gray-700/50 p-2 rounded-lg transition-colors">
+            <h2 className="text-lg font-semibold text-foreground">Folders</h2>
+            <button className="text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors">
               <FolderPlus className="w-5 h-5" />
             </button>
           </div>
@@ -166,24 +167,24 @@ export const Sidebar = ({
                 onClick={() => handleFolderClick(folder)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all hover:scale-[1.02] ${
                   selectedFolder === folder.id
-                    ? 'bg-blue-600/20 text-white border border-blue-600/50'
-                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <folder.icon className={`w-5 h-5 ${selectedFolder === folder.id ? 'text-blue-400' : folder.color}`} />
+                  <folder.icon className={`w-5 h-5 ${selectedFolder === folder.id ? 'text-primary' : folder.color}`} />
                   <span className="text-sm font-medium">{folder.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     selectedFolder === folder.id 
-                      ? 'bg-blue-600/30 text-blue-200' 
-                      : 'bg-gray-700/50 text-gray-400'
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-muted/50 text-muted-foreground'
                   }`}>
                     {folder.count}
                   </span>
                   {folder.isExpandable && (
-                    <div className="text-gray-400">
+                    <div className="text-muted-foreground">
                       {openFolders.includes(folder.path) ? (
                         <ChevronDown className="w-4 h-4" />
                       ) : (
@@ -198,25 +199,25 @@ export const Sidebar = ({
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-white mb-4">Storage Overview</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Storage Overview</h3>
           <div className="space-y-4">
             {stats_overview.map((stat, index) => (
-              <div key={index} className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+              <div key={index} className="bg-muted/30 rounded-lg p-4 border border-border">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 rounded-lg bg-gray-600/30">
-                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <stat.icon className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="text-xs font-medium text-gray-300">{stat.label}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
                 </div>
-                <div className="text-xl font-bold text-white">{stat.value}</div>
+                <div className="text-xl font-bold text-foreground">{stat.value}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
-          <div className="text-sm font-semibold text-white mb-1">Pro Tip</div>
-          <div className="text-xs text-gray-300">
+        <div className="bg-accent/10 rounded-lg p-4 border border-accent/20">
+          <div className="text-sm font-semibold text-foreground mb-1">Pro Tip</div>
+          <div className="text-xs text-muted-foreground">
             Click on folders to expand and view files. Click on files to preview and download.
           </div>
         </div>
