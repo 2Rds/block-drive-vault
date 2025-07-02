@@ -14,8 +14,7 @@ import {
   Cell, 
   XAxis, 
   YAxis, 
-  CartesianGrid,
-  ResponsiveContainer
+  CartesianGrid
 } from 'recharts';
 
 interface ChartsSectionProps {
@@ -65,23 +64,21 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.storageUsageData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="storage" 
-                  stroke="#8B5CF6" 
-                  fill="#8B5CF6" 
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartContainer config={chartConfig} className="h-80 w-full">
+            <AreaChart data={stats.storageUsageData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="month" stroke="#9CA3AF" />
+              <YAxis stroke="#9CA3AF" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area 
+                type="monotone" 
+                dataKey="storage" 
+                stroke="#8B5CF6" 
+                fill="#8B5CF6" 
+                fillOpacity={0.3}
+              />
+            </AreaChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -96,7 +93,7 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
         <CardContent>
           <div className="h-80 w-full">
             {stats.filesByType.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig} className="h-80 w-full">
                 <PieChart>
                   <Pie
                     data={stats.filesByType}
@@ -112,7 +109,7 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </PieChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             ) : (
               <div className="flex items-center justify-center h-80 text-gray-400">
                 No files uploaded yet
@@ -131,30 +128,28 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.storageUsageData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="uploads" 
-                  stroke="#06B6D4" 
-                  strokeWidth={3}
-                  dot={{ fill: '#06B6D4', strokeWidth: 2, r: 4 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="downloads" 
-                  stroke="#10B981" 
-                  strokeWidth={3}
-                  dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartContainer config={chartConfig} className="h-80 w-full">
+            <LineChart data={stats.storageUsageData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="month" stroke="#9CA3AF" />
+              <YAxis stroke="#9CA3AF" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line 
+                type="monotone" 
+                dataKey="uploads" 
+                stroke="#06B6D4" 
+                strokeWidth={3}
+                dot={{ fill: '#06B6D4', strokeWidth: 2, r: 4 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="downloads" 
+                stroke="#10B981" 
+                strokeWidth={3}
+                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+              />
+            </LineChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -167,18 +162,16 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.blockchainActivityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="day" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="confirmations" fill="#10B981" />
-                <Bar dataKey="failed" fill="#EF4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartContainer config={chartConfig} className="h-80 w-full">
+            <BarChart data={stats.blockchainActivityData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="day" stroke="#9CA3AF" />
+              <YAxis stroke="#9CA3AF" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="confirmations" fill="#10B981" />
+              <Bar dataKey="failed" fill="#EF4444" />
+            </BarChart>
+          </ChartContainer>
         </CardContent>
       </Card>
     </div>
