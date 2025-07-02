@@ -74,25 +74,5 @@ export const pricingTiers: PricingTier[] = [
       'Advanced integrations',
       'Custom branding'
     ]
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    description: 'Tailored solutions for large organizations',
-    storage: 'Unlimited',
-    bandwidth: 'Unlimited',
-    seats: 'Unlimited users',
-    isEnterprise: true,
-    features: [
-      'Unlimited secure storage',
-      'Unlimited bandwidth',
-      'Unlimited team members',
-      'Dedicated account manager',
-      'Custom blockchain infrastructure',
-      'White-label solutions',
-      'Advanced compliance features',
-      'SLA guarantees',
-      'On-premise deployment options'
-    ]
   }
 ];
