@@ -9,12 +9,12 @@ export const AuthHero = () => {
         Welcome to BlockDrive
         <br />
         <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-          Next-Generation Web3 Data Management
+          Solana-Powered Data Management
         </span>
       </h2>
       <p className="text-muted-foreground text-lg mb-8 max-w-3xl mx-auto">
-        Transform how you store, manage, and share data across the decentralized web. 
-        BlockDrive combines the power of IPFS, blockchain technology, and multi-chain wallet integration 
+        Transform how you store, manage, and share data on the Solana blockchain. 
+        BlockDrive combines the power of IPFS, Solana's lightning-fast network, and secure wallet integration 
         to deliver enterprise-grade data management with complete ownership control.
       </p>
       
@@ -26,7 +26,7 @@ export const AuthHero = () => {
         </div>
         <div className="flex items-center justify-center p-3 bg-gradient-to-r from-blue-600/10 via-blue-500/10 to-purple-600/10 rounded-lg border border-blue-500/30">
           <Globe className="w-5 h-5 text-blue-400 mr-2" />
-          <span className="text-blue-400 text-sm font-medium">Multi-Chain Support</span>
+          <span className="text-blue-400 text-sm font-medium">Solana Powered</span>
         </div>
         <div className="flex items-center justify-center p-3 bg-secondary/20 rounded-lg border border-secondary/30">
           <Zap className="w-5 h-5 text-secondary-foreground mr-2" />

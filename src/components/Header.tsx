@@ -1,113 +1,99 @@
 
-import React, { useState } from 'react';
-import { Search, Bell, User, Wallet, LogOut, LogIn } from 'lucide-react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LogOut, User, Wallet } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { PricingButton } from '@/components/PricingButton';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const Header = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, session, walletData, signOut } = useAuth();
 
   const handleSignOut = async () => {
-    setIsLoading(true);
-    const { error } = await signOut();
+    console.log('Sign out clicked');
+    
+    // Clear all auth state
+    localStorage.removeItem('sb-supabase-auth-token');
+    
+    // Sign out from Supabase
+    const { error } = await supabase.auth.signOut();
+    
     if (error) {
-      toast.error('Failed to sign out');
+      console.error('Sign out error:', error);
+      toast.error('Error signing out');
     } else {
-      toast.success('Successfully signed out');
+      toast.success('Signed out successfully');
+      // Force redirect to auth page
+      window.location.href = '/auth';
     }
-    setIsLoading(false);
   };
 
-  const handleSignInClick = () => {
-    navigate('/auth');
+  // Get display name from user metadata
+  const getDisplayName = () => {
+    if (user?.user_metadata?.solana_subdomain) {
+      return user.user_metadata.solana_subdomain;
+    }
+    if (user?.user_metadata?.username) {
+      return `${user.user_metadata.username}.blockdrive.sol`;
+    }
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (walletData?.wallet_address) {
+      return `${walletData.wallet_address.slice(0, 4)}...${walletData.wallet_address.slice(-4)}`;
+    }
+    return 'Solana User';
   };
 
   return (
-    <header className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="flex items-center justify-between px-8 py-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <img src="/lovable-uploads/fc6d6b40-71e3-4c10-9f7f-febcee140cc8.png" alt="BlockDrive Logo" className="w-10 h-10 object-contain" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">BlockDrive</h1>
-            </div>
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" 
+              alt="BlockDrive Logo" 
+              className="w-10 h-10 object-contain" 
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">BlockDrive</h1>
+            <p className="text-xs text-muted-foreground">Solana-Powered Data Management</p>
           </div>
         </div>
-
-        <div className="flex-1 max-w-2xl mx-12">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input type="text" placeholder="Search your files and folders..." className="w-full pl-12 pr-6 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-          </div>
-        </div>
-
+        
         <div className="flex items-center space-x-4">
+          {/* User Info */}
+          {(user || walletData) && (
+            <div className="flex items-center space-x-3 bg-card/60 px-4 py-2 rounded-lg border border-border">
+              {walletData ? (
+                <Wallet className="w-4 h-4 text-primary" />
+              ) : (
+                <User className="w-4 h-4 text-primary" />
+              )}
+              <div className="text-sm">
+                <p className="font-medium text-foreground">{getDisplayName()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {walletData ? 'Solana Wallet Connected' : 'Solana Account'}
+                </p>
+              </div>
+            </div>
+          )}
+          
           <ThemeToggle />
           
-          {user ? (
-            // Authenticated user content
-            <>
-              <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white" />
-              
-              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
-                <Bell className="w-5 h-5" />
-              </Button>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl px-3 py-2">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="font-medium">{user?.user_metadata?.username || 'User'}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal p-4">
-                    <div className="flex flex-col space-y-2">
-                      <p className="text-sm font-semibold text-white">
-                        {user?.user_metadata?.username || 'User'}
-                      </p>
-                      <p className="text-xs text-gray-300">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-gray-600" />
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" onClick={handleSignOut} disabled={isLoading}>
-                    <LogOut className="mr-3 h-4 w-4" />
-                    <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <div className="flex items-center space-x-2 bg-blue-600/20 border border-blue-600/30 rounded-xl px-4 py-2">
-                <Wallet className="w-4 h-4 text-blue-600" />
-                <span className="text-gray-300 text-sm font-medium">Connected</span>
-              </div>
-            </>
-          ) : (
-            // Unauthenticated user content - Sign In button moved to top right
-            <>
-              <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white mr-2" />
-              
-              <Button 
-                onClick={handleSignInClick}
-                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0 px-6 py-2 rounded-xl font-medium transition-all duration-200"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-              </Button>
-            </>
+          {/* Sign Out Button */}
+          {(user || session) && (
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </Button>
           )}
         </div>
       </div>
