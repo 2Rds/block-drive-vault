@@ -19,15 +19,9 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         ],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-only',
+        initialAuthenticationMode: 'connect-and-sign',
         enableVisitTrackingOnConnectOnly: false,
         shadowDOMEnabled: false,
-        // Improve error handling
-        onError: (error: any) => {
-          console.error('Dynamic SDK Error:', error);
-        },
-        // Add retry configuration
-        retryOnFailure: true,
         // Configure API endpoints with fallback
         apiBaseUrl: 'https://app.dynamic.xyz',
         cssOverrides: `

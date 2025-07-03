@@ -113,9 +113,7 @@ const Auth = () => {
               dynamicReady={dynamicReady}
               sdkError={sdkError}
               sdkHasLoaded={sdkHasLoaded}
-              onRetry={handleConnectionRet
-
-}
+              onRetry={handleConnectionRetry}
             />
 
             {/* Right Side - Features */}
