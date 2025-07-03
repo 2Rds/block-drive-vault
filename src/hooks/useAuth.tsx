@@ -9,6 +9,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-// Re-export the AuthProvider for convenience
-export { AuthProvider } from '@/components/auth/AuthProvider';

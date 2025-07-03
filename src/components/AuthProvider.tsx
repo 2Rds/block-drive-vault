@@ -1,3 +1,3 @@
 
-// Re-export the simplified auth provider for backwards compatibility
-export { SimplifiedAuthProvider as AuthProvider } from '@/components/auth/SimplifiedAuthProvider';
+// Re-export the auth provider for backwards compatibility
+export { AuthProvider } from '@/components/auth/AuthProvider';
