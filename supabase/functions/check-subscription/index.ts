@@ -13,12 +13,12 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Updated tier limits configuration
+// Updated tier limits configuration to match the new pricing structure
 const TIER_LIMITS = {
-  Starter: { storage: 50, bandwidth: 100, seats: 1 },
-  Pro: { storage: 150, bandwidth: 300, seats: 1 },
-  'Pro Plus': { storage: 300, bandwidth: 600, seats: 3 },
-  Business: { storage: 500, bandwidth: 1000, seats: 999 }, // Unlimited represented as high number
+  Starter: { storage: 50, bandwidth: 50, seats: 1 },
+  Pro: { storage: 150, bandwidth: 150, seats: 1 },
+  'Pro Plus': { storage: 300, bandwidth: 300, seats: 3 },
+  Business: { storage: 500, bandwidth: 500, seats: 999 }, // Unlimited represented as high number
   Enterprise: { storage: 99999, bandwidth: 99999, seats: 999 } // Unlimited represented as high number
 };
 
