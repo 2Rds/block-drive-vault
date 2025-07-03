@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePricingSubscription = () => {
   const { user } = useAuth();
@@ -23,30 +24,48 @@ export const usePricingSubscription = () => {
       return;
     }
 
-    if (!tier.paymentLink) {
-      toast.error('Payment link not configured for this tier');
-      return;
-    }
-
     setLoading(tier.name);
 
     try {
-      console.log('Redirecting to Stripe payment link for tier:', tier.name);
-      console.log('Payment link:', tier.paymentLink);
+      console.log('Creating checkout session for tier:', tier.name);
+      console.log('User ID:', user.id);
       
-      // Add user email as a parameter to pre-fill the checkout
-      const url = new URL(tier.paymentLink);
-      if (user.email) {
-        url.searchParams.set('prefilled_email', user.email);
+      // Call the create-checkout edge function
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId: tier.priceId,
+          tier: tier.name,
+          hasTrial: tier.hasTrial || false
+        }
+      });
+
+      if (error) {
+        console.error('Checkout creation error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
       }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
+      }
+
+      console.log('Checkout session created, redirecting to:', data.url);
       
-      // Redirect directly to Stripe payment link
-      window.location.href = url.toString();
+      // Open Stripe checkout in a new tab instead of redirecting in same window
+      const checkoutWindow = window.open(data.url, '_blank');
+      
+      if (!checkoutWindow) {
+        // Fallback if popup is blocked - redirect in same window
+        console.log('Popup blocked, redirecting in same window');
+        window.location.href = data.url;
+      } else {
+        // Show success message and reset loading state
+        toast.success('Redirecting to checkout...');
+        setLoading(null);
+      }
       
     } catch (error: any) {
       console.error('Subscription error:', error);
       toast.error(`Failed to start subscription: ${error.message}`);
-    } finally {
       setLoading(null);
     }
   };

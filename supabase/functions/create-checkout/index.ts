@@ -127,7 +127,7 @@ serve(async (req) => {
       'line_items[0][quantity]': '1',
       'mode': 'subscription',
       'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      'cancel_url': `${req.headers.get("origin")}/pricing`,
+      'cancel_url': `${req.headers.get("origin")}/subscription-cancel`,
       'metadata[user_id]': userId,
       'metadata[tier]': tier,
     });

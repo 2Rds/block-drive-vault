@@ -13,7 +13,7 @@ const SubscriptionCancel = () => {
   };
 
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
@@ -41,7 +41,7 @@ const SubscriptionCancel = () => {
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
             >
-              Go to Home
+              Go to Dashboard
             </Button>
           </div>
         </CardContent>

@@ -18,7 +18,7 @@ const SubscriptionSuccess = () => {
   };
 
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
@@ -46,7 +46,7 @@ const SubscriptionSuccess = () => {
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
             >
-              Go to Home
+              Continue Using BlockDrive
             </Button>
           </div>
         </CardContent>
