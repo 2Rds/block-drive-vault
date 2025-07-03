@@ -12,7 +12,7 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
   return (
     <DynamicContextProvider
       settings={{
-        environmentId: 'cf74fd6b-0c10-4cf7-ff0b-ab35e790c369',
+        environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
         walletConnectors: [
           EthereumWalletConnectors,
           SolanaWalletConnectors,
@@ -22,12 +22,9 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
-        // Simplify API configuration
-        apiBaseUrl: undefined, // Let Dynamic use their default
-        // Remove custom CSS that might interfere
-        cssOverrides: undefined,
-        // Add debugging
         debugError: true,
+        // Use the provided API key
+        apiKey: 'dyn_SzIQbuGwRbk0jkW0Tv5mmYessyaRTjmvTRuybZ8hHDqPhnuowl22JoqG',
       }}
     >
       {children}
