@@ -16,6 +16,7 @@ export const DynamicWalletConnector = ({
 }: DynamicWalletConnectorProps) => {
   const { showAuthFlow, sdkHasLoaded } = useDynamicContext();
   const [hasConnectionError, setHasConnectionError] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
   const {
     primaryWallet,
     isProcessing,
@@ -23,37 +24,46 @@ export const DynamicWalletConnector = ({
     handleConnectClick
   } = useDynamicWalletConnection(onWalletConnected);
 
-  // Check if Dynamic SDK failed to load
+  // Check if Dynamic SDK failed to load with retry logic
   React.useEffect(() => {
+    if (retryAttempts >= 3) {
+      setHasConnectionError(true);
+      return;
+    }
+
     const timeout = setTimeout(() => {
-      if (!sdkHasLoaded) {
-        setHasConnectionError(true);
-        console.error('Dynamic SDK failed to load - connection error detected');
+      if (!sdkHasLoaded && !hasConnectionError) {
+        console.error('Dynamic SDK failed to load - attempting retry...');
+        setRetryAttempts(prev => prev + 1);
       }
-    }, 10000); // 10 second timeout
+    }, 8000); // 8 second timeout
 
     if (sdkHasLoaded) {
       setHasConnectionError(false);
+      setRetryAttempts(0);
       clearTimeout(timeout);
     }
 
     return () => clearTimeout(timeout);
-  }, [sdkHasLoaded]);
+  }, [sdkHasLoaded, retryAttempts, hasConnectionError]);
 
   const handleRetryConnection = () => {
+    console.log('Retrying Dynamic SDK connection...');
     setHasConnectionError(false);
+    setRetryAttempts(0);
+    // Force page reload as last resort
     window.location.reload();
   };
 
-  if (hasConnectionError) {
+  if (hasConnectionError || retryAttempts >= 3) {
     return (
       <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
         <div className="flex items-start space-x-3">
           <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
           <div className="flex-1">
-            <h4 className="text-destructive font-semibold mb-1">Connection Issue</h4>
+            <h4 className="text-destructive font-semibold mb-1">Wallet Service Connection Issue</h4>
             <p className="text-muted-foreground text-sm mb-3">
-              Unable to connect to wallet services. This might be caused by network issues or firewall restrictions.
+              Unable to connect to wallet services. This might be due to network restrictions or service availability.
             </p>
             <button 
               onClick={handleRetryConnection}
@@ -62,6 +72,23 @@ export const DynamicWalletConnector = ({
               <RefreshCw className="w-4 h-4" />
               <span>Retry Connection</span>
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while SDK initializes
+  if (!sdkHasLoaded && retryAttempts < 3) {
+    return (
+      <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
+          <div>
+            <h4 className="text-primary font-semibold">Initializing Wallet Services</h4>
+            <p className="text-muted-foreground text-sm">
+              Setting up secure wallet connections... ({retryAttempts > 0 ? `Retry ${retryAttempts}/3` : 'Please wait'})
+            </p>
           </div>
         </div>
       </div>

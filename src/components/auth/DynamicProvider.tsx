@@ -12,17 +12,22 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
   return (
     <DynamicContextProvider
       settings={{
-        environmentId: '63b19e36-1946-4cfa-a62d-3c6edea09860',
+        environmentId: 'cf74fd6b-0c10-4cf7-ff0b-ab35e790c369',
         walletConnectors: [
           EthereumWalletConnectors,
           SolanaWalletConnectors,
         ],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        networkValidationMode: 'always',
+        networkValidationMode: 'off',
         initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: false,
         shadowDOMEnabled: false,
+        cssOverrides: `
+          .dynamic-widget-inline-controls {
+            z-index: 9999 !important;
+          }
+        `,
       }}
     >
       {children}

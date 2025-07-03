@@ -17,23 +17,28 @@ const Auth = () => {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError });
+    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError, retryCount });
 
-    // Shorter timeout for better user experience
+    // More generous timeout for SDK loading
     const timeout = setTimeout(() => {
-      if (!sdkHasLoaded && !dynamicReady) {
-        console.warn('Dynamic SDK taking longer than expected to load');
+      if (!sdkHasLoaded && !dynamicReady && retryCount < 2) {
+        console.warn(`Dynamic SDK loading attempt ${retryCount + 1}/3`);
+        setRetryCount(prev => prev + 1);
+      } else if (!sdkHasLoaded && retryCount >= 2) {
+        console.error('Dynamic SDK failed to load after multiple attempts');
         setSdkError(true);
         setDynamicReady(true);
       }
-    }, 5000); // 5 second timeout instead of 20
+    }, 10000); // 10 second timeout
 
     if (sdkHasLoaded) {
       setDynamicReady(true);
       setSdkError(false);
+      setRetryCount(0);
       clearTimeout(timeout);
       console.log('Dynamic SDK loaded successfully');
     }
+    
     return () => clearTimeout(timeout);
   }, [sdkHasLoaded, dynamicReady, retryCount]);
 
@@ -64,7 +69,7 @@ const Auth = () => {
     console.log('Retrying Dynamic SDK initialization...');
     setSdkError(false);
     setDynamicReady(false);
-    setRetryCount(prev => prev + 1);
+    setRetryCount(0);
     // Force page reload to reinitialize SDK
     window.location.reload();
   };
