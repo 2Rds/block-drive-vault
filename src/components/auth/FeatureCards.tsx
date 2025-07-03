@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Globe, HardDrive, Zap } from 'lucide-react';
-
 export const FeatureCards = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card className="bg-card/40 border-border border-primary/30">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
@@ -24,19 +21,7 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/40 border-border">
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-4">
-            <div className="p-3 bg-secondary/20 rounded-lg">
-              <Globe className="w-6 h-6 text-secondary-foreground" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-card-foreground mb-2">Decentralized Identity System</h3>
-              <p className="text-muted-foreground text-sm">Create personalized blockchain identities that work across multiple ecosystems. Your wallet address becomes your universal identity for secure file access and storage.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       <Card className="bg-card/40 border-gradient-to-r from-blue-600/30 via-blue-500/30 to-purple-600/30 border-2">
         <CardContent className="p-6">
@@ -84,6 +69,5 @@ export const FeatureCards = () => {
           <span>Multi-Chain • Wallet Secured</span>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
