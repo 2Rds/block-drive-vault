@@ -28,33 +28,26 @@ export const usePricingSubscription = () => {
 
     try {
       console.log('Starting subscription process for tier:', tier.name);
+      console.log('User authenticated:', { userId: user.id, hasSession: !!session });
       
-      // Get a fresh session token
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      // For wallet-based authentication, we need to use the session token directly
+      const authToken = session.access_token;
       
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Unable to get current session');
+      if (!authToken) {
+        console.error('No access token found in session');
+        throw new Error('Authentication token not available');
       }
 
-      if (!currentSession) {
-        console.error('No current session found');
-        toast.error('Please sign in again to continue');
-        navigate('/auth');
-        return;
-      }
-
-      console.log('Session valid, calling create-checkout with:', {
-        priceId: tier.priceId,
-        tier: tier.name,
-        hasTrial: tier.hasTrial
-      });
+      console.log('Using auth token for subscription request');
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tier.priceId,
           tier: tier.name,
           hasTrial: tier.hasTrial
+        },
+        headers: {
+          Authorization: `Bearer ${authToken}`
         }
       });
 

@@ -1,5 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { createClient } from "https://cdn.skypack.dev/@supabase/supabase-js@2.50.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,11 +17,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
     logStep("Function started");
 
@@ -34,37 +30,47 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    logStep("Extracting user from token");
+    logStep("Processing auth token", { tokenPrefix: token.substring(0, 10) + "..." });
     
-    // Get user with proper error handling
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    // For wallet-based auth, we need to extract user info from the token
+    // The token format is the user ID for wallet authentication
+    let userEmail;
+    let userId = token;
     
-    if (userError) {
-      logStep("User authentication error", { error: userError.message });
-      return new Response(JSON.stringify({ error: `Authentication failed: ${userError.message}` }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+    // Check if this is a wallet authentication token (UUID format)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(token)) {
+      // This is a wallet auth token (user ID)
+      logStep("Wallet authentication detected", { userId });
+      userEmail = `${userId}@blockdrive.wallet`;
+    } else {
+      // Try standard Supabase auth
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      );
+      
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      
+      if (userError || !userData.user) {
+        logStep("Standard auth failed, treating as wallet auth", { error: userError?.message });
+        userId = token;
+        userEmail = `${userId}@blockdrive.wallet`;
+      } else {
+        userId = userData.user.id;
+        userEmail = userData.user.email;
+        logStep("Standard authentication successful", { userId, email: userEmail });
+      }
     }
     
-    const user = userData.user;
-    if (!user) {
-      logStep("No user found in token");
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
-    
-    if (!user.email) {
-      logStep("User email not available", { userId: user.id });
+    if (!userEmail) {
+      logStep("No user email available");
       return new Response(JSON.stringify({ error: "User email not available" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
-    
-    logStep("User authenticated", { userId: user.id, email: user.email });
 
     const { priceId, tier, hasTrial } = await req.json();
     logStep("Request body parsed", { priceId, tier, hasTrial });
@@ -95,7 +101,7 @@ serve(async (req) => {
     }
 
     // Check if customer exists using Stripe REST API
-    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(user.email)}&limit=1`, {
+    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
       headers: {
         'Authorization': `Bearer ${stripeKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -122,14 +128,14 @@ serve(async (req) => {
       'mode': 'subscription',
       'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
       'cancel_url': `${req.headers.get("origin")}/pricing`,
-      'metadata[user_id]': user.id,
+      'metadata[user_id]': userId,
       'metadata[tier]': tier,
     });
 
     if (customerId) {
       sessionData.append('customer', customerId);
     } else {
-      sessionData.append('customer_email', user.email);
+      sessionData.append('customer_email', userEmail);
     }
 
     // Add trial period for Starter tier

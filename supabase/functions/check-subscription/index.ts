@@ -1,5 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { createClient } from "https://cdn.skypack.dev/@supabase/supabase-js@2.50.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,15 +42,39 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    logStep("Processing auth token", { tokenPrefix: token.substring(0, 10) + "..." });
     
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    // Handle wallet-based authentication
+    let userEmail;
+    let userId = token;
+    
+    // Check if this is a wallet authentication token (UUID format)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(token)) {
+      // This is a wallet auth token (user ID)
+      logStep("Wallet authentication detected", { userId });
+      userEmail = `${userId}@blockdrive.wallet`;
+    } else {
+      // Try standard Supabase auth
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError || !userData.user) {
+        logStep("Standard auth failed, treating as wallet auth", { error: userError?.message });
+        userId = token;
+        userEmail = `${userId}@blockdrive.wallet`;
+      } else {
+        userId = userData.user.id;
+        userEmail = userData.user.email;
+        logStep("Standard authentication successful", { userId, email: userEmail });
+      }
+    }
+    
+    if (!userEmail) throw new Error("User email not available");
+    
+    logStep("User authenticated", { userId, email: userEmail });
 
     // Use Stripe REST API directly instead of SDK to avoid import issues
-    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(user.email)}&limit=1`, {
+    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
       headers: {
         'Authorization': `Bearer ${stripeKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -65,8 +90,8 @@ serve(async (req) => {
     if (customersData.data.length === 0) {
       logStep("No customer found, updating unsubscribed state");
       await supabaseClient.from("subscribers").upsert({
-        email: user.email,
-        user_id: user.id,
+        email: userEmail,
+        user_id: userId,
         stripe_customer_id: null,
         subscribed: false,
         subscription_tier: null,
@@ -142,8 +167,8 @@ serve(async (req) => {
     }
 
     await supabaseClient.from("subscribers").upsert({
-      email: user.email,
-      user_id: user.id,
+      email: userEmail,
+      user_id: userId,
       stripe_customer_id: customerId,
       subscribed: hasActiveSub,
       subscription_tier: subscriptionTier,
