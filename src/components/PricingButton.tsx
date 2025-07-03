@@ -12,7 +12,7 @@ interface PricingButtonProps {
 }
 
 export const PricingButton: React.FC<PricingButtonProps> = ({ 
-  variant = 'default', 
+  variant = 'outline', 
   size = 'default', 
   className = '',
   children 
@@ -28,7 +28,7 @@ export const PricingButton: React.FC<PricingButtonProps> = ({
       onClick={handleClick}
       variant={variant}
       size={size}
-      className={`${className} bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:from-blue-700 hover:via-blue-600 hover:to-purple-700 text-white border-0`}
+      className={`${className} bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50`}
     >
       <Crown className="w-4 h-4 mr-2" />
       {children || 'View Pricing'}
