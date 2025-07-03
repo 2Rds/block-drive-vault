@@ -27,9 +27,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication
-  if (!user || !session) {
-    console.log('ProtectedRoute - No authentication, redirecting to /auth');
+  // Check authentication - require both user and session
+  if (!user || !session || !user.id || !session.access_token) {
+    console.log('ProtectedRoute - Authentication incomplete, redirecting to /auth', {
+      hasUser: !!user,
+      hasSession: !!session,
+      hasUserId: !!(user?.id),
+      hasToken: !!(session?.access_token)
+    });
     return <Navigate to="/auth" replace />;
   }
 
