@@ -22,30 +22,11 @@ export const AuthConnectors = ({
       <div className="bg-card/40 border border-border rounded-xl p-6">
         <h3 className="text-xl font-semibold text-card-foreground mb-4 text-center">Connect Your Wallet</h3>
         
-        {/* SDK Status Messages */}
-        {!sdkHasLoaded && !sdkError && (
-          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
-              <span className="text-primary text-sm">
-                Initializing wallet connections...
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Always show the Dynamic Wallet Connector - it will handle its own error states */}
         <div className="mb-6">
           <DynamicWalletConnector onWalletConnected={() => {}} />
-          {sdkHasLoaded && (
-            <div className="text-center mt-2">
-              <p className="text-primary text-xs">✓ Wallet services ready</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Security Information */}
       <AuthSecurity />
     </div>
   );
