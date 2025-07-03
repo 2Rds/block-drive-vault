@@ -1,4 +1,5 @@
 
+
 import { PricingTier } from '@/types/pricing';
 
 export const pricingTiers: PricingTier[] = [
@@ -43,7 +44,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Pro Plus',
     price: '$59',
     priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
-    paymentLink: 'https://buy.stripe.com/test_3cs6pGaY75BX4gU001', // Replace with your actual Stripe payment link
+    paymentLink: 'https://buy.stripe.com/7sYdR86mh1rH98P3Ai2VG02',
     description: 'Ideal for small teams and collaboration',
     storage: '300 GB',
     bandwidth: '300 GB',
@@ -80,3 +81,4 @@ export const pricingTiers: PricingTier[] = [
     ]
   }
 ];
+
