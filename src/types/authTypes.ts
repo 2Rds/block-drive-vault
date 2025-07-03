@@ -7,8 +7,6 @@ export interface User {
     wallet_address?: string;
     blockchain_type?: string;
     username?: string;
-    full_name?: string;
-    solana_subdomain?: string;
   };
 }
 

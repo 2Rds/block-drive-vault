@@ -15,14 +15,14 @@ interface SignupFormProps {
 
 export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) => {
   return (
-    <Card className="bg-card/40 border-border">
+    <Card className="bg-gray-900/60 backdrop-blur-sm border-gray-800">
       <CardHeader>
-        <CardTitle className="text-card-foreground flex items-center">
-          <UserPlus className="w-5 h-5 mr-2 text-primary" />
-          Create Your BlockDrive Account
+        <CardTitle className="text-white flex items-center">
+          <UserPlus className="w-5 h-5 mr-2" />
+          Request Authentication Token
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Sign up to get your own blockdrive.sol subdomain and start using decentralized storage
+        <CardDescription className="text-gray-300">
+          Complete your details to receive your authentication token
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -33,11 +33,11 @@ export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) =>
               name="fullName" 
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-card-foreground">Full Name</FormLabel>
+                  <FormLabel className="text-gray-300">Full Name</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="Enter your full name" 
-                      className="bg-background border-border text-foreground" 
+                      className="bg-gray-800 border-gray-700 text-white" 
                       {...field} 
                     />
                   </FormControl>
@@ -51,12 +51,12 @@ export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) =>
               name="email" 
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-card-foreground">Email Address</FormLabel>
+                  <FormLabel className="text-gray-300">Email Address</FormLabel>
                   <FormControl>
                     <Input 
                       type="email" 
                       placeholder="Enter your email" 
-                      className="bg-background border-border text-foreground" 
+                      className="bg-gray-800 border-gray-700 text-white" 
                       {...field} 
                     />
                   </FormControl>
@@ -67,45 +67,18 @@ export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) =>
 
             <FormField 
               control={form.control} 
-              name="password" 
+              name="organization" 
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-card-foreground">Password</FormLabel>
+                  <FormLabel className="text-gray-300">Organization (Optional)</FormLabel>
                   <FormControl>
                     <Input 
-                      type="password" 
-                      placeholder="Create a secure password" 
-                      className="bg-background border-border text-foreground" 
+                      placeholder="Company or organization" 
+                      className="bg-gray-800 border-gray-700 text-white" 
                       {...field} 
                     />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )} 
-            />
-
-            <FormField 
-              control={form.control} 
-              name="solanaSubdomain" 
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-card-foreground">BlockDrive Subdomain</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center">
-                      <Input 
-                        placeholder="username" 
-                        className="bg-background border-border text-foreground rounded-r-none" 
-                        {...field} 
-                      />
-                      <span className="bg-muted px-3 py-2 border border-l-0 border-border rounded-r-md text-muted-foreground">
-                        .blockdrive.sol
-                      </span>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                  <p className="text-xs text-muted-foreground">
-                    This will be your unique Solana domain for BlockDrive
-                  </p>
                 </FormItem>
               )} 
             />
@@ -113,9 +86,9 @@ export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) =>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
             >
-              {isSubmitting ? 'Creating Account...' : 'Create Account & Register Domain'}
+              {isSubmitting ? 'Sending...' : 'Get Authentication Token'}
             </Button>
           </form>
         </Form>

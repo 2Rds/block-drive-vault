@@ -1,7 +1,7 @@
+
 import { useState, useEffect, ReactNode } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
 import { AuthenticationService } from '@/services/authenticationService';
-import { supabase } from '@/integrations/supabase/client';
 import { User, WalletData } from '@/types/authTypes';
 
 interface AuthProviderProps {
@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           adapter: null,
           connected: true,
           autoConnect: false,
-          id: 'solana',
+          id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
           wallet_address: sessionData.user.user_metadata.wallet_address,
-          blockchain_type: 'solana'
+          blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
         };
         setWalletData(walletInfo);
         console.log('Set wallet data from session:', walletInfo);
@@ -55,9 +55,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           adapter: null,
           connected: true,
           autoConnect: false,
-          id: 'solana',
+          id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
           wallet_address: sessionData.user.user_metadata.wallet_address,
-          blockchain_type: 'solana'
+          blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
         };
         setWalletData(walletInfo);
         console.log('Set wallet data from auth event:', walletInfo);
@@ -75,16 +75,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const sessionData = {
         user: {
           id: authData.sessionToken,
-          email: `${authData.walletAddress}@blockdrive.sol`,
+          email: `${authData.walletAddress}@blockdrive.${authData.blockchainType}`,
           wallet_address: authData.walletAddress,
           user_metadata: {
             wallet_address: authData.walletAddress,
-            blockchain_type: 'solana',
+            blockchain_type: authData.blockchainType,
             auth_type: 'web3-mfa',
             subdomain: authData.subdomain,
-            username: authData.subdomain || 'Solana User',
-            full_name: `Solana User`,
-            solana_subdomain: authData.subdomain ? `${authData.subdomain}.blockdrive.sol` : undefined
+            username: `${authData.blockchainType.charAt(0).toUpperCase() + authData.blockchainType.slice(1)} MFA User`,
+            full_name: `Web3 MFA User`
           }
         },
         access_token: authData.sessionToken,
@@ -106,9 +105,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         adapter: null,
         connected: true,
         autoConnect: false,
-        id: 'solana',
+        id: authData.blockchainType,
         wallet_address: authData.walletAddress,
-        blockchain_type: 'solana'
+        blockchain_type: authData.blockchainType
       };
       setWalletData(walletInfo);
       
@@ -120,45 +119,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }, 1000);
     };
 
-    // Setup auth state change listener for Supabase auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Supabase auth state change:', event, session?.user?.id);
-      
-      if (session?.user) {
-        // Fetch user profile to get Solana subdomain - updated to include new columns
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*, full_name, solana_subdomain')
-          .eq('id', session.user.id)
-          .single();
-
-        // Update user metadata with profile information
-        const enhancedUser = {
-          ...session.user,
-          user_metadata: {
-            ...session.user.user_metadata,
-            username: profile?.username || profile?.solana_subdomain?.split('.')[0] || 'Solana User',
-            full_name: profile?.full_name || 'Solana User',
-            solana_subdomain: profile?.solana_subdomain
-          }
-        };
-
-        setUser(enhancedUser);
-        setSession({ ...session, user: enhancedUser });
-      } else {
-        setUser(null);
-        setSession(null);
-        setWalletData(null);
-      }
-      
-      setLoading(false);
-    });
-
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
     window.addEventListener('web3-mfa-success', handleWeb3MFAAuth as EventListener);
 
     return () => {
-      subscription.unsubscribe();
       window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
       window.removeEventListener('web3-mfa-success', handleWeb3MFAAuth as EventListener);
     };
@@ -176,14 +140,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Process wallet data
       const processedWalletData: WalletData = {
-        id: 'solana',
+        id: incomingWalletData.id || incomingWalletData.blockchain_type || 'ethereum',
         address: result.data.user.wallet_address,
         publicKey: incomingWalletData.publicKey,
         adapter: incomingWalletData.adapter,
         connected: true,
         autoConnect: false,
         wallet_address: result.data.user.wallet_address,
-        blockchain_type: 'solana'
+        blockchain_type: result.data.user.user_metadata.blockchain_type
       };
 
       setWalletData(processedWalletData);
@@ -218,7 +182,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     userId: user?.id, 
     hasSession: !!session, 
     walletConnected: walletData?.connected,
-    username: user?.user_metadata?.username || user?.user_metadata?.solana_subdomain,
     loading 
   });
 
