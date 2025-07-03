@@ -10,42 +10,63 @@ import { AuthConnectors } from '@/components/auth/AuthConnectors';
 
 const Auth = () => {
   const { user, session } = useAuth();
-  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
+  const { primaryWallet, sdkHasLoaded, isReady } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
 
+  // Enhanced SDK status monitoring
   useEffect(() => {
-    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError, retryCount });
+    console.log('Auth page - Dynamic SDK state:', { 
+      sdkHasLoaded, 
+      isReady, 
+      dynamicReady, 
+      sdkError, 
+      connectionAttempts 
+    });
 
-    // More generous timeout for SDK loading
-    const timeout = setTimeout(() => {
-      if (!sdkHasLoaded && !dynamicReady && retryCount < 2) {
-        console.warn(`Dynamic SDK loading attempt ${retryCount + 1}/3`);
-        setRetryCount(prev => prev + 1);
-      } else if (!sdkHasLoaded && retryCount >= 2) {
-        console.error('Dynamic SDK failed to load after multiple attempts');
-        setSdkError(true);
-        setDynamicReady(true);
-      }
-    }, 10000); // 10 second timeout
-
-    if (sdkHasLoaded) {
+    // More sophisticated loading detection
+    const isSDKReady = sdkHasLoaded || isReady;
+    
+    if (isSDKReady) {
       setDynamicReady(true);
       setSdkError(false);
-      setRetryCount(0);
-      clearTimeout(timeout);
-      console.log('Dynamic SDK loaded successfully');
+      setConnectionAttempts(0);
+      console.log('Dynamic SDK is ready and operational');
+      return;
     }
-    
-    return () => clearTimeout(timeout);
-  }, [sdkHasLoaded, dynamicReady, retryCount]);
 
+    // Implement progressive timeout strategy
+    const getTimeoutDuration = (attempts: number) => {
+      switch (attempts) {
+        case 0: return 12000; // 12 seconds for initial load
+        case 1: return 8000;  // 8 seconds for first retry
+        case 2: return 6000;  // 6 seconds for second retry
+        default: return 5000; // 5 seconds for subsequent retries
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      if (!isSDKReady) {
+        if (connectionAttempts < 3) {
+          console.warn(`Dynamic SDK connection attempt ${connectionAttempts + 1}/4`);
+          setConnectionAttempts(prev => prev + 1);
+        } else {
+          console.error('Dynamic SDK failed to load after maximum attempts');
+          setSdkError(true);
+          setDynamicReady(true); // Allow UI to show error state
+        }
+      }
+    }, getTimeoutDuration(connectionAttempts));
+
+    return () => clearTimeout(timeout);
+  }, [sdkHasLoaded, isReady, connectionAttempts]);
+
+  // User authentication check
   useEffect(() => {
-    // Only redirect if we have BOTH user and session with proper validation
     if (user && user.id && session && session.access_token) {
-      console.log('User fully authenticated, redirecting to dashboard:', {
+      console.log('User authenticated successfully, redirecting:', {
         userId: user.id,
         hasAccessToken: !!session.access_token,
         userEmail: user.email
@@ -55,23 +76,27 @@ const Auth = () => {
     }
   }, [user, session, navigate]);
 
-  // Enhanced check for Dynamic wallet connection
+  // Enhanced wallet connection monitoring
   useEffect(() => {
-    if (sdkHasLoaded && primaryWallet) {
-      console.log('Dynamic wallet connection state detected:', {
+    if ((sdkHasLoaded || isReady) && primaryWallet) {
+      console.log('Dynamic wallet connection detected:', {
         walletAddress: primaryWallet.address,
-        chain: primaryWallet.chain
+        chain: primaryWallet.chain,
+        connector: primaryWallet.connector?.name
       });
     }
-  }, [sdkHasLoaded, primaryWallet]);
+  }, [sdkHasLoaded, isReady, primaryWallet]);
 
-  const handleRetry = () => {
-    console.log('Retrying Dynamic SDK initialization...');
+  const handleConnectionRetry = () => {
+    console.log('Retrying Dynamic SDK connection...');
     setSdkError(false);
     setDynamicReady(false);
-    setRetryCount(0);
-    // Force page reload to reinitialize SDK
-    window.location.reload();
+    setConnectionAttempts(0);
+    
+    // Force a clean restart
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -88,8 +113,8 @@ const Auth = () => {
             <AuthConnectors
               dynamicReady={dynamicReady}
               sdkError={sdkError}
-              sdkHasLoaded={sdkHasLoaded}
-              onRetry={handleRetry}
+              sdkHasLoaded={sdkHasLoaded || isReady}
+              onRetry={handleConnectionRetry}
             />
 
             {/* Right Side - Features */}
