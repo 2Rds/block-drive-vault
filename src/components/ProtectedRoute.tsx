@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - redirect to auth page if not authenticated
+  // Check authentication
   if (!user || !session) {
     console.log('ProtectedRoute - No authentication, redirecting to /auth');
     return <Navigate to="/auth" replace />;

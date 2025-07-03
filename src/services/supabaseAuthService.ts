@@ -1,29 +1,20 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export class SupabaseAuthService {
   static checkWalletSession() {
-    // SECURITY: NEVER return any session data - force manual authentication ALWAYS
-    console.log('MAXIMUM SECURITY: Session check disabled - manual login REQUIRED for every single session');
-    
-    // Clear any possible stored data immediately
+    console.log('Checking wallet session - manual login required');
     localStorage.clear();
     sessionStorage.clear();
-    
     return null;
   }
 
   static async getInitialSession() {
-    // SECURITY: NEVER automatically restore sessions - force manual login ALWAYS
-    console.log('MAXIMUM SECURITY: Initial session restoration PERMANENTLY disabled');
-    
-    // Clear any possible stored data immediately
+    console.log('Getting initial session - manual login required');
     localStorage.clear();
     sessionStorage.clear();
-    
-    // Force sign out any existing session
     await supabase.auth.signOut();
-    
     return null;
   }
 
@@ -52,16 +43,15 @@ export class SupabaseAuthService {
     }
   }
 
-  static async connectWallet(walletAddress: string, signature: string, blockchainType: string) {
+  static async connectWallet(walletAddress: string, signature: string, blockchainType: string, message: string) {
     try {
       console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
       
-      // Use the secure authentication endpoint
       const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
         body: {
           walletAddress,
           signature,
-          message: 'Sign this message to authenticate with BlockDrive',
+          message,
           timestamp: Date.now(),
           nonce: crypto.randomUUID(),
           blockchainType
@@ -74,9 +64,8 @@ export class SupabaseAuthService {
       }
 
       if (data?.success && data?.authToken) {
-        console.log('Wallet authentication successful, creating temporary session...');
+        console.log('Wallet authentication successful, creating session...');
         
-        // Create a temporary session that is NEVER stored
         const sessionData = {
           user: {
             id: data.authToken,
@@ -94,27 +83,10 @@ export class SupabaseAuthService {
           token_type: 'bearer'
         };
 
-        // SECURITY: NEVER store session data anywhere - keep it temporary only
-        console.log('MAXIMUM SECURITY: Session is temporary only - no persistence, manual login required every time');
-        
-        // Trigger auth state change manually with wallet data
-        window.dispatchEvent(new CustomEvent('wallet-auth-success', { 
-          detail: { ...sessionData, walletData: {
-            address: walletAddress,
-            publicKey: null,
-            adapter: null,
-            connected: true,
-            autoConnect: false,
-            id: blockchainType,
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType
-          }}
-        }));
-
         if (data.isFirstTime) {
-          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully! Welcome to BlockDrive!`);
+          toast.success(`Welcome to BlockDrive! Your ${blockchainType} wallet has been registered successfully.`);
         } else {
-          toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully! Welcome back!`);
+          toast.success(`Welcome back! Your ${blockchainType} wallet has been authenticated.`);
         }
         
         return { error: null, data: sessionData };
@@ -128,13 +100,11 @@ export class SupabaseAuthService {
   }
 
   static async signOut() {
-    console.log('Signing out user and clearing ALL session data permanently');
+    console.log('Signing out user and clearing session data');
     
-    // Clear ALL possible stored session data from every storage location
     localStorage.clear();
     sessionStorage.clear();
     
-    // Clear indexed DB storage
     if ('indexedDB' in window) {
       try {
         indexedDB.deleteDatabase('supabase-auth-token');
@@ -143,17 +113,10 @@ export class SupabaseAuthService {
       }
     }
     
-    // Clear Supabase auth session
     const { error } = await supabase.auth.signOut();
     
     if (!error) {
-      toast.success('Signed out successfully');
-      console.log('User signed out completely - manual authentication REQUIRED for next session');
-      
-      // Force redirect to auth page after a short delay
-      setTimeout(() => {
-        window.location.href = '/auth';
-      }, 500);
+      console.log('User signed out successfully');
     } else {
       console.error('Sign out error:', error);
     }

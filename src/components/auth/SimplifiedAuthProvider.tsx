@@ -14,8 +14,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     setUser,
     setSession,
     setWalletData,
-    handleWalletAuth,
-    setupAuthStateListener
+    handleWalletAuth
   } = useWalletSession();
 
   useEffect(() => {
@@ -24,11 +23,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     // Listen for wallet authentication events
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
 
-    // Set up auth state listener
-    const subscription = setupAuthStateListener();
-
     return () => {
-      subscription.unsubscribe();
       window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
     };
   }, []);
@@ -39,8 +34,9 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     const walletAddress = walletData.address || walletData.wallet_address;
     const signature = walletData.signature || `mock-signature-${Date.now()}`;
     const blockchainType = walletData.blockchain_type || 'ethereum';
+    const message = walletData.message || 'Sign this message to authenticate with BlockDrive';
     
-    const result = await SupabaseAuthService.connectWallet(walletAddress, signature, blockchainType);
+    const result = await SupabaseAuthService.connectWallet(walletAddress, signature, blockchainType, message);
     
     console.log('SupabaseAuthService.connectWallet result:', result);
     
@@ -96,12 +92,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       setWalletData(processedWalletData);
       
-      console.log('Auth state updated successfully:', {
-        userId: supabaseUser.id,
-        hasSession: !!supabaseSession.access_token,
-        walletAddress,
-        sessionExpiresAt: supabaseSession.expires_at
-      });
+      console.log('Auth state updated successfully - user authenticated');
     }
     
     return result;
@@ -110,12 +101,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const disconnectWallet = async () => {
     console.log('Disconnecting wallet and clearing auth state');
     
-    // Clear state immediately to prevent loops
     setWalletData(null);
     setUser(null);
     setSession(null);
     
-    // Clear storage
     localStorage.clear();
     sessionStorage.clear();
     
@@ -132,12 +121,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const signOut = async () => {
     console.log('Signing out user');
     
-    // Clear state immediately to prevent loops
     setWalletData(null);
     setUser(null);
     setSession(null);
     
-    // Clear storage
     localStorage.clear();
     sessionStorage.clear();
     

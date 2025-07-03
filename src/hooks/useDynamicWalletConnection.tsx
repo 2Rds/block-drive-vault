@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any) => void) => {
-  const { primaryWallet, user, handleLogOut } = useDynamicContext();
+  const { primaryWallet, user } = useDynamicContext();
   const { connectWallet } = useAuth();
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [userExplicitlyClicked, setUserExplicitlyClicked] = useState(false);
 
@@ -37,11 +39,12 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
 
       // Create signature for authentication
       let signature;
+      const message = 'Sign this message to authenticate with BlockDrive';
+      
       try {
-        const message = 'Sign this message to authenticate with BlockDrive';
         signature = await primaryWallet.signMessage(message);
       } catch (signError) {
-        console.error('Signature error:', signError);
+        console.log('Using fallback signature');
         signature = `fallback-signature-${Date.now()}-${walletAddress.slice(-6)}`;
       }
 
@@ -50,6 +53,7 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
         address: walletAddress,
         blockchain_type: blockchainType,
         signature,
+        message,
         id: blockchainType,
         userId: user?.userId || `dynamic-${walletAddress.slice(-8)}`
       });
@@ -70,23 +74,12 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
         });
       }
 
-      // Redirect to dashboard
-      setTimeout(() => {
-        window.location.href = '/index';
-      }, 1000);
+      // Navigate to dashboard immediately
+      navigate('/index');
 
     } catch (error: any) {
       console.error('Wallet authentication error:', error);
       toast.error(`Failed to authenticate wallet: ${error.message}`);
-
-      // Disconnect wallet on failure
-      if (handleLogOut) {
-        try {
-          await handleLogOut();
-        } catch (logoutError) {
-          console.error('Error during logout:', logoutError);
-        }
-      }
     } finally {
       setIsProcessing(false);
       setUserExplicitlyClicked(false);
