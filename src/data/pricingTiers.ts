@@ -25,7 +25,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Pro',
     price: '$29',
     priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
-    paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zPcIo288', // Replace with your actual Stripe payment link
+    paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zP98Pgn42VG01',
     description: 'Enhanced storage for growing needs',
     storage: '150 GB',
     bandwidth: '150 GB',
