@@ -61,10 +61,10 @@ export const pricingTiers: PricingTier[] = [
     ]
   },
   {
-    name: 'Business',
+    name: 'Scale',
     price: '$99',
     priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
-    paymentLink: 'https://buy.stripe.com/test_28o5lCg0Vd5fc12001', // Replace with your actual Stripe payment link
+    paymentLink: 'https://buy.stripe.com/aFa4gyaCxc6l98Pc6O2VG03',
     description: 'Scalable solution for growing businesses',
     storage: '500 GB per seat',
     bandwidth: '500 GB per seat',
