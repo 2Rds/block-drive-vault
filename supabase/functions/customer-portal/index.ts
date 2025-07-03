@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -41,20 +40,49 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
+    // Use Stripe REST API to find customer
+    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(user.email)}&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!customersResponse.ok) {
+      throw new Error(`Stripe API error: ${customersResponse.status}`);
+    }
+
+    const customersData = await customersResponse.json();
+    if (customersData.data.length === 0) {
       throw new Error("No Stripe customer found for this user");
     }
     
-    const customerId = customers.data[0].id;
+    const customerId = customersData.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${origin}/dashboard`,
+    
+    // Create billing portal session using REST API
+    const portalData = new URLSearchParams({
+      'customer': customerId,
+      'return_url': `${origin}/dashboard`,
     });
+
+    const portalResponse = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: portalData,
+    });
+
+    if (!portalResponse.ok) {
+      const errorData = await portalResponse.json();
+      throw new Error(`Stripe portal error: ${JSON.stringify(errorData)}`);
+    }
+
+    const portalSession = await portalResponse.json();
     
     logStep("Customer portal session created", { 
       sessionId: portalSession.id, 

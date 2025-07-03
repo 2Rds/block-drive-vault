@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -50,10 +49,21 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Use Stripe REST API directly instead of SDK to avoid import issues
+    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(user.email)}&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!customersResponse.ok) {
+      throw new Error(`Stripe API error: ${customersResponse.status}`);
+    }
+
+    const customersData = await customersResponse.json();
     
-    if (customers.data.length === 0) {
+    if (customersData.data.length === 0) {
       logStep("No customer found, updating unsubscribed state");
       await supabaseClient.from("subscribers").upsert({
         email: user.email,
@@ -79,22 +89,29 @@ serve(async (req) => {
       });
     }
 
-    const customerId = customers.data[0].id;
+    const customerId = customersData.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
+    const subscriptionsResponse = await fetch(`https://api.stripe.com/v1/subscriptions?customer=${customerId}&status=active&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
+
+    if (!subscriptionsResponse.ok) {
+      throw new Error(`Stripe API error: ${subscriptionsResponse.status}`);
+    }
+
+    const subscriptionsData = await subscriptionsResponse.json();
     
-    const hasActiveSub = subscriptions.data.length > 0;
+    const hasActiveSub = subscriptionsData.data.length > 0;
     let subscriptionTier = null;
     let subscriptionEnd = null;
     let limits = { storage: 5, bandwidth: 10, seats: 1 };
 
     if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
+      const subscription = subscriptionsData.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       
       // Determine subscription tier from price ID - Updated with correct price IDs

@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -96,48 +95,65 @@ serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(stripeKey, { 
-      apiVersion: "2023-10-16" 
+    // Check if customer exists using Stripe REST API
+    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(user.email)}&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    if (!customersResponse.ok) {
+      throw new Error(`Stripe API error: ${customersResponse.status}`);
+    }
+
+    const customersData = await customersResponse.json();
     let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    if (customersData.data.length > 0) {
+      customerId = customersData.data[0].id;
       logStep("Existing customer found", { customerId });
     } else {
       logStep("No existing customer, will create during checkout");
     }
 
-    // Create checkout session with trial if applicable
-    const sessionConfig: any = {
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/pricing`,
-      metadata: {
-        user_id: user.id,
-        tier: tier,
-      },
-    };
+    // Create checkout session using Stripe REST API
+    const sessionData = new URLSearchParams({
+      'line_items[0][price]': priceId,
+      'line_items[0][quantity]': '1',
+      'mode': 'subscription',
+      'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
+      'cancel_url': `${req.headers.get("origin")}/pricing`,
+      'metadata[user_id]': user.id,
+      'metadata[tier]': tier,
+    });
+
+    if (customerId) {
+      sessionData.append('customer', customerId);
+    } else {
+      sessionData.append('customer_email', user.email);
+    }
 
     // Add trial period for Starter tier
     if (hasTrial && tier === 'Starter') {
-      sessionConfig.subscription_data = {
-        trial_period_days: 7,
-      };
+      sessionData.append('subscription_data[trial_period_days]', '7');
       logStep("Added 7-day trial period for Starter tier");
     }
 
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+    const sessionResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: sessionData,
+    });
+
+    if (!sessionResponse.ok) {
+      const errorData = await sessionResponse.json();
+      throw new Error(`Stripe checkout error: ${JSON.stringify(errorData)}`);
+    }
+
+    const session = await sessionResponse.json();
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
