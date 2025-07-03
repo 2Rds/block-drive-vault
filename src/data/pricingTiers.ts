@@ -6,7 +6,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Starter',
     price: '$9',
     priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
-    paymentLink: 'https://buy.stripe.com/test_28o01wcgJfLqcIo288', // Replace with your actual Stripe payment link
+    paymentLink: 'https://buy.stripe.com/9B6aEW3a59YdbgXgn42VG00',
     description: 'Perfect for personal use with 7-day free trial',
     storage: '50 GB',
     bandwidth: '50 GB',
