@@ -12,55 +12,6 @@ const Auth = () => {
   const { user, session } = useAuth();
   const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
-  const [dynamicReady, setDynamicReady] = useState(false);
-  const [sdkError, setSdkError] = useState(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-
-  // Enhanced SDK status monitoring
-  useEffect(() => {
-    console.log('Auth page - Dynamic SDK state:', { 
-      sdkHasLoaded, 
-      dynamicReady, 
-      sdkError, 
-      connectionAttempts 
-    });
-
-    // More sophisticated loading detection
-    const isSDKReady = sdkHasLoaded;
-    
-    if (isSDKReady) {
-      setDynamicReady(true);
-      setSdkError(false);
-      setConnectionAttempts(0);
-      console.log('Dynamic SDK is ready and operational');
-      return;
-    }
-
-    // Implement progressive timeout strategy
-    const getTimeoutDuration = (attempts: number) => {
-      switch (attempts) {
-        case 0: return 12000; // 12 seconds for initial load
-        case 1: return 8000;  // 8 seconds for first retry
-        case 2: return 6000;  // 6 seconds for second retry
-        default: return 5000; // 5 seconds for subsequent retries
-      }
-    };
-
-    const timeout = setTimeout(() => {
-      if (!isSDKReady) {
-        if (connectionAttempts < 3) {
-          console.warn(`Dynamic SDK connection attempt ${connectionAttempts + 1}/4`);
-          setConnectionAttempts(prev => prev + 1);
-        } else {
-          console.error('Dynamic SDK failed to load after maximum attempts');
-          setSdkError(true);
-          setDynamicReady(true); // Allow UI to show error state
-        }
-      }
-    }, getTimeoutDuration(connectionAttempts));
-
-    return () => clearTimeout(timeout);
-  }, [sdkHasLoaded, connectionAttempts]);
 
   // User authentication check
   useEffect(() => {
@@ -75,7 +26,7 @@ const Auth = () => {
     }
   }, [user, session, navigate]);
 
-  // Enhanced wallet connection monitoring
+  // Wallet connection monitoring
   useEffect(() => {
     if (sdkHasLoaded && primaryWallet) {
       console.log('Dynamic wallet connection detected:', {
@@ -85,18 +36,6 @@ const Auth = () => {
       });
     }
   }, [sdkHasLoaded, primaryWallet]);
-
-  const handleConnectionRetry = () => {
-    console.log('Retrying Dynamic SDK connection...');
-    setSdkError(false);
-    setDynamicReady(false);
-    setConnectionAttempts(0);
-    
-    // Force a clean restart
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,10 +49,10 @@ const Auth = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             {/* Left Side - Authentication */}
             <AuthConnectors
-              dynamicReady={dynamicReady}
-              sdkError={sdkError}
+              dynamicReady={sdkHasLoaded}
+              sdkError={!sdkHasLoaded}
               sdkHasLoaded={sdkHasLoaded}
-              onRetry={handleConnectionRetry}
+              onRetry={() => window.location.reload()}
             />
 
             {/* Right Side - Features */}

@@ -19,19 +19,15 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         ],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-and-sign',
-        enableVisitTrackingOnConnectOnly: false,
+        initialAuthenticationMode: 'connect-only',
+        enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
-        // Configure API endpoints with fallback
-        apiBaseUrl: 'https://app.dynamic.xyz',
-        cssOverrides: `
-          .dynamic-widget-inline-controls {
-            z-index: 9999 !important;
-          }
-          .dynamic-modal-overlay {
-            z-index: 9998 !important;
-          }
-        `,
+        // Simplify API configuration
+        apiBaseUrl: undefined, // Let Dynamic use their default
+        // Remove custom CSS that might interfere
+        cssOverrides: undefined,
+        // Add debugging
+        debugError: true,
       }}
     >
       {children}
