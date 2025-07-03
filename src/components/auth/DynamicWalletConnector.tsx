@@ -14,7 +14,7 @@ interface DynamicWalletConnectorProps {
 export const DynamicWalletConnector = ({
   onWalletConnected
 }: DynamicWalletConnectorProps) => {
-  const { showAuthFlow, sdkHasLoaded, isReady } = useDynamicContext();
+  const { showAuthFlow, sdkHasLoaded } = useDynamicContext();
   const [hasConnectionError, setHasConnectionError] = useState(false);
   const [retryAttempts, setRetryAttempts] = useState(0);
   const [isManualRetry, setIsManualRetry] = useState(false);
@@ -30,12 +30,12 @@ export const DynamicWalletConnector = ({
   React.useEffect(() => {
     const checkSDKStatus = () => {
       // Check if we have a real connection issue vs just slow loading
-      const hasRealError = !sdkHasLoaded && !isReady && retryAttempts >= 2;
+      const hasRealError = !sdkHasLoaded && retryAttempts >= 2;
       
       if (hasRealError && !isManualRetry) {
         console.error('Dynamic SDK connection failed after multiple attempts');
         setHasConnectionError(true);
-      } else if (sdkHasLoaded || isReady) {
+      } else if (sdkHasLoaded) {
         // SDK loaded successfully
         setHasConnectionError(false);
         setRetryAttempts(0);
@@ -47,17 +47,17 @@ export const DynamicWalletConnector = ({
     // Give more time for initial load, less time for retries
     const timeout = setTimeout(checkSDKStatus, retryAttempts === 0 ? 15000 : 8000);
 
-    if (sdkHasLoaded || isReady) {
+    if (sdkHasLoaded) {
       clearTimeout(timeout);
       checkSDKStatus();
     }
 
     return () => clearTimeout(timeout);
-  }, [sdkHasLoaded, isReady, retryAttempts, isManualRetry]);
+  }, [sdkHasLoaded, retryAttempts, isManualRetry]);
 
   // Auto-retry logic with exponential backoff
   React.useEffect(() => {
-    if (!sdkHasLoaded && !isReady && !hasConnectionError && retryAttempts < 3) {
+    if (!sdkHasLoaded && !hasConnectionError && retryAttempts < 3) {
       const retryTimeout = setTimeout(() => {
         console.log(`Dynamic SDK retry attempt ${retryAttempts + 1}/3`);
         setRetryAttempts(prev => prev + 1);
@@ -65,7 +65,7 @@ export const DynamicWalletConnector = ({
 
       return () => clearTimeout(retryTimeout);
     }
-  }, [sdkHasLoaded, isReady, hasConnectionError, retryAttempts]);
+  }, [sdkHasLoaded, hasConnectionError, retryAttempts]);
 
   const handleManualRetry = () => {
     console.log('Manual retry initiated by user');
@@ -75,7 +75,7 @@ export const DynamicWalletConnector = ({
     
     // Force page reload as last resort for persistent issues
     setTimeout(() => {
-      if (!sdkHasLoaded && !isReady) {
+      if (!sdkHasLoaded) {
         console.log('Forcing page reload due to persistent SDK issues');
         window.location.reload();
       }
@@ -117,7 +117,7 @@ export const DynamicWalletConnector = ({
   }
 
   // Show enhanced loading state
-  if ((!sdkHasLoaded && !isReady) || isManualRetry) {
+  if (!sdkHasLoaded || isManualRetry) {
     return (
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-6">
         <div className="flex items-center space-x-4">

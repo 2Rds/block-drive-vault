@@ -22,10 +22,6 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: false,
         shadowDOMEnabled: false,
-        // Add email authentication if configured in Dynamic dashboard
-        emailAuthenticationEnabled: true,
-        // Configure authentication methods
-        authMethods: ['wallet', 'email'],
         // Improve error handling
         onError: (error: any) => {
           console.error('Dynamic SDK Error:', error);

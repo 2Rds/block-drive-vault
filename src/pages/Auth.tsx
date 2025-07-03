@@ -10,7 +10,7 @@ import { AuthConnectors } from '@/components/auth/AuthConnectors';
 
 const Auth = () => {
   const { user, session } = useAuth();
-  const { primaryWallet, sdkHasLoaded, isReady } = useDynamicContext();
+  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
@@ -20,14 +20,13 @@ const Auth = () => {
   useEffect(() => {
     console.log('Auth page - Dynamic SDK state:', { 
       sdkHasLoaded, 
-      isReady, 
       dynamicReady, 
       sdkError, 
       connectionAttempts 
     });
 
     // More sophisticated loading detection
-    const isSDKReady = sdkHasLoaded || isReady;
+    const isSDKReady = sdkHasLoaded;
     
     if (isSDKReady) {
       setDynamicReady(true);
@@ -61,7 +60,7 @@ const Auth = () => {
     }, getTimeoutDuration(connectionAttempts));
 
     return () => clearTimeout(timeout);
-  }, [sdkHasLoaded, isReady, connectionAttempts]);
+  }, [sdkHasLoaded, connectionAttempts]);
 
   // User authentication check
   useEffect(() => {
@@ -78,14 +77,14 @@ const Auth = () => {
 
   // Enhanced wallet connection monitoring
   useEffect(() => {
-    if ((sdkHasLoaded || isReady) && primaryWallet) {
+    if (sdkHasLoaded && primaryWallet) {
       console.log('Dynamic wallet connection detected:', {
         walletAddress: primaryWallet.address,
         chain: primaryWallet.chain,
         connector: primaryWallet.connector?.name
       });
     }
-  }, [sdkHasLoaded, isReady, primaryWallet]);
+  }, [sdkHasLoaded, primaryWallet]);
 
   const handleConnectionRetry = () => {
     console.log('Retrying Dynamic SDK connection...');
@@ -113,8 +112,10 @@ const Auth = () => {
             <AuthConnectors
               dynamicReady={dynamicReady}
               sdkError={sdkError}
-              sdkHasLoaded={sdkHasLoaded || isReady}
-              onRetry={handleConnectionRetry}
+              sdkHasLoaded={sdkHasLoaded}
+              onRetry={handleConnectionRet
+
+}
             />
 
             {/* Right Side - Features */}
