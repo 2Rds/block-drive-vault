@@ -47,6 +47,7 @@ export class SolanaSubdomainService {
           subdomain_name: subdomain,
           full_domain: fullDomain,
           registration_transaction: mockTransactionHash,
+          blockchain_type: 'solana',
           is_active: true
         })
         .select()

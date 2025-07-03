@@ -84,7 +84,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             auth_type: 'web3-mfa',
             subdomain: authData.subdomain,
             username: authData.subdomain || 'Solana User',
-            full_name: `Solana User`
+            full_name: `Solana User`,
+            solana_subdomain: authData.subdomain ? `${authData.subdomain}.blockdrive.sol` : undefined
           }
         },
         access_token: authData.sessionToken,
