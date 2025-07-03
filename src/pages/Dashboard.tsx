@@ -69,7 +69,7 @@ const Dashboard = () => {
                 <Button
                   onClick={handleAccountClick}
                   variant="outline"
-                  className="bg-secondary/10 border-secondary/30 text-secondary hover:bg-secondary/20 hover:border-secondary/50"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Account
