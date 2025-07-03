@@ -9,14 +9,14 @@ interface FileGridProps {
 }
 
 export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) => {
-  const { stats, loading } = useUserData();
+  const { userStats, loading } = useUserData();
 
   // Generate mock files based on real user data
   const generateFilesFromUserData = () => {
-    if (loading || !stats.totalFiles) return [];
+    if (loading || !userStats.totalFiles) return [];
     
     const files = [];
-    const fileTypes = stats.filesByType || [];
+    const fileTypes = userStats.filesByType || [];
     
     // Add user-created folders first
     userFolders.forEach((folderName, index) => {
@@ -32,7 +32,7 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
     
     // Generate files based on file type distribution
     fileTypes.forEach((fileType, index) => {
-      const count = Math.round((fileType.value / 100) * stats.totalFiles);
+      const count = Math.round((fileType.value / 100) * userStats.totalFiles);
       
       for (let i = 0; i < count; i++) {
         const fileId = `${fileType.name.toLowerCase()}_${i + 1}`;

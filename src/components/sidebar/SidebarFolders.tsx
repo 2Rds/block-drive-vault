@@ -18,13 +18,13 @@ export const SidebarFolders = ({
   onFolderClick,
   openFolders = []
 }: SidebarFoldersProps) => {
-  const { stats, loading } = useUserData();
+  const { userStats, loading } = useUserData();
 
   // Calculate file counts by type from live data
   const getFileCountByType = (type: string) => {
-    if (loading || !stats.filesByType.length) return 0;
-    const fileType = stats.filesByType.find(f => f.name === type);
-    return fileType ? Math.round((fileType.value / 100) * stats.totalFiles) : 0;
+    if (loading || !userStats.filesByType.length) return 0;
+    const fileType = userStats.filesByType.find(f => f.name === type);
+    return fileType ? Math.round((fileType.value / 100) * userStats.totalFiles) : 0;
   };
 
   const defaultFolders = [
@@ -32,7 +32,7 @@ export const SidebarFolders = ({
       id: 'all', 
       name: 'All Files', 
       icon: Database, 
-      count: loading ? 0 : stats.totalFiles, 
+      count: loading ? 0 : userStats.totalFiles, 
       color: 'text-muted-foreground',
       isExpandable: true,
       path: '/'

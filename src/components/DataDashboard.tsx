@@ -7,22 +7,22 @@ import { NetworkStatus } from '@/components/dashboard/NetworkStatus';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 
 export const DataDashboard = () => {
-  const { stats, loading } = useUserData();
+  const { userStats, loading } = useUserData();
 
   if (loading) {
     return (
       <div className="space-y-8">
-        <MetricsCards stats={stats} loading={loading} />
+        <MetricsCards stats={userStats} loading={loading} />
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <MetricsCards stats={stats} loading={loading} />
-      <ChartsSection stats={stats} />
+      <MetricsCards stats={userStats} loading={loading} />
+      <ChartsSection stats={userStats} />
       <NetworkStatus />
-      <RecentActivity activities={stats.recentActivity} />
+      <RecentActivity activities={userStats.recentActivity} />
     </div>
   );
 };

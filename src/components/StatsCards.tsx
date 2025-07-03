@@ -4,28 +4,28 @@ import { Database, Upload, Download, Archive } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
 export const StatsCards = () => {
-  const { stats, loading } = useUserData();
+  const { userStats, loading } = useUserData();
 
   const statsData = [
     {
       title: 'Total Storage Used',
-      value: loading ? '0 GB' : `${stats.totalStorage} GB`,
+      value: loading ? '0 GB' : `${userStats.totalStorage} GB`,
       subtitle: 'Secure blockchain storage',
       icon: Database,
       color: 'from-blue-600 to-blue-700',
-      percentage: loading ? 0 : Math.min(Math.round((stats.totalStorage / 10) * 100), 100), // Assuming 10GB limit
+      percentage: loading ? 0 : Math.min(Math.round((userStats.totalStorage / 10) * 100), 100), // Assuming 10GB limit
     },
     {
       title: 'Files Uploaded',
-      value: loading ? '0' : stats.totalFiles.toString(),
-      subtitle: loading ? 'Loading...' : `${stats.totalFiles} total files`,
+      value: loading ? '0' : userStats.totalFiles.toString(),
+      subtitle: loading ? 'Loading...' : `${userStats.totalFiles} total files`,
       icon: Upload,
       color: 'from-blue-600 to-blue-700',
       percentage: 0,
     },
     {
       title: 'Recent Activity',
-      value: loading ? '0' : stats.recentActivity.length.toString(),
+      value: loading ? '0' : userStats.recentActivity.length.toString(),
       subtitle: loading ? 'Loading...' : 'Recent actions',
       icon: Download,
       color: 'from-blue-600 to-blue-700',
@@ -33,7 +33,7 @@ export const StatsCards = () => {
     },
     {
       title: 'Blockchain Transactions',
-      value: loading ? '0' : stats.totalTransactions.toString(),
+      value: loading ? '0' : userStats.totalTransactions.toString(),
       subtitle: loading ? 'Loading...' : 'Total confirmations',
       icon: Archive,
       color: 'from-blue-600 to-blue-700',
