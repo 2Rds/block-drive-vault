@@ -3,6 +3,7 @@ export interface PricingTier {
   name: string;
   price: string;
   priceId?: string;
+  paymentLink?: string;
   description: string;
   features: string[];
   storage: string;

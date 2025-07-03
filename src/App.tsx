@@ -11,6 +11,8 @@ import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 import Pricing from "./pages/Pricing";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import SubscriptionCancel from "./pages/SubscriptionCancel";
 import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
 import { DynamicProvider } from "./components/auth/DynamicProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -30,6 +32,8 @@ const App = () => (
                 <Route path="/" element={<Auth />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
                 <Route path="/index" element={
                   <ProtectedRoute>
                     <Index />

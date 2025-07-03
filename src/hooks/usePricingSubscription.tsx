@@ -1,18 +1,17 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
 
 export const usePricingSubscription = () => {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
-    if (!user || !session) {
+    if (!user) {
       toast.error('Please sign in to subscribe');
       navigate('/auth');
       return;
@@ -24,56 +23,29 @@ export const usePricingSubscription = () => {
       return;
     }
 
+    if (!tier.paymentLink) {
+      toast.error('Payment link not configured for this tier');
+      return;
+    }
+
     setLoading(tier.name);
 
     try {
-      console.log('Starting subscription process for tier:', tier.name);
-      console.log('User authenticated:', { userId: user.id, hasSession: !!session });
+      console.log('Redirecting to Stripe payment link for tier:', tier.name);
+      console.log('Payment link:', tier.paymentLink);
       
-      // For wallet-based authentication, we need to use the session token directly
-      const authToken = session.access_token;
+      // Add user email as a parameter to pre-fill the checkout
+      const url = new URL(tier.paymentLink);
+      if (user.email) {
+        url.searchParams.set('prefilled_email', user.email);
+      }
       
-      if (!authToken) {
-        console.error('No access token found in session');
-        throw new Error('Authentication token not available');
-      }
-
-      console.log('Using auth token for subscription request');
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          priceId: tier.priceId,
-          tier: tier.name,
-          hasTrial: tier.hasTrial
-        },
-        headers: {
-          Authorization: `Bearer ${authToken}`
-        }
-      });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to create checkout session');
-      }
-
-      if (!data?.url) {
-        throw new Error('No checkout URL received from server');
-      }
-
-      console.log('Checkout URL received:', data.url);
-
-      // Open Stripe checkout in the same tab
-      window.location.href = data.url;
+      // Redirect directly to Stripe payment link
+      window.location.href = url.toString();
+      
     } catch (error: any) {
       console.error('Subscription error:', error);
-      
-      // Handle specific error cases
-      if (error.message?.includes('JWT') || error.message?.includes('claim') || error.message?.includes('auth')) {
-        toast.error('Session expired. Please sign in again.');
-        navigate('/auth');
-      } else {
-        toast.error(`Failed to start subscription: ${error.message}`);
-      }
+      toast.error(`Failed to start subscription: ${error.message}`);
     } finally {
       setLoading(null);
     }

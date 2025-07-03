@@ -6,6 +6,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Starter',
     price: '$9',
     priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
+    paymentLink: 'https://buy.stripe.com/test_28o01wcgJfLqcIo288', // Replace with your actual Stripe payment link
     description: 'Perfect for personal use with 7-day free trial',
     storage: '50 GB',
     bandwidth: '50 GB',
@@ -24,6 +25,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Pro',
     price: '$29',
     priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
+    paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zPcIo288', // Replace with your actual Stripe payment link
     description: 'Enhanced storage for growing needs',
     storage: '150 GB',
     bandwidth: '150 GB',
@@ -41,6 +43,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Pro Plus',
     price: '$59',
     priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
+    paymentLink: 'https://buy.stripe.com/test_3cs6pGaY75BX4gU001', // Replace with your actual Stripe payment link
     description: 'Ideal for small teams and collaboration',
     storage: '300 GB',
     bandwidth: '300 GB',
@@ -60,6 +63,7 @@ export const pricingTiers: PricingTier[] = [
     name: 'Business',
     price: '$99',
     priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
+    paymentLink: 'https://buy.stripe.com/test_28o5lCg0Vd5fc12001', // Replace with your actual Stripe payment link
     description: 'Scalable solution for growing businesses',
     storage: '500 GB per seat',
     bandwidth: '500 GB per seat',
