@@ -66,9 +66,12 @@ export class SupabaseAuthService {
       if (data?.success && data?.authToken) {
         console.log('Wallet authentication successful, creating session...');
         
+        // The authToken from the edge function is the user ID
+        const userId = data.authToken;
+        
         const sessionData = {
           user: {
-            id: data.authToken,
+            id: userId, // This is now the proper UUID from the database
             email: `${walletAddress}@blockdrive.wallet`,
             user_metadata: {
               wallet_address: walletAddress,
@@ -89,6 +92,7 @@ export class SupabaseAuthService {
           toast.success(`Welcome back! Your ${blockchainType} wallet has been authenticated.`);
         }
         
+        console.log('Session created with user ID:', userId);
         return { error: null, data: sessionData };
       } else {
         return { error: { message: 'Wallet authentication failed' } };

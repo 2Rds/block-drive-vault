@@ -43,8 +43,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     if (!result.error && result.data) {
       console.log('Setting user and session from connectWallet result');
       
+      // Extract the actual user ID from the result
+      const userId = result.data.user.id;
+      
       const supabaseUser: User = {
-        id: result.data.user.id,
+        id: userId, // Use the actual user ID from the auth response
         aud: 'authenticated',
         role: 'authenticated',
         email: result.data.user.email,
@@ -74,7 +77,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         token_type: result.data.token_type || 'bearer'
       };
 
-      console.log('Created Supabase-compatible user and session objects');
+      console.log('Created Supabase-compatible user and session objects with user ID:', userId);
       
       setUser(supabaseUser);
       setSession(supabaseSession);
@@ -92,7 +95,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       setWalletData(processedWalletData);
       
-      console.log('Auth state updated successfully - user authenticated');
+      console.log('Auth state updated successfully - user authenticated with ID:', userId);
     }
     
     return result;
