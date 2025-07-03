@@ -21,24 +21,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   useEffect(() => {
     console.log('SimplifiedAuthProvider initializing...');
     
-    // Clear any Dynamic-related stuck states that might interfere
-    const dynamicKeys = [
-      'dynamic_auth_state',
-      'dynamic_connection_status',
-      'dynamic_verification_pending'
-    ];
-    
-    dynamicKeys.forEach(key => {
-      if (localStorage.getItem(key)) {
-        console.log(`Clearing potentially interfering Dynamic state: ${key}`);
-        localStorage.removeItem(key);
-      }
-    });
-
     // Listen for wallet authentication events
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
 
-    // Set up auth state listener for sign out events only
+    // Set up auth state listener
     const subscription = setupAuthStateListener();
 
     return () => {
@@ -124,48 +110,45 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const disconnectWallet = async () => {
     console.log('Disconnecting wallet and clearing auth state');
     
+    // Clear state immediately to prevent loops
     setWalletData(null);
     setUser(null);
     setSession(null);
     
-    // Clear all storage
+    // Clear storage
     localStorage.clear();
     sessionStorage.clear();
     
-    if ('indexedDB' in window) {
-      try {
-        indexedDB.deleteDatabase('supabase-auth-token');
-      } catch (error) {
-        console.log('IndexedDB clear attempted');
-      }
+    try {
+      await SupabaseAuthService.signOut();
+    } catch (error) {
+      console.error('Error during sign out:', error);
     }
     
-    const result = await SupabaseAuthService.signOut();
     console.log('Wallet disconnected and auth state cleared');
-    return result;
+    return { error: null };
   };
 
   const signOut = async () => {
-    console.log('Signing out user and clearing auth state');
+    console.log('Signing out user');
     
+    // Clear state immediately to prevent loops
     setWalletData(null);
     setUser(null);
     setSession(null);
     
+    // Clear storage
     localStorage.clear();
     sessionStorage.clear();
     
-    if ('indexedDB' in window) {
-      try {
-        indexedDB.deleteDatabase('supabase-auth-token');
-      } catch (error) {
-        console.log('IndexedDB clear attempted');
-      }
+    try {
+      await SupabaseAuthService.signOut();
+      console.log('Sign out completed successfully');
+    } catch (error) {
+      console.error('Error during sign out:', error);
     }
     
-    const result = await SupabaseAuthService.signOut();
-    console.log('User signed out and auth state cleared');
-    return result;
+    return { error: null };
   };
 
   console.log('SimplifiedAuthProvider current state:', {

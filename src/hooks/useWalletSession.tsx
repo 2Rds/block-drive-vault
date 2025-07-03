@@ -43,74 +43,56 @@ export const useWalletSession = () => {
   };
 
   const initializeSession = async () => {
-    console.log('MAXIMUM SECURITY: Manual authentication REQUIRED - no session restoration EVER');
+    console.log('Starting session initialization');
     
-    // SECURITY: Clear ALL possible stored sessions immediately
-    localStorage.clear();
-    sessionStorage.clear();
+    // Clear any potentially corrupted auth states
+    const keysToCheck = [
+      'sb-supabase-auth-token',
+      'supabase.auth.token', 
+      'dynamic_auth_state',
+      'dynamic_connection_status'
+    ];
     
-    // Clear indexed DB storage
-    if ('indexedDB' in window) {
-      try {
-        indexedDB.deleteDatabase('supabase-auth-token');
-      } catch (error) {
-        console.log('IndexedDB clear attempted');
+    keysToCheck.forEach(key => {
+      if (localStorage.getItem(key)) {
+        console.log(`Clearing potentially corrupted state: ${key}`);
+        localStorage.removeItem(key);
       }
-    }
+    });
     
-    // SECURITY: Always start with completely clean state
+    // Always start with clean state
     setUser(null);
     setSession(null);
     setWalletData(null);
-    
-    // Force Supabase sign out to clear any cached sessions
-    await SupabaseAuthService.signOut();
-    
-    console.log('Session initialization complete - manual wallet connection REQUIRED for EVERY session');
     setLoading(false);
+    
+    console.log('Session initialization complete - clean state established');
     return false;
   };
 
   const setupAuthStateListener = () => {
     const { data: { subscription } } = SupabaseAuthService.setupAuthStateListener(
       async (event, session) => {
-        console.log('Supabase auth state changed:', event, session?.user?.id);
+        console.log('Auth state event:', event);
         
-        // SECURITY: Only handle explicit sign out events
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out - clearing ALL auth state permanently');
+          console.log('User signed out - clearing auth state');
           setSession(null);
           setUser(null);
           setWalletData(null);
           
-          // Clear ALL possible storage locations
+          // Clear storage but don't cause infinite loops
           localStorage.clear();
-          sessionStorage.clear();
           
-          // Clear indexed DB storage
-          if ('indexedDB' in window) {
-            try {
-              indexedDB.deleteDatabase('supabase-auth-token');
-            } catch (error) {
-              console.log('IndexedDB clear attempted');
-            }
-          }
+          // Stop processing to prevent loops
+          return;
         }
         
-        // SECURITY: NEVER automatically sign in users - block ALL automatic events
+        // Block automatic sign-ins to prevent loops
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-          console.log('MAXIMUM SECURITY: Blocking automatic authentication event:', event);
-          // Force immediate sign out to prevent any automatic authentication
-          await SupabaseAuthService.signOut();
-          
-          // Clear all state immediately
-          setSession(null);
-          setUser(null);
-          setWalletData(null);
-          
-          // Clear ALL storage
-          localStorage.clear();
-          sessionStorage.clear();
+          console.log('Blocking automatic auth event to prevent loops:', event);
+          // Don't process these events automatically
+          return;
         }
         
         setLoading(false);
@@ -120,10 +102,22 @@ export const useWalletSession = () => {
     return subscription;
   };
 
-  // Initialize with maximum security mode
+  // Initialize once on mount
   useEffect(() => {
-    console.log('useWalletSession initializing with MAXIMUM security mode');
-    initializeSession();
+    console.log('useWalletSession initializing');
+    let mounted = true;
+    
+    const init = async () => {
+      if (mounted) {
+        await initializeSession();
+      }
+    };
+    
+    init();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return {
