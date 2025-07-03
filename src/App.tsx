@@ -10,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./components/auth/AuthProvider";
+import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
 import { DynamicProvider } from "./components/auth/DynamicProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -24,7 +24,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <DynamicProvider>
-            <AuthProvider>
+            <SimplifiedAuthProvider>
               <Routes>
                 <Route path="/" element={<Auth />} />
                 <Route path="/auth" element={<Auth />} />
@@ -45,7 +45,7 @@ const App = () => (
                 } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </AuthProvider>
+            </SimplifiedAuthProvider>
           </DynamicProvider>
         </BrowserRouter>
       </TooltipProvider>
