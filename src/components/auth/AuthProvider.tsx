@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
 import { AuthenticationService } from '@/services/authenticationService';
@@ -126,10 +125,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log('Supabase auth state change:', event, session?.user?.id);
       
       if (session?.user) {
-        // Fetch user profile to get Solana subdomain
+        // Fetch user profile to get Solana subdomain - updated to include new columns
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('*, full_name, solana_subdomain')
           .eq('id', session.user.id)
           .single();
 
