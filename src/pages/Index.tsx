@@ -14,6 +14,7 @@ import { BarChart3, Files, Settings } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
+import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { useFolderNavigation } from '@/hooks/useFolderNavigation';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 
@@ -24,6 +25,7 @@ const Index = () => {
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
   const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
+  const [showBoxIntegration, setShowBoxIntegration] = useState(false);
   
   const {
     currentPath,
@@ -82,6 +84,7 @@ const Index = () => {
           onSlackClick={() => setShowSlackIntegration(true)}
           onOneDriveClick={() => setShowOneDriveIntegration(true)}
           onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
+          onBoxClick={() => setShowBoxIntegration(true)}
         />
         <main className="flex-1 p-8 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -161,6 +164,11 @@ const Index = () => {
       <GoogleDriveIntegration
         isOpen={showGoogleDriveIntegration}
         onClose={() => setShowGoogleDriveIntegration(false)}
+      />
+
+      <BoxIntegration
+        isOpen={showBoxIntegration}
+        onClose={() => setShowBoxIntegration(false)}
       />
     </div>
   );

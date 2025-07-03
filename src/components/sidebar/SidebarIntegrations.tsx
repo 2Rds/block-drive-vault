@@ -1,17 +1,19 @@
 
 import React from 'react';
-import { Slack, Cloud, HardDrive } from 'lucide-react';
+import { Slack, Cloud, HardDrive, Box } from 'lucide-react';
 
 interface SidebarIntegrationsProps {
   onSlackClick?: () => void;
   onOneDriveClick?: () => void;
   onGoogleDriveClick?: () => void;
+  onBoxClick?: () => void;
 }
 
 export const SidebarIntegrations = ({
   onSlackClick,
   onOneDriveClick,
-  onGoogleDriveClick
+  onGoogleDriveClick,
+  onBoxClick
 }: SidebarIntegrationsProps) => {
   const integrations = [
     {
@@ -34,6 +36,13 @@ export const SidebarIntegrations = ({
       icon: HardDrive,
       color: 'text-green-500',
       onClick: onGoogleDriveClick
+    },
+    {
+      id: 'box',
+      name: 'Box',
+      icon: Box,
+      color: 'text-blue-500',
+      onClick: onBoxClick
     }
   ];
 

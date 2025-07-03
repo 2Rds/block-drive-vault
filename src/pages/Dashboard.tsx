@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from "@/components/Header";
@@ -9,6 +8,7 @@ import { BarChart3, Files, Settings } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
+import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 
 const Dashboard = () => {
@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [showSlackIntegration, setShowSlackIntegration] = React.useState(false);
   const [showOneDriveIntegration, setShowOneDriveIntegration] = React.useState(false);
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = React.useState(false);
+  const [showBoxIntegration, setShowBoxIntegration] = React.useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -49,6 +50,7 @@ const Dashboard = () => {
           onSlackClick={() => setShowSlackIntegration(true)}
           onOneDriveClick={() => setShowOneDriveIntegration(true)}
           onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
+          onBoxClick={() => setShowBoxIntegration(true)}
         />
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -103,6 +105,11 @@ const Dashboard = () => {
       <GoogleDriveIntegration
         isOpen={showGoogleDriveIntegration}
         onClose={() => setShowGoogleDriveIntegration(false)}
+      />
+
+      <BoxIntegration
+        isOpen={showBoxIntegration}
+        onClose={() => setShowBoxIntegration(false)}
       />
     </div>
   );

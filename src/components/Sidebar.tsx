@@ -15,6 +15,7 @@ interface SidebarProps {
   onSlackClick?: () => void;
   onOneDriveClick?: () => void;
   onGoogleDriveClick?: () => void;
+  onBoxClick?: () => void;
 }
 
 export const Sidebar = ({ 
@@ -25,7 +26,8 @@ export const Sidebar = ({
   openFolders = [],
   onSlackClick,
   onOneDriveClick,
-  onGoogleDriveClick
+  onGoogleDriveClick,
+  onBoxClick
 }: SidebarProps) => {
   const { loading } = useUserData();
 
@@ -69,6 +71,7 @@ export const Sidebar = ({
           onSlackClick={onSlackClick}
           onOneDriveClick={onOneDriveClick}
           onGoogleDriveClick={onGoogleDriveClick}
+          onBoxClick={onBoxClick}
         />
 
         <SidebarStats />
