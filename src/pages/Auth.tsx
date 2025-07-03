@@ -19,14 +19,14 @@ const Auth = () => {
   useEffect(() => {
     console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError });
 
-    // Enhanced timeout handling for Dynamic SDK
+    // Shorter timeout for better user experience
     const timeout = setTimeout(() => {
       if (!sdkHasLoaded && !dynamicReady) {
-        console.warn('Dynamic SDK failed to load within 20 seconds, enabling fallback');
+        console.warn('Dynamic SDK taking longer than expected to load');
         setSdkError(true);
         setDynamicReady(true);
       }
-    }, 20000);
+    }, 5000); // 5 second timeout instead of 20
 
     if (sdkHasLoaded) {
       setDynamicReady(true);
