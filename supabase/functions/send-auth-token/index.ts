@@ -1,8 +1,7 @@
 
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from 'https://deno.land/x/supabase@2.39.0/mod.ts';
+import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2.50.0';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
