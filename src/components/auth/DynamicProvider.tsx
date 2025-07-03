@@ -20,14 +20,6 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
         initialAuthenticationMode: 'connect-only',
-        enableVisitTrackingOnConnectOnly: true,
-        shadowDOMEnabled: false,
-        // Simplify API configuration
-        apiBaseUrl: undefined, // Let Dynamic use their default
-        // Remove custom CSS that might interfere
-        cssOverrides: undefined,
-        // Add debugging
-        debugError: true,
       }}
     >
       {children}
