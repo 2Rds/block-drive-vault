@@ -9,25 +9,15 @@ import { AuthHero } from '@/components/auth/AuthHero';
 import { AuthConnectors } from '@/components/auth/AuthConnectors';
 
 const Auth = () => {
-  const {
-    user,
-    session
-  } = useAuth();
-  const {
-    primaryWallet,
-    sdkHasLoaded
-  } = useDynamicContext();
+  const { user, session } = useAuth();
+  const { primaryWallet, sdkHasLoaded } = useDynamicContext();
   const navigate = useNavigate();
   const [dynamicReady, setDynamicReady] = useState(false);
   const [sdkError, setSdkError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    console.log('Auth page - SDK state:', {
-      sdkHasLoaded,
-      dynamicReady,
-      sdkError
-    });
+    console.log('Auth page - SDK state:', { sdkHasLoaded, dynamicReady, sdkError });
 
     // Enhanced timeout handling for Dynamic SDK
     const timeout = setTimeout(() => {
@@ -36,7 +26,7 @@ const Auth = () => {
         setSdkError(true);
         setDynamicReady(true);
       }
-    }, 20000); // Increased timeout to 20 seconds
+    }, 20000);
 
     if (sdkHasLoaded) {
       setDynamicReady(true);
@@ -56,10 +46,7 @@ const Auth = () => {
         userEmail: user.email
       });
 
-      // Use navigate instead of window.location.href for better React Router handling
-      navigate('/index', {
-        replace: true
-      });
+      navigate('/index', { replace: true });
     }
   }, [user, session, navigate]);
 
@@ -72,11 +59,6 @@ const Auth = () => {
       });
     }
   }, [sdkHasLoaded, primaryWallet]);
-
-  const handleWeb3MFASuccess = (authData: any) => {
-    console.log('Web3 MFA authentication successful:', authData);
-    // The auth context will handle the redirect automatically
-  };
 
   const handleRetry = () => {
     console.log('Retrying Dynamic SDK initialization...');
@@ -103,7 +85,6 @@ const Auth = () => {
               sdkError={sdkError}
               sdkHasLoaded={sdkHasLoaded}
               onRetry={handleRetry}
-              onWeb3MFASuccess={handleWeb3MFASuccess}
             />
 
             {/* Right Side - Features */}
