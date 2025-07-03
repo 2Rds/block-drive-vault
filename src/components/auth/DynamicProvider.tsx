@@ -23,8 +23,6 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
         debugError: true,
-        // Use the provided API key
-        apiKey: 'dyn_SzIQbuGwRbk0jkW0Tv5mmYessyaRTjmvTRuybZ8hHDqPhnuowl22JoqG',
       }}
     >
       {children}
