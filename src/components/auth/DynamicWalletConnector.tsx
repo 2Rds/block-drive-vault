@@ -25,9 +25,17 @@ export const DynamicWalletConnector = ({
     handleConnectClick
   } = useDynamicWalletConnection(onWalletConnected);
 
-  // Monitor SDK loading status with timeout
+  // Monitor SDK loading status with timeout and clear any stuck auth states
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    
+    // Clear any potentially stuck authentication states immediately
+    if (!sdkHasLoaded && retryCount === 0) {
+      console.log('Clearing potentially stuck authentication states...');
+      localStorage.removeItem('dynamic_auth_state');
+      localStorage.removeItem('dynamic_connection_status');
+      sessionStorage.clear();
+    }
     
     if (sdkHasLoaded) {
       console.log('Dynamic SDK loaded successfully');
@@ -40,7 +48,7 @@ export const DynamicWalletConnector = ({
           console.error('Dynamic SDK failed to load within timeout period');
           setConnectionStatus('failed');
         }
-      }, 20000); // 20 second timeout
+      }, 15000); // Reduced to 15 second timeout
     }
 
     return () => {
@@ -53,8 +61,12 @@ export const DynamicWalletConnector = ({
     setConnectionStatus('loading');
     setRetryCount(prev => prev + 1);
     
+    // Clear all potentially stuck states
+    localStorage.clear();
+    sessionStorage.clear();
+    
     // Force reload if multiple retries have failed
-    if (retryCount >= 2) {
+    if (retryCount >= 1) {
       console.log('Multiple retries failed, reloading page...');
       window.location.reload();
     }
@@ -74,8 +86,8 @@ export const DynamicWalletConnector = ({
             </h4>
             <p className="text-blue-600 text-sm">
               {retryCount === 0 
-                ? 'Initializing secure wallet connections...' 
-                : `Retry attempt ${retryCount}/3 - Please wait...`
+                ? 'Clearing previous sessions and initializing...' 
+                : `Retry attempt ${retryCount}/2 - Please wait...`
               }
             </p>
             {retryCount > 0 && (
@@ -83,7 +95,7 @@ export const DynamicWalletConnector = ({
                 <div className="w-full bg-blue-200 rounded-full h-1.5">
                   <div 
                     className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" 
-                    style={{ width: `${(retryCount / 3) * 100}%` }}
+                    style={{ width: `${(retryCount / 2) * 100}%` }}
                   ></div>
                 </div>
               </div>
@@ -110,10 +122,10 @@ export const DynamicWalletConnector = ({
               Unable to connect to Dynamic's wallet services. This could be due to:
             </p>
             <ul className="text-red-600 text-sm space-y-1 mb-4 pl-4">
+              <li>• Previous authentication app settings causing conflicts</li>
+              <li>• Cached authentication states</li>
               <li>• Network connectivity issues</li>
               <li>• Browser blocking third-party connections</li>
-              <li>• Ad blockers or security extensions</li>
-              <li>• Service temporary unavailability</li>
             </ul>
             <div className="flex flex-col sm:flex-row gap-2">
               <button 
@@ -121,7 +133,7 @@ export const DynamicWalletConnector = ({
                 className="flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Retry Connection</span>
+                <span>Clear Cache & Retry</span>
               </button>
               <button 
                 onClick={() => window.location.reload()}

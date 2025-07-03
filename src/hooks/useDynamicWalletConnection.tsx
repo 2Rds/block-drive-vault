@@ -15,6 +15,25 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
   const [userExplicitlyClicked, setUserExplicitlyClicked] = useState(false);
   const [connectionInitiated, setConnectionInitiated] = useState(false);
 
+  // Clear any stuck authentication states on mount
+  useEffect(() => {
+    console.log('Dynamic connection hook initializing - clearing any stuck states');
+    
+    // Clear potentially stuck authentication states
+    const stuckKeys = [
+      'dynamic_auth_state',
+      'dynamic_connection_status',
+      'dynamic_verification_pending'
+    ];
+    
+    stuckKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        console.log(`Clearing stuck state: ${key}`);
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
+
   // SECURITY: Only process wallet connection if user explicitly clicked the connect button
   useEffect(() => {
     console.log('Dynamic context state:', {
@@ -111,6 +130,9 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
         });
       }
 
+      // Clear any stuck verification states
+      localStorage.removeItem('dynamic_verification_pending');
+      
       // Force immediate redirect to dashboard
       console.log('Redirecting to dashboard after successful authentication');
       setTimeout(() => {
@@ -139,6 +161,8 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
   // Handler for when user clicks the connect button
   const handleConnectClick = () => {
     console.log('User explicitly clicked to connect wallet - initiating secure connection');
+    // Clear any stuck states before connecting
+    localStorage.removeItem('dynamic_verification_pending');
     setUserExplicitlyClicked(true);
     setConnectionInitiated(true);
   };

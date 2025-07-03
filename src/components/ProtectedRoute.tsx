@@ -1,6 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, session, loading } = useAuth();
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   console.log('ProtectedRoute - STRICT security check:', { 
     loading, 
@@ -17,14 +19,41 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     userEmail: user?.email,
     sessionExpiresAt: session?.expires_at,
     userMetadata: user?.user_metadata,
-    securityMode: 'strict-manual-authentication-required'
+    securityMode: 'strict-manual-authentication-required',
+    timeoutReached
   });
+
+  // Set a timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.log('ProtectedRoute - Authentication timeout reached, redirecting to auth');
+        setTimeoutReached(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  // If timeout reached or stuck in loading, redirect to auth
+  if (timeoutReached) {
+    console.log('ProtectedRoute - Timeout reached, clearing session and redirecting');
+    // Clear any stored auth data
+    localStorage.clear();
+    sessionStorage.clear();
+    return <Navigate to="/auth" replace />;
+  }
 
   if (loading) {
     console.log('ProtectedRoute - Loading auth state...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-lg">Verifying authentication...</div>
+        <div className="text-center">
+          <div className="text-white text-lg mb-4">Verifying authentication...</div>
+          <div className="text-gray-400 text-sm">
+            If this takes too long, you'll be redirected to login
+          </div>
+        </div>
       </div>
     );
   }
