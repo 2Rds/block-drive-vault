@@ -9,6 +9,97 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      airdrop_campaigns: {
+        Row: {
+          collection_id: string
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          nfts_distributed: number | null
+          requires_signup: boolean | null
+          start_date: string | null
+          total_nfts: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          nfts_distributed?: number | null
+          requires_signup?: boolean | null
+          start_date?: string | null
+          total_nfts: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          nfts_distributed?: number | null
+          requires_signup?: boolean | null
+          start_date?: string | null
+          total_nfts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airdrop_campaigns_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "nft_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      airdrop_recipients: {
+        Row: {
+          campaign_id: string
+          claimed_at: string | null
+          created_at: string | null
+          id: string
+          nft_mint_address: string | null
+          transaction_signature: string | null
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          campaign_id: string
+          claimed_at?: string | null
+          created_at?: string | null
+          id?: string
+          nft_mint_address?: string | null
+          transaction_signature?: string | null
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          campaign_id?: string
+          claimed_at?: string | null
+          created_at?: string | null
+          id?: string
+          nft_mint_address?: string | null
+          transaction_signature?: string | null
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airdrop_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "airdrop_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_sessions: {
         Row: {
           authentication_successful: boolean | null
@@ -219,6 +310,141 @@ export type Database = {
         }
         Relationships: []
       }
+      candy_machines: {
+        Row: {
+          candy_machine_id: string | null
+          collection_id: string
+          config_lines: Json | null
+          created_at: string | null
+          creators: Json | null
+          go_live_date: string | null
+          id: string
+          is_mutable: boolean | null
+          items_available: number
+          items_redeemed: number | null
+          price_sol: number | null
+          retain_authority: boolean | null
+          treasury_wallet: string
+          updated_at: string | null
+        }
+        Insert: {
+          candy_machine_id?: string | null
+          collection_id: string
+          config_lines?: Json | null
+          created_at?: string | null
+          creators?: Json | null
+          go_live_date?: string | null
+          id?: string
+          is_mutable?: boolean | null
+          items_available: number
+          items_redeemed?: number | null
+          price_sol?: number | null
+          retain_authority?: boolean | null
+          treasury_wallet: string
+          updated_at?: string | null
+        }
+        Update: {
+          candy_machine_id?: string | null
+          collection_id?: string
+          config_lines?: Json | null
+          created_at?: string | null
+          creators?: Json | null
+          go_live_date?: string | null
+          id?: string
+          is_mutable?: boolean | null
+          items_available?: number
+          items_redeemed?: number | null
+          price_sol?: number | null
+          retain_authority?: boolean | null
+          treasury_wallet?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candy_machines_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "nft_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_assets: {
+        Row: {
+          asset_number: number
+          attributes: Json | null
+          collection_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          metadata_url: string | null
+          name: string
+        }
+        Insert: {
+          asset_number: number
+          attributes?: Json | null
+          collection_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          metadata_url?: string | null
+          name: string
+        }
+        Update: {
+          asset_number?: number
+          attributes?: Json | null
+          collection_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          metadata_url?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_assets_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "nft_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_traits: {
+        Row: {
+          collection_id: string
+          created_at: string | null
+          id: string
+          trait_type: string
+          trait_values: Json
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string | null
+          id?: string
+          trait_type: string
+          trait_values: Json
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string | null
+          id?: string
+          trait_type?: string
+          trait_values?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_traits_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "nft_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       files: {
         Row: {
           content_type: string | null
@@ -270,6 +496,54 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wallet_id?: string
+        }
+        Relationships: []
+      }
+      nft_collections: {
+        Row: {
+          cache_file_path: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          network: Database["public"]["Enums"]["blockchain_network"] | null
+          royalty_percentage: number | null
+          status: Database["public"]["Enums"]["collection_status"] | null
+          sugar_config_path: string | null
+          symbol: string
+          total_supply: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cache_file_path?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          network?: Database["public"]["Enums"]["blockchain_network"] | null
+          royalty_percentage?: number | null
+          status?: Database["public"]["Enums"]["collection_status"] | null
+          sugar_config_path?: string | null
+          symbol: string
+          total_supply: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cache_file_path?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          network?: Database["public"]["Enums"]["blockchain_network"] | null
+          royalty_percentage?: number | null
+          status?: Database["public"]["Enums"]["collection_status"] | null
+          sugar_config_path?: string | null
+          symbol?: string
+          total_supply?: number
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -463,7 +737,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      blockchain_network: "mainnet-beta" | "devnet" | "testnet"
+      collection_status:
+        | "draft"
+        | "uploading"
+        | "deployed"
+        | "minting"
+        | "completed"
+        | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -578,6 +859,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      blockchain_network: ["mainnet-beta", "devnet", "testnet"],
+      collection_status: [
+        "draft",
+        "uploading",
+        "deployed",
+        "minting",
+        "completed",
+        "failed",
+      ],
+    },
   },
 } as const
