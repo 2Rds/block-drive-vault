@@ -4,18 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { RefreshCw, Settings, Crown, AlertCircle, CheckCircle } from 'lucide-react';
+import { RefreshCw, Settings, Crown, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const SubscriptionManager = () => {
   const { user } = useAuth();
   const { subscriptionStatus, loading, error, refetch } = useSubscriptionStatus();
   const [refreshing, setRefreshing] = useState(false);
-  const [managingSubscription, setManagingSubscription] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -24,33 +22,41 @@ export const SubscriptionManager = () => {
     toast.success('Subscription status updated');
   };
 
-  const handleManageSubscription = async () => {
+  const handleManageSubscription = () => {
     if (!user) return;
     
     try {
-      setManagingSubscription(true);
-      console.log('Opening customer portal for user:', user.id);
+      console.log('Opening Stripe customer portal for user:', user.id);
       
-      const { data, error } = await supabase.functions.invoke('customer-portal');
+      // Open the Stripe customer portal in a new tab
+      const portalUrl = 'https://billing.stripe.com/p/login/9B6aEW3a59YdbgXgn42VG00';
+      window.open(portalUrl, '_blank');
       
-      if (error) {
-        throw new Error(error.message);
-      }
+      toast.success('Opening subscription management portal...');
       
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast.success('Opening subscription management portal...');
-      } else {
-        throw new Error('No portal URL received');
-      }
+      // Refresh subscription status after a delay to catch any changes
+      setTimeout(() => {
+        handleRefresh();
+      }, 3000);
       
     } catch (error: any) {
       console.error('Error opening customer portal:', error);
-      toast.error(`Failed to open subscription management: ${error.message}`);
-    } finally {
-      setManagingSubscription(false);
+      toast.error('Failed to open subscription management');
     }
   };
+
+  // Listen for window focus to refresh subscription status when user returns from portal
+  React.useEffect(() => {
+    const handleFocus = () => {
+      if (user && document.hasFocus()) {
+        console.log('Window focused, refreshing subscription status');
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
 
   if (loading && !subscriptionStatus) {
     return (
@@ -184,16 +190,16 @@ export const SubscriptionManager = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
-            {subscribed ? (
-              <Button
-                onClick={handleManageSubscription}
-                disabled={managingSubscription}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                {managingSubscription ? 'Opening...' : 'Manage Subscription'}
-              </Button>
-            ) : (
+            <Button
+              onClick={handleManageSubscription}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Manage Subscription
+              <ExternalLink className="w-4 h-4 ml-2" />
+            </Button>
+            
+            {!subscribed && (
               <Button
                 onClick={() => window.location.href = '/pricing'}
                 className="bg-green-600 hover:bg-green-700"
@@ -212,6 +218,23 @@ export const SubscriptionManager = () => {
             </Button>
           </div>
 
+          {/* Portal Information */}
+          <div className="mt-6 p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+            <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Subscription Management Portal
+            </h4>
+            <p className="text-sm text-blue-300 mb-3">
+              Use the Stripe Customer Portal to manage your subscription, update payment methods, view invoices, and change your plan.
+            </p>
+            <ul className="text-sm text-blue-300 space-y-1">
+              <li>• Update payment methods and billing information</li>
+              <li>• Download invoices and payment history</li>
+              <li>• Change or cancel your subscription</li>
+              <li>• Preview upcoming charges</li>
+            </ul>
+          </div>
+
           {/* Subscription Features */}
           {subscribed && (
             <div className="mt-6 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
@@ -220,11 +243,12 @@ export const SubscriptionManager = () => {
                 Active Subscription Benefits
               </h4>
               <ul className="text-sm text-green-300 space-y-1">
-                <li>• Enhanced storage capacity</li>
+                <li>• Enhanced storage capacity: {limits.storage} GB</li>
+                <li>• Bandwidth allowance: {limits.bandwidth} GB/month</li>
+                <li>• Team seats: {limits.seats === 999 ? 'Unlimited' : limits.seats}</li>
                 <li>• Priority customer support</li>
                 <li>• Advanced blockchain features</li>
                 <li>• Team collaboration tools</li>
-                {limits.seats > 1 && <li>• Multi-user access</li>}
               </ul>
             </div>
           )}

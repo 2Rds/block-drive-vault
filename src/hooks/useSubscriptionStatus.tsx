@@ -74,15 +74,32 @@ export const useSubscriptionStatus = () => {
   }, [user?.id]);
 
   // Listen for focus events to refresh subscription when user returns to tab
+  // This is especially useful when users return from the Stripe Customer Portal
   useEffect(() => {
     const handleFocus = () => {
-      if (user) {
+      if (user && document.hasFocus()) {
+        console.log('Window focused - checking for subscription updates');
         checkSubscription();
       }
     };
 
+    // Listen for visibility change as well (more reliable than focus)
+    const handleVisibilityChange = () => {
+      if (user && !document.hidden) {
+        console.log('Page became visible - checking for subscription updates');
+        setTimeout(() => {
+          checkSubscription();
+        }, 1000); // Small delay to ensure any Stripe updates have propagated
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.id]);
 
   return {
