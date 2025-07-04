@@ -30,7 +30,7 @@ export const useUserData = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const generateChartData = (totalFiles: number, totalStorage: number, totalTokens: number) => {
+  const generateChartData = (totalFiles: number, totalStorage: number, totalTokens: number, files: any[]) => {
     // Generate file types distribution based on real files
     const fileTypes = totalFiles > 0 ? [
       { name: 'Documents', value: Math.round(totalFiles * 0.35), color: '#8B5CF6' },
@@ -40,20 +40,26 @@ export const useUserData = () => {
       { name: 'Other', value: Math.round(totalFiles * 0.05), color: '#EF4444' }
     ] : [];
 
-    // Generate recent activity based on real data
-    const recentActivity = totalFiles > 0 ? [
-      { action: 'File Upload', file: 'Recent upload to IPFS', time: '2 hours ago', status: 'Success' },
-      { action: 'File Download', file: 'Downloaded from BlockDrive', time: '4 hours ago', status: 'Success' },
-      { action: 'Blockchain Sync', file: 'IPFS content pinned', time: '6 hours ago', status: 'Success' },
-      { action: 'File Upload', file: 'Added to workspace', time: '1 day ago', status: 'Success' }
-    ] : [];
+    // Generate recent activity based on real files data
+    const recentActivity = files && files.length > 0 ? files
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 4)
+      .map((file, index) => {
+        const timeAgo = getTimeAgo(new Date(file.created_at));
+        return {
+          action: 'File Upload',
+          file: file.filename || 'Uploaded to IPFS',
+          time: timeAgo,
+          status: 'Success'
+        };
+      }) : [];
 
-    // Generate storage usage data with real values
-    const storageInGB = Math.round(totalStorage / (1024 * 1024 * 1024) * 100) / 100;
+    // Generate storage usage data with real values (convert bytes to GB)
+    const storageInGB = totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024 * 1024)) * 100) / 100 : 0;
     const storageData = [
-      { month: 'Jan', storage: Math.max(0, storageInGB - 3), uploads: Math.max(0, totalFiles - 15), downloads: Math.max(0, Math.round(totalFiles * 0.5)) },
-      { month: 'Feb', storage: Math.max(0, storageInGB - 2), uploads: Math.max(0, totalFiles - 10), downloads: Math.max(0, Math.round(totalFiles * 0.6)) },
-      { month: 'Mar', storage: Math.max(0, storageInGB - 1), uploads: Math.max(0, totalFiles - 5), downloads: Math.max(0, Math.round(totalFiles * 0.7)) },
+      { month: 'Jan', storage: Math.max(0, storageInGB * 0.7), uploads: Math.max(0, Math.round(totalFiles * 0.7)), downloads: Math.max(0, Math.round(totalFiles * 0.5)) },
+      { month: 'Feb', storage: Math.max(0, storageInGB * 0.8), uploads: Math.max(0, Math.round(totalFiles * 0.8)), downloads: Math.max(0, Math.round(totalFiles * 0.6)) },
+      { month: 'Mar', storage: Math.max(0, storageInGB * 0.9), uploads: Math.max(0, Math.round(totalFiles * 0.9)), downloads: Math.max(0, Math.round(totalFiles * 0.7)) },
       { month: 'Apr', storage: storageInGB, uploads: totalFiles, downloads: Math.round(totalFiles * 0.8) }
     ];
 
@@ -76,6 +82,21 @@ export const useUserData = () => {
     };
   };
 
+  const getTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
   const fetchUserData = async () => {
     if (!user?.id) {
       console.log('No user ID available for data fetching');
@@ -90,7 +111,7 @@ export const useUserData = () => {
       // Fetch files count and total storage
       const { data: files, error: filesError } = await supabase
         .from('files')
-        .select('file_size')
+        .select('file_size, filename, created_at, content_type')
         .eq('user_id', user.id);
 
       if (filesError) {
@@ -131,7 +152,7 @@ export const useUserData = () => {
       const networkHealth = 100; // Always 100% for now
 
       // Generate chart data based on real values
-      const chartData = generateChartData(totalFiles, totalStorage, totalTokens);
+      const chartData = generateChartData(totalFiles, totalStorage, totalTokens, files || []);
 
       setUserStats({
         totalFiles,
@@ -144,7 +165,7 @@ export const useUserData = () => {
 
       console.log('Real user stats updated:', { 
         totalFiles, 
-        totalStorage: Math.round(totalStorage / (1024 * 1024)) + ' MB', 
+        totalStorage: totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024)) * 100) / 100 + ' MB' : '0 MB', 
         totalTokens, 
         totalTransactions 
       });

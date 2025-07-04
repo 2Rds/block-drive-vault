@@ -3,6 +3,24 @@ import React from 'react';
 import { Database, Upload, Download } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
+const formatStorage = (bytes: number): string => {
+  if (bytes === 0) return '0 GB';
+  
+  const gb = bytes / (1024 * 1024 * 1024);
+  const mb = bytes / (1024 * 1024);
+  const kb = bytes / 1024;
+  
+  if (gb >= 1) {
+    return `${Math.round(gb * 100) / 100} GB`;
+  } else if (mb >= 1) {
+    return `${Math.round(mb * 100) / 100} MB`;
+  } else if (kb >= 1) {
+    return `${Math.round(kb * 100) / 100} KB`;
+  } else {
+    return `${bytes} B`;
+  }
+};
+
 export const SidebarStats = () => {
   const { userStats, loading } = useUserData();
 
@@ -16,7 +34,7 @@ export const SidebarStats = () => {
   const stats_overview = [
     { 
       label: 'Storage Used', 
-      value: loading ? '0 GB' : `${userStats.totalStorage} GB`, 
+      value: loading ? '0 GB' : formatStorage(userStats.totalStorage), 
       icon: Database, 
       color: 'text-muted-foreground' 
     },

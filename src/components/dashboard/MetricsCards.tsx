@@ -22,6 +22,24 @@ interface MetricsCardsProps {
   loading: boolean;
 }
 
+const formatStorage = (bytes: number): string => {
+  if (bytes === 0) return '0 GB';
+  
+  const gb = bytes / (1024 * 1024 * 1024);
+  const mb = bytes / (1024 * 1024);
+  const kb = bytes / 1024;
+  
+  if (gb >= 1) {
+    return `${Math.round(gb * 100) / 100} GB`;
+  } else if (mb >= 1) {
+    return `${Math.round(mb * 100) / 100} MB`;
+  } else if (kb >= 1) {
+    return `${Math.round(kb * 100) / 100} KB`;
+  } else {
+    return `${bytes} B`;
+  }
+};
+
 export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
   if (loading) {
     return (
@@ -50,7 +68,7 @@ export const MetricsCards = ({ stats, loading }: MetricsCardsProps) => {
           <HardDrive className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-white">{stats.totalStorage} GB</div>
+          <div className="text-2xl font-bold text-white">{formatStorage(stats.totalStorage)}</div>
           <p className="text-xs text-gray-400">
             <TrendingUp className="inline h-3 w-3 mr-1 text-blue-600" />
             {stats.totalFiles > 0 ? 'Active storage' : 'No files yet'}
