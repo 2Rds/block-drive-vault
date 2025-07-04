@@ -5,6 +5,7 @@ import { useWalletSession } from '@/hooks/useWalletSession';
 import { SupabaseAuthService } from '@/services/supabaseAuthService';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -17,6 +18,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     setWalletData,
     setLoading
   } = useWalletSession();
+
+  const { primaryWallet, handleLogOut } = useDynamicContext();
 
   useEffect(() => {
     console.log('SimplifiedAuthProvider initializing...');
@@ -190,23 +193,35 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const disconnectWallet = async () => {
     console.log('Disconnecting wallet and clearing auth state');
     
-    setWalletData(null);
-    setUser(null);
-    setSession(null);
-    
-    // Clear all stored data
-    localStorage.removeItem('wallet-session');
-    localStorage.clear();
-    sessionStorage.clear();
-    
     try {
+      // First disconnect from Dynamic SDK if wallet is connected
+      if (primaryWallet && handleLogOut) {
+        console.log('Disconnecting from Dynamic SDK wallet...');
+        await handleLogOut();
+      }
+      
+      // Clear local auth state
+      setWalletData(null);
+      setUser(null);
+      setSession(null);
+      
+      // Clear all stored data
+      localStorage.removeItem('wallet-session');
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Sign out from Supabase
       await SupabaseAuthService.signOut();
+      
+      console.log('Wallet disconnected and auth state cleared');
+      toast.success('Wallet disconnected successfully');
+      
+      return { error: null };
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('Error during wallet disconnect:', error);
+      toast.error('Error disconnecting wallet');
+      return { error: { message: 'Failed to disconnect wallet' } };
     }
-    
-    console.log('Wallet disconnected and auth state cleared');
-    return { error: null };
   };
 
   const signOut = async () => {
