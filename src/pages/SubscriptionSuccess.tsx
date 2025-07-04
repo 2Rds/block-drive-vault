@@ -1,54 +1,111 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Crown, ArrowRight, Home } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const SubscriptionSuccess = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
+  // Refresh subscription status when user lands on success page
   useEffect(() => {
-    toast.success('Subscription activated successfully!');
-  }, []);
+    const refreshSubscriptionStatus = async () => {
+      if (!user) return;
+      
+      try {
+        console.log('Refreshing subscription status after successful payment');
+        
+        // Wait a moment for Stripe to process the payment
+        setTimeout(async () => {
+          const { data, error } = await supabase.functions.invoke('check-subscription');
+          
+          if (error) {
+            console.error('Error refreshing subscription:', error);
+          } else {
+            console.log('Subscription status refreshed:', data);
+            if (data?.subscribed) {
+              toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
+            }
+          }
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Failed to refresh subscription status:', error);
+      }
+    };
+
+    refreshSubscriptionStatus();
+  }, [user]);
+
+  const handleGoToAccount = () => {
+    navigate('/account');
+  };
 
   const handleGoToDashboard = () => {
     navigate('/dashboard');
   };
 
-  const handleGoHome = () => {
-    navigate('/dashboard');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <CheckCircle className="w-16 h-16 text-green-500" />
+          <div className="mx-auto w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="w-8 h-8 text-green-400" />
           </div>
-          <CardTitle className="text-2xl text-white">Subscription Successful!</CardTitle>
-          <CardDescription className="text-gray-300">
-            Your subscription has been activated and you now have access to all premium features.
-          </CardDescription>
+          <CardTitle className="text-2xl text-white flex items-center justify-center gap-2">
+            <Crown className="w-6 h-6 text-yellow-400" />
+            Subscription Activated!
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        <CardContent className="space-y-6 text-center">
           <div className="space-y-2">
-            <Button 
-              onClick={handleGoToDashboard}
+            <p className="text-gray-300">
+              Thank you for subscribing to BlockDrive! Your payment has been processed successfully.
+            </p>
+            <p className="text-sm text-gray-400">
+              Your subscription is now active and you have access to all premium features.
+            </p>
+          </div>
+
+          <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4">
+            <h4 className="text-green-400 font-medium mb-2">What's Next?</h4>
+            <ul className="text-sm text-green-300 space-y-1 text-left">
+              <li>• Access your enhanced storage limits</li>
+              <li>• Explore advanced blockchain features</li>
+              <li>• Manage your subscription in Account settings</li>
+              <li>• Contact support if you need assistance</li>
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              onClick={handleGoToAccount}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
-              Go to Dashboard
+              <Crown className="w-4 h-4 mr-2" />
+              View Subscription Details
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-            <Button 
-              onClick={handleGoHome}
+            
+            <Button
+              onClick={handleGoToDashboard}
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
             >
-              Continue Using BlockDrive
+              <Home className="w-4 h-4 mr-2" />
+              Go to Dashboard
             </Button>
           </div>
+
+          <p className="text-xs text-gray-500">
+            You will receive an email confirmation from Stripe shortly.
+          </p>
         </CardContent>
       </Card>
     </div>

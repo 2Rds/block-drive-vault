@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePricingSubscription = () => {
   const { user } = useAuth();
@@ -65,8 +66,30 @@ export const usePricingSubscription = () => {
     }
   };
 
+  // Function to check subscription status after payment
+  const checkSubscriptionStatus = async () => {
+    if (!user) return null;
+    
+    try {
+      console.log('Checking subscription status for user:', user.id);
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking subscription:', error);
+        return null;
+      }
+      
+      console.log('Subscription status:', data);
+      return data;
+    } catch (error) {
+      console.error('Failed to check subscription:', error);
+      return null;
+    }
+  };
+
   return {
     loading,
-    handleSubscribe
+    handleSubscribe,
+    checkSubscriptionStatus
   };
 };
