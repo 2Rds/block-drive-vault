@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,7 +13,7 @@ interface UserStats {
   recentActivity: { action: string; file: string; time: string; status: string }[];
   storageUsageData: { month: string; storage: number; uploads: number; downloads: number }[];
   blockchainActivityData: { day: string; transactions: number; confirmations: number; failed: number }[];
-  actualFiles?: any[]; // Add this to store actual file data for categorization
+  actualFiles?: any[];
 }
 
 export const useUserData = () => {
@@ -31,15 +32,69 @@ export const useUserData = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  const categorizeFileType = (contentType: string, filename: string) => {
+    const type = contentType?.toLowerCase() || '';
+    const extension = filename?.toLowerCase().split('.').pop() || '';
+    
+    // Images
+    if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
+      return 'Images';
+    }
+    
+    // Videos
+    if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)) {
+      return 'Videos';
+    }
+    
+    // Audio
+    if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension)) {
+      return 'Audio';
+    }
+    
+    // Documents
+    if (type.includes('pdf') || 
+        type.includes('document') || 
+        type.includes('text') ||
+        type.includes('application/') ||
+        ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
+      return 'Documents';
+    }
+    
+    return 'Other';
+  };
+
   const generateChartData = (totalFiles: number, totalStorage: number, totalTokens: number, files: any[]) => {
     // Generate file types distribution based on real files
-    const fileTypes = totalFiles > 0 ? [
-      { name: 'Documents', value: Math.round(totalFiles * 0.35), color: '#8B5CF6' },
-      { name: 'Images', value: Math.round(totalFiles * 0.25), color: '#06B6D4' },
-      { name: 'Videos', value: Math.round(totalFiles * 0.20), color: '#10B981' },
-      { name: 'Audio', value: Math.round(totalFiles * 0.15), color: '#F59E0B' },
-      { name: 'Other', value: Math.round(totalFiles * 0.05), color: '#EF4444' }
-    ] : [];
+    const typeCounts = {
+      Documents: 0,
+      Images: 0,
+      Videos: 0,
+      Audio: 0,
+      Other: 0
+    };
+
+    // Count actual files by type
+    files?.forEach(file => {
+      const category = categorizeFileType(file.content_type, file.filename);
+      if (category in typeCounts) {
+        typeCounts[category as keyof typeof typeCounts]++;
+      }
+    });
+
+    // Convert to chart data format
+    const fileTypes = Object.entries(typeCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([name, count]) => ({
+        name,
+        value: count,
+        color: {
+          Documents: '#8B5CF6',
+          Images: '#06B6D4', 
+          Videos: '#10B981',
+          Audio: '#F59E0B',
+          Other: '#EF4444'
+        }[name] || '#6B7280'
+      }));
 
     // Generate recent activity based on real files data
     const recentActivity = files && files.length > 0 ? files
@@ -146,8 +201,8 @@ export const useUserData = () => {
 
       const totalFiles = files?.length || 0;
       const totalStorage = files?.reduce((sum, file) => sum + (file.file_size || 0), 0) || 0;
-      const totalTransactions = totalTokens * 2; // Each token creation involves transactions
-      const networkHealth = 100; // Always 100% for now
+      const totalTransactions = totalTokens * 2;
+      const networkHealth = 100;
 
       // Generate chart data based on real values
       const chartData = generateChartData(totalFiles, totalStorage, totalTokens, files || []);
@@ -158,7 +213,7 @@ export const useUserData = () => {
         totalTokens,
         totalTransactions,
         networkHealth,
-        actualFiles: files || [], // Store actual files for categorization
+        actualFiles: files || [],
         ...chartData
       });
 
@@ -166,7 +221,8 @@ export const useUserData = () => {
         totalFiles, 
         totalStorage: totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024)) * 100) / 100 + ' MB' : '0 MB', 
         totalTokens, 
-        totalTransactions 
+        totalTransactions,
+        filesByType: chartData.filesByType
       });
 
     } catch (error) {

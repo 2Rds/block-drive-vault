@@ -20,27 +20,44 @@ export const SidebarFolders = ({
 }: SidebarFoldersProps) => {
   const { userStats, loading } = useUserData();
 
+  const categorizeFileType = (contentType: string, filename: string) => {
+    const type = contentType?.toLowerCase() || '';
+    const extension = filename?.toLowerCase().split('.').pop() || '';
+    
+    // Images
+    if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
+      return 'Images';
+    }
+    
+    // Videos
+    if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)) {
+      return 'Videos';
+    }
+    
+    // Audio
+    if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension)) {
+      return 'Audio';
+    }
+    
+    // Documents
+    if (type.includes('pdf') || 
+        type.includes('document') || 
+        type.includes('text') ||
+        type.includes('application/') ||
+        ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
+      return 'Documents';
+    }
+    
+    return 'Other';
+  };
+
   // Calculate file counts by type from actual files data
   const getFileCountByType = (type: string) => {
     if (loading || !userStats.actualFiles) return 0;
     
     return userStats.actualFiles.filter(file => {
-      const contentType = file.contentType?.toLowerCase() || '';
-      switch (type) {
-        case 'Documents':
-          return contentType.includes('pdf') || 
-                 contentType.includes('document') || 
-                 contentType.includes('text') ||
-                 contentType.includes('application/');
-        case 'Images':
-          return contentType.startsWith('image/');
-        case 'Videos':
-          return contentType.startsWith('video/');
-        case 'Audio':
-          return contentType.startsWith('audio/');
-        default:
-          return false;
-      }
+      const category = categorizeFileType(file.content_type, file.filename);
+      return category === type;
     }).length;
   };
 
