@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from "@/components/Header";
@@ -29,8 +30,8 @@ const Dashboard = () => {
   };
 
   const handleFilesClick = () => {
-    console.log('Navigating to files');
-    navigate('/');
+    console.log('Navigating to IPFS files');
+    navigate('/files');
   };
 
   const handleAccountClick = () => {

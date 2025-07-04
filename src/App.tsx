@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import IPFSFiles from "./pages/IPFSFiles";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
@@ -39,9 +40,14 @@ const App = () => (
                     <Dashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/files" element={
+                  <ProtectedRoute>
+                    <IPFSFiles />
+                  </ProtectedRoute>
+                } />
                 <Route path="/index" element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <IPFSFiles />
                   </ProtectedRoute>
                 } />
                 <Route path="/account" element={
