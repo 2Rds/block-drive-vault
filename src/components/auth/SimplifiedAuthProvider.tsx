@@ -170,18 +170,21 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         
         // Show success message
         toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
+        
+        setLoading(false);
+        return { error: null, data: result.data };
       } else {
         console.error('Wallet connection failed:', result.error);
         toast.error('Failed to connect wallet. Please try again.');
+        setLoading(false);
+        return { error: result.error };
       }
     } catch (error) {
       console.error('Wallet connection error:', error);
       toast.error('Failed to connect wallet. Please try again.');
-    } finally {
       setLoading(false);
+      return { error: { message: 'Failed to connect wallet' } };
     }
-    
-    return result;
   };
 
   const disconnectWallet = async () => {
