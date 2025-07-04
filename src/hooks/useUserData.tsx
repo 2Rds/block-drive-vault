@@ -69,7 +69,7 @@ export const useUserData = () => {
     ];
 
     return {
-      filesByType,
+      filesByType: fileTypes,
       recentActivity,
       storageUsageData: storageData,
       blockchainActivityData: blockchainData
