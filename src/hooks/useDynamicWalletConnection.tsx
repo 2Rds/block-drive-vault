@@ -58,12 +58,11 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
         userId: user?.userId || `dynamic-${walletAddress.slice(-8)}`
       });
 
-      if (result.error) {
+      if (result && result.error) {
         throw new Error(result.error.message || 'Authentication failed');
       }
 
       console.log('Wallet authentication successful');
-      toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
       
       if (onWalletConnected) {
         onWalletConnected({

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 
 export const useWalletSession = () => {
@@ -31,12 +31,6 @@ export const useWalletSession = () => {
     
     setLoading(false);
   };
-
-  // Initialize with clean state
-  useEffect(() => {
-    console.log('useWalletSession initializing');
-    setLoading(false);
-  }, []);
 
   return {
     user,

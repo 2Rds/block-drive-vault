@@ -4,18 +4,26 @@ import { toast } from 'sonner';
 
 export class SupabaseAuthService {
   static checkWalletSession() {
-    console.log('Checking wallet session - manual login required');
-    localStorage.clear();
-    sessionStorage.clear();
+    console.log('Checking for existing wallet session');
+    const storedSession = localStorage.getItem('wallet-session');
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        if (sessionData.user && sessionData.access_token) {
+          console.log('Found valid stored session');
+          return sessionData;
+        }
+      } catch (error) {
+        console.error('Error parsing stored session:', error);
+        localStorage.removeItem('wallet-session');
+      }
+    }
     return null;
   }
 
   static async getInitialSession() {
-    console.log('Getting initial session - manual login required');
-    localStorage.clear();
-    sessionStorage.clear();
-    await supabase.auth.signOut();
-    return null;
+    console.log('Getting initial session');
+    return this.checkWalletSession();
   }
 
   static setupAuthStateListener(callback: (event: string, session: any) => void) {
@@ -66,12 +74,11 @@ export class SupabaseAuthService {
       if (data?.success && data?.authToken) {
         console.log('Wallet authentication successful, creating session...');
         
-        // The authToken from the edge function is the user ID
         const userId = data.authToken;
         
         const sessionData = {
           user: {
-            id: userId, // This is now the proper UUID from the database
+            id: userId,
             email: `${walletAddress}@blockdrive.wallet`,
             user_metadata: {
               wallet_address: walletAddress,
@@ -106,6 +113,7 @@ export class SupabaseAuthService {
   static async signOut() {
     console.log('Signing out user and clearing session data');
     
+    localStorage.removeItem('wallet-session');
     localStorage.clear();
     sessionStorage.clear();
     
