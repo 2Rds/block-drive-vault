@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
-import { supabase } from '@/integrations/supabase/client';
 
 export const usePricingSubscription = () => {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -15,13 +14,11 @@ export const usePricingSubscription = () => {
     console.log('handleSubscribe called with tier:', tier.name);
     console.log('Current auth state:', { 
       hasUser: !!user, 
-      hasSession: !!session,
-      userId: user?.id,
-      sessionToken: session?.access_token ? 'present' : 'missing'
+      userId: user?.id
     });
 
-    if (!user || !session) {
-      console.log('No user or session found, redirecting to auth');
+    if (!user) {
+      console.log('No user found, redirecting to auth');
       toast.error('Please sign in to subscribe');
       navigate('/auth');
       return;
@@ -33,60 +30,33 @@ export const usePricingSubscription = () => {
       return;
     }
 
+    if (!tier.paymentLink) {
+      toast.error('Payment link not available for this tier');
+      return;
+    }
+
     setLoading(tier.name);
 
     try {
-      console.log('Creating checkout session for tier:', tier.name);
-      console.log('User ID:', user.id);
-      console.log('Session access token available:', !!session.access_token);
+      console.log('Redirecting to payment link for tier:', tier.name);
+      console.log('Payment link:', tier.paymentLink);
       
-      // Use the current session directly since we have it from useAuth
-      const accessToken = session.access_token;
+      // Show success message
+      toast.success('Redirecting to checkout...');
       
-      if (!accessToken) {
-        console.error('No access token in current session');
-        toast.error('Authentication error. Please sign in again.');
-        navigate('/auth');
-        return;
-      }
-
-      console.log('Making request to edge function with current session token');
-      
-      // Call the create-checkout edge function with the current access token
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          priceId: tier.priceId,
-          tier: tier.name,
-          hasTrial: tier.hasTrial || false
-        },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        }
-      });
-
-      if (error) {
-        console.error('Checkout creation error:', error);
-        throw new Error(error.message || 'Failed to create checkout session');
-      }
-
-      if (!data?.url) {
-        throw new Error('No checkout URL received');
-      }
-
-      console.log('Checkout session created, redirecting to:', data.url);
-      
-      // Open Stripe checkout in a new tab instead of redirecting in same window
-      const checkoutWindow = window.open(data.url, '_blank');
+      // Open Stripe payment link in a new tab
+      const checkoutWindow = window.open(tier.paymentLink, '_blank');
       
       if (!checkoutWindow) {
         // Fallback if popup is blocked - redirect in same window
         console.log('Popup blocked, redirecting in same window');
-        window.location.href = data.url;
-      } else {
-        // Show success message and reset loading state
-        toast.success('Redirecting to checkout...');
-        setLoading(null);
+        window.location.href = tier.paymentLink;
       }
+      
+      // Reset loading state after a short delay
+      setTimeout(() => {
+        setLoading(null);
+      }, 1000);
       
     } catch (error: any) {
       console.error('Subscription error:', error);
