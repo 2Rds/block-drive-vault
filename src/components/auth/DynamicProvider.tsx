@@ -23,6 +23,11 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
         debugError: true,
+        logLevel: 'DEBUG',
+        cssOverrides: `
+          .dynamic-widget-modal { z-index: 10000 !important; }
+          .dynamic-widget-modal-overlay { z-index: 9999 !important; }
+        `,
       }}
     >
       {children}

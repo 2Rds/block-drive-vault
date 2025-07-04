@@ -21,8 +21,8 @@ const Auth = () => {
   // Redirect authenticated users
   useEffect(() => {
     if (!loading && user && session) {
-      console.log('User is authenticated, redirecting to index');
-      navigate('/index', { replace: true });
+      console.log('User is authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, session, loading, navigate]);
 

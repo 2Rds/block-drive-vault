@@ -34,12 +34,12 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                <Route path="/index" element={
+                <Route path="/dashboard" element={
                   <ProtectedRoute>
-                    <Index />
+                    <Dashboard />
                   </ProtectedRoute>
                 } />
-                <Route path="/dashboard" element={
+                <Route path="/index" element={
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>

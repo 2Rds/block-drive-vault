@@ -75,7 +75,7 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
 
       // Navigate to dashboard after successful auth
       console.log('Auth successful, navigating to dashboard');
-      navigate('/index', { replace: true });
+      navigate('/dashboard', { replace: true });
 
     } catch (error: any) {
       console.error('Wallet authentication error:', error);
