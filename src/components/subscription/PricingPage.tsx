@@ -16,7 +16,7 @@ export const PricingPage = () => {
 
         {/* Centered pricing tiers grid */}
         <div className="flex justify-center mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl w-full">
             {pricingTiers.map((tier) => (
               <PricingCard
                 key={tier.name}
