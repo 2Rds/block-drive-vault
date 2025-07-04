@@ -30,12 +30,27 @@ export const usePricingSubscription = () => {
       console.log('Creating checkout session for tier:', tier.name);
       console.log('User ID:', user.id);
       
-      // Call the create-checkout edge function
+      // Get the current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('No valid session found:', sessionError);
+        toast.error('Please sign in again to continue');
+        navigate('/auth');
+        return;
+      }
+
+      console.log('Session found, making request to edge function');
+      
+      // Call the create-checkout edge function with explicit headers
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tier.priceId,
           tier: tier.name,
           hasTrial: tier.hasTrial || false
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         }
       });
 
