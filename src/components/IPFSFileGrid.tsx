@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { File, Folder, Download, Archive, Database, Globe, ExternalLink, ArrowLeft, Eye } from 'lucide-react';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
@@ -38,21 +37,26 @@ export const IPFSFileGrid = ({
         return folderPath.startsWith(currentPath);
       })
     : userFiles.filter(file => {
-        const folderPath = file.folderPath || '/';
+        const contentType = file.contentType?.toLowerCase() || '';
+        
         if (selectedFolder === 'documents') {
-          return file.contentType?.includes('pdf') || 
-                 file.contentType?.includes('document') || 
-                 file.contentType?.includes('text');
+          return contentType.includes('pdf') || 
+                 contentType.includes('document') || 
+                 contentType.includes('text') ||
+                 contentType.includes('application/');
         }
         if (selectedFolder === 'images') {
-          return file.contentType?.startsWith('image/');
+          return contentType.startsWith('image/');
         }
         if (selectedFolder === 'videos') {
-          return file.contentType?.startsWith('video/');
+          return contentType.startsWith('video/');
         }
         if (selectedFolder === 'audio') {
-          return file.contentType?.startsWith('audio/');
+          return contentType.startsWith('audio/');
         }
+        
+        // For user-created folders
+        const folderPath = file.folderPath || '/';
         return folderPath.includes(`/${selectedFolder}`);
       });
 
@@ -95,7 +99,6 @@ export const IPFSFileGrid = ({
   };
 
   const handleViewOnIPFS = (file: IPFSFile) => {
-    // Use the Pinata gateway for viewing files
     const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${file.cid}`;
     window.open(ipfsUrl, '_blank');
   };

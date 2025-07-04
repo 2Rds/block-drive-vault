@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +12,7 @@ interface UserStats {
   recentActivity: { action: string; file: string; time: string; status: string }[];
   storageUsageData: { month: string; storage: number; uploads: number; downloads: number }[];
   blockchainActivityData: { day: string; transactions: number; confirmations: number; failed: number }[];
+  actualFiles?: any[]; // Add this to store actual file data for categorization
 }
 
 export const useUserData = () => {
@@ -26,7 +26,8 @@ export const useUserData = () => {
     filesByType: [],
     recentActivity: [],
     storageUsageData: [],
-    blockchainActivityData: []
+    blockchainActivityData: [],
+    actualFiles: []
   });
   const [loading, setLoading] = useState(false);
 
@@ -108,7 +109,6 @@ export const useUserData = () => {
     try {
       console.log('Fetching real user data for user ID:', user.id);
 
-      // Fetch files count and total storage
       const { data: files, error: filesError } = await supabase
         .from('files')
         .select('file_size, filename, created_at, content_type')
@@ -118,7 +118,6 @@ export const useUserData = () => {
         console.error('Error fetching files:', filesError);
       }
 
-      // Fetch wallets for this user to get wallet IDs
       const { data: userWallets, error: walletsError } = await supabase
         .from('wallets')
         .select('id')
@@ -130,7 +129,6 @@ export const useUserData = () => {
 
       let totalTokens = 0;
       
-      // Only fetch tokens if we have wallet IDs
       if (userWallets && userWallets.length > 0) {
         const walletIds = userWallets.map(w => w.id);
         
@@ -160,6 +158,7 @@ export const useUserData = () => {
         totalTokens,
         totalTransactions,
         networkHealth,
+        actualFiles: files || [], // Store actual files for categorization
         ...chartData
       });
 

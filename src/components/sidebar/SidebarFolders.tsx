@@ -20,11 +20,28 @@ export const SidebarFolders = ({
 }: SidebarFoldersProps) => {
   const { userStats, loading } = useUserData();
 
-  // Calculate file counts by type from live data
+  // Calculate file counts by type from actual files data
   const getFileCountByType = (type: string) => {
-    if (loading || !userStats.filesByType.length) return 0;
-    const fileType = userStats.filesByType.find(f => f.name === type);
-    return fileType ? Math.round((fileType.value / 100) * userStats.totalFiles) : 0;
+    if (loading || !userStats.actualFiles) return 0;
+    
+    return userStats.actualFiles.filter(file => {
+      const contentType = file.contentType?.toLowerCase() || '';
+      switch (type) {
+        case 'Documents':
+          return contentType.includes('pdf') || 
+                 contentType.includes('document') || 
+                 contentType.includes('text') ||
+                 contentType.includes('application/');
+        case 'Images':
+          return contentType.startsWith('image/');
+        case 'Videos':
+          return contentType.startsWith('video/');
+        case 'Audio':
+          return contentType.startsWith('audio/');
+        default:
+          return false;
+      }
+    }).length;
   };
 
   const defaultFolders = [
@@ -89,11 +106,9 @@ export const SidebarFolders = ({
   const allFolders = [...defaultFolders, ...userCreatedFolders];
 
   const handleFolderClick = (folder: any) => {
-    // If it's expandable and we have a click handler, expand the folder
     if (folder.isExpandable && onFolderClick) {
       onFolderClick(folder.path);
     }
-    // Always select the folder for filtering
     onFolderSelect(folder.id);
   };
 
