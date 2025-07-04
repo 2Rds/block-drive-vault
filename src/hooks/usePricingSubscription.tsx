@@ -7,12 +7,21 @@ import { PricingTier } from '@/types/pricing';
 import { supabase } from '@/integrations/supabase/client';
 
 export const usePricingSubscription = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
-    if (!user) {
+    console.log('handleSubscribe called with tier:', tier.name);
+    console.log('Current auth state:', { 
+      hasUser: !!user, 
+      hasSession: !!session,
+      userId: user?.id,
+      sessionToken: session?.access_token ? 'present' : 'missing'
+    });
+
+    if (!user || !session) {
+      console.log('No user or session found, redirecting to auth');
       toast.error('Please sign in to subscribe');
       navigate('/auth');
       return;
@@ -29,20 +38,21 @@ export const usePricingSubscription = () => {
     try {
       console.log('Creating checkout session for tier:', tier.name);
       console.log('User ID:', user.id);
+      console.log('Session access token available:', !!session.access_token);
       
-      // Get the current session to ensure we have a valid token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Use the current session directly since we have it from useAuth
+      const accessToken = session.access_token;
       
-      if (sessionError || !session) {
-        console.error('No valid session found:', sessionError);
-        toast.error('Please sign in again to continue');
+      if (!accessToken) {
+        console.error('No access token in current session');
+        toast.error('Authentication error. Please sign in again.');
         navigate('/auth');
         return;
       }
 
-      console.log('Session found, making request to edge function');
+      console.log('Making request to edge function with current session token');
       
-      // Call the create-checkout edge function with explicit headers
+      // Call the create-checkout edge function with the current access token
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           priceId: tier.priceId,
@@ -50,7 +60,7 @@ export const usePricingSubscription = () => {
           hasTrial: tier.hasTrial || false
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
         }
       });
 
