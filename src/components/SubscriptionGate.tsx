@@ -48,10 +48,10 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
         </CardHeader>
         <CardContent>
           <p className="text-gray-400 mb-6">
-            Please complete your email registration before accessing file upload features.
+            Please complete your registration to access file upload features and IPFS storage.
           </p>
           <Button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/pricing')}
             className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:opacity-90 text-white"
           >
             Complete Registration

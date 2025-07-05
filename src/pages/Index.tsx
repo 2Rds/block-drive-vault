@@ -71,6 +71,11 @@ const Index = () => {
     navigate('/account');
   };
 
+  const handleFilesClick = () => {
+    console.log('Navigating to IPFS files');
+    navigate('/files');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
@@ -115,6 +120,7 @@ const Index = () => {
                   Account
                 </Button>
                 <Button
+                  onClick={handleFilesClick}
                   variant="default"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >

@@ -9,10 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { RefreshCw, Settings, Crown, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useUserData } from '@/hooks/useUserData';
 
 export const SubscriptionManager = () => {
   const { user } = useAuth();
   const { subscriptionStatus, loading, error, refetch } = useSubscriptionStatus();
+  const { userStats } = useUserData();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -102,9 +104,9 @@ export const SubscriptionManager = () => {
     limits: { storage: 50, bandwidth: 50, seats: 1 }
   };
 
-  // Calculate usage percentages (mock data - you can replace with real usage data)
-  const storageUsagePercent = 25;
-  const bandwidthUsagePercent = 40;
+  // Calculate usage percentages based on real data
+  const storageUsagePercent = limits.storage > 0 ? Math.min(Math.round((userStats.totalStorage / (limits.storage * 1024 * 1024 * 1024)) * 100), 100) : 0;
+  const bandwidthUsagePercent = 15; // This would need to be tracked separately
   const seatsUsedPercent = Math.round((1 / limits.seats) * 100);
 
   // Determine if this is a free trial
@@ -195,7 +197,9 @@ export const SubscriptionManager = () => {
                 <span className="text-white">{limits.storage} GB</span>
               </div>
               <Progress value={storageUsagePercent} className="h-2" />
-              <p className="text-xs text-gray-500">{storageUsagePercent}% used</p>
+              <p className="text-xs text-gray-500">
+                {(userStats.totalStorage / (1024 * 1024 * 1024)).toFixed(2)} GB used ({storageUsagePercent}%)
+              </p>
             </div>
 
             <div className="space-y-2">
