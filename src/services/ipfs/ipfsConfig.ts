@@ -3,7 +3,7 @@
 
 export class IPFSConfig {
   static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
-  static readonly PINATA_SECRET_API_KEY = 'your_pinata_secret_key_here'; // You'll need to replace this with your actual secret key
+  static readonly PINATA_SECRET_API_KEY = 'R5QM3nwujnAIrl8pFxlH869Sf5F8SMemjZF_NEBnKFdLP57LXvFn1oxPEtwYjmtk';
   static readonly PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
   static readonly PINATA_GATEWAY = 'https://gray-acceptable-grouse-462.mypinata.cloud';
   
