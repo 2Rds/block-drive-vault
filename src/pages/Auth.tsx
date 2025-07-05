@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -5,20 +6,17 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthHero } from '@/components/auth/AuthHero';
 import { AuthConnectors } from '@/components/auth/AuthConnectors';
-import { EmailSignupForm } from '@/components/auth/EmailSignupForm';
 
 const Auth = () => {
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
-  const [showEmailSignup, setShowEmailSignup] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
   console.log('Auth page - Current state:', {
     user: !!user,
     userId: user?.id,
     session: !!session,
-    loading,
-    showEmailSignup
+    loading
   });
 
   // Error boundary for the page
@@ -40,21 +38,9 @@ const Auth = () => {
     }
   }, [user, session, loading, navigate]);
 
-  const handleSignupSuccess = (signupData: any) => {
-    console.log('Signup successful:', signupData);
-    // Store email for pricing page and redirect
-    localStorage.setItem('signup-email', signupData.email);
-    navigate(`/pricing?email=${encodeURIComponent(signupData.email)}`);
-  };
-
-  const handleWalletNeedsSignup = () => {
-    console.log('Wallet needs signup, showing email form');
-    setShowEmailSignup(true);
-  };
-
-  const handleCancelSignup = () => {
-    console.log('Canceling signup');
-    setShowEmailSignup(false);
+  const handleWalletConnected = (walletInfo: any) => {
+    console.log('Wallet connected successfully:', walletInfo);
+    // User will be redirected to dashboard after successful connection
   };
 
   // Show error state if there's a page error
@@ -92,17 +78,6 @@ const Auth = () => {
     );
   }
 
-  if (showEmailSignup) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <EmailSignupForm
-          onSuccess={handleSignupSuccess}
-          onCancel={handleCancelSignup}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <AuthHeader />
@@ -118,7 +93,7 @@ const Auth = () => {
                 sdkError={false}
                 sdkHasLoaded={true}
                 onRetry={() => window.location.reload()}
-                onWalletNeedsSignup={handleWalletNeedsSignup}
+                onWalletConnected={handleWalletConnected}
               />
             </div>
             
