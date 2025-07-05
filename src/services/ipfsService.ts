@@ -11,63 +11,54 @@ interface IPFSUploadResult {
 
 export class IPFSService {
   private static readonly BLOCKDRIVE_DID = 'did:key:z6MkhyUYfeQAP2BHxwzbK93LxpiVSrKYZfrKw6EWhLHeefoe';
-  private static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
-  private static readonly PINATA_SECRET_KEY = '6d9723fc850df5431aa8ad08062b71c5327b8ebc1dcb469026e03a8bd5a6748c';
-  private static readonly PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYzBiNTg4NC0wNjBiLTQ5ZmYtOTBhYy0wMGFlNDdhNGRhYTIiLCJlbWFpbCI6InR3b3JvYWRzaW5ub3ZhdGl2ZXNvbHV0aW9uc0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiZmRkZTVkMWJmYWFiMGExODQwN2MiLCJzY29wZWRLZXlTZWNyZXQiOiI2ZDk3MjNmYzg1MGRmNTQzMWFhOGFkMDgwNjJiNzFjNTMyN2I4ZWJjMWRjYjQ2OTAyNmUwM2E4YmQ1YTY3NDhjIiwiZXhwIjoxNzgyMzk1MTA1fQ.IXY4eZqJ-26DXo8hRWN1iv2uLqo0i0kYI3sE2WBJlxU';
+  private static readonly FILEBASE_ACCESS_KEY = '253078B6A36CB79D3A15';
+  private static readonly FILEBASE_SECRET_KEY = 'biAu6JkFLWMlaLRHJC1aIK7MIClmeLSR3EKQTvoP';
+  private static readonly FILEBASE_GATEWAY = 'https://regular-amber-sloth.myfilebase.com';
+  private static readonly FILEBASE_RPC_ENDPOINT = 'https://rpc.filebase.io';
   
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
     try {
-      console.log(`Starting BlockDrive IPFS upload for file: ${file.name} (${file.size} bytes)`);
+      console.log(`Starting BlockDrive IPFS upload via Filebase for file: ${file.name} (${file.size} bytes)`);
       console.log(`Using DID: ${this.BLOCKDRIVE_DID}`);
       
       const formData = new FormData();
       formData.append('file', file);
       
-      // Add metadata to associate with BlockDrive DID
-      const metadata = {
-        name: file.name,
-        keyvalues: {
-          'blockdrive_did': this.BLOCKDRIVE_DID,
-          'uploaded_by': 'BlockDrive_IPFS_Workspace',
-          'upload_timestamp': new Date().toISOString(),
-          'file_type': file.type || 'application/octet-stream'
-        }
-      };
+      // Create basic auth header for Filebase
+      const auth = btoa(`${this.FILEBASE_ACCESS_KEY}:${this.FILEBASE_SECRET_KEY}`);
       
-      formData.append('pinataMetadata', JSON.stringify(metadata));
-      
-      const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      const response = await fetch(`${this.FILEBASE_RPC_ENDPOINT}/api/v0/add`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.PINATA_JWT}`,
+          'Authorization': `Basic ${auth}`,
         },
         body: formData,
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Pinata API error:', response.status, errorText);
-        throw new Error(`Pinata API error: ${response.status} - ${errorText}`);
+        console.error('Filebase API error:', response.status, errorText);
+        throw new Error(`Filebase API error: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
-      console.log('Pinata upload result:', result);
+      console.log('Filebase upload result:', result);
       
       const uploadResult: IPFSUploadResult = {
-        cid: result.IpfsHash,
-        url: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash}`,
+        cid: result.Hash,
+        url: `${this.FILEBASE_GATEWAY}/ipfs/${result.Hash}`,
         filename: file.name,
         size: file.size,
         contentType: file.type || 'application/octet-stream'
       };
       
-      console.log('BlockDrive IPFS upload successful:', uploadResult);
-      toast.success(`File uploaded to BlockDrive IPFS Workspace: ${result.IpfsHash}`);
+      console.log('BlockDrive IPFS upload successful via Filebase:', uploadResult);
+      toast.success(`File uploaded to BlockDrive IPFS via Filebase: ${result.Hash}`);
       return uploadResult;
       
     } catch (error) {
-      console.error('BlockDrive IPFS upload failed:', error);
-      toast.error(`Failed to upload file to BlockDrive IPFS Workspace: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('BlockDrive IPFS upload via Filebase failed:', error);
+      toast.error(`Failed to upload file to BlockDrive IPFS via Filebase: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return null;
     }
   }
@@ -77,24 +68,24 @@ export class IPFSService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Uploading file ${i + 1}/${files.length} to BlockDrive IPFS Workspace...`);
+      console.log(`Uploading file ${i + 1}/${files.length} to BlockDrive IPFS via Filebase...`);
       const result = await this.uploadFile(file);
       if (result) {
         results.push(result);
       }
     }
     
-    console.log(`Successfully uploaded ${results.length}/${files.length} files to BlockDrive IPFS Workspace`);
+    console.log(`Successfully uploaded ${results.length}/${files.length} files to BlockDrive IPFS via Filebase`);
     return results;
   }
   
   static async retrieveFile(cid: string): Promise<Blob | null> {
     try {
-      console.log(`Retrieving file from BlockDrive IPFS Workspace: ${cid}`);
+      console.log(`Retrieving file from BlockDrive IPFS via Filebase: ${cid}`);
       
-      // Try multiple IPFS gateways for better reliability
+      // Try multiple IPFS gateways for better reliability, starting with Filebase
       const gateways = [
-        `https://gateway.pinata.cloud/ipfs/${cid}`,
+        `${this.FILEBASE_GATEWAY}/ipfs/${cid}`,
         `https://ipfs.io/ipfs/${cid}`,
         `https://cloudflare-ipfs.com/ipfs/${cid}`,
         `https://dweb.link/ipfs/${cid}`
@@ -111,7 +102,7 @@ export class IPFSService {
           
           if (response.ok) {
             const blob = await response.blob();
-            console.log('File retrieved successfully from BlockDrive IPFS Workspace');
+            console.log('File retrieved successfully from BlockDrive IPFS via Filebase');
             return blob;
           }
         } catch (gatewayError) {
@@ -123,77 +114,70 @@ export class IPFSService {
       throw new Error('All IPFS gateways failed');
       
     } catch (error) {
-      console.error('BlockDrive IPFS retrieval failed:', error);
-      toast.error('Failed to retrieve file from BlockDrive IPFS Workspace');
+      console.error('BlockDrive IPFS retrieval via Filebase failed:', error);
+      toast.error('Failed to retrieve file from BlockDrive IPFS via Filebase');
       return null;
     }
   }
   
   static async pinFile(cid: string): Promise<boolean> {
     try {
-      console.log(`Pinning file to BlockDrive IPFS Workspace: ${cid}`);
+      console.log(`Pinning file to BlockDrive IPFS via Filebase: ${cid}`);
       
-      const response = await fetch(`https://api.pinata.cloud/pinning/pinByHash`, {
+      const auth = btoa(`${this.FILEBASE_ACCESS_KEY}:${this.FILEBASE_SECRET_KEY}`);
+      
+      const response = await fetch(`${this.FILEBASE_RPC_ENDPOINT}/api/v0/pin/add?arg=${cid}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.PINATA_JWT}`,
+          'Authorization': `Basic ${auth}`,
         },
-        body: JSON.stringify({
-          hashToPin: cid,
-          pinataMetadata: {
-            name: `BlockDrive_Pin_${cid}`,
-            keyvalues: {
-              'blockdrive_did': this.BLOCKDRIVE_DID,
-              'pin_timestamp': new Date().toISOString()
-            }
-          }
-        }),
       });
       
       if (response.ok) {
-        console.log(`File pinned successfully to BlockDrive IPFS Workspace: ${cid}`);
+        console.log(`File pinned successfully to BlockDrive IPFS via Filebase: ${cid}`);
         return true;
       } else {
-        console.warn('Failed to pin file to BlockDrive IPFS Workspace:', await response.text());
+        console.warn('Failed to pin file to BlockDrive IPFS via Filebase:', await response.text());
         return false;
       }
     } catch (error) {
-      console.error('BlockDrive IPFS pinning failed:', error);
+      console.error('BlockDrive IPFS pinning via Filebase failed:', error);
       return false;
     }
   }
   
   static async unpinFile(cid: string): Promise<boolean> {
     try {
-      console.log(`Unpinning file from BlockDrive IPFS Workspace: ${cid}`);
+      console.log(`Unpinning file from BlockDrive IPFS via Filebase: ${cid}`);
       
-      const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
-        method: 'DELETE',
+      const auth = btoa(`${this.FILEBASE_ACCESS_KEY}:${this.FILEBASE_SECRET_KEY}`);
+      
+      const response = await fetch(`${this.FILEBASE_RPC_ENDPOINT}/api/v0/pin/rm?arg=${cid}`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.PINATA_JWT}`,
+          'Authorization': `Basic ${auth}`,
         },
       });
       
       if (response.ok) {
-        console.log(`File unpinned successfully from BlockDrive IPFS Workspace: ${cid}`);
+        console.log(`File unpinned successfully from BlockDrive IPFS via Filebase: ${cid}`);
         return true;
       } else {
-        console.warn('Failed to unpin file from BlockDrive IPFS Workspace:', await response.text());
+        console.warn('Failed to unpin file from BlockDrive IPFS via Filebase:', await response.text());
         return false;
       }
     } catch (error) {
-      console.error('BlockDrive IPFS unpinning failed:', error);
+      console.error('BlockDrive IPFS unpinning via Filebase failed:', error);
       return false;
     }
   }
   
-  static getIPFSGatewayUrl(cid: string, gateway = 'https://gateway.pinata.cloud'): string {
+  static getIPFSGatewayUrl(cid: string, gateway = 'https://ipfs.io'): string {
     return `${gateway}/ipfs/${cid}`;
   }
   
   static getBlockDriveIPFSUrl(cid: string): string {
-    return `https://gateway.pinata.cloud/ipfs/${cid}`;
+    return `${this.FILEBASE_GATEWAY}/ipfs/${cid}`;
   }
   
   static isValidCID(cid: string): boolean {

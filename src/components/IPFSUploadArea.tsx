@@ -88,7 +88,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               Connect Your Wallet
             </h3>
             <p className="text-gray-500">
-              Please connect your Web3 wallet to start uploading files to BlockDrive IPFS Workspace
+              Please connect your Web3 wallet to start uploading files to BlockDrive IPFS via Filebase
             </p>
           </div>
         </div>
@@ -173,9 +173,9 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                uploading ? 'Uploading to BlockDrive IPFS...' : 'Upload to BlockDrive IPFS'}
             </h3>
             <p className="text-gray-300 mb-2">
-              {uploadStatus === 'success' ? 'Your files have been stored in BlockDrive IPFS workspace!' :
+              {uploadStatus === 'success' ? 'Your files have been stored in BlockDrive IPFS via Filebase!' :
                uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
-               'Secure, decentralized storage powered by IPFS'}
+               'Secure, decentralized storage powered by IPFS via Filebase'}
             </p>
             
             <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
@@ -189,7 +189,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               </span>
               <span className="flex items-center gap-1">
                 <Key className="w-4 h-4" />
-                Pinata Gateway
+                Filebase Gateway
               </span>
             </div>
             
@@ -253,7 +253,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                 Drag and drop files here, or click "Choose Files" to browse
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Files will be uploaded to BlockDrive IPFS Workspace (DID: z6Mkhy...efoe)
+                Files will be uploaded to BlockDrive IPFS via Filebase (DID: z6Mkhy...efoe)
               </p>
             </div>
           )}
