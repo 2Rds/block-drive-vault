@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -5,8 +6,6 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthHero } from '@/components/auth/AuthHero';
 import { AuthConnectors } from '@/components/auth/AuthConnectors';
-import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react';
 import { EmailSignupForm } from '@/components/auth/EmailSignupForm';
 
 const Auth = () => {
@@ -73,28 +72,8 @@ const Auth = () => {
                 sdkError={false}
                 sdkHasLoaded={true}
                 onRetry={() => window.location.reload()}
+                onWalletNeedsSignup={() => setShowEmailSignup(true)}
               />
-              
-              {/* Add email signup option */}
-              <div className="text-center">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-700" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or</span>
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={() => setShowEmailSignup(true)}
-                  variant="outline"
-                  className="w-full mt-4 bg-gray-800/40 border-gray-600 text-gray-300 hover:bg-gray-700/60"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Sign up with Email
-                </Button>
-              </div>
             </div>
             
             <FeatureCards />

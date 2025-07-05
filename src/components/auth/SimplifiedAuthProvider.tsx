@@ -1,3 +1,4 @@
+
 import { useEffect, ReactNode } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
 import { useWalletSession } from '@/hooks/useWalletSession';
@@ -169,13 +170,13 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         
         setWalletData(processedWalletData);
         
-        // Check for existing signup and update wallet connection
+        // Update wallet connection in signup record if it exists
         try {
           const userEmail = supabaseUser.email || `${userId}@blockdrive.wallet`;
           await SignupService.updateWalletConnection(userEmail, walletAddress, blockchainType);
           console.log('Updated wallet connection in signup record');
         } catch (error) {
-          console.log('No existing signup record to update, user may need to complete registration');
+          console.log('No existing signup record to update');
         }
         
         console.log('Auth state updated successfully - user authenticated with ID:', userId);

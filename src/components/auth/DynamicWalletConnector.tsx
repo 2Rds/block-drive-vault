@@ -9,10 +9,12 @@ import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 interface DynamicWalletConnectorProps {
   onWalletConnected?: (walletInfo: any) => void;
+  onWalletNeedsSignup?: () => void;
 }
 
 export const DynamicWalletConnector = ({
-  onWalletConnected
+  onWalletConnected,
+  onWalletNeedsSignup
 }: DynamicWalletConnectorProps) => {
   const { showAuthFlow, sdkHasLoaded } = useDynamicContext();
   const [connectionStatus, setConnectionStatus] = useState<'loading' | 'connected' | 'failed'>('loading');
@@ -22,7 +24,7 @@ export const DynamicWalletConnector = ({
     isProcessing,
     userExplicitlyClicked,
     handleConnectClick
-  } = useDynamicWalletConnection(onWalletConnected);
+  } = useDynamicWalletConnection(onWalletConnected, onWalletNeedsSignup);
 
   // Monitor SDK loading status
   useEffect(() => {

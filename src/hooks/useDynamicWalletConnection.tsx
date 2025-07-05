@@ -4,8 +4,12 @@ import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { SignupService } from '@/services/signupService';
 
-export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any) => void) => {
+export const useDynamicWalletConnection = (
+  onWalletConnected?: (walletInfo: any) => void,
+  onWalletNeedsSignup?: () => void
+) => {
   const { primaryWallet, user } = useDynamicContext();
   const { connectWallet } = useAuth();
   const navigate = useNavigate();
@@ -32,10 +36,24 @@ export const useDynamicWalletConnection = (onWalletConnected?: (walletInfo: any)
       const walletAddress = primaryWallet.address;
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
       
-      console.log('Authenticating wallet:', {
+      console.log('Checking if wallet has existing signup:', {
         address: walletAddress,
         blockchainType
       });
+
+      // Check if this wallet is already associated with a signup
+      const userEmail = `${walletAddress}@blockdrive.wallet`;
+      const { data: existingSignup } = await SignupService.getSignupByEmail(userEmail);
+      
+      if (!existingSignup && onWalletNeedsSignup) {
+        console.log('Wallet not associated with signup, redirecting to signup form');
+        setIsProcessing(false);
+        setUserExplicitlyClicked(false);
+        onWalletNeedsSignup();
+        return;
+      }
+
+      console.log('Wallet has existing signup, proceeding with authentication');
 
       // Create signature for authentication
       let signature;
