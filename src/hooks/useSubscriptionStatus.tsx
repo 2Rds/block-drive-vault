@@ -23,6 +23,7 @@ export const useSubscriptionStatus = () => {
   const checkSubscription = async () => {
     if (!user) {
       setLoading(false);
+      setSubscriptionStatus(null);
       return;
     }
 
@@ -35,7 +36,11 @@ export const useSubscriptionStatus = () => {
       const { data, error: functionError } = await supabase.functions.invoke('check-subscription');
       
       if (functionError) {
-        throw new Error(functionError.message);
+        console.error('Subscription function error:', functionError);
+        // Instead of throwing, gracefully handle the error
+        setSubscriptionStatus(null);
+        setError(null); // Don't show error to user, just show unsubscribed state
+        return;
       }
       
       console.log('Subscription data received:', data);
@@ -43,11 +48,9 @@ export const useSubscriptionStatus = () => {
       
     } catch (err: any) {
       console.error('Error checking subscription:', err);
-      setError(err.message);
-      
-      // Set to null instead of providing fallback data
-      // This will let the UI handle the "no subscription" state properly
+      // Gracefully handle network or other errors
       setSubscriptionStatus(null);
+      setError(null); // Don't show error to user, just show unsubscribed state
     } finally {
       setLoading(false);
     }

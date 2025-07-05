@@ -7,13 +7,12 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { RefreshCw, Settings, Crown, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RefreshCw, Settings, Crown, CheckCircle, ExternalLink } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
 export const SubscriptionManager = () => {
   const { user } = useAuth();
-  const { subscriptionStatus, loading, error, refetch } = useSubscriptionStatus();
+  const { subscriptionStatus, loading, refetch } = useSubscriptionStatus();
   const { userStats } = useUserData();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -74,29 +73,6 @@ export const SubscriptionManager = () => {
     );
   }
 
-  if (error && !subscriptionStatus) {
-    return (
-      <Card className="bg-gray-800/40 border-gray-700/50">
-        <CardContent className="p-6">
-          <Alert className="border-red-700 bg-red-900/20">
-            <AlertCircle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-300">
-              Unable to load subscription data: {error}
-            </AlertDescription>
-          </Alert>
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            className="mt-4 border-gray-600 text-gray-300 hover:bg-gray-700"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Handle case where user has no subscription data at all
   if (!subscriptionStatus) {
     return (
@@ -135,7 +111,7 @@ export const SubscriptionManager = () => {
                 You don't have an active subscription or trial
               </p>
             </div>
-            <Badge variant="outline" className="bg-gray-600">
+            <Badge variant="outline" className="bg-gray-600 text-gray-300">
               No Subscription
             </Badge>
           </div>
@@ -156,6 +132,18 @@ export const SubscriptionManager = () => {
               <Crown className="w-4 h-4 mr-2" />
               View Plans & Start Free Trial
             </Button>
+          </div>
+
+          {/* Features Preview */}
+          <div className="p-4 bg-gray-700/20 border border-gray-600/50 rounded-lg">
+            <h4 className="text-gray-300 font-medium mb-2">What you'll get with a subscription:</h4>
+            <ul className="text-sm text-gray-400 space-y-1">
+              <li>• Up to 500GB secure cloud storage</li>
+              <li>• IPFS integration for decentralized storage</li>
+              <li>• Blockchain file verification</li>
+              <li>• Advanced team collaboration tools</li>
+              <li>• Priority customer support</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
