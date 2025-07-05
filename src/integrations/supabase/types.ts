@@ -627,10 +627,12 @@ export type Database = {
       subscribers: {
         Row: {
           bandwidth_limit_gb: number | null
+          can_upload_files: boolean | null
           created_at: string
           email: string
           id: string
           seats_limit: number | null
+          signup_completed: boolean | null
           storage_limit_gb: number | null
           stripe_customer_id: string | null
           subscribed: boolean
@@ -641,10 +643,12 @@ export type Database = {
         }
         Insert: {
           bandwidth_limit_gb?: number | null
+          can_upload_files?: boolean | null
           created_at?: string
           email: string
           id?: string
           seats_limit?: number | null
+          signup_completed?: boolean | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null
           subscribed?: boolean
@@ -655,10 +659,12 @@ export type Database = {
         }
         Update: {
           bandwidth_limit_gb?: number | null
+          can_upload_files?: boolean | null
           created_at?: string
           email?: string
           id?: string
           seats_limit?: number | null
+          signup_completed?: boolean | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null
           subscribed?: boolean
@@ -666,6 +672,45 @@ export type Database = {
           subscription_tier?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_signups: {
+        Row: {
+          blockchain_type: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          organization: string | null
+          subscription_tier: string | null
+          updated_at: string
+          wallet_address: string | null
+          wallet_connected: boolean | null
+        }
+        Insert: {
+          blockchain_type?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          organization?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+          wallet_connected?: boolean | null
+        }
+        Update: {
+          blockchain_type?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          organization?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+          wallet_connected?: boolean | null
         }
         Relationships: []
       }
