@@ -1,18 +1,9 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, Shield, Sparkles } from 'lucide-react';
-import { ThirdwebWalletConnector } from './auth/ThirdwebWalletConnector';
+import { Wallet, Shield, Sparkles, AlertCircle } from 'lucide-react';
 
 export const WalletConnector = () => {
-  const [connectedWallet, setConnectedWallet] = useState<any>(null);
-
-  const handleWalletConnected = (walletInfo: any) => {
-    console.log('Wallet connected successfully:', walletInfo);
-    setConnectedWallet(walletInfo);
-  };
-
   return (
     <div className="space-y-8">
       <div className="text-center mb-8">
@@ -30,7 +21,20 @@ export const WalletConnector = () => {
           <h3 className="text-xl font-semibold text-white">Web3 Wallets</h3>
         </div>
 
-        <ThirdwebWalletConnector onWalletConnected={handleWalletConnected} />
+        <Card className="bg-gray-800/40 border-gray-700">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-white mb-2">Additional Wallet Options</h4>
+                <p className="text-gray-300 text-sm mb-3">
+                  More Web3 wallet connection options are being configured. 
+                  Please use the primary wallet connection method above.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
