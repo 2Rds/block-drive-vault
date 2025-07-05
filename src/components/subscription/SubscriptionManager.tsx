@@ -97,15 +97,18 @@ export const SubscriptionManager = () => {
 
   const { subscribed, subscription_tier, subscription_end, limits } = subscriptionStatus || {
     subscribed: false,
-    subscription_tier: null,
+    subscription_tier: 'Free Trial',
     subscription_end: null,
-    limits: { storage: 5, bandwidth: 10, seats: 1 }
+    limits: { storage: 50, bandwidth: 50, seats: 1 }
   };
 
   // Calculate usage percentages (mock data - you can replace with real usage data)
   const storageUsagePercent = 25;
   const bandwidthUsagePercent = 40;
   const seatsUsedPercent = Math.round((1 / limits.seats) * 100);
+
+  // Determine if this is a free trial
+  const isFreeTrial = !subscribed && subscription_tier === 'Free Trial';
 
   return (
     <div className="space-y-6">
@@ -140,21 +143,49 @@ export const SubscriptionManager = () => {
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 {subscription_tier || 'Free Trial'}
                 {subscribed && <CheckCircle className="w-5 h-5 text-green-500" />}
+                {isFreeTrial && <CheckCircle className="w-5 h-5 text-blue-500" />}
               </h3>
               <p className="text-sm text-gray-400">
                 {subscribed 
                   ? `Active until ${new Date(subscription_end!).toLocaleDateString()}`
-                  : 'No active subscription'
+                  : isFreeTrial 
+                    ? 'Enjoying Starter tier benefits during free trial'
+                    : 'No active subscription'
                 }
               </p>
             </div>
             <Badge 
-              variant={subscribed ? "default" : "secondary"}
-              className={subscribed ? "bg-green-600 hover:bg-green-700" : "bg-gray-600"}
+              variant={subscribed ? "default" : isFreeTrial ? "secondary" : "outline"}
+              className={
+                subscribed 
+                  ? "bg-green-600 hover:bg-green-700" 
+                  : isFreeTrial 
+                    ? "bg-blue-600 hover:bg-blue-700" 
+                    : "bg-gray-600"
+              }
             >
-              {subscribed ? 'Active' : 'Free Trial'}
+              {subscribed ? 'Active' : isFreeTrial ? 'Free Trial' : 'Inactive'}
             </Badge>
           </div>
+
+          {/* Free Trial Benefits Notice */}
+          {isFreeTrial && (
+            <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+              <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Free Trial - Starter Tier Benefits
+              </h4>
+              <p className="text-sm text-blue-300 mb-3">
+                You're currently enjoying Starter tier benefits during your free trial period.
+              </p>
+              <ul className="text-sm text-blue-300 space-y-1">
+                <li>• 50 GB storage capacity</li>
+                <li>• 50 GB monthly bandwidth</li>
+                <li>• 1 user seat</li>
+                <li>• Basic blockchain features</li>
+              </ul>
+            </div>
+          )}
 
           {/* Usage Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -205,7 +236,7 @@ export const SubscriptionManager = () => {
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Crown className="w-4 h-4 mr-2" />
-                Upgrade Now
+                {isFreeTrial ? 'Upgrade to Keep Benefits' : 'Start Free Trial'}
               </Button>
             )}
             
@@ -236,19 +267,19 @@ export const SubscriptionManager = () => {
           </div>
 
           {/* Subscription Features */}
-          {subscribed && (
+          {(subscribed || isFreeTrial) && (
             <div className="mt-6 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
               <h4 className="text-green-400 font-medium mb-2 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                Active Subscription Benefits
+                {subscribed ? 'Active Subscription Benefits' : 'Free Trial Benefits (Starter Tier)'}
               </h4>
               <ul className="text-sm text-green-300 space-y-1">
                 <li>• Enhanced storage capacity: {limits.storage} GB</li>
                 <li>• Bandwidth allowance: {limits.bandwidth} GB/month</li>
                 <li>• Team seats: {limits.seats === 999 ? 'Unlimited' : limits.seats}</li>
-                <li>• Priority customer support</li>
+                <li>• {subscribed ? 'Priority customer support' : 'Community support'}</li>
                 <li>• Advanced blockchain features</li>
-                <li>• Team collaboration tools</li>
+                {subscribed && <li>• Team collaboration tools</li>}
               </ul>
             </div>
           )}

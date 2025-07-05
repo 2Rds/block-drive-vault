@@ -88,25 +88,25 @@ serve(async (req) => {
     const customersData = await customersResponse.json();
     
     if (customersData.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
+      logStep("No customer found, updating free trial state with Starter benefits");
       await supabaseClient.from("subscribers").upsert({
         email: userEmail,
         user_id: userId,
         stripe_customer_id: null,
         subscribed: false,
-        subscription_tier: null,
+        subscription_tier: 'Free Trial',
         subscription_end: null,
-        storage_limit_gb: 5,
-        bandwidth_limit_gb: 10,
+        storage_limit_gb: 50,  // Starter tier benefits for free trial
+        bandwidth_limit_gb: 50, // Starter tier benefits for free trial
         seats_limit: 1,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'email' });
       
       return new Response(JSON.stringify({ 
         subscribed: false,
-        subscription_tier: null,
+        subscription_tier: 'Free Trial',
         subscription_end: null,
-        limits: { storage: 5, bandwidth: 10, seats: 1 }
+        limits: { storage: 50, bandwidth: 50, seats: 1 }
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -132,7 +132,7 @@ serve(async (req) => {
     const hasActiveSub = subscriptionsData.data.length > 0;
     let subscriptionTier = null;
     let subscriptionEnd = null;
-    let limits = { storage: 5, bandwidth: 10, seats: 1 };
+    let limits = { storage: 50, bandwidth: 50, seats: 1 }; // Default to Starter benefits
 
     if (hasActiveSub) {
       const subscription = subscriptionsData.data[0];
@@ -163,7 +163,8 @@ serve(async (req) => {
         limits 
       });
     } else {
-      logStep("No active subscription found");
+      logStep("No active subscription found, providing Starter tier benefits");
+      subscriptionTier = 'Free Trial';
     }
 
     await supabaseClient.from("subscribers").upsert({
