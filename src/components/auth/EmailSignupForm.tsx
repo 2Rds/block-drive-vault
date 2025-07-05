@@ -134,7 +134,7 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
               disabled={isSubmitting}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
             >
-              {isSubmitting ? 'Registering...' : 'Continue to Pricing'}
+              {isSubmitting ? 'Registering...' : 'Continue'}
             </Button>
             {onCancel && (
               <Button
