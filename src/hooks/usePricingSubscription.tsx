@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier } from '@/types/pricing';
 import { supabase } from '@/integrations/supabase/client';
+import { SignupService } from '@/services/signupService';
 
 export const usePricingSubscription = () => {
   const { user } = useAuth();
@@ -18,9 +19,37 @@ export const usePricingSubscription = () => {
       userId: user?.id
     });
 
-    if (!user) {
-      console.log('No user found, redirecting to auth');
-      toast.error('Please sign in to subscribe');
+    // Check if user is authenticated OR has completed signup
+    let canProceed = false;
+    let userEmail = null;
+
+    if (user) {
+      // User is fully authenticated
+      canProceed = true;
+      userEmail = user.email;
+    } else {
+      // Check if user has completed signup but not authenticated yet
+      // Get email from URL params or localStorage if available
+      const urlParams = new URLSearchParams(window.location.search);
+      const signupEmail = urlParams.get('email') || localStorage.getItem('signup-email');
+      
+      if (signupEmail) {
+        try {
+          const { data: signupRecord } = await SignupService.getSignupByEmail(signupEmail);
+          if (signupRecord) {
+            canProceed = true;
+            userEmail = signupEmail;
+            console.log('Found signup record for:', signupEmail);
+          }
+        } catch (error) {
+          console.log('No signup record found');
+        }
+      }
+    }
+
+    if (!canProceed) {
+      console.log('No user or signup found, redirecting to auth');
+      toast.error('Please complete signup to subscribe');
       navigate('/auth');
       return;
     }
@@ -41,6 +70,11 @@ export const usePricingSubscription = () => {
     try {
       console.log('Redirecting to payment link for tier:', tier.name);
       console.log('Payment link:', tier.paymentLink);
+      
+      // If user has email, store it for post-payment processing
+      if (userEmail) {
+        localStorage.setItem('checkout-email', userEmail);
+      }
       
       // Show success message
       toast.success('Redirecting to checkout...');

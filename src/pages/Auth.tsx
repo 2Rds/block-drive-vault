@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -43,8 +42,9 @@ const Auth = () => {
 
   const handleSignupSuccess = (signupData: any) => {
     console.log('Signup successful:', signupData);
-    // Redirect to pricing page to choose subscription
-    navigate('/pricing');
+    // Store email for pricing page and redirect
+    localStorage.setItem('signup-email', signupData.email);
+    navigate(`/pricing?email=${encodeURIComponent(signupData.email)}`);
   };
 
   const handleWalletNeedsSignup = () => {
