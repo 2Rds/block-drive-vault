@@ -31,15 +31,16 @@ export class IPFSUploadService {
           throw new Error('No upload result returned');
         }
 
-        // Save to database
-        const ipfsFile: Omit<IPFSFile, 'id' | 'uploadedAt'> = {
+        // Save to database with correct field mapping
+        const fileData = {
           filename: uploadResult.filename,
-          cid: uploadResult.cid,
-          size: uploadResult.size,
-          contentType: uploadResult.contentType,
-          ipfsUrl: uploadResult.url,
-          userId: user.id,
-          folderPath: folderPath,
+          file_size: uploadResult.size,
+          content_type: uploadResult.contentType,
+          user_id: user.id,
+          folder_path: folderPath,
+          storage_provider: 'ipfs',
+          ipfs_cid: uploadResult.cid,
+          ipfs_url: uploadResult.url,
           metadata: {
             storage_type: 'ipfs' as const,
             permanence: 'permanent' as const,
@@ -47,10 +48,24 @@ export class IPFSUploadService {
           }
         };
 
-        const savedFile = await FileDatabaseService.saveFile(ipfsFile);
+        const savedFile = await FileDatabaseService.saveFile(fileData);
         if (savedFile) {
-          uploadedFiles.push(savedFile);
-          console.log(`File ${i + 1}/${totalFiles} uploaded successfully:`, savedFile);
+          // Convert database file to IPFSFile format
+          const ipfsFile: IPFSFile = {
+            id: savedFile.id,
+            filename: savedFile.filename,
+            cid: savedFile.ipfs_cid || '',
+            size: savedFile.file_size || 0,
+            contentType: savedFile.content_type || 'application/octet-stream',
+            ipfsUrl: savedFile.ipfs_url || '',
+            uploadedAt: savedFile.created_at,
+            userId: savedFile.user_id,
+            folderPath: savedFile.folder_path,
+            metadata: savedFile.metadata as IPFSFile['metadata']
+          };
+          
+          uploadedFiles.push(ipfsFile);
+          console.log(`File ${i + 1}/${totalFiles} uploaded successfully:`, ipfsFile);
         }
 
         // Update progress
