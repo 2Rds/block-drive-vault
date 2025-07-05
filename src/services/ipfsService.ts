@@ -33,16 +33,12 @@ export class IPFSService {
     return IPFSConfig.getIPFSGatewayUrl(cid, gateway);
   }
   
-  static getBlockDriveIPFSUrl(cid: string): string {
-    return IPFSConfig.getBlockDriveIPFSUrl(cid);
+  static getPinataIPFSUrl(cid: string): string {
+    return IPFSConfig.getPinataIPFSUrl(cid);
   }
   
   static isValidCID(cid: string): boolean {
     return IPFSConfig.isValidCID(cid);
-  }
-  
-  static getDIDKey(): string {
-    return IPFSConfig.getDIDKey();
   }
 }
 

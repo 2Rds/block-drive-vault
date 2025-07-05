@@ -5,11 +5,11 @@ import { IPFSConfig } from './ipfsConfig';
 export class IPFSRetrievalService {
   static async retrieveFile(cid: string): Promise<Blob | null> {
     try {
-      console.log(`Retrieving file from BlockDrive IPFS via Filebase: ${cid}`);
+      console.log(`Retrieving file from IPFS via Pinata: ${cid}`);
       
-      // Try multiple IPFS gateways for better reliability, starting with Filebase
+      // Try multiple IPFS gateways for better reliability, starting with Pinata
       const gateways = [
-        IPFSConfig.getBlockDriveIPFSUrl(cid),
+        IPFSConfig.getPinataIPFSUrl(cid),
         ...IPFSConfig.FALLBACK_GATEWAYS.map(gateway => `${gateway}/${cid}`)
       ];
       
@@ -24,7 +24,7 @@ export class IPFSRetrievalService {
           
           if (response.ok) {
             const blob = await response.blob();
-            console.log('File retrieved successfully from BlockDrive IPFS via Filebase');
+            console.log('File retrieved successfully from IPFS via Pinata');
             return blob;
           }
         } catch (gatewayError) {
@@ -36,8 +36,8 @@ export class IPFSRetrievalService {
       throw new Error('All IPFS gateways failed');
       
     } catch (error) {
-      console.error('BlockDrive IPFS retrieval via Filebase failed:', error);
-      toast.error('Failed to retrieve file from BlockDrive IPFS via Filebase');
+      console.error('IPFS retrieval via Pinata failed:', error);
+      toast.error('Failed to retrieve file from IPFS via Pinata');
       return null;
     }
   }

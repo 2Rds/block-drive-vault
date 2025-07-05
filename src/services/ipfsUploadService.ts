@@ -1,8 +1,8 @@
 
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { FileDatabaseService } from './fileDatabaseService';
 import { IPFSFile } from '@/types/ipfs';
+import { IPFSService } from './ipfsService';
 
 interface User {
   id: string;
@@ -21,21 +21,11 @@ export class IPFSUploadService {
 
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
-      console.log(`Processing file ${i + 1}/${totalFiles} for BlockDrive IPFS via Filebase: ${file.name}`);
+      console.log(`Processing file ${i + 1}/${totalFiles} for IPFS via Pinata: ${file.name}`);
       
       try {
-        // Upload to IPFS via edge function
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const { data: uploadResult, error } = await supabase.functions.invoke('upload-to-ipfs', {
-          body: formData,
-        });
-
-        if (error) {
-          console.error('Edge function error:', error);
-          throw new Error(`Upload failed: ${error.message}`);
-        }
+        // Upload to IPFS via Pinata
+        const uploadResult = await IPFSService.uploadFile(file);
 
         if (!uploadResult) {
           throw new Error('No upload result returned');
@@ -69,7 +59,7 @@ export class IPFSUploadService {
 
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
-        throw new Error(`Failed to upload ${file.name} to BlockDrive IPFS via Filebase`);
+        throw new Error(`Failed to upload ${file.name} to IPFS via Pinata`);
       }
     }
 
@@ -78,7 +68,7 @@ export class IPFSUploadService {
 
   static async downloadFile(cid: string, filename: string): Promise<void> {
     try {
-      const url = `https://regular-amber-sloth.myfilebase.com/ipfs/${cid}`;
+      const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
       const response = await fetch(url);
       
       if (!response.ok) {

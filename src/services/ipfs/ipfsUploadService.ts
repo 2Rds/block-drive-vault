@@ -1,7 +1,6 @@
 
 import { toast } from 'sonner';
 import { IPFSConfig } from './ipfsConfig';
-import { supabase } from '@/integrations/supabase/client';
 
 interface IPFSUploadResult {
   cid: string;
@@ -14,40 +13,47 @@ interface IPFSUploadResult {
 export class IPFSUploadService {
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
     try {
-      console.log(`Starting BlockDrive IPFS upload via Filebase for file: ${file.name} (${file.size} bytes)`);
-      console.log(`Using DID: ${IPFSConfig.getDIDKey()}`);
+      console.log(`Starting IPFS upload via Pinata for file: ${file.name} (${file.size} bytes)`);
       
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('pinataMetadata', JSON.stringify({
+        name: file.name,
+      }));
+      formData.append('pinataOptions', JSON.stringify({
+        cidVersion: 1,
+      }));
       
-      const { data, error } = await supabase.functions.invoke('upload-to-ipfs', {
+      const response = await fetch(IPFSConfig.PINATA_API_URL, {
+        method: 'POST',
+        headers: IPFSConfig.getAuthHeaders(),
         body: formData,
       });
       
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(`Upload failed: ${error.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Pinata API error:', response.status, errorText);
+        throw new Error(`Pinata API error: ${response.status} - ${errorText}`);
       }
       
-      if (!data) {
-        throw new Error('No data returned from upload function');
-      }
+      const result = await response.json();
+      console.log('Pinata upload result:', result);
       
       const uploadResult: IPFSUploadResult = {
-        cid: data.cid,
-        url: data.url,
-        filename: data.filename,
-        size: data.size,
-        contentType: data.contentType
+        cid: result.IpfsHash,
+        url: IPFSConfig.getPinataIPFSUrl(result.IpfsHash),
+        filename: file.name,
+        size: file.size,
+        contentType: file.type || 'application/octet-stream'
       };
       
-      console.log('BlockDrive IPFS upload successful via Filebase:', uploadResult);
-      toast.success(`File uploaded to BlockDrive IPFS via Filebase: ${data.cid}`);
+      console.log('IPFS upload successful via Pinata:', uploadResult);
+      toast.success(`File uploaded to IPFS via Pinata: ${result.IpfsHash}`);
       return uploadResult;
       
     } catch (error) {
-      console.error('BlockDrive IPFS upload via Filebase failed:', error);
-      toast.error(`Failed to upload file to BlockDrive IPFS via Filebase: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('IPFS upload via Pinata failed:', error);
+      toast.error(`Failed to upload file to IPFS via Pinata: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return null;
     }
   }
@@ -57,14 +63,14 @@ export class IPFSUploadService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Uploading file ${i + 1}/${files.length} to BlockDrive IPFS via Filebase...`);
+      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via Pinata...`);
       const result = await this.uploadFile(file);
       if (result) {
         results.push(result);
       }
     }
     
-    console.log(`Successfully uploaded ${results.length}/${files.length} files to BlockDrive IPFS via Filebase`);
+    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via Pinata`);
     return results;
   }
 }
