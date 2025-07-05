@@ -1,4 +1,5 @@
 
+
 import { toast } from 'sonner';
 import { IPFSConfig } from './ipfsConfig';
 
@@ -26,7 +27,7 @@ export class IPFSUploadService {
       
       const response = await fetch(IPFSConfig.PINATA_API_URL, {
         method: 'POST',
-        headers: IPFSConfig.getAuthHeaders(),
+        headers: IPFSConfig.getUploadHeaders(),
         body: formData,
       });
       
@@ -76,3 +77,4 @@ export class IPFSUploadService {
 }
 
 export type { IPFSUploadResult };
+
