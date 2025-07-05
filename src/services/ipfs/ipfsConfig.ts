@@ -1,7 +1,9 @@
 
 
+
 export class IPFSConfig {
   static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
+  static readonly PINATA_SECRET_API_KEY = 'your_pinata_secret_key_here'; // You'll need to replace this with your actual secret key
   static readonly PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
   static readonly PINATA_GATEWAY = 'https://gray-acceptable-grouse-462.mypinata.cloud';
   
@@ -14,13 +16,15 @@ export class IPFSConfig {
   static getAuthHeaders() {
     return {
       'pinata_api_key': this.PINATA_API_KEY,
+      'pinata_secret_api_key': this.PINATA_SECRET_API_KEY,
       'Content-Type': 'application/json'
     };
   }
 
   static getUploadHeaders() {
     return {
-      'pinata_api_key': this.PINATA_API_KEY
+      'pinata_api_key': this.PINATA_API_KEY,
+      'pinata_secret_api_key': this.PINATA_SECRET_API_KEY
     };
   }
 
@@ -37,4 +41,5 @@ export class IPFSConfig {
     return /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[a-z0-9]{55,}|bafk[a-z0-9]{55,})$/.test(cid);
   }
 }
+
 
