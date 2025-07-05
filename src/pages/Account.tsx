@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from "@/components/Header";
@@ -35,7 +36,7 @@ const Account = () => {
 
   const handleFilesClick = () => {
     console.log('Navigating to files');
-    navigate('/');
+    navigate('/files');
   };
 
   return (
