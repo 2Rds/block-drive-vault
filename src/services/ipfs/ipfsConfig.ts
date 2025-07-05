@@ -1,7 +1,7 @@
 
 
 export class IPFSConfig {
-  static readonly PINATA_JWT = 'fdde5d1bfaab0a18407c';
+  static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
   static readonly PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
   static readonly PINATA_GATEWAY = 'https://gray-acceptable-grouse-462.mypinata.cloud';
   
@@ -13,14 +13,14 @@ export class IPFSConfig {
 
   static getAuthHeaders() {
     return {
-      'Authorization': `Bearer ${this.PINATA_JWT}`,
+      'pinata_api_key': this.PINATA_API_KEY,
       'Content-Type': 'application/json'
     };
   }
 
   static getUploadHeaders() {
     return {
-      'Authorization': `Bearer ${this.PINATA_JWT}`
+      'pinata_api_key': this.PINATA_API_KEY
     };
   }
 
