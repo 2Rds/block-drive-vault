@@ -45,13 +45,9 @@ export const useSubscriptionStatus = () => {
       console.error('Error checking subscription:', err);
       setError(err.message);
       
-      // Fallback to default free trial (Starter tier benefits)
-      setSubscriptionStatus({
-        subscribed: false,
-        subscription_tier: 'Free Trial',
-        subscription_end: null,
-        limits: { storage: 50, bandwidth: 50, seats: 1 }
-      });
+      // Set to null instead of providing fallback data
+      // This will let the UI handle the "no subscription" state properly
+      setSubscriptionStatus(null);
     } finally {
       setLoading(false);
     }

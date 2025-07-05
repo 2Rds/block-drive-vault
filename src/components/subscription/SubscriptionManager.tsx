@@ -97,12 +97,72 @@ export const SubscriptionManager = () => {
     );
   }
 
-  const { subscribed, subscription_tier, subscription_end, limits } = subscriptionStatus || {
-    subscribed: false,
-    subscription_tier: 'Free Trial',
-    subscription_end: null,
-    limits: { storage: 50, bandwidth: 50, seats: 1 }
-  };
+  // Handle case where user has no subscription data at all
+  if (!subscriptionStatus) {
+    return (
+      <Card className="bg-gray-800/40 border-gray-700/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Crown className="w-5 h-5" />
+                Subscription Status
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Manage your BlockDrive subscription and billing
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* No Subscription Status */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                No Active Subscription
+              </h3>
+              <p className="text-sm text-gray-400">
+                You don't have an active subscription or trial
+              </p>
+            </div>
+            <Badge variant="outline" className="bg-gray-600">
+              No Subscription
+            </Badge>
+          </div>
+
+          {/* Call to Action */}
+          <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+            <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+              <Crown className="w-4 h-4" />
+              Get Started with BlockDrive
+            </h4>
+            <p className="text-sm text-blue-300 mb-3">
+              Choose a plan to access file storage, IPFS integration, and blockchain features.
+            </p>
+            <Button
+              onClick={() => window.location.href = '/pricing'}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              View Plans & Start Free Trial
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { subscribed, subscription_tier, subscription_end, limits } = subscriptionStatus;
 
   // Calculate usage percentages based on real data
   const storageUsagePercent = limits.storage > 0 ? Math.min(Math.round((userStats.totalStorage / (limits.storage * 1024 * 1024 * 1024)) * 100), 100) : 0;
@@ -143,7 +203,7 @@ export const SubscriptionManager = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                {subscription_tier || 'Free Trial'}
+                {subscription_tier || 'No Subscription'}
                 {subscribed && <CheckCircle className="w-5 h-5 text-green-500" />}
                 {isFreeTrial && <CheckCircle className="w-5 h-5 text-blue-500" />}
               </h3>
