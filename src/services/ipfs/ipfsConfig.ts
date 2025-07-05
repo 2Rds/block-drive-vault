@@ -4,7 +4,7 @@ export class IPFSConfig {
   static readonly FILEBASE_RPC_KEY = 'MjUzMDc4QjZBMzZDQjc5RDNBMTU6YmlBdTZKa0ZMV01sYUxSSEpDMWFsSzdNbENJbWVMU1IzRUtRVHZvUDpibG9ja2RyaXZlLXN0b3JhZ2U=';
   static readonly FILEBASE_GATEWAY = 'https://regular-amber-sloth.myfilebase.com';
   static readonly FILEBASE_BUCKET = 'blockdrive-storage';
-  static readonly FILEBASE_RPC_BASE_URL = 'https://rpc.filebase.io/v1/ipfs';
+  static readonly FILEBASE_API_BASE_URL = 'https://api.filebase.com/v1/ipfs';
   
   static readonly FALLBACK_GATEWAYS = [
     'https://ipfs.io/ipfs',

@@ -19,7 +19,7 @@ export class IPFSUploadService {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${IPFSConfig.FILEBASE_RPC_BASE_URL}/add`, {
+      const response = await fetch(`${IPFSConfig.FILEBASE_API_BASE_URL}/add`, {
         method: 'POST',
         headers: IPFSConfig.getAuthHeaders(),
         body: formData,
@@ -27,16 +27,16 @@ export class IPFSUploadService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Filebase RPC upload error:', response.status, errorText);
-        throw new Error(`Filebase RPC upload error: ${response.status} - ${errorText}`);
+        console.error('Filebase API upload error:', response.status, errorText);
+        throw new Error(`Filebase API upload error: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
-      console.log('Filebase RPC upload result:', result);
+      console.log('Filebase API upload result:', result);
       
       const cid = result.Hash || result.cid;
       if (!cid) {
-        throw new Error('No CID returned from Filebase RPC');
+        throw new Error('No CID returned from Filebase API');
       }
       
       const uploadResult: IPFSUploadResult = {

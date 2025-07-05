@@ -6,7 +6,7 @@ export class IPFSPinningService {
     try {
       console.log(`Pinning file to BlockDrive IPFS via Filebase: ${cid}`);
       
-      const response = await fetch(`${IPFSConfig.FILEBASE_RPC_BASE_URL}/pin/add`, {
+      const response = await fetch(`${IPFSConfig.FILEBASE_API_BASE_URL}/pin/add`, {
         method: 'POST',
         headers: {
           ...IPFSConfig.getAuthHeaders(),
@@ -34,7 +34,7 @@ export class IPFSPinningService {
     try {
       console.log(`Unpinning file from BlockDrive IPFS via Filebase: ${cid}`);
       
-      const response = await fetch(`${IPFSConfig.FILEBASE_RPC_BASE_URL}/pin/rm`, {
+      const response = await fetch(`${IPFSConfig.FILEBASE_API_BASE_URL}/pin/rm`, {
         method: 'POST',
         headers: {
           ...IPFSConfig.getAuthHeaders(),
