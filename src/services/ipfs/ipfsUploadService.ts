@@ -1,6 +1,7 @@
 
 import { toast } from 'sonner';
 import { IPFSConfig } from './ipfsConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 interface IPFSUploadResult {
   cid: string;
@@ -19,36 +20,29 @@ export class IPFSUploadService {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${IPFSConfig.FILEBASE_API_BASE_URL}/add`, {
-        method: 'POST',
-        headers: IPFSConfig.getAuthHeaders(),
+      const { data, error } = await supabase.functions.invoke('upload-to-ipfs', {
         body: formData,
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Filebase API upload error:', response.status, errorText);
-        throw new Error(`Filebase API upload error: ${response.status} - ${errorText}`);
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(`Upload failed: ${error.message}`);
       }
       
-      const result = await response.json();
-      console.log('Filebase API upload result:', result);
-      
-      const cid = result.Hash || result.cid;
-      if (!cid) {
-        throw new Error('No CID returned from Filebase API');
+      if (!data) {
+        throw new Error('No data returned from upload function');
       }
       
       const uploadResult: IPFSUploadResult = {
-        cid: cid,
-        url: IPFSConfig.getBlockDriveIPFSUrl(cid),
-        filename: file.name,
-        size: file.size,
-        contentType: file.type || 'application/octet-stream'
+        cid: data.cid,
+        url: data.url,
+        filename: data.filename,
+        size: data.size,
+        contentType: data.contentType
       };
       
       console.log('BlockDrive IPFS upload successful via Filebase:', uploadResult);
-      toast.success(`File uploaded to BlockDrive IPFS via Filebase: ${cid}`);
+      toast.success(`File uploaded to BlockDrive IPFS via Filebase: ${data.cid}`);
       return uploadResult;
       
     } catch (error) {
