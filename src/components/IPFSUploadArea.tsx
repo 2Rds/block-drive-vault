@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Upload, Plus, Globe, Shield, Zap, CheckCircle, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -173,9 +172,9 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                uploading ? 'Uploading to BlockDrive IPFS...' : 'Upload to BlockDrive IPFS'}
             </h3>
             <p className="text-gray-300 mb-2">
-              {uploadStatus === 'success' ? 'Your files have been stored in BlockDrive IPFS via Filebase!' :
+              {uploadStatus === 'success' ? 'Your files have been stored in BlockDrive IPFS via your custom Pinata gateway!' :
                uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
-               'Secure, decentralized storage powered by IPFS via Filebase'}
+               'Secure, decentralized storage powered by IPFS via your custom Pinata gateway'}
             </p>
             
             <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
@@ -189,7 +188,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
               </span>
               <span className="flex items-center gap-1">
                 <Key className="w-4 h-4" />
-                Filebase Gateway
+                Custom Gateway
               </span>
             </div>
             
@@ -253,7 +252,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
                 Drag and drop files here, or click "Choose Files" to browse
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Files will be uploaded to BlockDrive IPFS via Filebase (DID: z6Mkhy...efoe)
+                Files will be uploaded to BlockDrive IPFS via your custom Pinata gateway
               </p>
             </div>
           )}

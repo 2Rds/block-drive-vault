@@ -13,7 +13,7 @@ interface IPFSUploadResult {
 export class IPFSUploadService {
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
     try {
-      console.log(`Starting IPFS upload via Pinata for file: ${file.name} (${file.size} bytes)`);
+      console.log(`Starting IPFS upload via your custom Pinata gateway for file: ${file.name} (${file.size} bytes)`);
       
       const formData = new FormData();
       formData.append('file', file);
@@ -47,13 +47,13 @@ export class IPFSUploadService {
         contentType: file.type || 'application/octet-stream'
       };
       
-      console.log('IPFS upload successful via Pinata:', uploadResult);
-      toast.success(`File uploaded to IPFS via Pinata: ${result.IpfsHash}`);
+      console.log('IPFS upload successful via your custom Pinata gateway:', uploadResult);
+      toast.success(`File uploaded to IPFS: ${result.IpfsHash}`);
       return uploadResult;
       
     } catch (error) {
-      console.error('IPFS upload via Pinata failed:', error);
-      toast.error(`Failed to upload file to IPFS via Pinata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('IPFS upload failed:', error);
+      toast.error(`Failed to upload file to IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return null;
     }
   }
@@ -63,14 +63,14 @@ export class IPFSUploadService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via Pinata...`);
+      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via your custom Pinata gateway...`);
       const result = await this.uploadFile(file);
       if (result) {
         results.push(result);
       }
     }
     
-    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via Pinata`);
+    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via your custom Pinata gateway`);
     return results;
   }
 }
