@@ -2,8 +2,8 @@
 
 
 export class IPFSConfig {
-  static readonly PINATA_API_KEY = 'fdde5d1bfaab0a18407c';
-  static readonly PINATA_SECRET_API_KEY = 'R5QM3nwujnAIrl8pFxlH869Sf5F8SMemjZF_NEBnKFdLP57LXvFn1oxPEtwYjmtk';
+  static readonly PINATA_API_KEY = 'f684a12c1928d962d5bd';
+  static readonly PINATA_SECRET_API_KEY = 'a4390de4be6c88fc8b587f9057b0a878678714b09152c4a08e0b9eef7d5d1e41';
   static readonly PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
   static readonly PINATA_GATEWAY = 'https://gray-acceptable-grouse-462.mypinata.cloud';
   
