@@ -6,18 +6,28 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthHero } from '@/components/auth/AuthHero';
 import { AuthConnectors } from '@/components/auth/AuthConnectors';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const [pageError, setPageError] = useState<string | null>(null);
 
-  console.log('Auth page - Current state:', {
+  console.log('Auth page - Current state (fresh authentication required):', {
     user: !!user,
     userId: user?.id,
     session: !!session,
     loading
   });
+
+  // Clear any existing sessions when the auth page loads
+  useEffect(() => {
+    console.log('Auth page loaded - clearing any existing sessions for security');
+    localStorage.removeItem('wallet-session');
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.removeItem('wallet-session');
+    sessionStorage.removeItem('wallet-session-temp');
+  }, []);
 
   // Error boundary for the page
   useEffect(() => {
@@ -39,7 +49,8 @@ const Auth = () => {
   }, [user, session, loading, navigate]);
 
   const handleWalletConnected = (walletInfo: any) => {
-    console.log('Wallet connected successfully:', walletInfo);
+    console.log('Fresh wallet connected successfully:', walletInfo);
+    toast.success('Wallet connected successfully! Redirecting to dashboard...');
     // User will be redirected to dashboard after successful connection
   };
 
@@ -85,6 +96,21 @@ const Auth = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <AuthHero />
+          
+          <div className="mb-8 text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
+              <div className="flex items-center justify-center mb-2">
+                <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-blue-800 font-semibold">Enhanced Security</h3>
+              </div>
+              <p className="text-blue-700 text-sm">
+                For your protection, you must connect your wallet for each new session. 
+                This ensures only you can access your account, even if someone else uses your device.
+              </p>
+            </div>
+          </div>
 
           <div className="max-w-2xl mx-auto space-y-12">
             <div className="space-y-6">

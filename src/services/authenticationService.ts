@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export class AuthenticationService {
   static async connectWallet(incomingWalletData: any) {
     try {
-      console.log('Connecting wallet with data:', incomingWalletData);
+      console.log('Fresh wallet connection attempt:', incomingWalletData);
 
       const walletAddress = incomingWalletData.address || incomingWalletData.wallet_address;
       const signature = incomingWalletData.signature || `mock-signature-${Date.now()}`;
@@ -15,29 +15,34 @@ export class AuthenticationService {
         throw new Error('No wallet address provided');
       }
 
-      console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
+      console.log(`Attempting fresh ${blockchainType} wallet authentication:`, walletAddress);
       
-      // Use the secure wallet authentication endpoint
+      // Generate fresh authentication parameters
+      const timestamp = Date.now();
+      const nonce = crypto.randomUUID();
+      const message = `Sign this message to authenticate with BlockDrive - ${timestamp}`;
+      
+      // Use the secure wallet authentication endpoint with fresh parameters
       const { data, error } = await supabase.functions.invoke('secure-wallet-auth', {
         body: {
           walletAddress,
           signature,
-          message: 'Sign this message to authenticate with BlockDrive',
-          timestamp: Date.now(),
-          nonce: crypto.randomUUID(),
+          message,
+          timestamp,
+          nonce,
           blockchainType
         }
       });
 
       if (error) {
-        console.error('Wallet authentication error:', error);
+        console.error('Fresh wallet authentication error:', error);
         throw new Error(`Failed to authenticate wallet: ${error.message}`);
       }
 
       if (data?.success && data?.authToken) {
-        console.log('Wallet authentication successful, creating session...');
+        console.log('Fresh wallet authentication successful, creating temporary session...');
         
-        // Create a comprehensive session using the auth token
+        // Create a session with shorter expiration time for security
         const sessionData = {
           user: {
             id: data.authToken,
@@ -47,17 +52,19 @@ export class AuthenticationService {
               wallet_address: walletAddress,
               blockchain_type: blockchainType,
               username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
-              full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
+              full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`,
+              auth_timestamp: timestamp
             }
           },
           access_token: data.authToken,
           refresh_token: data.authToken,
-          expires_at: Date.now() + (24 * 60 * 60 * 1000),
+          expires_at: Date.now() + (8 * 60 * 60 * 1000), // 8 hours for better security
           token_type: 'bearer'
         };
 
-        // Store session in localStorage for persistence
-        localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
+        // Store in sessionStorage instead of localStorage for better security
+        // sessionStorage is cleared when the browser tab is closed
+        sessionStorage.setItem('wallet-session-temp', JSON.stringify(sessionData));
         
         if (data.isFirstTime) {
           toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully! Welcome to BlockDrive!`);
@@ -66,15 +73,15 @@ export class AuthenticationService {
         }
         
         // Immediate redirect after setting all state
-        console.log('Redirecting to dashboard...');
-        window.location.href = '/index';
+        console.log('Fresh authentication complete, redirecting to dashboard...');
+        window.location.href = '/dashboard';
 
         return { error: null, data: sessionData };
       } else {
         throw new Error('Wallet authentication failed');
       }
     } catch (error: any) {
-      console.error('Wallet connection failed:', error);
+      console.error('Fresh wallet connection failed:', error);
       toast.error(`Failed to connect wallet: ${error.message}`);
       return { error: { message: error.message } };
     }
@@ -82,12 +89,17 @@ export class AuthenticationService {
 
   static async disconnectWallet() {
     try {
-      console.log('Disconnecting wallet...');
+      console.log('Disconnecting wallet and clearing all session data...');
       
-      // Clear wallet session storage
+      // Clear all session storage
+      localStorage.removeItem('wallet-session');
       localStorage.removeItem('sb-supabase-auth-token');
+      sessionStorage.removeItem('wallet-session');
+      sessionStorage.removeItem('wallet-session-temp');
+      localStorage.clear();
+      sessionStorage.clear();
       
-      toast.success('Wallet disconnected');
+      toast.success('Wallet disconnected - fresh authentication required for next session');
       
       // Redirect to auth page
       window.location.href = '/auth';
@@ -102,8 +114,13 @@ export class AuthenticationService {
 
   static async signOut() {
     try {
-      // Clear wallet session storage
+      // Clear all session storage
+      localStorage.removeItem('wallet-session');
       localStorage.removeItem('sb-supabase-auth-token');
+      sessionStorage.removeItem('wallet-session');
+      sessionStorage.removeItem('wallet-session-temp');
+      localStorage.clear();
+      sessionStorage.clear();
       
       return { error: null };
     } catch (error) {
@@ -113,24 +130,15 @@ export class AuthenticationService {
   }
 
   static checkWalletSession() {
-    const storedSession = localStorage.getItem('sb-supabase-auth-token');
-    if (storedSession) {
-      try {
-        const sessionData = JSON.parse(storedSession);
-        console.log('Found stored wallet session:', sessionData.user?.id);
-        
-        // Check if session is still valid
-        if (sessionData.expires_at > Date.now()) {
-          return sessionData;
-        } else {
-          // Session expired, remove it
-          localStorage.removeItem('sb-supabase-auth-token');
-        }
-      } catch (error) {
-        console.error('Error parsing stored session:', error);
-        localStorage.removeItem('sb-supabase-auth-token');
-      }
-    }
+    // SECURITY FIX: Do not restore sessions automatically
+    console.log('Session check - fresh authentication required for security');
+    
+    // Clear any existing sessions
+    localStorage.removeItem('wallet-session');
+    localStorage.removeItem('sb-supabase-auth-token');
+    sessionStorage.removeItem('wallet-session');
+    sessionStorage.removeItem('wallet-session-temp');
+    
     return null;
   }
 }

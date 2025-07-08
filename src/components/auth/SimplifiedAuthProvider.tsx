@@ -23,53 +23,31 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const { primaryWallet, handleLogOut } = useDynamicContext();
 
   useEffect(() => {
-    console.log('SimplifiedAuthProvider initializing...');
+    console.log('SimplifiedAuthProvider initializing with fresh session requirement...');
     
-    // Check for existing session on mount
+    // SECURITY FIX: Do not automatically restore sessions
+    // Users must explicitly connect their wallet each session for security
     const initializeAuth = async () => {
       setLoading(true);
       
-      // Try to get existing session from localStorage
-      const storedSession = localStorage.getItem('wallet-session');
-      if (storedSession) {
-        try {
-          const sessionData = JSON.parse(storedSession);
-          if (sessionData.user && sessionData.access_token) {
-            console.log('Found stored session, restoring auth state');
-            setUser(sessionData.user);
-            setSession(sessionData);
-            
-            if (sessionData.user.user_metadata?.wallet_address) {
-              setWalletData({
-                address: sessionData.user.user_metadata.wallet_address,
-                publicKey: null,
-                adapter: null,
-                connected: true,
-                autoConnect: false,
-                id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
-                wallet_address: sessionData.user.user_metadata.wallet_address,
-                blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing stored session:', error);
-          localStorage.removeItem('wallet-session');
-        }
-      }
+      // Clear any existing stored sessions on initialization
+      localStorage.removeItem('wallet-session');
+      localStorage.removeItem('sb-supabase-auth-token');
+      
+      console.log('Cleared existing sessions - fresh authentication required');
       
       setLoading(false);
     };
 
     initializeAuth();
 
-    // Listen for wallet authentication events
+    // Listen for wallet authentication events (only fresh connections)
     const handleWalletAuth = (event: CustomEvent) => {
-      console.log('Wallet auth success event received:', event.detail);
+      console.log('Fresh wallet auth event received:', event.detail);
       const sessionData = event.detail;
       
-      // Store session in localStorage for persistence
-      localStorage.setItem('wallet-session', JSON.stringify(sessionData));
+      // Store session temporarily (will be cleared on page reload)
+      sessionStorage.setItem('wallet-session', JSON.stringify(sessionData));
       
       setSession(sessionData);
       setUser(sessionData.user);
@@ -86,7 +64,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
         };
         setWalletData(walletInfo);
-        console.log('Set wallet data from auth event:', walletInfo);
+        console.log('Set wallet data from fresh auth event:', walletInfo);
       }
       
       setLoading(false);
@@ -100,7 +78,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   }, []);
 
   const connectWallet = async (walletData: any) => {
-    console.log('SimplifiedAuthProvider.connectWallet called with:', walletData);
+    console.log('SimplifiedAuthProvider.connectWallet called with fresh authentication');
     setLoading(true);
     
     try {
@@ -111,10 +89,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       const result = await SupabaseAuthService.connectWallet(walletAddress, signature, blockchainType, message);
       
-      console.log('SupabaseAuthService.connectWallet result:', result);
+      console.log('Fresh wallet authentication result:', result);
       
       if (!result.error && result.data) {
-        console.log('Setting user and session from connectWallet result');
+        console.log('Setting user and session from fresh authentication');
         
         const userId = result.data.user.id;
         
@@ -149,10 +127,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           token_type: result.data.token_type || 'bearer'
         };
 
-        console.log('Created Supabase-compatible user and session objects with user ID:', userId);
+        console.log('Created fresh session for user ID:', userId);
         
-        // Store session for persistence
-        localStorage.setItem('wallet-session', JSON.stringify(supabaseSession));
+        // Store session temporarily in sessionStorage (cleared on browser close)
+        sessionStorage.setItem('wallet-session', JSON.stringify(supabaseSession));
         
         setUser(supabaseUser);
         setSession(supabaseSession);
@@ -179,7 +157,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           console.log('No existing signup record to update');
         }
         
-        console.log('Auth state updated successfully - user authenticated with ID:', userId);
+        console.log('Fresh authentication completed successfully - user authenticated with ID:', userId);
         
         // Show success message
         toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
@@ -187,13 +165,13 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         setLoading(false);
         return { error: null, data: result.data };
       } else {
-        console.error('Wallet connection failed:', result.error);
+        console.error('Fresh wallet authentication failed:', result.error);
         toast.error('Failed to connect wallet. Please try again.');
         setLoading(false);
         return { error: result.error };
       }
     } catch (error) {
-      console.error('Wallet connection error:', error);
+      console.error('Fresh wallet authentication error:', error);
       toast.error('Failed to connect wallet. Please try again.');
       setLoading(false);
       return { error: { message: 'Failed to connect wallet' } };
@@ -201,7 +179,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   };
 
   const disconnectWallet = async () => {
-    console.log('Disconnecting wallet and clearing auth state');
+    console.log('Disconnecting wallet and clearing all session data');
     
     try {
       // First disconnect from Dynamic SDK if wallet is connected
@@ -215,15 +193,17 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       setUser(null);
       setSession(null);
       
-      // Clear all stored data
+      // Clear all stored data (both localStorage and sessionStorage)
       localStorage.removeItem('wallet-session');
+      localStorage.removeItem('sb-supabase-auth-token');
+      sessionStorage.removeItem('wallet-session');
       localStorage.clear();
       sessionStorage.clear();
       
       // Sign out from Supabase
       await SupabaseAuthService.signOut();
       
-      console.log('Wallet disconnected and auth state cleared');
+      console.log('Wallet disconnected and all auth state cleared');
       toast.success('Wallet disconnected successfully');
       
       return { error: null };
@@ -235,11 +215,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   };
 
   const signOut = async () => {
-    console.log('Signing out user');
+    console.log('Signing out user with complete session cleanup');
     return await disconnectWallet();
   };
 
-  console.log('SimplifiedAuthProvider current state:', {
+  console.log('SimplifiedAuthProvider current state (fresh session required):', {
     userId: user?.id,
     hasSession: !!session,
     sessionToken: session?.access_token ? 'present' : 'missing',
