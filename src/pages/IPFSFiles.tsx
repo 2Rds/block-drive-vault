@@ -8,11 +8,19 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
+import { SlackIntegration } from '@/components/SlackIntegration';
+import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
+import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
+import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const [selectedFolder, setSelectedFolder] = useState('all');
+  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
+  const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
+  const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
+  const [showBoxIntegration, setShowBoxIntegration] = useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -44,10 +52,10 @@ const IPFSFiles = () => {
           onFolderSelect={handleFolderSelect}
           onFolderClick={handleFolderClick}
           openFolders={openFolders}
-          onSlackClick={() => {}}
-          onOneDriveClick={() => {}}
-          onGoogleDriveClick={() => {}}
-          onBoxClick={() => {}}
+          onSlackClick={() => setShowSlackIntegration(true)}
+          onOneDriveClick={() => setShowOneDriveIntegration(true)}
+          onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
+          onBoxClick={() => setShowBoxIntegration(true)}
         />
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -88,6 +96,27 @@ const IPFSFiles = () => {
           </div>
         </main>
       </div>
+
+      {/* Integration Modals */}
+      <SlackIntegration
+        isOpen={showSlackIntegration}
+        onClose={() => setShowSlackIntegration(false)}
+      />
+
+      <OneDriveIntegration
+        isOpen={showOneDriveIntegration}
+        onClose={() => setShowOneDriveIntegration(false)}
+      />
+
+      <GoogleDriveIntegration
+        isOpen={showGoogleDriveIntegration}
+        onClose={() => setShowGoogleDriveIntegration(false)}
+      />
+
+      <BoxIntegration
+        isOpen={showBoxIntegration}
+        onClose={() => setShowBoxIntegration(false)}
+      />
     </div>
   );
 };
