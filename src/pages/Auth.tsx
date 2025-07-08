@@ -86,7 +86,7 @@ const Auth = () => {
         <div className="max-w-6xl mx-auto">
           <AuthHero />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="max-w-2xl mx-auto space-y-12">
             <div className="space-y-6">
               <AuthConnectors
                 dynamicReady={true}
