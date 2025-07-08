@@ -790,7 +790,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_auth_token: {
+        Args: { user_wallet_address: string }
+        Returns: string
+      }
     }
     Enums: {
       blockchain_network: "mainnet-beta" | "devnet" | "testnet"
