@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { PricingTier } from '@/types/pricing';
+import { PricingTier, PricingOption } from '@/types/pricing';
 import { supabase } from '@/integrations/supabase/client';
 
 export const usePricingSubscription = () => {
@@ -11,8 +11,8 @@ export const usePricingSubscription = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleSubscribe = async (tier: PricingTier) => {
-    console.log('handleSubscribe called with tier:', tier.name);
+  const handleSubscribe = async (tier: PricingTier, option: PricingOption) => {
+    console.log('handleSubscribe called with tier:', tier.name, 'period:', option.period);
     console.log('Current auth state:', { 
       hasUser: !!user, 
       userId: user?.id
@@ -24,8 +24,8 @@ export const usePricingSubscription = () => {
       return;
     }
 
-    if (!tier.paymentLink) {
-      toast.error('Payment link not available for this tier');
+    if (!option.paymentLink) {
+      toast.error('Payment link not available for this billing period');
       return;
     }
 
@@ -33,18 +33,18 @@ export const usePricingSubscription = () => {
 
     try {
       console.log('Redirecting to payment link for tier:', tier.name);
-      console.log('Payment link:', tier.paymentLink);
+      console.log('Payment link:', option.paymentLink);
       
       // Show success message
       toast.success('Redirecting to checkout...');
       
       // Open Stripe payment link in a new tab
-      const checkoutWindow = window.open(tier.paymentLink, '_blank');
+      const checkoutWindow = window.open(option.paymentLink, '_blank');
       
       if (!checkoutWindow) {
         // Fallback if popup is blocked - redirect in same window
         console.log('Popup blocked, redirecting in same window');
-        window.location.href = tier.paymentLink;
+        window.location.href = option.paymentLink;
       }
       
       // Reset loading state after a short delay

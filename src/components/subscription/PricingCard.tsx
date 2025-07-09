@@ -4,19 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Star, Calendar } from 'lucide-react';
-import { PricingTier } from '@/types/pricing';
+import { PricingTier, BillingPeriod, PricingOption } from '@/types/pricing';
 
 interface PricingCardProps {
   tier: PricingTier;
+  selectedPeriod: BillingPeriod;
   loading: string | null;
-  onSubscribe: (tier: PricingTier) => void;
+  onSubscribe: (tier: PricingTier, option: PricingOption) => void;
 }
 
-export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubscribe }) => {
-  const getButtonText = (tier: PricingTier) => {
+export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, loading, onSubscribe }) => {
+  // Find the pricing option for the selected period
+  const currentOption = tier.pricing.find(option => option.period === selectedPeriod) || tier.pricing[0];
+  
+  const getButtonText = (tier: PricingTier, option: PricingOption) => {
     if (loading === tier.name) return 'Processing...';
     if (tier.isEnterprise) return 'Book a Meeting';
-    if (tier.hasTrial) return 'Start Free Trial';
+    if (tier.hasTrial && option.period === 'monthly') return 'Start Free Trial';
     return `Subscribe to ${tier.name}`;
   };
 
@@ -25,10 +29,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
     return null;
   };
 
-  const getPriceDisplay = (tier: PricingTier) => {
-    if (tier.isEnterprise) return tier.price;
-    if (tier.name === 'Scale') return tier.price; // Already includes /month/seat
-    return `${tier.price}/month`;
+  const getPriceDisplay = (option: PricingOption) => {
+    if (tier.isEnterprise) return option.price;
+    if (tier.name === 'Scale') return option.price; // Already includes /month/seat
+    if (option.period === 'quarterly') return `${option.price}/quarter`;
+    if (option.period === 'annual') return `${option.price}/year`;
+    return `${option.price}/month`;
   };
 
   return (
@@ -58,9 +64,14 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
       <CardHeader className="text-center">
         <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
         <div className="text-2xl font-bold text-white mb-2">
-          {getPriceDisplay(tier)}
+          {getPriceDisplay(currentOption)}
+          {currentOption.savings && (
+            <div className="text-sm text-green-400 font-medium mt-1">
+              {currentOption.savings}
+            </div>
+          )}
         </div>
-        {tier.hasTrial && (
+        {tier.hasTrial && currentOption.period === 'monthly' && (
           <div className="text-sm text-green-400 font-medium">
             7-day free trial
           </div>
@@ -96,7 +107,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
         </div>
 
         <Button
-          onClick={() => onSubscribe(tier)}
+          onClick={() => onSubscribe(tier, currentOption)}
           disabled={loading === tier.name}
           className={`w-full text-sm ${
             tier.popular 
@@ -107,7 +118,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
           }`}
         >
           {getButtonIcon(tier)}
-          {getButtonText(tier)}
+          {getButtonText(tier, currentOption)}
         </Button>
       </CardContent>
     </Card>

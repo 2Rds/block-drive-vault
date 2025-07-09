@@ -5,9 +5,26 @@ import { PricingTier } from '@/types/pricing';
 export const pricingTiers: PricingTier[] = [
   {
     name: 'Starter',
-    price: '$9',
-    priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
-    paymentLink: 'https://buy.stripe.com/9B6aEW3a59YdbgXgn42VG00',
+    pricing: [
+      {
+        period: 'monthly',
+        price: '$9',
+        priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
+        paymentLink: 'https://buy.stripe.com/9B6aEW3a59YdbgXgn42VG00'
+      },
+      {
+        period: 'quarterly',
+        price: '$24',
+        priceId: 'price_1RitmxCXWi8NqmFCY0YKiefl',
+        savings: 'Save 11%'
+      },
+      {
+        period: 'annual',
+        price: '$89',
+        priceId: 'price_1RitmxCXWi8NqmFCf3wDnP2E',
+        savings: 'Save 17%'
+      }
+    ],
     description: 'Perfect for personal use with 7-day free trial',
     storage: '50 GB',
     bandwidth: '50 GB',
@@ -24,9 +41,14 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Pro',
-    price: '$29',
-    priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
-    paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zP98Pgn42VG01',
+    pricing: [
+      {
+        period: 'monthly',
+        price: '$29',
+        priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
+        paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zP98Pgn42VG01'
+      }
+    ],
     description: 'Enhanced storage for growing needs',
     storage: '150 GB',
     bandwidth: '150 GB',
@@ -42,9 +64,14 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Growth',
-    price: '$59',
-    priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
-    paymentLink: 'https://buy.stripe.com/7sYdR86mh1rH98P3Ai2VG02',
+    pricing: [
+      {
+        period: 'monthly',
+        price: '$59',
+        priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
+        paymentLink: 'https://buy.stripe.com/7sYdR86mh1rH98P3Ai2VG02'
+      }
+    ],
     description: 'Ideal for small teams and collaboration',
     storage: '300 GB',
     bandwidth: '300 GB',
@@ -62,9 +89,14 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Scale',
-    price: '$99/month/seat',
-    priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
-    paymentLink: 'https://buy.stripe.com/aFa4gyaCxc6l98Pc6O2VG03',
+    pricing: [
+      {
+        period: 'monthly',
+        price: '$99/month/seat',
+        priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
+        paymentLink: 'https://buy.stripe.com/aFa4gyaCxc6l98Pc6O2VG03'
+      }
+    ],
     description: 'Scalable solution for growing businesses',
     storage: '500 GB per seat',
     bandwidth: '500 GB per seat',
