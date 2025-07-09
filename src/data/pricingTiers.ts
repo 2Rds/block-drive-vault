@@ -41,7 +41,7 @@ export const pricingTiers: PricingTier[] = [
     ]
   },
   {
-    name: 'Pro Plus',
+    name: 'Growth',
     price: '$59',
     priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
     paymentLink: 'https://buy.stripe.com/7sYdR86mh1rH98P3Ai2VG02',
@@ -62,7 +62,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Scale',
-    price: '$99',
+    price: '$99/month/seat',
     priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
     paymentLink: 'https://buy.stripe.com/aFa4gyaCxc6l98Pc6O2VG03',
     description: 'Scalable solution for growing businesses',

@@ -79,8 +79,8 @@ serve(async (req) => {
     const validPriceIds = [
       'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
       'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
-      'price_1RfrEICXWi8NqmFChG0fYrRy', // Pro Plus
-      'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Business
+      'price_1RfrEICXWi8NqmFChG0fYrRy', // Growth
+      'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Scale
     ];
 
     if (!validPriceIds.includes(priceId)) {

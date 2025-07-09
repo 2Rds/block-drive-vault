@@ -27,7 +27,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, loading, onSubsc
 
   const getPriceDisplay = (tier: PricingTier) => {
     if (tier.isEnterprise) return tier.price;
-    if (tier.name === 'Business') return `${tier.price}/month/seat`;
+    if (tier.name === 'Scale') return tier.price; // Already includes /month/seat
     return `${tier.price}/month`;
   };
 

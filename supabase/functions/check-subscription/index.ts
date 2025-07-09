@@ -16,8 +16,8 @@ const logStep = (step: string, details?: any) => {
 const TIER_LIMITS = {
   Starter: { storage: 50, bandwidth: 50, seats: 1 },
   Pro: { storage: 150, bandwidth: 150, seats: 1 },
-  'Pro Plus': { storage: 300, bandwidth: 300, seats: 3 },
-  Business: { storage: 500, bandwidth: 500, seats: 999 }, // Unlimited represented as high number
+  Growth: { storage: 300, bandwidth: 300, seats: 3 },
+  Scale: { storage: 500, bandwidth: 500, seats: 999 }, // Unlimited represented as high number
   Enterprise: { storage: 99999, bandwidth: 99999, seats: 999 } // Unlimited represented as high number
 };
 
@@ -145,8 +145,8 @@ serve(async (req) => {
       const priceIdToTier: { [key: string]: string } = {
         'price_1RfquDCXWi8NqmFCLUCGHtkZ': 'Starter',   // $9/month
         'price_1Rfr9KCXWi8NqmFCoglqEMRH': 'Pro',       // $29/month
-        'price_1RfrEICXWi8NqmFChG0fYrRy': 'Pro Plus',  // $59/month
-        'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Business'   // $99/month/seat
+        'price_1RfrEICXWi8NqmFChG0fYrRy': 'Growth',    // $59/month
+        'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Scale'      // $99/month/seat
       };
       
       subscriptionTier = priceIdToTier[priceId] || null;
