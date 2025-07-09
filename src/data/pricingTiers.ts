@@ -16,12 +16,14 @@ export const pricingTiers: PricingTier[] = [
         period: 'quarterly',
         price: '$24',
         priceId: 'price_1RitmxCXWi8NqmFCY0YKiefl',
+        buyButtonId: 'buy_btn_1Riuf1CXWi8NqmFCMGCzk4f0',
         savings: 'Save 11%'
       },
       {
         period: 'annual',
         price: '$89',
         priceId: 'price_1RitmxCXWi8NqmFCf3wDnP2E',
+        buyButtonId: 'buy_btn_1RiuhICXWi8NqmFCJXt4f0SC',
         savings: 'Save 17%'
       }
     ],

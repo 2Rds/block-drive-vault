@@ -6,6 +6,7 @@ export interface PricingOption {
   price: string;
   priceId: string;
   paymentLink?: string;
+  buyButtonId?: string;
   savings?: string; // e.g., "Save 20%"
 }
 

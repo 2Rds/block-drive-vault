@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,43 @@ interface PricingCardProps {
 export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, loading, onSubscribe }) => {
   // Find the pricing option for the selected period
   const currentOption = tier.pricing.find(option => option.period === selectedPeriod) || tier.pricing[0];
+  
+  // Load Stripe script for buy buttons
+  useEffect(() => {
+    if (!document.querySelector('script[src="https://js.stripe.com/v3/buy-button.js"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/buy-button.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  const handleButtonClick = () => {
+    if (currentOption.buyButtonId) {
+      // Trigger Stripe buy button
+      const stripe = (window as any).Stripe;
+      if (stripe) {
+        // Create and click a hidden Stripe buy button
+        const buyButton = document.createElement('stripe-buy-button');
+        buyButton.setAttribute('buy-button-id', currentOption.buyButtonId);
+        buyButton.setAttribute('publishable-key', 'pk_live_51RfqHpCXWi8NqmFCZjA3LQM9pzqn6iurHNOyLXkMkHDpNmQrIKyYSkLD4BBLIToA2oZT3MSrH42IV3sYuNZxo46d00voZDSjq1');
+        buyButton.style.display = 'none';
+        document.body.appendChild(buyButton);
+        
+        // Trigger the click
+        setTimeout(() => {
+          const buyButtonElement = buyButton.shadowRoot?.querySelector('button') || buyButton.querySelector('button');
+          if (buyButtonElement) {
+            (buyButtonElement as HTMLButtonElement).click();
+          }
+          document.body.removeChild(buyButton);
+        }, 100);
+      }
+    } else {
+      // Use existing payment link flow
+      onSubscribe(tier, currentOption);
+    }
+  };
   
   const getButtonText = (tier: PricingTier, option: PricingOption) => {
     if (loading === tier.name) return 'Processing...';
@@ -107,7 +144,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
         </div>
 
         <Button
-          onClick={() => onSubscribe(tier, currentOption)}
+          onClick={handleButtonClick}
           disabled={loading === tier.name}
           className={`w-full text-sm ${
             tier.popular 
