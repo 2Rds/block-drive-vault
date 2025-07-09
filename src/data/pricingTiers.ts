@@ -84,7 +84,21 @@ export const pricingTiers: PricingTier[] = [
         period: 'monthly',
         price: '$59',
         priceId: 'price_1RfrEICXWi8NqmFChG0fYrRy',
-        paymentLink: 'https://buy.stripe.com/7sYdR86mh1rH98P3Ai2VG02'
+        paymentLink: 'https://pay.blockdrive.co/b/aFaaEWaCx0nD5WD4Em2VG0g'
+      },
+      {
+        period: 'quarterly',
+        price: '$159',
+        priceId: 'price_quarterly_growth',
+        paymentLink: 'https://pay.blockdrive.co/b/14AcN45id8U970H5Iq2VG0h',
+        savings: 'Save 10%'
+      },
+      {
+        period: 'annual',
+        price: '$599',
+        priceId: 'price_annual_growth',
+        paymentLink: 'https://pay.blockdrive.co/b/5kQ00i6mh8U984L5Iq2VG0i',
+        savings: 'Save 16%'
       }
     ],
     description: 'Ideal for small teams and collaboration',
