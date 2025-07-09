@@ -1,5 +1,4 @@
 
-
 import { PricingTier } from '@/types/pricing';
 
 export const pricingTiers: PricingTier[] = [
@@ -48,7 +47,21 @@ export const pricingTiers: PricingTier[] = [
         period: 'monthly',
         price: '$29',
         priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
-        paymentLink: 'https://buy.stripe.com/dRmdR8dOJ3zP98Pgn42VG01'
+        paymentLink: 'https://pay.blockdrive.co/b/fZu5kC9yt9Yd84L9YG2VG0c'
+      },
+      {
+        period: 'quarterly',
+        price: '$79',
+        priceId: 'price_quarterly_pro', // You'll need to provide this
+        paymentLink: 'https://pay.blockdrive.co/b/3cI7sK2615HXgBhfj02VG0e',
+        savings: 'Save 9%'
+      },
+      {
+        period: 'annual',
+        price: '$299',
+        priceId: 'price_annual_pro', // You'll need to provide this
+        paymentLink: 'https://pay.blockdrive.co/b/cNi6oGdOJdapgBh8UC2VG0f',
+        savings: 'Save 14%'
       }
     ],
     description: 'Enhanced storage for growing needs',
@@ -115,4 +128,3 @@ export const pricingTiers: PricingTier[] = [
     ]
   }
 ];
-
