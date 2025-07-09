@@ -10,20 +10,20 @@ export const pricingTiers: PricingTier[] = [
         period: 'monthly',
         price: '$9',
         priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
-        paymentLink: 'https://buy.stripe.com/9B6aEW3a59YdbgXgn42VG00'
+        paymentLink: 'https://pay.blockdrive.co/b/00wbJ0261fixdp59YG2VG07'
       },
       {
         period: 'quarterly',
         price: '$24',
         priceId: 'price_1RitmxCXWi8NqmFCY0YKiefl',
-        buyButtonId: 'buy_btn_1Riuf1CXWi8NqmFCMGCzk4f0',
+        paymentLink: 'https://pay.blockdrive.co/b/28EdR8bGB7Q598P6Mu2VG0a',
         savings: 'Save 11%'
       },
       {
         period: 'annual',
         price: '$89',
         priceId: 'price_1RitmxCXWi8NqmFCf3wDnP2E',
-        buyButtonId: 'buy_btn_1RiuhICXWi8NqmFCJXt4f0SC',
+        paymentLink: 'https://pay.blockdrive.co/b/6oU9AS3a52vL2Kr5Iq2VG0b',
         savings: 'Save 17%'
       }
     ],
