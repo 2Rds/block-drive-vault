@@ -41,6 +41,63 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
     return `${option.price}/month`;
   };
 
+  // Special handling for Scale tier with Stripe pricing table
+  if (tier.stripePricingTableId && tier.stripePublishableKey) {
+    return (
+      <div className="relative">
+        {tier.isEnterprise && (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <Badge className="bg-purple-600 text-white flex items-center gap-1">
+              <Star className="w-3 h-3" />
+              Enterprise
+            </Badge>
+          </div>
+        )}
+        
+        <Card className="relative bg-gray-800/40 border-gray-700/50 ring-2 ring-purple-500 overflow-hidden">
+          <div className="p-4">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
+              <p className="text-gray-300 text-sm mb-4">{tier.description}</p>
+              
+              <div className="grid grid-cols-1 gap-1 text-xs mb-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Storage:</span>
+                  <span className="text-white font-medium">{tier.storage}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Bandwidth:</span>
+                  <span className="text-white font-medium">{tier.bandwidth}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Team Size:</span>
+                  <span className="text-white font-medium">{tier.seats}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                {tier.features.map((feature, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-300 text-xs">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Stripe Pricing Table */}
+            <div 
+              className="stripe-pricing-table-container"
+              dangerouslySetInnerHTML={{
+                __html: `<stripe-pricing-table pricing-table-id="${tier.stripePricingTableId}" publishable-key="${tier.stripePublishableKey}"></stripe-pricing-table>`
+              }}
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <Card 
       className={`relative bg-gray-800/40 border-gray-700/50 ${
