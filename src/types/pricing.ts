@@ -20,6 +20,4 @@ export interface PricingTier {
   popular?: boolean;
   isEnterprise?: boolean;
   hasTrial?: boolean;
-  stripePricingTableId?: string;
-  stripePublishableKey?: string;
 }

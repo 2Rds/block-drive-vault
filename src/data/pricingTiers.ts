@@ -130,9 +130,6 @@ export const pricingTiers: PricingTier[] = [
     storage: '500 GB per seat',
     bandwidth: '500 GB per seat',
     seats: 'Unlimited users',
-    isEnterprise: true,
-    stripePricingTableId: 'prctbl_1RiyfmCXWi8NqmFCSRdkXE40',
-    stripePublishableKey: 'pk_live_51RfqHpCXWi8NqmFCZjA3LQW9pzqn6iurHNOyLXkMkHDpNmQrIKyYSkLD4BBLIToA2oZT3MSrH42IV3sYuNZxo46d00voZDSjql',
     features: [
       '500 GB secure storage per seat',
       '500 GB bandwidth per seat',
