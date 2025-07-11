@@ -122,8 +122,8 @@ export const pricingTiers: PricingTier[] = [
       {
         period: 'monthly',
         price: '$99/month/seat',
-        priceId: 'price_1RfrzdCXWi8NqmFCzAJZnHjF',
-        paymentLink: 'https://buy.stripe.com/aFa4gyaCxc6l98Pc6O2VG03'
+        priceId: 'price_1RjjLjCXWi8NqmFCUSZpnelu',
+        paymentLink: 'https://pay.blockdrive.co/b/9B64gyfWR0nDbgXc6O2VG0j'
       }
     ],
     description: 'Scalable solution for growing businesses',
