@@ -45,7 +45,16 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
   if (tier.stripePricingTableId && tier.stripePublishableKey) {
     return (
       <div className="relative">
-        <Card className="relative bg-gray-800/40 border-gray-700/50 overflow-hidden">
+        {tier.isEnterprise && (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <Badge className="bg-purple-600 text-white flex items-center gap-1">
+              <Star className="w-3 h-3" />
+              Enterprise
+            </Badge>
+          </div>
+        )}
+        
+        <Card className="relative bg-gray-800/40 border-gray-700/50 ring-2 ring-purple-500 overflow-hidden">
           <div className="p-4">
             <div className="text-center mb-4">
               <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
