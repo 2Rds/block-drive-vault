@@ -131,6 +131,13 @@ export const pricingTiers: PricingTier[] = [
         priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         paymentLink: 'https://pay.blockdrive.co/b/6oU6oGaCx0nDfxd8UC2VG0k',
         savings: 'Save 10%'
+      },
+      {
+        period: 'annual',
+        price: '$950/year/seat',
+        priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
+        paymentLink: 'https://pay.blockdrive.co/b/4gM14m3a54DT84Lfj02VG0l',
+        savings: 'Save 20%'
       }
     ],
     description: 'Scalable solution for growing businesses',
