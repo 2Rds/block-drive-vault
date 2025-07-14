@@ -464,6 +464,7 @@ export type Database = {
           is_encrypted: boolean
           metadata: Json | null
           storage_provider: string | null
+          team_id: string | null
           updated_at: string
           user_id: string
           wallet_id: string
@@ -481,6 +482,7 @@ export type Database = {
           is_encrypted?: boolean
           metadata?: Json | null
           storage_provider?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id: string
           wallet_id: string
@@ -498,11 +500,20 @@ export type Database = {
           is_encrypted?: boolean
           metadata?: Json | null
           storage_provider?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string
           wallet_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "files_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nft_collections: {
         Row: {
@@ -643,6 +654,7 @@ export type Database = {
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
+          team_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -659,6 +671,7 @@ export type Database = {
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -675,8 +688,126 @@ export type Database = {
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscribers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          team_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: string
+          team_id: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          max_members: number
+          name: string
+          owner_id: string
+          plan_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_members?: number
+          name: string
+          owner_id: string
+          plan_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_members?: number
+          name?: string
+          owner_id?: string
+          plan_type?: string
+          updated_at?: string
         }
         Relationships: []
       }

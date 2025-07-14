@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancel from "./pages/SubscriptionCancel";
+import Teams from "./pages/Teams";
+import TeamInvitation from "./pages/TeamInvitation";
 import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
 import { DynamicProvider } from "./components/auth/DynamicProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -53,6 +55,12 @@ const App = () => (
                   <Account />
                 </ProtectedRoute>
               } />
+              <Route path="/teams" element={
+                <ProtectedRoute>
+                  <Teams />
+                </ProtectedRoute>
+              } />
+              <Route path="/team-invitation" element={<TeamInvitation />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SimplifiedAuthProvider>

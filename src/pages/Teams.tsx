@@ -1,0 +1,160 @@
+import { useTeams } from '@/hooks/useTeams';
+import { useAuth } from '@/hooks/useAuth';
+import { CreateTeamModal } from '@/components/team/CreateTeamModal';
+import { TeamSelector } from '@/components/team/TeamSelector';
+import { InviteTeamMemberModal } from '@/components/team/InviteTeamMemberModal';
+import { TeamMembersTable } from '@/components/team/TeamMembersTable';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, UserPlus, Clock, Settings } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+export default function Teams() {
+  const { user } = useAuth();
+  const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-48 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isCurrentTeamOwner = currentTeam && user && currentTeam.owner_id === user.id;
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Teams</h1>
+          <p className="text-muted-foreground">
+            Manage your teams and collaborate with your colleagues
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <TeamSelector />
+          <CreateTeamModal />
+        </div>
+      </div>
+
+      {teams.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No teams yet</h2>
+            <p className="text-muted-foreground text-center mb-6">
+              Create your first team to start collaborating with your colleagues
+            </p>
+            <CreateTeamModal />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {teams.map((team) => (
+            <Card key={team.id} className={currentTeam?.id === team.id ? 'ring-2 ring-primary' : ''}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{team.name}</CardTitle>
+                  <Badge variant={team.plan_type === 'growth' ? 'default' : 'secondary'}>
+                    {team.plan_type}
+                  </Badge>
+                </div>
+                {team.description && (
+                  <p className="text-sm text-muted-foreground">{team.description}</p>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>{teamMembers.filter(m => m.team_id === team.id).length || 0} members</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{new Date(team.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {currentTeam && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                {currentTeam.name} Management
+              </CardTitle>
+              {isCurrentTeamOwner && (
+                <InviteTeamMemberModal teamId={currentTeam.id} />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="members" className="w-full">
+              <TabsList>
+                <TabsTrigger value="members">Members</TabsTrigger>
+                <TabsTrigger value="invitations">Pending Invitations</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="members" className="space-y-4">
+                <TeamMembersTable
+                  members={teamMembers}
+                  teamId={currentTeam.id}
+                  isOwner={isCurrentTeamOwner || false}
+                />
+              </TabsContent>
+              
+              <TabsContent value="invitations" className="space-y-4">
+                {teamInvitations.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No pending invitations
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Invited</TableHead>
+                        <TableHead>Expires</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teamInvitations.map((invitation) => (
+                        <TableRow key={invitation.id}>
+                          <TableCell>{invitation.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{invitation.role}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(invitation.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(invitation.expires_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
