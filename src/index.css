@@ -57,3 +57,46 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix Intercom messenger positioning to prevent overlap with main content */
+@layer components {
+  /* Ensure Intercom widget doesn't overlap with main content */
+  .intercom-namespace .intercom-messenger-frame {
+    z-index: 1000 !important;
+  }
+
+  /* Position Intercom launcher away from main buttons */
+  .intercom-namespace .intercom-launcher-frame {
+    bottom: 24px !important;
+    right: 24px !important;
+    z-index: 1000 !important;
+  }
+
+  /* Adjust Intercom messenger positioning on smaller screens */
+  @media (max-width: 768px) {
+    .intercom-namespace .intercom-messenger-frame {
+      right: 12px !important;
+      bottom: 12px !important;
+      max-width: calc(100vw - 24px) !important;
+      max-height: calc(100vh - 100px) !important;
+    }
+    
+    .intercom-namespace .intercom-launcher-frame {
+      bottom: 16px !important;
+      right: 16px !important;
+    }
+  }
+
+  /* Ensure main auth buttons have proper z-index */
+  .auth-buttons {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Add margin to main content to prevent overlap */
+  .main-content {
+    margin-bottom: 100px;
+    position: relative;
+    z-index: 5;
+  }
+}

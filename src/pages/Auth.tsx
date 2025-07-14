@@ -85,7 +85,7 @@ const Auth = () => {
   return <div className="min-h-screen bg-background">
       <AuthHeader />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 main-content">
         <div className="max-w-6xl mx-auto">
           <AuthHero />
           
@@ -94,7 +94,7 @@ const Auth = () => {
           </div>
 
           <div className="max-w-2xl mx-auto space-y-12">
-            <div className="space-y-6">
+            <div className="space-y-6 auth-buttons">
               <AuthConnectors dynamicReady={true} sdkError={false} sdkHasLoaded={true} onRetry={() => window.location.reload()} onWalletConnected={handleWalletConnected} />
             </div>
             
