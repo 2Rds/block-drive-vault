@@ -7,6 +7,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { SignupService } from '@/services/signupService';
+import { IntercomMessenger } from '@/components/IntercomMessenger';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -227,6 +228,14 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     loading
   });
 
+  // Prepare Intercom user data
+  const intercomUser = user ? {
+    userId: user.id,
+    email: user.email || `${user.id}@blockdrive.wallet`,
+    name: user.user_metadata?.full_name || user.user_metadata?.username || 'BlockDrive User',
+    createdAt: user.created_at ? Math.floor(new Date(user.created_at).getTime() / 1000) : Math.floor(Date.now() / 1000)
+  } : undefined;
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -238,6 +247,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       disconnectWallet,
       signOut
     }}>
+      <IntercomMessenger 
+        user={intercomUser}
+        isAuthenticated={!!user}
+      />
       {children}
     </AuthContext.Provider>
   );
