@@ -14,7 +14,6 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
       settings={{
         environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
         walletConnectors: [
-          EthereumWalletConnectors,
           SolanaWalletConnectors,
         ],
         appName: 'BlockDrive',
@@ -27,6 +26,14 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         cssOverrides: `
           .dynamic-widget-modal { z-index: 10000 !important; }
           .dynamic-widget-modal-overlay { z-index: 9999 !important; }
+          .dynamic-connect-button { 
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow))) !important;
+            color: hsl(var(--primary-foreground)) !important;
+            border: none !important;
+          }
+          .dynamic-connect-button:hover {
+            opacity: 0.9 !important;
+          }
         `,
       }}
     >
