@@ -13,8 +13,8 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
     <DynamicContextProvider
       settings={{
         environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
-        // Use Global Wallet only - no external connectors
-        walletConnectors: [],
+        // Standard wallet connectors for third party wallets
+        walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
         initialAuthenticationMode: 'connect-and-sign',
