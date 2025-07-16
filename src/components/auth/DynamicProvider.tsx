@@ -13,8 +13,8 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
     <DynamicContextProvider
       settings={{
         environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
-        // Remove external wallet connectors to use Global Wallet only
-        walletConnectors: [],
+        // Enable Global Wallet by adding Solana support
+        walletConnectors: [SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
         initialAuthenticationMode: 'connect-and-sign',
@@ -22,8 +22,6 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         shadowDOMEnabled: false,
         debugError: true,
         logLevel: 'DEBUG',
-        // Global Wallet will be available when no external connectors are specified
-        // Use only Solana for BlockDrive wallet integration
         cssOverrides: `
           .dynamic-widget-modal { z-index: 10000 !important; }
           .dynamic-widget-modal-overlay { z-index: 9999 !important; }
