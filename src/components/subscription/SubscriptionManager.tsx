@@ -55,8 +55,22 @@ export const SubscriptionManager = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (user && !document.hidden) {
+        console.log('Page became visible, refreshing subscription status');
+        setTimeout(() => {
+          handleRefresh();
+        }, 2000); // Small delay to ensure any updates have propagated
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   if (loading && !subscriptionStatus) {

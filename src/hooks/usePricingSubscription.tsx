@@ -50,6 +50,10 @@ export const usePricingSubscription = () => {
       // Reset loading state after a short delay
       setTimeout(() => {
         setLoading(null);
+        // Trigger subscription status refresh when user returns from checkout
+        setTimeout(() => {
+          checkSubscriptionStatus();
+        }, 3000);
       }, 1000);
       
     } catch (error: any) {

@@ -158,6 +158,20 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           console.log('No existing signup record to update');
         }
         
+        // Automatically check subscription status after successful wallet connection
+        try {
+          console.log('Checking subscription status after wallet connection...');
+          const { supabase } = await import('@/integrations/supabase/client');
+          const response = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${result.data.access_token}`,
+            },
+          });
+          console.log('Subscription status check result:', response);
+        } catch (error) {
+          console.log('Subscription status check failed:', error);
+        }
+        
         console.log('Fresh authentication completed successfully - user authenticated with ID:', userId);
         
         // Show success message

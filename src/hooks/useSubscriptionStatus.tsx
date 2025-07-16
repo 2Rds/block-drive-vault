@@ -58,16 +58,24 @@ export const useSubscriptionStatus = () => {
 
   // Check subscription on mount and when user changes
   useEffect(() => {
-    checkSubscription();
+    if (user?.id) {
+      console.log('useSubscriptionStatus: User changed, checking subscription');
+      checkSubscription();
+    } else {
+      // Clear subscription status when user logs out
+      setSubscriptionStatus(null);
+      setError(null);
+    }
   }, [user?.id]);
 
-  // Auto-refresh subscription status every 5 minutes
+  // Auto-refresh subscription status every 2 minutes for more responsive updates
   useEffect(() => {
     if (!user) return;
     
     const interval = setInterval(() => {
+      console.log('useSubscriptionStatus: Periodic refresh');
       checkSubscription();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 2 * 60 * 1000); // 2 minutes for more responsive updates
 
     return () => clearInterval(interval);
   }, [user?.id]);
