@@ -23,6 +23,7 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         shadowDOMEnabled: false,
         debugError: true,
         logLevel: 'DEBUG',
+        // Use only Solana for BlockDrive wallet integration
         cssOverrides: `
           .dynamic-widget-modal { z-index: 10000 !important; }
           .dynamic-widget-modal-overlay { z-index: 9999 !important; }
