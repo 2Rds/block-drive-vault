@@ -33,8 +33,8 @@ export const Sidebar = ({
 
   if (loading) {
     return (
-      <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-screen fixed left-0 top-16 overflow-y-auto">
-        <div className="p-6 space-y-8">
+    <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-4rem)] fixed left-0 top-16 overflow-y-auto">
+      <div className="p-6 pb-8 space-y-8">
           <div className="animate-pulse">
             <div className="h-6 bg-muted rounded mb-6 w-20"></div>
             <div className="space-y-2">
@@ -57,8 +57,8 @@ export const Sidebar = ({
   }
 
   return (
-    <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-screen fixed left-0 top-16 overflow-y-auto">
-      <div className="p-6 space-y-8">
+    <aside className="w-64 bg-card/80 backdrop-blur-sm border-r border-border h-[calc(100vh-4rem)] fixed left-0 top-16 overflow-y-auto">
+      <div className="p-6 pb-8 space-y-8">
         <SidebarFolders
           selectedFolder={selectedFolder}
           onFolderSelect={onFolderSelect}
