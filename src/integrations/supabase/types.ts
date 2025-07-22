@@ -467,7 +467,7 @@ export type Database = {
           team_id: string | null
           updated_at: string
           user_id: string
-          wallet_id: string
+          wallet_id: string | null
         }
         Insert: {
           content_type?: string | null
@@ -485,7 +485,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id: string
-          wallet_id: string
+          wallet_id?: string | null
         }
         Update: {
           content_type?: string | null
@@ -503,7 +503,7 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string
-          wallet_id?: string
+          wallet_id?: string | null
         }
         Relationships: [
           {
