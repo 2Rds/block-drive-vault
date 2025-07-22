@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CreditCard, Upload, Lock, Link } from 'lucide-react';
 import { useUploadPermissions } from '@/hooks/useUploadPermissions';
 import { useAuth } from '@/hooks/useAuth';
-import { WalletEmailLinker } from '@/components/WalletEmailLinker';
+import { EmailWalletMatcher } from '@/components/EmailWalletMatcher';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 interface SubscriptionGateProps {
@@ -19,10 +19,10 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
   const { user, walletData } = useAuth();
   const { canUpload, loading, needsSignup, needsSubscription, signupData } = useUploadPermissions();
   const { refetch: refreshSubscription } = useSubscriptionStatus();
-  const [showWalletLinker, setShowWalletLinker] = useState(false);
+  const [showEmailMatcher, setShowEmailMatcher] = useState(false);
 
-  const handleWalletLinkSuccess = () => {
-    setShowWalletLinker(false);
+  const handleLinkSuccess = () => {
+    setShowEmailMatcher(false);
     // Refresh subscription status after linking
     setTimeout(() => {
       refreshSubscription();
@@ -50,14 +50,14 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
   const isWalletUser = user?.email?.endsWith('@blockdrive.wallet');
   const hasSignupData = !!signupData;
   
-  if (showWalletLinker) {
+  if (showEmailMatcher) {
     return (
       <div className="space-y-6">
-        <WalletEmailLinker onSuccess={handleWalletLinkSuccess} />
+        <EmailWalletMatcher onSuccess={handleLinkSuccess} />
         <div className="text-center">
           <Button 
             variant="outline" 
-            onClick={() => setShowWalletLinker(false)}
+            onClick={() => setShowEmailMatcher(false)}
             className="text-muted-foreground"
           >
             Cancel
@@ -117,11 +117,11 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
             </p>
             <div className="flex justify-center space-x-4">
               <Button
-                onClick={() => setShowWalletLinker(true)}
+                onClick={() => setShowEmailMatcher(true)}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:opacity-90 text-white"
               >
                 <Link className="w-4 h-4 mr-2" />
-                Link Wallet to Email
+                Find My Registration
               </Button>
               <Button
                 onClick={() => navigate('/pricing')}
