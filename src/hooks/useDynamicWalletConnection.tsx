@@ -33,12 +33,24 @@ export const useDynamicWalletConnection = (
     setIsProcessing(true);
 
     try {
+      // Get wallet address - ensure it exists
       const walletAddress = primaryWallet.address;
+      
+      if (!walletAddress) {
+        console.error('No wallet address found:', {
+          primaryWallet,
+          address: primaryWallet.address,
+          chain: primaryWallet.chain
+        });
+        throw new Error('Missing wallet address - please ensure your wallet is properly connected');
+      }
+      
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
       
-      console.log('Checking if wallet has existing signup:', {
+      console.log('Processing wallet connection with address:', {
         address: walletAddress,
-        blockchainType
+        blockchainType,
+        chain: primaryWallet.chain
       });
 
       // Check if this wallet is already associated with a signup
@@ -69,6 +81,7 @@ export const useDynamicWalletConnection = (
       // Authenticate with backend
       const result = await connectWallet({
         address: walletAddress,
+        wallet_address: walletAddress, // Add this for compatibility
         blockchain_type: blockchainType,
         signature,
         message,
