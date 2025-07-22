@@ -18,8 +18,8 @@ export const WalletStatusDisplay = ({
         MultiChain Authentication - Supporting both chains:
       </p>
       <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
-        <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum + ENS</span>
-        <span className="bg-purple-800/40 px-2 py-1 rounded">Solana + SNS</span>
+        <span className="bg-blue-800/40 px-2 py-1 rounded">Ethereum</span>
+        <span className="bg-purple-800/40 px-2 py-1 rounded">Solana</span>
       </div>
       
       {/* Security status */}
