@@ -4,10 +4,12 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { IPFSUploadArea } from "@/components/IPFSUploadArea";
+import { FileViewer } from "@/components/FileViewer";
 import { Button } from '@/components/ui/button';
 import { BarChart3, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
+import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
@@ -15,7 +17,17 @@ import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
-  const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
+  const { 
+    currentPath, 
+    openFolders, 
+    selectedFile,
+    showFileViewer,
+    toggleFolder,
+    selectFile,
+    closeFileViewer,
+    goBack
+  } = useFolderNavigation();
+  const { downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [showSlackIntegration, setShowSlackIntegration] = useState(false);
   const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
@@ -41,6 +53,15 @@ const IPFSFiles = () => {
   const handleUploadComplete = () => {
     // Refresh the file grid when upload completes
     window.location.reload();
+  };
+
+  const handleFileSelect = (file: any) => {
+    console.log('File selected:', file);
+    selectFile(file);
+  };
+
+  const handleDownloadFile = async (file: any) => {
+    await downloadFromIPFS(file.cid, file.filename);
   };
 
   return (
@@ -92,10 +113,21 @@ const IPFSFiles = () => {
             <IPFSFileGrid 
               selectedFolder={selectedFolder}
               currentPath={currentPath}
+              onGoBack={goBack}
+              onFileSelect={handleFileSelect}
             />
           </div>
         </main>
       </div>
+
+      {/* File Viewer Modal */}
+      {showFileViewer && selectedFile && (
+        <FileViewer
+          file={selectedFile}
+          onClose={closeFileViewer}
+          onDownload={handleDownloadFile}
+        />
+      )}
 
       {/* Integration Modals */}
       <SlackIntegration
