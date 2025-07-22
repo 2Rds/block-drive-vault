@@ -22,7 +22,10 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
   };
 
   const getFileDisplayUrl = () => {
-    return `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
+    const url = `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
+    console.log('FileViewer - Displaying file:', file);
+    console.log('FileViewer - Generated URL:', url);
+    return url;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -85,7 +88,10 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
                 src={getFileDisplayUrl()}
                 alt={file.filename}
                 className="max-w-full max-h-full object-contain rounded-lg"
+                onLoad={() => console.log('Image loaded successfully')}
                 onError={(e) => {
+                  console.error('Image failed to load:', e);
+                  console.error('Failed URL:', getFileDisplayUrl());
                   (e.target as HTMLImageElement).style.display = 'none';
                   (e.target as HTMLImageElement).nextElementSibling?.setAttribute('style', 'display: block');
                 }}
