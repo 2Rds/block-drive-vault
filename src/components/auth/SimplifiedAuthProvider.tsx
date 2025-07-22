@@ -56,7 +56,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       }
       
       try {
-        // Create a simplified session using Dynamic's authentication
+        // Use Dynamic's authentication directly - no fake tokens
         const dynamicUser: User = {
           id: userId,
           aud: 'authenticated',
@@ -72,7 +72,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
             blockchain_type: blockchain,
             username: `${blockchain}User_${address.slice(-8)}`,
             dynamic_user: true,
-            verified: true
+            verified: true,
+            dynamic_auth: true // Flag to indicate this is Dynamic auth
           },
           identities: [],
           created_at: new Date().toISOString(),
@@ -80,13 +81,14 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           is_anonymous: false
         };
         
+        // Create session without fake JWT - we'll handle auth verification differently
         const dynamicSession: Session = {
           user: dynamicUser,
-          access_token: `dynamic-${userId}-${Date.now()}`,
-          refresh_token: `dynamic-refresh-${userId}`,
-          expires_at: Math.floor(Date.now() / 1000) + (8 * 60 * 60), // 8 hours
+          access_token: 'dynamic-authenticated', // Simple flag, no fake JWT
+          refresh_token: 'dynamic-refresh',
+          expires_at: Math.floor(Date.now() / 1000) + (8 * 60 * 60),
           expires_in: 8 * 60 * 60,
-          token_type: 'bearer'
+          token_type: 'dynamic'
         };
         
         // Store session temporarily

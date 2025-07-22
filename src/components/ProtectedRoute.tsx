@@ -27,13 +27,20 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - require both user and session
-  if (!user || !session || !user.id || !session.access_token) {
+  // Check authentication - handle both Supabase and Dynamic auth
+  const isDynamicAuth = user?.user_metadata?.dynamic_auth === true;
+  const hasValidAuth = user && session && user.id && (
+    isDynamicAuth ? session.access_token === 'dynamic-authenticated' : session.access_token
+  );
+  
+  if (!hasValidAuth) {
     console.log('ProtectedRoute - Authentication incomplete, redirecting to /auth', {
       hasUser: !!user,
       hasSession: !!session,
       hasUserId: !!(user?.id),
-      hasToken: !!(session?.access_token)
+      hasToken: !!(session?.access_token),
+      isDynamicAuth,
+      sessionToken: session?.access_token
     });
     return <Navigate to="/auth" replace />;
   }
