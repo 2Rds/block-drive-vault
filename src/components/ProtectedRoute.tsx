@@ -11,12 +11,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, session, loading } = useAuth();
   const { user: dynamicUser, primaryWallet } = useDynamicContext();
 
-  console.log('ProtectedRoute - Auth state:', { 
+  console.log('🛡️ ProtectedRoute - Auth state check:', { 
     loading, 
     userId: user?.id, 
     hasSession: !!session,
     dynamicUser: !!dynamicUser,
-    primaryWallet: !!primaryWallet
+    primaryWallet: !!primaryWallet,
+    dynamicUserId: dynamicUser?.userId,
+    walletAddress: primaryWallet?.address,
+    route: window.location.pathname
   });
 
   // Check if Dynamic SDK has auth but local state is still syncing

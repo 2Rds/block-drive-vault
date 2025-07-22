@@ -21,29 +21,33 @@ const Auth = () => {
     loading
   });
 
-  // Clear any existing sessions when the auth page loads
+  // Clear any existing sessions when the auth page loads (only when explicitly navigating to auth)
   useEffect(() => {
-    console.log('Auth page loaded - clearing any existing sessions for security');
-    localStorage.removeItem('wallet-session');
-    localStorage.removeItem('sb-supabase-auth-token');
-    sessionStorage.removeItem('wallet-session');
-    sessionStorage.removeItem('wallet-session-temp');
+    console.log('🧹 Auth page loaded - clearing sessions, current route:', window.location.pathname);
     
-    // Clear Dynamic SDK session storage
-    localStorage.removeItem('dynamic_user_auth');
-    sessionStorage.removeItem('dynamic_user_auth');
-    
-    // Clear all Dynamic related keys
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('dynamic_')) {
-        localStorage.removeItem(key);
-      }
-    });
-    Object.keys(sessionStorage).forEach(key => {
-      if (key.startsWith('dynamic_')) {
-        sessionStorage.removeItem(key);
-      }
-    });
+    // Only clear sessions if we're explicitly on the auth route, not during redirects
+    if (window.location.pathname === '/auth') {
+      localStorage.removeItem('wallet-session');
+      localStorage.removeItem('sb-supabase-auth-token');
+      sessionStorage.removeItem('wallet-session');
+      sessionStorage.removeItem('wallet-session-temp');
+      
+      // Clear Dynamic SDK session storage - but only on explicit auth page visits
+      localStorage.removeItem('dynamic_user_auth');
+      sessionStorage.removeItem('dynamic_user_auth');
+      
+      // Clear all Dynamic related keys - but only when explicitly going to auth
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('dynamic_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('dynamic_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    }
   }, []);
 
   // Error boundary for the page
@@ -59,7 +63,10 @@ const Auth = () => {
   // Redirect authenticated users
   useEffect(() => {
     if (!loading && user && session) {
-      console.log('User is authenticated, redirecting to dashboard');
+      console.log('🚀 Auth page: User is authenticated, redirecting to dashboard:', {
+        userId: user.id,
+        currentRoute: window.location.pathname
+      });
       navigate('/dashboard', {
         replace: true
       });

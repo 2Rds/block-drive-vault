@@ -22,7 +22,14 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   const { primaryWallet, user: dynamicUser, handleLogOut } = useDynamicContext();
 
   useEffect(() => {
-    console.log('SimplifiedAuthProvider - Using Dynamic SDK native authentication');
+    console.log('🔍 SimplifiedAuthProvider useEffect triggered:', {
+      hasDynamicUser: !!dynamicUser,
+      hasPrimaryWallet: !!primaryWallet,
+      dynamicUserId: dynamicUser?.userId,
+      walletAddress: primaryWallet?.address,
+      currentUser: user?.id,
+      currentSession: !!session
+    });
     
     // Use Dynamic SDK's native authentication state - check if user is authenticated
     const isAuthenticated = !!(dynamicUser && primaryWallet);
