@@ -74,17 +74,89 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
     
     // Also listen for Dynamic wallet connections
-    const handleDynamicWalletAuth = (event: CustomEvent) => {
-      console.log('Dynamic wallet auth event received:', event.detail);
-      const { address, blockchain, user } = event.detail;
+    const handleDynamicWalletAuth = async (event: CustomEvent) => {
+      console.log('🔄 Dynamic wallet auth event received:', event.detail);
+      setLoading(true);
       
-      // Convert to our expected format and trigger auth
-      connectWallet({
-        address,
-        blockchain_type: blockchain,
-        signature: `dynamic-signature-${Date.now()}`,
-        message: 'Dynamic wallet connection'
-      });
+      const { address, blockchain, user, walletName } = event.detail;
+      
+      try {
+        // Call our authentication service directly
+        const result = await SupabaseAuthService.connectWallet(
+          address,
+          `dynamic-signature-${Date.now()}-${address.slice(-6)}`,
+          blockchain,
+          'Sign this message to authenticate with BlockDrive'
+        );
+        
+        console.log('🔄 SupabaseAuthService.connectWallet result:', result);
+        
+        if (!result.error && result.data) {
+          console.log('✅ Authentication successful, setting session...');
+          
+          // Create proper User and Session objects
+          const supabaseUser: User = {
+            id: result.data.user.id,
+            aud: 'authenticated',
+            role: 'authenticated',
+            email: result.data.user.email,
+            email_confirmed_at: new Date().toISOString(),
+            phone: '',
+            confirmed_at: new Date().toISOString(),
+            last_sign_in_at: new Date().toISOString(),
+            app_metadata: {},
+            user_metadata: result.data.user.user_metadata || {},
+            identities: [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_anonymous: false
+          };
+          
+          const supabaseSession: Session = {
+            user: supabaseUser,
+            access_token: result.data.access_token,
+            refresh_token: result.data.refresh_token,
+            expires_at: Math.floor(result.data.expires_at / 1000),
+            expires_in: 86400,
+            token_type: result.data.token_type || 'bearer'
+          };
+          
+          // Store session temporarily in sessionStorage
+          sessionStorage.setItem('wallet-session', JSON.stringify(supabaseSession));
+          
+          setUser(supabaseUser);
+          setSession(supabaseSession);
+          
+          const processedWalletData = {
+            address: address,
+            publicKey: null,
+            adapter: null,
+            connected: true,
+            autoConnect: false,
+            id: blockchain,
+            wallet_address: address,
+            blockchain_type: blockchain
+          };
+          
+          setWalletData(processedWalletData);
+          
+          console.log('✅ Authentication completed, redirecting to dashboard...');
+          
+          // Navigate to dashboard after successful authentication
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+          
+        } else {
+          console.error('❌ Authentication failed:', result.error);
+          toast.error('Failed to authenticate wallet. Please try again.');
+        }
+      } catch (error) {
+        console.error('❌ Authentication error:', error);
+        toast.error('Failed to authenticate wallet. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
 
     window.addEventListener('dynamic-wallet-connected', handleDynamicWalletAuth as EventListener);
@@ -96,7 +168,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   }, []);
 
   const connectWallet = async (walletData: any) => {
-    console.log('SimplifiedAuthProvider.connectWallet called with fresh authentication');
+    console.log('🔄 Direct connectWallet called (fallback method)');
     setLoading(true);
     
     try {
@@ -107,15 +179,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       const result = await SupabaseAuthService.connectWallet(walletAddress, signature, blockchainType, message);
       
-      console.log('Fresh wallet authentication result:', result);
-      
       if (!result.error && result.data) {
-        console.log('Setting user and session from fresh authentication');
-        
-        const userId = result.data.user.id;
-        
+        // Create proper User and Session objects for fallback method
         const supabaseUser: User = {
-          id: userId,
+          id: result.data.user.id,
           aud: 'authenticated',
           role: 'authenticated',
           email: result.data.user.email,
@@ -124,18 +191,13 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           confirmed_at: new Date().toISOString(),
           last_sign_in_at: new Date().toISOString(),
           app_metadata: {},
-          user_metadata: result.data.user.user_metadata || {
-            wallet_address: walletAddress,
-            blockchain_type: blockchainType,
-            username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
-            full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
-          },
+          user_metadata: result.data.user.user_metadata || {},
           identities: [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           is_anonymous: false
         };
-
+        
         const supabaseSession: Session = {
           user: supabaseUser,
           access_token: result.data.access_token,
@@ -144,10 +206,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           expires_in: 86400,
           token_type: result.data.token_type || 'bearer'
         };
-
-        console.log('Created fresh session for user ID:', userId);
         
-        // Store session temporarily in sessionStorage (cleared on browser close)
+        // Store session temporarily in sessionStorage
         sessionStorage.setItem('wallet-session', JSON.stringify(supabaseSession));
         
         setUser(supabaseUser);
@@ -166,35 +226,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         
         setWalletData(processedWalletData);
         
-        // Update wallet connection in signup record if it exists
-        try {
-          const userEmail = supabaseUser.email || `${userId}@blockdrive.wallet`;
-          await SignupService.updateWalletConnection(userEmail, walletAddress, blockchainType);
-          console.log('Updated wallet connection in signup record');
-        } catch (error) {
-          console.log('No existing signup record to update');
-        }
+        console.log('✅ Direct authentication completed, redirecting...');
         
-        // Automatically check subscription status after successful wallet connection
-        try {
-          console.log('Checking subscription status after wallet connection...');
-          const { supabase } = await import('@/integrations/supabase/client');
-          const response = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${result.data.access_token}`,
-            },
-          });
-          console.log('Subscription status check result:', response);
-        } catch (error) {
-          console.log('Subscription status check failed:', error);
-        }
-        
-        console.log('Fresh authentication completed successfully - user authenticated with ID:', userId);
-        
-        // Show success message
-        toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
-        
-        // Navigate to dashboard after successful authentication
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 1000);
@@ -202,13 +235,13 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         setLoading(false);
         return { error: null, data: result.data };
       } else {
-        console.error('Fresh wallet authentication failed:', result.error);
+        console.error('❌ Direct authentication failed:', result.error);
         toast.error('Failed to connect wallet. Please try again.');
         setLoading(false);
         return { error: result.error };
       }
     } catch (error) {
-      console.error('Fresh wallet authentication error:', error);
+      console.error('❌ Direct authentication error:', error);
       toast.error('Failed to connect wallet. Please try again.');
       setLoading(false);
       return { error: { message: 'Failed to connect wallet' } };

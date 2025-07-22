@@ -25,7 +25,7 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         logLevel: 'DEBUG',
         events: {
           onAuthSuccess: async (args) => {
-            console.log('Dynamic onAuthSuccess:', args);
+            console.log('🎉 Dynamic onAuthSuccess triggered:', args);
             
             // Handle successful wallet connection
             const { user, primaryWallet } = args;
@@ -33,14 +33,15 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
               const walletAddress = primaryWallet.address;
               const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
               
-              console.log('Wallet connected successfully:', {
+              console.log('✅ Wallet connected successfully:', {
                 address: walletAddress,
                 blockchain: blockchainType,
-                walletName: primaryWallet.connector?.name
+                walletName: primaryWallet.connector?.name,
+                chain: primaryWallet.chain
               });
               
-              // Don't navigate here - let our auth system handle it
-              // Custom event to notify our auth system
+              // Dispatch event to notify our auth system
+              console.log('📤 Dispatching dynamic-wallet-connected event...');
               window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
                 detail: {
                   address: walletAddress,
@@ -49,6 +50,10 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
                   walletName: primaryWallet.connector?.name
                 }
               }));
+              
+              console.log('✅ Event dispatched successfully');
+            } else {
+              console.error('❌ No wallet address found in onAuthSuccess:', { primaryWallet, user });
             }
           },
           onAuthFailure: (args) => {
