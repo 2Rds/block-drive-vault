@@ -95,7 +95,7 @@ serve(async (req) => {
     if (customersData.data.length === 0) {
       logStep("No customer found, checking user_signups for free trial status");
       
-      // Check if user has a free trial signup
+      // Check if user has a free trial signup using the actual user email
       const { data: signupData } = await supabaseClient
         .from('user_signups')
         .select('*')
@@ -103,10 +103,10 @@ serve(async (req) => {
         .maybeSingle();
         
       const hasFreeTrial = signupData?.subscription_tier === 'free_trial';
-      logStep("User signup data found", { hasFreeTrial, signupData });
+      logStep("User signup data found", { hasFreeTrial, signupData, userEmail });
       
       // Update subscribers table with free trial status
-      await supabaseClient.from("subscribers").upsert({
+      const subscriberData = {
         email: userEmail,
         user_id: userId,
         stripe_customer_id: null,
@@ -117,7 +117,17 @@ serve(async (req) => {
         bandwidth_limit_gb: hasFreeTrial ? 50 : 0, // Starter tier benefits for free trial
         seats_limit: hasFreeTrial ? 1 : 0,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'email' });
+      };
+      
+      logStep("Upserting subscriber data", subscriberData);
+      
+      const { error: upsertError } = await supabaseClient
+        .from("subscribers")
+        .upsert(subscriberData, { onConflict: 'email' });
+        
+      if (upsertError) {
+        logStep("Error upserting subscriber", upsertError);
+      }
       
       return new Response(JSON.stringify({ 
         subscribed: hasFreeTrial,

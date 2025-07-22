@@ -22,7 +22,11 @@ export const useUploadPermissions = () => {
       try {
         // Check if user has completed signup with email
         const userEmail = user.email || `${user.id}@blockdrive.wallet`;
-        console.log('Checking upload permissions for email:', userEmail);
+        console.log('Checking upload permissions for user:', { 
+          userId: user.id, 
+          userEmail, 
+          originalUserEmail: user.email 
+        });
         
         const { data: signup, error } = await supabase
           .from('user_signups')
