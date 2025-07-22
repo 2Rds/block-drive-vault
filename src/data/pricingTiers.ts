@@ -47,20 +47,20 @@ export const pricingTiers: PricingTier[] = [
         period: 'monthly',
         price: '$29',
         priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
-        paymentLink: 'https://pay.blockdrive.co/b/fZu5kC9yt9Yd84L9YG2VG0c'
+        paymentLink: 'price_1Rfr9KCXWi8NqmFCoglqEMRH'
       },
       {
         period: 'quarterly',
         price: '$79',
         priceId: 'price_1RixAICXWi8NqmFCXmfOkywQ',
-        paymentLink: 'https://pay.blockdrive.co/b/3cI7sK2615HXgBhfj02VG0e',
+        paymentLink: 'price_1RixAICXWi8NqmFCXmfOkywQ',
         savings: 'Save 9%'
       },
       {
         period: 'annual',
         price: '$299',
         priceId: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
-        paymentLink: 'https://pay.blockdrive.co/b/cNi6oGdOJdapgBh8UC2VG0f',
+        paymentLink: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
         savings: 'Save 14%'
       }
     ],
