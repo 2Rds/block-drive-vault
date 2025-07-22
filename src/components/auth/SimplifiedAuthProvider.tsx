@@ -6,6 +6,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { IntercomMessenger } from '@/components/IntercomMessenger';
+import { supabase } from '@/integrations/supabase/client';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -45,12 +46,21 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       // Only update if user data has changed to prevent loops
       if (!user || user.id !== dynamicUser.userId || user.user_metadata?.wallet_address !== primaryWallet.address) {
+        console.log('🔍 Dynamic User Data:', dynamicUser);
+        
+        // Extract email and username from Dynamic SDK user data
+        const userEmail = dynamicUser.email || dynamicUser.verifiedCredentials?.find(c => c.email)?.email || `${primaryWallet.address}@blockdrive.wallet`;
+        const username = dynamicUser.alias || dynamicUser.username || `${blockchainType}User_${primaryWallet.address.slice(-8)}`;
+        
+        console.log('✅ Using Dynamic SDK provided email:', userEmail);
+        console.log('✅ Using Dynamic SDK provided username:', username);
+        
         // Create user object from Dynamic's data
         const authenticatedUser: User = {
           id: dynamicUser.userId,
           aud: 'authenticated',
           role: 'authenticated',
-          email: `${primaryWallet.address}@blockdrive.wallet`,
+          email: userEmail,
           email_confirmed_at: new Date().toISOString(),
           phone: '',
           confirmed_at: new Date().toISOString(),
@@ -59,7 +69,8 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           user_metadata: {
             wallet_address: primaryWallet.address,
             blockchain_type: blockchainType,
-            username: `${blockchainType}User_${primaryWallet.address.slice(-8)}`,
+            username: username,
+            full_name: dynamicUser.firstName && dynamicUser.lastName ? `${dynamicUser.firstName} ${dynamicUser.lastName}` : undefined,
             dynamic_authenticated: true
           },
           identities: [],
@@ -97,6 +108,33 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         setLoading(false);
 
         console.log('✅ Authentication state synchronized with Dynamic SDK');
+        
+        // Auto-create signup entry if user has email from Dynamic SDK
+        if (userEmail && userEmail !== `${primaryWallet.address}@blockdrive.wallet`) {
+          setTimeout(async () => {
+            try {
+              console.log('🔄 Creating auto-signup entry for Dynamic user');
+              const { error } = await supabase.functions.invoke('auto-signup-from-dynamic', {
+                body: {
+                  email: userEmail,
+                  fullName: authenticatedUser.user_metadata?.full_name,
+                  username: authenticatedUser.user_metadata?.username,
+                  walletAddress: primaryWallet.address,
+                  blockchainType: blockchainType,
+                  userId: authenticatedUser.id
+                }
+              });
+              
+              if (error) {
+                console.error('Auto-signup failed:', error);
+              } else {
+                console.log('✅ Auto-signup completed');
+              }
+            } catch (error) {
+              console.error('Auto-signup error:', error);
+            }
+          }, 1000);
+        }
       }
       
     } else if (!isAuthenticated && user) {

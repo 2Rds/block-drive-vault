@@ -62,12 +62,25 @@ export const useDynamicWalletConnection = (
         chain: primaryWallet.chain
       });
 
-      // Check if this wallet is already associated with a signup
-      const userEmail = `${walletAddress}@blockdrive.wallet`;
+      // Get the actual email from Dynamic SDK user data
+      const userEmail = user?.email || user?.verifiedCredentials?.find(c => c.email)?.email;
+      console.log('🔍 Dynamic user email found:', userEmail);
+      
+      if (!userEmail) {
+        console.log('No email found from Dynamic SDK, user needs to provide email');
+        setIsProcessing(false);
+        setUserExplicitlyClicked(false);
+        if (onWalletNeedsSignup) {
+          onWalletNeedsSignup();
+        }
+        return;
+      }
+
+      // Check if this email is already associated with a signup
       const { data: existingSignup } = await SignupService.getSignupByEmail(userEmail);
       
       if (!existingSignup && onWalletNeedsSignup) {
-        console.log('Wallet not associated with signup, redirecting to signup form');
+        console.log('Email not associated with signup, redirecting to signup form');
         setIsProcessing(false);
         setUserExplicitlyClicked(false);
         onWalletNeedsSignup();

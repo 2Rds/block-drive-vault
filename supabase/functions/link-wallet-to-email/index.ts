@@ -30,13 +30,13 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const body = await req.json();
-    const { email, wallet_address, blockchain_type } = body;
+    const { email, wallet_address, blockchain_type, fullName, username } = body;
 
     if (!email || !wallet_address || !blockchain_type) {
       throw new Error("Missing required fields: email, wallet_address, blockchain_type");
     }
 
-    logStep("Linking wallet to email", { email, wallet_address, blockchain_type });
+    logStep("Linking wallet to email", { email, wallet_address, blockchain_type, fullName, username });
 
     // Check if this is a UUID (wallet auth token)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -76,7 +76,7 @@ serve(async (req) => {
       blockchain_type,
       wallet_connected: true,
       subscription_tier: existingSignup?.subscription_tier || 'free_trial',
-      full_name: existingSignup?.full_name || `${blockchain_type} User`,
+      full_name: existingSignup?.full_name || fullName || `${blockchain_type} User`,
       organization: existingSignup?.organization || 'BlockDrive',
       updated_at: new Date().toISOString(),
     };

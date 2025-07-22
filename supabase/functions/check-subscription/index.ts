@@ -55,7 +55,36 @@ serve(async (req) => {
       // This is a wallet auth token (user ID)
       logStep("Wallet authentication detected", { userId: token });
       userId = token;
-      userEmail = `${userId}@blockdrive.wallet`;
+      
+      // For wallet users, first check if there's a wallet_auth_tokens entry to get the real email
+      const { data: walletToken, error: walletTokenError } = await supabaseClient
+        .from('wallet_auth_tokens')
+        .select('wallet_address')
+        .eq('auth_token', userId)
+        .maybeSingle();
+      
+      if (walletTokenError) {
+        logStep("Error checking wallet auth tokens", { error: walletTokenError.message });
+      }
+      
+      if (walletToken) {
+        // Look for a user_signups entry with this wallet address to get the real email
+        const { data: signupData, error: signupError } = await supabaseClient
+          .from('user_signups')
+          .select('email')
+          .eq('wallet_address', walletToken.wallet_address)
+          .maybeSingle();
+          
+        if (signupData && signupData.email) {
+          userEmail = signupData.email;
+          logStep("Found real email for wallet user", { walletAddress: walletToken.wallet_address, email: userEmail });
+        } else {
+          logStep("No signup data found for wallet, using default email", { walletAddress: walletToken.wallet_address });
+          userEmail = `${userId}@blockdrive.wallet`;
+        }
+      } else {
+        userEmail = `${userId}@blockdrive.wallet`;
+      }
       
       // For wallet users, we need to verify the user exists in auth.users
       const { data: walletUser, error: walletUserError } = await supabaseClient
@@ -74,7 +103,7 @@ serve(async (req) => {
         throw new Error("Wallet user not found");
       }
       
-      logStep("Wallet user verified", { userId });
+      logStep("Wallet user verified", { userId, email: userEmail });
     } else {
       // This is a JWT token - try standard Supabase auth first
       try {

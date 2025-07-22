@@ -37,7 +37,9 @@ export const WalletEmailLinker = ({ onSuccess }: WalletEmailLinkerProps) => {
         body: {
           email,
           wallet_address: walletData.wallet_address,
-          blockchain_type: walletData.blockchain_type || 'ethereum'
+          blockchain_type: walletData.blockchain_type || 'ethereum',
+          fullName: user.user_metadata?.full_name,
+          username: user.user_metadata?.username
         },
         headers: {
           Authorization: `Bearer ${user.id}`
