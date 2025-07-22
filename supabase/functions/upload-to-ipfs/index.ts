@@ -90,9 +90,28 @@ serve(async (req) => {
 
     // If no wallet found, create a default one or use a placeholder
     if (!walletId) {
-      logStep("No wallet found, creating placeholder");
-      // For now, we'll use a default UUID - in production you might want to create a proper wallet
-      walletId = '00000000-0000-0000-0000-000000000000';
+      logStep("No wallet found, creating default wallet for user");
+      
+      // Create a default wallet for the user
+      const { data: newWallet, error: walletError } = await supabaseClient
+        .from('wallets')
+        .insert({
+          user_id: userId,
+          wallet_address: `default-${userId}`,
+          public_key: `default-public-${userId}`,
+          private_key_encrypted: 'placeholder',
+          blockchain_type: 'solana'
+        })
+        .select('id')
+        .single();
+        
+      if (walletError) {
+        logStep("Failed to create default wallet", walletError);
+        throw new Error(`Failed to create wallet: ${walletError.message}`);
+      }
+      
+      walletId = newWallet.id;
+      logStep("Created default wallet", { walletId });
     }
 
     // Parse the form data
