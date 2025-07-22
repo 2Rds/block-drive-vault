@@ -22,11 +22,13 @@ serve(async (req) => {
     // Get API keys from environment
     const pinataApiKey = Deno.env.get("PINATA_API_KEY");
     const pinataSecretKey = Deno.env.get("PINATA_SECRET_API_KEY");
+    const jwtKey = Deno.env.get("JWT_KEY");
     const pinataGateway = "https://gateway.pinata.cloud";
 
     logStep("Environment check", { 
       hasPinataKey: !!pinataApiKey, 
-      hasPinataSecret: !!pinataSecretKey 
+      hasPinataSecret: !!pinataSecretKey,
+      hasJwtKey: !!jwtKey
     });
 
     if (!pinataApiKey || !pinataSecretKey) {
@@ -71,33 +73,28 @@ serve(async (req) => {
     
     let userId: string;
 
-    // Simple auth: if token is a UUID, use it as user_id, otherwise try JWT
-    if (token.length === 36 && !token.includes('.')) {
-      userId = token;
-      logStep("Using token as user ID", { userId });
-    } else {
-      try {
-        logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
-        
-        // For JWT tokens, use the auth client with anon key for validation
-        const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-        
-        if (userError) {
-          logStep("JWT validation error", { error: userError.message });
-          throw new Error(`JWT validation failed: ${userError.message}`);
-        }
-        
-        if (!user) {
-          logStep("JWT validation failed - no user returned");
-          throw new Error("JWT validation failed - no user found");
-        }
-        
-        userId = user.id;
-        logStep("JWT auth successful", { userId });
-      } catch (error) {
-        logStep("Auth error caught", { error: error.message });
-        throw new Error("Authentication failed: " + error.message);
+    // Try JWT authentication with the auth client
+    try {
+      logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
+      
+      // For JWT tokens, use the auth client with anon key for validation
+      const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
+      
+      if (userError) {
+        logStep("JWT validation error", { error: userError.message });
+        throw new Error(`JWT validation failed: ${userError.message}`);
       }
+      
+      if (!user) {
+        logStep("JWT validation failed - no user returned");
+        throw new Error("JWT validation failed - no user found");
+      }
+      
+      userId = user.id;
+      logStep("JWT auth successful", { userId });
+    } catch (error) {
+      logStep("Auth error caught", { error: error.message });
+      throw new Error("Authentication failed: " + error.message);
     }
 
     // Parse the form data
