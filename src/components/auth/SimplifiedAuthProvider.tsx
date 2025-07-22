@@ -72,9 +72,26 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     };
 
     window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+    
+    // Also listen for Dynamic wallet connections
+    const handleDynamicWalletAuth = (event: CustomEvent) => {
+      console.log('Dynamic wallet auth event received:', event.detail);
+      const { address, blockchain, user } = event.detail;
+      
+      // Convert to our expected format and trigger auth
+      connectWallet({
+        address,
+        blockchain_type: blockchain,
+        signature: `dynamic-signature-${Date.now()}`,
+        message: 'Dynamic wallet connection'
+      });
+    };
+
+    window.addEventListener('dynamic-wallet-connected', handleDynamicWalletAuth as EventListener);
 
     return () => {
       window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
+      window.removeEventListener('dynamic-wallet-connected', handleDynamicWalletAuth as EventListener);
     };
   }, []);
 
@@ -176,6 +193,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         
         // Show success message
         toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected successfully!`);
+        
+        // Navigate to dashboard after successful authentication
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
         
         setLoading(false);
         return { error: null, data: result.data };

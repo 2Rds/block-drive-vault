@@ -35,25 +35,25 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
               
               console.log('Wallet connected successfully:', {
                 address: walletAddress,
-                blockchain: blockchainType
+                blockchain: blockchainType,
+                walletName: primaryWallet.connector?.name
               });
               
+              // Don't navigate here - let our auth system handle it
               // Custom event to notify our auth system
               window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
                 detail: {
                   address: walletAddress,
                   blockchain: blockchainType,
-                  user: user
+                  user: user,
+                  walletName: primaryWallet.connector?.name
                 }
               }));
-              
-              // Navigate using window.location instead
-              window.location.href = '/dashboard';
             }
           },
           onAuthFailure: (args) => {
             console.error('Dynamic onAuthFailure:', args);
-            toast.error('Wallet connection failed. Please try again.');
+            toast.error('Wallet connection failed. Please ensure your wallet is unlocked and try again.');
           },
           onLogout: (args) => {
             console.log('Dynamic onLogout:', args);
