@@ -14,33 +14,36 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   console.log('ProtectedRoute - Auth state:', { 
     loading, 
     userId: user?.id, 
-    hasSession: !!session
+    hasSession: !!session,
+    dynamicUser: !!dynamicUser,
+    primaryWallet: !!primaryWallet
   });
 
-  // Show loading state
-  if (loading) {
+  // Check if Dynamic SDK has auth but local state is still syncing
+  const dynamicIsAuthenticated = !!(dynamicUser && primaryWallet);
+  const localAuthReady = !!(user && session);
+  
+  // Show loading state if auth is still syncing
+  if (loading || (dynamicIsAuthenticated && !localAuthReady)) {
+    console.log('ProtectedRoute - Auth syncing, showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
-          <div className="text-white text-lg">Loading...</div>
+          <div className="text-white text-lg">Authenticating...</div>
         </div>
       </div>
     );
   }
 
-  // Check authentication using Dynamic SDK native state
-  const isDynamicAuthenticated = user?.user_metadata?.dynamic_authenticated === true;
-  const dynamicIsAuthenticated = !!(dynamicUser && primaryWallet);
-  const hasValidAuth = dynamicIsAuthenticated && user && session && user.id;
+  // Check authentication - require Dynamic SDK auth and local state sync
+  const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user.id;
   
   if (!hasValidAuth) {
     console.log('ProtectedRoute - Authentication incomplete, redirecting to /auth', {
       dynamicIsAuthenticated,
-      hasUser: !!user,
-      hasSession: !!session,
-      hasUserId: !!(user?.id),
-      dynamicNativeAuth: isDynamicAuthenticated
+      localAuthReady,
+      hasUserId: !!(user?.id)
     });
     return <Navigate to="/auth" replace />;
   }

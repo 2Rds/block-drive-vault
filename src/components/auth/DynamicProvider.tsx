@@ -40,15 +40,11 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
 
               toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
               
-              // Clear any existing sessions for security
-              localStorage.removeItem('dynamic_user_auth');
-              sessionStorage.removeItem('dynamic_user_auth');
-              
-              // Navigate to dashboard after successful authentication
+              // Navigate to dashboard after successful authentication with delay for state sync
               setTimeout(() => {
                 console.log('🚀 Redirecting to dashboard...');
                 window.location.href = '/dashboard';
-              }, 1000);
+              }, 1500);
               
             } else {
               console.error('❌ Missing user or wallet data in onAuthSuccess:', { user, primaryWallet });

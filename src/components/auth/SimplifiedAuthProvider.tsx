@@ -27,6 +27,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     // Use Dynamic SDK's native authentication state - check if user is authenticated
     const isAuthenticated = !!(dynamicUser && primaryWallet);
     
+    // Set loading to true while syncing auth state
+    if (isAuthenticated && !user) {
+      setLoading(true);
+    }
+    
     if (isAuthenticated) {
       console.log('✅ Dynamic SDK authenticated user:', {
         userId: dynamicUser.userId,
