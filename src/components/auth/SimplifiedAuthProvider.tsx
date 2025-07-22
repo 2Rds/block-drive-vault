@@ -93,8 +93,9 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
 
       console.log('✅ Authentication state synchronized with Dynamic SDK');
       
-    } else if (!isAuthenticated) {
-      console.log('❌ Dynamic SDK not authenticated, clearing state');
+    } else if (!isAuthenticated && !user) {
+      // Only clear state if we don't already have a user (prevents clearing during navigation)
+      console.log('❌ Dynamic SDK not authenticated and no existing user, clearing state');
       setUser(null);
       setSession(null);
       setWalletData(null);
