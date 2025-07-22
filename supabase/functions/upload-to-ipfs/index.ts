@@ -65,15 +65,25 @@ serve(async (req) => {
       logStep("Using token as user ID", { userId });
     } else {
       try {
-        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-        if (userError || !userData.user) {
-          logStep("JWT auth failed", { error: userError });
-          throw new Error("Authentication failed");
+        logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
+        
+        // For JWT tokens, we need to validate them with the auth service
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+        
+        if (userError) {
+          logStep("JWT validation error", { error: userError.message });
+          throw new Error(`JWT validation failed: ${userError.message}`);
         }
-        userId = userData.user.id;
+        
+        if (!user) {
+          logStep("JWT validation failed - no user returned");
+          throw new Error("JWT validation failed - no user found");
+        }
+        
+        userId = user.id;
         logStep("JWT auth successful", { userId });
       } catch (error) {
-        logStep("Auth error", { error: error.message });
+        logStep("Auth error caught", { error: error.message });
         throw new Error("Authentication failed: " + error.message);
       }
     }
