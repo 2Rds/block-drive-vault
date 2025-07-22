@@ -3,25 +3,63 @@ import React from 'react';
 import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { SolanaWalletConnectors } from '@dynamic-labs/solana';
+import { toast } from 'sonner';
 
 interface DynamicProviderProps {
   children: React.ReactNode;
 }
 
 export const DynamicProvider = ({ children }: DynamicProviderProps) => {
+
   return (
     <DynamicContextProvider
       settings={{
         environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
-        // Standard wallet connectors for third party wallets
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-only', // Changed from 'connect-and-sign'
+        initialAuthenticationMode: 'connect-only',
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
         debugError: true,
         logLevel: 'DEBUG',
+        events: {
+          onAuthSuccess: async (args) => {
+            console.log('Dynamic onAuthSuccess:', args);
+            
+            // Handle successful wallet connection
+            const { user, primaryWallet } = args;
+            if (primaryWallet && primaryWallet.address) {
+              const walletAddress = primaryWallet.address;
+              const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
+              
+              console.log('Wallet connected successfully:', {
+                address: walletAddress,
+                blockchain: blockchainType
+              });
+              
+              // Custom event to notify our auth system
+              window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
+                detail: {
+                  address: walletAddress,
+                  blockchain: blockchainType,
+                  user: user
+                }
+              }));
+              
+              // Navigate using window.location instead
+              window.location.href = '/dashboard';
+            }
+          },
+          onAuthFailure: (args) => {
+            console.error('Dynamic onAuthFailure:', args);
+            toast.error('Wallet connection failed. Please try again.');
+          },
+          onLogout: (args) => {
+            console.log('Dynamic onLogout:', args);
+            window.location.href = '/';
+          }
+        },
         cssOverrides: `
           .dynamic-widget-modal { z-index: 10000 !important; }
           .dynamic-widget-modal-overlay { z-index: 9999 !important; }

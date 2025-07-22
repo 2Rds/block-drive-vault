@@ -132,19 +132,21 @@ export const DynamicWalletConnector = ({
       </div>
 
       {!showAuthFlow && (
-        <DynamicConnectButton onConnectClick={handleConnectClick} />
+        <div className="w-full">
+          <DynamicConnectButton onConnectClick={() => {}} />
+        </div>
       )}
       
       <DynamicAuthModal 
         showAuthFlow={showAuthFlow}
-        onConnectClick={handleConnectClick}
+        onConnectClick={() => {}}
       />
       
       {!showAuthFlow && (
         <WalletStatusDisplay
           primaryWallet={primaryWallet}
-          userExplicitlyClicked={userExplicitlyClicked}
-          isProcessing={isProcessing}
+          userExplicitlyClicked={false}
+          isProcessing={false}
         />
       )}
     </div>
