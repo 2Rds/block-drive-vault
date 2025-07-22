@@ -22,7 +22,7 @@ serve(async (req) => {
     // Get API keys from environment
     const pinataApiKey = Deno.env.get("PINATA_API_KEY");
     const pinataSecretKey = Deno.env.get("PINATA_SECRET_API_KEY");
-    const pinataGateway = Deno.env.get("PINATA_GATEWAY_URL") || "https://gateway.pinata.cloud";
+    const pinataGateway = "https://gateway.pinata.cloud";
 
     if (!pinataApiKey || !pinataSecretKey) {
       throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_SECRET_API_KEY in edge function secrets.");
@@ -128,7 +128,7 @@ serve(async (req) => {
         }
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (saveError) {
       logStep("Database save error", { 
@@ -139,6 +139,11 @@ serve(async (req) => {
         hint: saveError.hint 
       });
       throw new Error(`Failed to save file metadata: ${saveError.message}`);
+    }
+
+    if (!savedFile) {
+      logStep("No file returned from database insert");
+      throw new Error("Failed to save file metadata: No data returned");
     }
 
     logStep("File saved to database", { fileId: savedFile.id });
