@@ -39,11 +39,16 @@ serve(async (req) => {
 
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
+    logStep("Checking authorization", { hasAuthHeader: !!authHeader });
+    
     if (!authHeader) {
+      logStep("ERROR: No authorization header");
       throw new Error("No authorization header provided");
     }
 
     const token = authHeader.replace("Bearer ", "");
+    logStep("Token extracted", { tokenLength: token.length });
+    
     let userId: string;
     let userEmail: string | null = null;
 
@@ -169,6 +174,14 @@ serve(async (req) => {
     const ipfsUrl = `${pinataGateway}/ipfs/${pinataResult.IpfsHash}`;
 
     // Save file metadata to database
+    logStep("Attempting to save file to database", { 
+      userId, 
+      walletId, 
+      filename: file.name, 
+      folderPath,
+      ipfsHash: pinataResult.IpfsHash 
+    });
+    
     const { data: savedFile, error: saveError } = await supabaseClient
       .from('files')
       .insert({
@@ -192,7 +205,13 @@ serve(async (req) => {
       .single();
 
     if (saveError) {
-      logStep("Database save error", saveError);
+      logStep("Database save error", { 
+        error: saveError,
+        code: saveError.code,
+        message: saveError.message,
+        details: saveError.details,
+        hint: saveError.hint 
+      });
       throw new Error(`Failed to save file metadata: ${saveError.message}`);
     }
 
