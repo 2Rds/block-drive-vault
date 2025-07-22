@@ -33,18 +33,30 @@ export const useSubscriptionStatus = () => {
       
       console.log('Checking subscription for user:', user.id);
       
-      // Get auth token from current session to ensure it's valid
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.error('No valid session found');
-        setSubscriptionStatus(null);
-        setError('Authentication required');
-        return;
+      // For wallet users, use the user ID directly as the auth token
+      // For regular users, use the session access token
+      let authToken;
+      
+      // Check if this is a wallet user (email ends with @blockdrive.wallet)
+      if (user.email?.endsWith('@blockdrive.wallet')) {
+        authToken = user.id;
+        console.log('Using wallet auth with user ID:', user.id);
+      } else {
+        // Get auth token from current session for regular users
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          console.error('No valid session found for regular user');
+          setSubscriptionStatus(null);
+          setError('Authentication required');
+          return;
+        }
+        authToken = session.access_token;
+        console.log('Using session token for regular user');
       }
       
       const { data, error: functionError } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${authToken}`
         }
       });
       

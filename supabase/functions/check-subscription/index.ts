@@ -44,28 +44,33 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     logStep("Processing auth token", { tokenPrefix: token.substring(0, 10) + "..." });
     
-    // Handle wallet-based authentication
+    // Handle authentication - first try standard Supabase auth
     let userEmail;
-    let userId = token;
+    let userId;
     
-    // Check if this is a wallet authentication token (UUID format)
+    // Check if this is a UUID (wallet auth token)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     
     if (uuidRegex.test(token)) {
       // This is a wallet auth token (user ID)
-      logStep("Wallet authentication detected", { userId });
+      logStep("Wallet authentication detected", { userId: token });
+      userId = token;
       userEmail = `${userId}@blockdrive.wallet`;
     } else {
-      // Try standard Supabase auth
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      if (userError || !userData.user) {
-        logStep("Standard auth failed, treating as wallet auth", { error: userError?.message });
-        userId = token;
-        userEmail = `${userId}@blockdrive.wallet`;
-      } else {
-        userId = userData.user.id;
-        userEmail = userData.user.email;
-        logStep("Standard authentication successful", { userId, email: userEmail });
+      // This is a JWT token - try standard Supabase auth first
+      try {
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+        if (!userError && userData.user) {
+          userId = userData.user.id;
+          userEmail = userData.user.email;
+          logStep("Standard authentication successful", { userId, email: userEmail });
+        } else {
+          throw new Error(`Auth failed: ${userError?.message}`);
+        }
+      } catch (authError) {
+        // If standard auth fails, this might be the anon key or malformed token
+        logStep("JWT auth failed", { error: authError.message });
+        throw new Error(`Authentication failed: ${authError.message}`);
       }
     }
     
