@@ -88,25 +88,37 @@ serve(async (req) => {
     const customersData = await customersResponse.json();
     
     if (customersData.data.length === 0) {
-      logStep("No customer found, updating free trial state with Starter benefits");
+      logStep("No customer found, checking user_signups for free trial status");
+      
+      // Check if user has a free trial signup
+      const { data: signupData } = await supabaseClient
+        .from('user_signups')
+        .select('*')
+        .eq('email', userEmail)
+        .maybeSingle();
+        
+      const hasFreeTrial = signupData?.subscription_tier === 'free_trial';
+      logStep("User signup data found", { hasFreeTrial, signupData });
+      
+      // Update subscribers table with free trial status
       await supabaseClient.from("subscribers").upsert({
         email: userEmail,
         user_id: userId,
         stripe_customer_id: null,
-        subscribed: false,
-        subscription_tier: 'Free Trial',
+        subscribed: hasFreeTrial, // True if they have free trial
+        subscription_tier: hasFreeTrial ? 'Free Trial' : null,
         subscription_end: null,
-        storage_limit_gb: 50,  // Starter tier benefits for free trial
-        bandwidth_limit_gb: 50, // Starter tier benefits for free trial
-        seats_limit: 1,
+        storage_limit_gb: hasFreeTrial ? 50 : 0,  // Starter tier benefits for free trial
+        bandwidth_limit_gb: hasFreeTrial ? 50 : 0, // Starter tier benefits for free trial
+        seats_limit: hasFreeTrial ? 1 : 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'email' });
       
       return new Response(JSON.stringify({ 
-        subscribed: false,
-        subscription_tier: 'Free Trial',
+        subscribed: hasFreeTrial,
+        subscription_tier: hasFreeTrial ? 'Free Trial' : null,
         subscription_end: null,
-        limits: { storage: 50, bandwidth: 50, seats: 1 }
+        limits: { storage: hasFreeTrial ? 50 : 0, bandwidth: hasFreeTrial ? 50 : 0, seats: hasFreeTrial ? 1 : 0 }
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

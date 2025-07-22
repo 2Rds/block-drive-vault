@@ -33,7 +33,20 @@ export const useSubscriptionStatus = () => {
       
       console.log('Checking subscription for user:', user.id);
       
-      const { data, error: functionError } = await supabase.functions.invoke('check-subscription');
+      // Get auth token from current session to ensure it's valid
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No valid session found');
+        setSubscriptionStatus(null);
+        setError('Authentication required');
+        return;
+      }
+      
+      const { data, error: functionError } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (functionError) {
         console.error('Subscription function error:', functionError);

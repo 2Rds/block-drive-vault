@@ -22,14 +22,15 @@ export const useUploadPermissions = () => {
       try {
         // Check if user has completed signup with email
         const userEmail = user.email || `${user.id}@blockdrive.wallet`;
+        console.log('Checking upload permissions for email:', userEmail);
         
         const { data: signup, error } = await supabase
           .from('user_signups')
           .select('*')
           .eq('email', userEmail)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error checking signup:', error);
           setCanUpload(false);
           setLoading(false);
@@ -40,15 +41,26 @@ export const useUploadPermissions = () => {
 
         // If no signup record, user needs to complete email signup
         if (!signup) {
+          console.log('No signup record found for user');
           setCanUpload(false);
           setLoading(false);
           return;
         }
 
+        console.log('Signup data found:', signup);
+
         // Check subscription status - allow free trial and active subscriptions
-        const hasValidSubscription = subscriptionStatus?.subscribed || 
-                                   subscriptionStatus?.subscription_tier === 'Free Trial' ||
-                                   signup.subscription_tier === 'free_trial';
+        // Also check if user_signups shows free_trial directly
+        const hasValidSubscription = 
+          subscriptionStatus?.subscribed || 
+          subscriptionStatus?.subscription_tier === 'Free Trial' ||
+          signup.subscription_tier === 'free_trial';
+
+        console.log('Upload permission check:', {
+          subscriptionStatus,
+          signupTier: signup.subscription_tier,
+          hasValidSubscription
+        });
 
         setCanUpload(hasValidSubscription);
         setLoading(false);
