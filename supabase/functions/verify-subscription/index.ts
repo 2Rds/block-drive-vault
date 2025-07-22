@@ -136,9 +136,10 @@ serve(async (req) => {
     }
 
     // Create or update subscriber record
+    // For wallet users, we don't have a traditional auth.users entry, so set user_id to null
     const subscriberData = {
       email: customerEmail,
-      user_id: userId,
+      user_id: isWalletUser ? null : userId,
       stripe_customer_id: stripeCustomerId,
       subscribed: true,
       subscription_tier: subscriptionTier,
