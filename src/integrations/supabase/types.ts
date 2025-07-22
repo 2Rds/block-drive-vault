@@ -925,6 +925,10 @@ export type Database = {
         Args: { user_wallet_address: string }
         Returns: string
       }
+      is_team_owner: {
+        Args: { team_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       blockchain_network: "mainnet-beta" | "devnet" | "testnet"
