@@ -123,20 +123,20 @@ export const pricingTiers: PricingTier[] = [
         period: 'monthly',
         price: '$99/month/seat',
         priceId: 'price_1RjjLjCXWi8NqmFCUSZpnelu',
-        paymentLink: 'https://pay.blockdrive.co/b/9B64gyfWR0nDbgXc6O2VG0j'
+        paymentLink: 'price_1RjjLjCXWi8NqmFCUSZpnelu'
       },
       {
         period: 'quarterly',
         price: '$267/quarter/seat',
         priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
-        paymentLink: 'https://pay.blockdrive.co/b/6oU6oGaCx0nDfxd8UC2VG0k',
+        paymentLink: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         savings: 'Save 10%'
       },
       {
         period: 'annual',
         price: '$950/year/seat',
         priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
-        paymentLink: 'https://pay.blockdrive.co/b/4gM14m3a54DT84Lfj02VG0l',
+        paymentLink: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
         savings: 'Save 20%'
       }
     ],
