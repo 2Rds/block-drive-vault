@@ -100,25 +100,33 @@ serve(async (req) => {
       });
     }
 
-    // Check if customer exists using Stripe REST API
-    const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
-      headers: {
-        'Authorization': `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-
-    if (!customersResponse.ok) {
-      throw new Error(`Stripe API error: ${customersResponse.status}`);
-    }
-
-    const customersData = await customersResponse.json();
+    // For wallet users, we need to collect their email during checkout
+    const isWalletUser = userEmail.endsWith('@blockdrive.wallet');
+    let realUserEmail = userEmail;
     let customerId;
-    if (customersData.data.length > 0) {
-      customerId = customersData.data[0].id;
-      logStep("Existing customer found", { customerId });
+
+    if (!isWalletUser) {
+      // Check if customer exists using Stripe REST API for regular users
+      const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
+        headers: {
+          'Authorization': `Bearer ${stripeKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      if (!customersResponse.ok) {
+        throw new Error(`Stripe API error: ${customersResponse.status}`);
+      }
+
+      const customersData = await customersResponse.json();
+      if (customersData.data.length > 0) {
+        customerId = customersData.data[0].id;
+        logStep("Existing customer found", { customerId });
+      } else {
+        logStep("No existing customer, will create during checkout");
+      }
     } else {
-      logStep("No existing customer, will create during checkout");
+      logStep("Wallet user detected, will collect email during checkout");
     }
 
     // Create checkout session using Stripe REST API
@@ -127,15 +135,19 @@ serve(async (req) => {
       'line_items[0][quantity]': '1',
       'mode': 'subscription',
       'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      'cancel_url': `${req.headers.get("origin")}/subscription-cancel`,
+      'cancel_url': `${req.headers.get("origin")}/pricing`,
       'metadata[user_id]': userId,
       'metadata[tier]': tier,
+      'metadata[wallet_user]': isWalletUser ? 'true' : 'false',
     });
 
     if (customerId) {
       sessionData.append('customer', customerId);
+    } else if (!isWalletUser) {
+      sessionData.append('customer_email', realUserEmail);
     } else {
-      sessionData.append('customer_email', userEmail);
+      // For wallet users, force email collection
+      sessionData.append('customer_creation', 'always');
     }
 
     // Add trial period for Starter tier

@@ -126,6 +126,30 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId, email: userEmail });
 
+    // Check if user has a subscription record first to avoid unnecessary Stripe calls
+    const { data: existingSubscriber } = await supabaseClient
+      .from('subscribers')
+      .select('*')
+      .eq('email', userEmail)
+      .single();
+
+    if (existingSubscriber?.subscribed) {
+      logStep("Found existing active subscriber record", existingSubscriber);
+      return new Response(JSON.stringify({
+        subscribed: existingSubscriber.subscribed,
+        subscription_tier: existingSubscriber.subscription_tier,
+        subscription_end: existingSubscriber.subscription_end,
+        limits: {
+          storage: existingSubscriber.storage_limit_gb || 50,
+          bandwidth: existingSubscriber.bandwidth_limit_gb || 50,
+          seats: existingSubscriber.seats_limit || 1
+        }
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Use Stripe REST API directly instead of SDK to avoid import issues
     const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
       headers: {

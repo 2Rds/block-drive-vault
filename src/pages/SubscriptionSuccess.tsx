@@ -12,34 +12,45 @@ const SubscriptionSuccess = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Refresh subscription status when user lands on success page
+  // Process subscription verification when user lands on success page
   useEffect(() => {
-    const refreshSubscriptionStatus = async () => {
+    const processSubscriptionSuccess = async () => {
       if (!user) return;
       
+      // Get session ID from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      
+      if (!sessionId) {
+        console.log('No session ID found in URL');
+        return;
+      }
+      
       try {
-        console.log('Refreshing subscription status after successful payment');
+        console.log('Processing subscription verification for session:', sessionId);
         
-        // Wait a moment for Stripe to process the payment
-        setTimeout(async () => {
-          const { data, error } = await supabase.functions.invoke('check-subscription');
-          
-          if (error) {
-            console.error('Error refreshing subscription:', error);
-          } else {
-            console.log('Subscription status refreshed:', data);
-            if (data?.subscribed) {
-              toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
-            }
+        // Call our verify-subscription function to link wallet to email and update records
+        const { data, error } = await supabase.functions.invoke('verify-subscription', {
+          body: { sessionId, userId: user.id }
+        });
+        
+        if (error) {
+          console.error('Error verifying subscription:', error);
+          toast.error('Failed to verify subscription. Please contact support.');
+        } else {
+          console.log('Subscription verified:', data);
+          if (data?.subscribed) {
+            toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
           }
-        }, 2000);
+        }
         
       } catch (error) {
-        console.error('Failed to refresh subscription status:', error);
+        console.error('Failed to process subscription:', error);
+        toast.error('Failed to process subscription. Please contact support.');
       }
     };
 
-    refreshSubscriptionStatus();
+    processSubscriptionSuccess();
   }, [user]);
 
   const handleGoToAccount = () => {

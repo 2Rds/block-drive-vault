@@ -24,37 +24,36 @@ export const usePricingSubscription = () => {
       return;
     }
 
-    if (!option.paymentLink) {
-      toast.error('Payment link not available for this billing period');
-      return;
-    }
-
     setLoading(tier.name);
 
     try {
-      console.log('Redirecting to payment link for tier:', tier.name);
-      console.log('Payment link:', option.paymentLink);
+      console.log('Creating checkout session for tier:', tier.name);
+      
+      // Create checkout session via edge function
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          priceId: option.paymentLink, // Assuming paymentLink contains the price ID
+          tier: tier.name,
+          hasTrial: tier.name === 'Starter' && option.period === 'monthly'
+        }
+      });
+
+      if (error) {
+        console.error('Checkout creation error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
+      }
+
+      console.log('Checkout session created, redirecting to:', data.url);
       
       // Show success message
       toast.success('Redirecting to checkout...');
       
-      // Open Stripe payment link in a new tab
-      const checkoutWindow = window.open(option.paymentLink, '_blank');
-      
-      if (!checkoutWindow) {
-        // Fallback if popup is blocked - redirect in same window
-        console.log('Popup blocked, redirecting in same window');
-        window.location.href = option.paymentLink;
-      }
-      
-      // Reset loading state after a short delay
-      setTimeout(() => {
-        setLoading(null);
-        // Trigger subscription status refresh when user returns from checkout
-        setTimeout(() => {
-          checkSubscriptionStatus();
-        }, 3000);
-      }, 1000);
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
       
     } catch (error: any) {
       console.error('Subscription error:', error);
