@@ -104,34 +104,53 @@ serve(async (req) => {
     if (isWalletUser) {
       logStep("Processing wallet user subscription", { userId, email: customerEmail });
       
-      // Create user_signups entry for wallet user
+      // Find wallet information first
+      const { data: walletToken, error: walletTokenError } = await supabaseService
+        .from('wallet_auth_tokens')
+        .select('wallet_address, user_id')
+        .eq('auth_token', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+        
+      const walletAddress = walletToken?.wallet_address || userId;
+      logStep("Found wallet information", { walletAddress, tokenUserId: walletToken?.user_id });
+      
+      // Create or update user_signups entry for wallet user
+      // This links the wallet to the subscription email
       const { error: signupError } = await supabaseService
         .from('user_signups')
         .upsert({
           email: customerEmail,
-          wallet_address: null, // Will be linked later
+          wallet_address: walletAddress,
           subscription_tier: subscriptionTier,
           full_name: session.customer_details?.name || '',
           organization: '',
-          wallet_connected: false,
+          wallet_connected: true,
           blockchain_type: 'solana'
         }, { onConflict: 'email' });
 
       if (signupError) {
         logStep("Error creating signup record", signupError);
+      } else {
+        logStep("Successfully linked wallet to subscription", { 
+          email: customerEmail, 
+          walletAddress,
+          subscriptionTier
+        });
       }
 
-      // Update wallet_auth_tokens to mark subscription as verified
-      const { error: linkError } = await supabaseService
-        .from('wallet_auth_tokens')
-        .update({ 
-          // Only update fields that exist
-          last_login_at: new Date().toISOString()
-        })
-        .eq('auth_token', userId);
+      // Also update wallet_auth_tokens for good measure
+      if (walletToken) {
+        const { error: updateError } = await supabaseService
+          .from('wallet_auth_tokens')
+          .update({ 
+            last_login_at: new Date().toISOString()
+          })
+          .eq('auth_token', userId);
 
-      if (linkError) {
-        logStep("Error updating wallet token", linkError);
+        if (updateError) {
+          logStep("Error updating wallet token", updateError);
+        }
       }
     }
 
