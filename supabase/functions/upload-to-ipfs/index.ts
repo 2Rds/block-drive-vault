@@ -48,12 +48,22 @@ serve(async (req) => {
     let userEmail: string | null = null;
 
     // Try standard Supabase auth first
+    let walletId: string | null = null;
     try {
       const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
       if (userData.user) {
         userId = userData.user.id;
         userEmail = userData.user.email || null;
-        logStep("Standard auth successful", { userId, userEmail });
+        
+        // Try to get wallet_id for this user
+        const { data: walletData } = await supabaseClient
+          .from('wallets')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        walletId = walletData?.id || null;
+        logStep("Standard auth successful", { userId, userEmail, walletId });
       } else {
         throw new Error("Standard auth failed");
       }
@@ -64,17 +74,25 @@ serve(async (req) => {
       // Check if it's a wallet token
       const { data: walletToken, error: walletError } = await supabaseClient
         .from('wallet_auth_tokens')
-        .select('wallet_address, user_id')
+        .select('wallet_address, user_id, wallets!inner(id)')
         .eq('auth_token', token)
         .eq('is_active', true)
         .maybeSingle();
 
       if (walletToken) {
         userId = walletToken.user_id || token; // Use token as fallback user ID
-        logStep("Wallet auth successful", { userId, walletAddress: walletToken.wallet_address });
+        walletId = walletToken.wallets?.id || null;
+        logStep("Wallet auth successful", { userId, walletAddress: walletToken.wallet_address, walletId });
       } else {
         throw new Error("Unable to authenticate user");
       }
+    }
+
+    // If no wallet found, create a default one or use a placeholder
+    if (!walletId) {
+      logStep("No wallet found, creating placeholder");
+      // For now, we'll use a default UUID - in production you might want to create a proper wallet
+      walletId = '00000000-0000-0000-0000-000000000000';
     }
 
     // Parse the form data
@@ -123,9 +141,11 @@ serve(async (req) => {
       .from('files')
       .insert({
         filename: file.name,
+        file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
         file_size: file.size,
         content_type: file.type || 'application/octet-stream',
         user_id: userId,
+        wallet_id: walletId,
         folder_path: folderPath,
         storage_provider: 'ipfs',
         ipfs_cid: pinataResult.IpfsHash,
