@@ -17,7 +17,12 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
   const isPDF = file.contentType?.includes('pdf');
 
   const handleViewOnIPFS = () => {
-    window.open(file.ipfsUrl, '_blank');
+    const ipfsUrl = `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
+    window.open(ipfsUrl, '_blank');
+  };
+
+  const getFileDisplayUrl = () => {
+    return `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -77,7 +82,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
           {isImage && (
             <div className="flex justify-center">
               <img
-                src={file.ipfsUrl}
+                src={getFileDisplayUrl()}
                 alt={file.filename}
                 className="max-w-full max-h-full object-contain rounded-lg"
                 onError={(e) => {
@@ -103,7 +108,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
                   (e.target as HTMLVideoElement).nextElementSibling?.setAttribute('style', 'display: block');
                 }}
               >
-                <source src={file.ipfsUrl} type={file.contentType} />
+                <source src={getFileDisplayUrl()} type={file.contentType} />
                 Your browser does not support the video tag.
               </video>
               <div style={{ display: 'none' }} className="text-center py-8">
@@ -124,7 +129,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
                   (e.target as HTMLAudioElement).nextElementSibling?.setAttribute('style', 'display: block');
                 }}
               >
-                <source src={file.ipfsUrl} type={file.contentType} />
+                <source src={getFileDisplayUrl()} type={file.contentType} />
                 Your browser does not support the audio tag.
               </audio>
               <div style={{ display: 'none' }} className="text-center py-8">
@@ -138,7 +143,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
           {isPDF && (
             <div className="w-full h-96">
               <iframe
-                src={file.ipfsUrl}
+                src={getFileDisplayUrl()}
                 className="w-full h-full rounded-lg border border-gray-600"
                 title={file.filename}
                 onError={(e) => {
