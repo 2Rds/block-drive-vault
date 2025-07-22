@@ -99,7 +99,7 @@ serve(async (req) => {
     }
 
     // Check if this is a wallet user
-    const isWalletUser = session.metadata?.wallet_auth === "true" && userId;
+    const isWalletUser = session.metadata?.wallet_user === "true" && userId;
     
     if (isWalletUser) {
       logStep("Processing wallet user subscription", { userId, email: customerEmail });

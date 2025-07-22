@@ -153,8 +153,11 @@ serve(async (req) => {
     if (customerId) {
       sessionData.append('customer', customerId);
     } else {
-      // For wallet users, collect email during checkout (Stripe will create customer automatically)
+      // For wallet users, we need to collect email and let Stripe auto-create customer
+      // For regular users, we set the email directly
       if (isWalletUser) {
+        // Don't set customer_email for wallet users - let them enter it during checkout
+        // Stripe will automatically create the customer when the subscription is created
         sessionData.append('billing_address_collection', 'required');
       } else {
         sessionData.append('customer_email', realUserEmail);
