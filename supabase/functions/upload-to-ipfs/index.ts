@@ -56,11 +56,15 @@ serve(async (req) => {
         userEmail = userData.user.email || null;
         
         // Try to get wallet_id for this user
-        const { data: walletData } = await supabaseClient
+        const { data: walletData, error: walletQueryError } = await supabaseClient
           .from('wallets')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
+        
+        if (walletQueryError) {
+          logStep("Wallet query error", walletQueryError);
+        }
         
         walletId = walletData?.id || null;
         logStep("Standard auth successful", { userId, userEmail, walletId });
@@ -74,16 +78,25 @@ serve(async (req) => {
       // Check if it's a wallet token
       const { data: walletToken, error: walletError } = await supabaseClient
         .from('wallet_auth_tokens')
-        .select('wallet_address, user_id, wallets!inner(id)')
+        .select('wallet_address, user_id')
         .eq('auth_token', token)
         .eq('is_active', true)
         .maybeSingle();
 
       if (walletToken) {
         userId = walletToken.user_id || token; // Use token as fallback user ID
-        walletId = walletToken.wallets?.id || null;
+        
+        // Try to get the actual wallet for this wallet token
+        const { data: walletData } = await supabaseClient
+          .from('wallets')
+          .select('id')
+          .eq('wallet_address', walletToken.wallet_address)
+          .maybeSingle();
+          
+        walletId = walletData?.id || null;
         logStep("Wallet auth successful", { userId, walletAddress: walletToken.wallet_address, walletId });
       } else {
+        logStep("Wallet auth failed", { walletError });
         throw new Error("Unable to authenticate user");
       }
     }
