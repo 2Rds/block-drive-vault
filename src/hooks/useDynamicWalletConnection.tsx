@@ -27,10 +27,8 @@ export const useDynamicWalletConnection = (
         isConnected: primaryWallet.isConnected
       });
       
-      // Add a small delay to ensure wallet is fully connected
-      setTimeout(() => {
-        handleWalletConnection();
-      }, 1000);
+      // Process immediately without delay
+      handleWalletConnection();
     }
   }, [primaryWallet, userExplicitlyClicked, isProcessing]);
 
@@ -44,12 +42,16 @@ export const useDynamicWalletConnection = (
       const walletAddress = primaryWallet.address;
       
       if (!walletAddress) {
-        console.error('No wallet address found:', {
+        console.error('No wallet address found, retrying connection:', {
           primaryWallet,
           address: primaryWallet.address,
           chain: primaryWallet.chain
         });
-        throw new Error('Missing wallet address - please ensure your wallet is properly connected');
+        
+        // Instead of throwing error, try to reconnect
+        setIsProcessing(false);
+        setUserExplicitlyClicked(false);
+        return;
       }
       
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
