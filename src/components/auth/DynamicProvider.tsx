@@ -74,11 +74,8 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
 
               toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
               
-              // Navigate to dashboard after successful authentication with delay for state sync
-              setTimeout(() => {
-                console.log('🚀 Redirecting to dashboard...');
-                window.location.href = '/dashboard';
-              }, 1500);
+              // Don't redirect here - let the auth state sync and React Router handle navigation
+              console.log('🚀 Authentication successful - state sync will handle navigation');
               
             } else {
               console.error('❌ Missing user or wallet data in onAuthSuccess:', { user, primaryWallet });
@@ -90,7 +87,7 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
           },
           onLogout: (args) => {
             console.log('Dynamic onLogout:', args);
-            window.location.href = '/';
+            // Don't force redirect - let React Router handle navigation
           }
         },
         cssOverrides: `
