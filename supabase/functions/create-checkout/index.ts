@@ -152,12 +152,14 @@ serve(async (req) => {
 
     if (customerId) {
       sessionData.append('customer', customerId);
-    } else if (!isWalletUser) {
-      sessionData.append('customer_email', realUserEmail);
     } else {
-      // For wallet users in subscription mode, we must collect email
-      sessionData.append('billing_address_collection', 'required');
-      // We'll create the customer after they provide email during checkout
+      // For wallet users, we need to enable customer creation and email collection
+      if (isWalletUser) {
+        sessionData.append('customer_creation', 'always');
+        sessionData.append('billing_address_collection', 'required');
+      } else {
+        sessionData.append('customer_email', realUserEmail);
+      }
     }
 
     // Add trial period for Starter tier
