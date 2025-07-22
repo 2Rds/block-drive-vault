@@ -103,7 +103,6 @@ serve(async (req) => {
     // Save file metadata to database
     logStep("Attempting to save file to database", { 
       userId, 
-      walletId, 
       filename: file.name, 
       folderPath,
       ipfsHash: pinataResult.IpfsHash 
