@@ -41,16 +41,16 @@ export const FeatureCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-card/40 border-border border-muted/30">
+      <Card className="bg-card/40 border-border border-primary/30">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
-            <div className="p-3 bg-muted/40 rounded-lg">
-              <Zap className="w-6 h-6 text-muted-foreground" />
+            <div className="p-3 bg-primary/20 rounded-lg">
+              <Zap className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h3 className="font-semibold text-card-foreground mb-2">Lightning-Fast Web3 Experience</h3>
               <p className="text-muted-foreground text-sm mb-3">Experience blazing-fast uploads and downloads with our optimized IPFS infrastructure. Organize files in folders, share with custom links, and manage everything through an intuitive dashboard.</p>
-              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+              <div className="flex items-center space-x-2 text-xs text-primary">
                 <Zap className="w-3 h-3" />
                 <span>Fast Uploads • Folder Organization • Shareable Links</span>
               </div>
