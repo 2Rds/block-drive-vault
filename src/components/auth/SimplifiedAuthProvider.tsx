@@ -42,140 +42,85 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
 
     initializeAuth();
 
-    // Listen for wallet authentication events (only fresh connections)
-    const handleWalletAuth = (event: CustomEvent) => {
-      console.log('Fresh wallet auth event received:', event.detail);
-      const sessionData = event.detail;
-      
-      // Store session temporarily (will be cleared on page reload)
-      sessionStorage.setItem('wallet-session', JSON.stringify(sessionData));
-      
-      setSession(sessionData);
-      setUser(sessionData.user);
-      
-      if (sessionData.user?.user_metadata?.wallet_address) {
-        const walletInfo = {
-          address: sessionData.user.user_metadata.wallet_address,
-          publicKey: null,
-          adapter: null,
-          connected: true,
-          autoConnect: false,
-          id: sessionData.user.user_metadata.blockchain_type || 'ethereum',
-          wallet_address: sessionData.user.user_metadata.wallet_address,
-          blockchain_type: sessionData.user.user_metadata.blockchain_type || 'ethereum'
-        };
-        setWalletData(walletInfo);
-        console.log('Set wallet data from fresh auth event:', walletInfo);
-      }
-      
-      setLoading(false);
-    };
-
-    window.addEventListener('wallet-auth-success', handleWalletAuth as EventListener);
-    
-    // Also listen for Dynamic wallet connections
-    const handleDynamicWalletAuth = async (event: CustomEvent) => {
-      console.log('🔄 Dynamic wallet auth event received:', event.detail);
+    // Listen for Dynamic SDK authentication (simplified)
+    const handleDynamicAuth = async (event: CustomEvent) => {
+      console.log('🎉 Dynamic authentication success:', event.detail);
       setLoading(true);
       
-      const { address, blockchain, user, walletName, signature, message } = event.detail;
+      const { userId, address, blockchain, user, verified } = event.detail;
       
-      // Validate that we have a real signature
-      if (!signature || signature.startsWith('dynamic-signature-')) {
-        console.error('❌ No valid signature received from wallet');
-        toast.error('Authentication requires a valid wallet signature. Please try connecting again.');
+      if (!verified) {
+        toast.error('Wallet signature verification failed. Please try again.');
         setLoading(false);
         return;
       }
       
-      console.log('🔐 Valid signature received, proceeding with authentication...');
-      
       try {
-        // Call our authentication service with the real signature
-        const result = await SupabaseAuthService.connectWallet(
-          address,
-          signature,
-          blockchain,
-          message || 'Sign this message to authenticate with BlockDrive'
-        );
-        
-        console.log('🔄 SupabaseAuthService.connectWallet result:', result);
-        
-        if (!result.error && result.data) {
-          console.log('✅ Authentication successful, setting session...');
-          
-          // Create proper User and Session objects
-          const supabaseUser: User = {
-            id: result.data.user.id,
-            aud: 'authenticated',
-            role: 'authenticated',
-            email: result.data.user.email,
-            email_confirmed_at: new Date().toISOString(),
-            phone: '',
-            confirmed_at: new Date().toISOString(),
-            last_sign_in_at: new Date().toISOString(),
-            app_metadata: {},
-            user_metadata: result.data.user.user_metadata || {},
-            identities: [],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_anonymous: false
-          };
-          
-          const supabaseSession: Session = {
-            user: supabaseUser,
-            access_token: result.data.access_token,
-            refresh_token: result.data.refresh_token,
-            expires_at: Math.floor(result.data.expires_at / 1000),
-            expires_in: 86400,
-            token_type: result.data.token_type || 'bearer'
-          };
-          
-          // Store session temporarily in sessionStorage
-          sessionStorage.setItem('wallet-session', JSON.stringify(supabaseSession));
-          
-          setUser(supabaseUser);
-          setSession(supabaseSession);
-          
-          const processedWalletData = {
-            address: address,
-            publicKey: null,
-            adapter: null,
-            connected: true,
-            autoConnect: false,
-            id: blockchain,
+        // Create a simplified session using Dynamic's authentication
+        const dynamicUser: User = {
+          id: userId,
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: `${address}@blockdrive.dynamic`,
+          email_confirmed_at: new Date().toISOString(),
+          phone: '',
+          confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {
             wallet_address: address,
-            blockchain_type: blockchain
-          };
-          
-          setWalletData(processedWalletData);
-          
-          console.log('✅ Authentication completed, redirecting to dashboard...');
-          toast.success(`${blockchain.charAt(0).toUpperCase() + blockchain.slice(1)} wallet authenticated successfully!`);
-          
-          // Navigate to dashboard after successful authentication
-          setTimeout(() => {
-            console.log('🚀 Redirecting to dashboard...');
-            window.location.href = '/dashboard';
-          }, 1500);
-          
-        } else {
-          console.error('❌ Authentication failed:', result.error);
-          toast.error(`Authentication failed: ${result.error?.message || 'Unknown error'}`);
-        }
+            blockchain_type: blockchain,
+            username: `${blockchain}User_${address.slice(-8)}`,
+            dynamic_user: true,
+            verified: true
+          },
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_anonymous: false
+        };
+        
+        const dynamicSession: Session = {
+          user: dynamicUser,
+          access_token: `dynamic-${userId}-${Date.now()}`,
+          refresh_token: `dynamic-refresh-${userId}`,
+          expires_at: Math.floor(Date.now() / 1000) + (8 * 60 * 60), // 8 hours
+          expires_in: 8 * 60 * 60,
+          token_type: 'bearer'
+        };
+        
+        // Store session temporarily
+        sessionStorage.setItem('wallet-session', JSON.stringify(dynamicSession));
+        
+        setUser(dynamicUser);
+        setSession(dynamicSession);
+        
+        const walletInfo = {
+          address: address,
+          publicKey: null,
+          adapter: null,
+          connected: true,
+          autoConnect: false,
+          id: blockchain,
+          wallet_address: address,
+          blockchain_type: blockchain
+        };
+        setWalletData(walletInfo);
+        
+        console.log('✅ Dynamic authentication completed successfully');
+        
       } catch (error) {
-        console.error('❌ Authentication error:', error);
-        toast.error('Failed to authenticate wallet. Please try again.');
+        console.error('❌ Dynamic authentication processing error:', error);
+        toast.error('Authentication processing failed. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
-    window.addEventListener('dynamic-wallet-connected', handleDynamicWalletAuth as EventListener);
+    window.addEventListener('dynamic-auth-success', handleDynamicAuth as EventListener);
 
     return () => {
-      window.removeEventListener('wallet-auth-success', handleWalletAuth as EventListener);
-      window.removeEventListener('dynamic-wallet-connected', handleDynamicWalletAuth as EventListener);
+      window.removeEventListener('dynamic-auth-success', handleDynamicAuth as EventListener);
     };
   }, []);
 

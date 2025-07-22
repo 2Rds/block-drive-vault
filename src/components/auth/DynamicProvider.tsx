@@ -18,55 +18,48 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-only',
+        initialAuthenticationMode: 'connect-and-sign',
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
         debugError: true,
         logLevel: 'DEBUG',
         events: {
           onAuthSuccess: async (args) => {
-            console.log('🎉 Dynamic onAuthSuccess triggered:', args);
+            console.log('🎉 Dynamic onAuthSuccess - wallet connected and signed!', args);
             
             const { user, primaryWallet } = args;
-            if (primaryWallet && primaryWallet.address) {
+            if (user && primaryWallet && primaryWallet.address) {
               const walletAddress = primaryWallet.address;
               const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
               
-              console.log('✅ Wallet connected, requesting signature for authentication:', {
-                address: walletAddress,
-                blockchain: blockchainType,
-                walletName: primaryWallet.connector?.name,
-                chain: primaryWallet.chain
+              console.log('✅ Authenticated user with signed wallet:', {
+                userId: user.userId,
+                walletAddress,
+                blockchainType
               });
+
+              // Dynamic SDK has already verified the signature, so we can trust the authentication
+              console.log('📤 Dispatching authenticated user event...');
+              window.dispatchEvent(new CustomEvent('dynamic-auth-success', {
+                detail: {
+                  userId: user.userId,
+                  address: walletAddress,
+                  blockchain: blockchainType,
+                  user: user,
+                  verified: true,
+                  dynamicAuth: true
+                }
+              }));
               
-              try {
-                // Request signature for authentication security
-                const message = `Sign this message to authenticate with BlockDrive\n\nTimestamp: ${Date.now()}\nAddress: ${walletAddress}`;
-                console.log('📝 Requesting signature for message:', message);
-                
-                const signature = await primaryWallet.signMessage(message);
-                console.log('✅ Signature obtained successfully');
-                
-                // Dispatch event with real signature
-                console.log('📤 Dispatching dynamic-wallet-connected event with signature...');
-                window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
-                  detail: {
-                    address: walletAddress,
-                    blockchain: blockchainType,
-                    user: user,
-                    walletName: primaryWallet.connector?.name,
-                    signature: signature,
-                    message: message
-                  }
-                }));
-                
-                console.log('✅ Event dispatched successfully with signature');
-              } catch (signatureError) {
-                console.error('❌ Failed to obtain signature:', signatureError);
-                toast.error('Authentication requires wallet signature. Please approve the signature request.');
-              }
+              // Direct navigation to dashboard
+              toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
+              setTimeout(() => {
+                console.log('🚀 Redirecting to dashboard...');
+                window.location.href = '/dashboard';
+              }, 1000);
+              
             } else {
-              console.error('❌ No wallet address found in onAuthSuccess:', { primaryWallet, user });
+              console.error('❌ Missing user or wallet data in onAuthSuccess:', { user, primaryWallet });
             }
           },
           onAuthFailure: (args) => {
