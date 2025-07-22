@@ -153,9 +153,8 @@ serve(async (req) => {
     if (customerId) {
       sessionData.append('customer', customerId);
     } else {
-      // For wallet users, we need to enable customer creation and email collection
+      // For wallet users, collect email during checkout (Stripe will create customer automatically)
       if (isWalletUser) {
-        sessionData.append('customer_creation', 'always');
         sessionData.append('billing_address_collection', 'required');
       } else {
         sessionData.append('customer_email', realUserEmail);
