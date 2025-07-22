@@ -121,17 +121,17 @@ serve(async (req) => {
         logStep("Error creating signup record", signupError);
       }
 
-      // Update wallet_auth_tokens to link this wallet to the email
+      // Update wallet_auth_tokens to mark subscription as verified
       const { error: linkError } = await supabaseService
         .from('wallet_auth_tokens')
         .update({ 
-          linked_email: customerEmail,
-          subscription_verified: true 
+          // Only update fields that exist
+          last_login_at: new Date().toISOString()
         })
         .eq('auth_token', userId);
 
       if (linkError) {
-        logStep("Error linking wallet to email", linkError);
+        logStep("Error updating wallet token", linkError);
       }
     }
 

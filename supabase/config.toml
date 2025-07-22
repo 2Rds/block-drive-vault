@@ -2,3 +2,6 @@ project_id = "lozeazpliiesvpwusmgu"
 
 [functions.check-subscription]
 verify_jwt = false
+
+[functions.verify-subscription]
+verify_jwt = false
