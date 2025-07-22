@@ -21,19 +21,21 @@ serve(async (req) => {
 
     // Get API keys from environment
     const pinataApiKey = Deno.env.get("PINATA_API_KEY");
-    const pinataSecretKey = Deno.env.get("PINATA_SECRET_API_KEY");
+    const pinataSecretKey = Deno.env.get("PINATA_API_SECRET_KEY") || Deno.env.get("PINATA_SECRET_API_KEY");
     const jwtKey = Deno.env.get("JWT_KEY");
     const pinataGateway = "https://gateway.pinata.cloud";
 
     logStep("Environment check", { 
       hasPinataKey: !!pinataApiKey, 
       hasPinataSecret: !!pinataSecretKey,
-      hasJwtKey: !!jwtKey
+      hasJwtKey: !!jwtKey,
+      pinataKeyName: pinataApiKey ? "PINATA_API_KEY found" : "PINATA_API_KEY missing",
+      pinataSecretName: pinataSecretKey ? (Deno.env.get("PINATA_API_SECRET_KEY") ? "PINATA_API_SECRET_KEY found" : "PINATA_SECRET_API_KEY found") : "both missing"
     });
 
     if (!pinataApiKey || !pinataSecretKey) {
       logStep("ERROR: Missing Pinata API keys");
-      throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_SECRET_API_KEY in edge function secrets.");
+      throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_API_SECRET_KEY in edge function secrets.");
     }
 
     // Initialize Supabase client for auth validation (using anon key for JWT validation)
