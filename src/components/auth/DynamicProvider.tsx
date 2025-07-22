@@ -40,6 +40,10 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
 
               toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
               
+              // Clear any existing sessions for security
+              localStorage.removeItem('dynamic_user_auth');
+              sessionStorage.removeItem('dynamic_user_auth');
+              
               // Navigate to dashboard after successful authentication
               setTimeout(() => {
                 console.log('🚀 Redirecting to dashboard...');

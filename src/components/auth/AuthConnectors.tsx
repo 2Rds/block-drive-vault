@@ -22,7 +22,9 @@ export const AuthConnectors = ({
     }
   };
   return <div className="space-y-6">
-      <DynamicWalletConnector onWalletConnected={handleWalletConnected} />
+      <div className="flex justify-center">
+        <DynamicWalletConnector onWalletConnected={handleWalletConnected} />
+      </div>
       
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -31,6 +33,8 @@ export const AuthConnectors = ({
         
       </div>
       
-      <WalletConnector />
+      <div className="flex justify-center">
+        <WalletConnector />
+      </div>
     </div>;
 };

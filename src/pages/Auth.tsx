@@ -28,6 +28,22 @@ const Auth = () => {
     localStorage.removeItem('sb-supabase-auth-token');
     sessionStorage.removeItem('wallet-session');
     sessionStorage.removeItem('wallet-session-temp');
+    
+    // Clear Dynamic SDK session storage
+    localStorage.removeItem('dynamic_user_auth');
+    sessionStorage.removeItem('dynamic_user_auth');
+    
+    // Clear all Dynamic related keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('dynamic_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('dynamic_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
   }, []);
 
   // Error boundary for the page
