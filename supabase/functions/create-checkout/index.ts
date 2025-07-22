@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://cdn.skypack.dev/@supabase/supabase-js@2.50.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,7 +75,16 @@ serve(async (req) => {
     const { priceId, tier, hasTrial } = await req.json();
     logStep("Request body parsed", { priceId, tier, hasTrial });
 
-    // Validate that we have the correct price ID
+    // Map payment links to actual Stripe price IDs
+    const paymentLinkToPriceId: { [key: string]: string } = {
+      'https://pay.blockdrive.co/b/00wbJ0261fixdp59YG2VG07': 'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
+      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzq8bM3': 'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
+      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzr9cM4': 'price_1RfrEICXWi8NqmFChG0fYrRy', // Growth
+      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzs0dM5': 'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Scale
+    };
+
+    const actualPriceId = paymentLinkToPriceId[priceId] || priceId;
+    
     const validPriceIds = [
       'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
       'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
@@ -83,9 +92,9 @@ serve(async (req) => {
       'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Scale
     ];
 
-    if (!validPriceIds.includes(priceId)) {
-      logStep("Invalid price ID", { priceId });
-      return new Response(JSON.stringify({ error: `Invalid price ID: ${priceId}` }), {
+    if (!validPriceIds.includes(actualPriceId)) {
+      logStep("Invalid price ID", { priceId, actualPriceId });
+      return new Response(JSON.stringify({ error: `Invalid price ID: ${actualPriceId}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
@@ -131,7 +140,7 @@ serve(async (req) => {
 
     // Create checkout session using Stripe REST API
     const sessionData = new URLSearchParams({
-      'line_items[0][price]': priceId,
+      'line_items[0][price]': actualPriceId,
       'line_items[0][quantity]': '1',
       'mode': 'subscription',
       'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
