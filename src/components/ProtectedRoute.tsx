@@ -23,7 +23,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const dynamicIsAuthenticated = !!(dynamicUser && primaryWallet);
   const localAuthReady = !!(user && session);
   
-  // Show loading state if auth is still syncing
+  // Show loading state if auth is still syncing or initially loading
   if (loading || (dynamicIsAuthenticated && !localAuthReady)) {
     console.log('ProtectedRoute - Auth syncing, showing loading state');
     return (
@@ -36,7 +36,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - require Dynamic SDK auth and local state sync
+  // Check authentication - require both Dynamic SDK auth and local state sync
   const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user.id;
   
   if (!hasValidAuth) {

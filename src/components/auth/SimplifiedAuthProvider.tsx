@@ -27,11 +27,6 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     // Use Dynamic SDK's native authentication state - check if user is authenticated
     const isAuthenticated = !!(dynamicUser && primaryWallet);
     
-    // Set loading to true while syncing auth state
-    if (isAuthenticated && !user) {
-      setLoading(true);
-    }
-    
     if (isAuthenticated) {
       console.log('✅ Dynamic SDK authenticated user:', {
         userId: dynamicUser.userId,
@@ -41,61 +36,64 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
 
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
       
-      // Create user object from Dynamic's data
-      const authenticatedUser: User = {
-        id: dynamicUser.userId,
-        aud: 'authenticated',
-        role: 'authenticated',
-        email: `${primaryWallet.address}@blockdrive.dynamic`,
-        email_confirmed_at: new Date().toISOString(),
-        phone: '',
-        confirmed_at: new Date().toISOString(),
-        last_sign_in_at: new Date().toISOString(),
-        app_metadata: {},
-        user_metadata: {
+      // Only update if user data has changed to prevent loops
+      if (!user || user.id !== dynamicUser.userId || user.user_metadata?.wallet_address !== primaryWallet.address) {
+        // Create user object from Dynamic's data
+        const authenticatedUser: User = {
+          id: dynamicUser.userId,
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: `${primaryWallet.address}@blockdrive.dynamic`,
+          email_confirmed_at: new Date().toISOString(),
+          phone: '',
+          confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {
+            wallet_address: primaryWallet.address,
+            blockchain_type: blockchainType,
+            username: `${blockchainType}User_${primaryWallet.address.slice(-8)}`,
+            dynamic_authenticated: true
+          },
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_anonymous: false
+        };
+
+        // Create session object
+        const authenticatedSession: Session = {
+          user: authenticatedUser,
+          access_token: 'dynamic-native-auth',
+          refresh_token: 'dynamic-native-refresh',
+          expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
+          expires_in: 24 * 60 * 60,
+          token_type: 'dynamic-native'
+        };
+
+        // Set wallet data
+        const walletInfo = {
+          address: primaryWallet.address,
+          publicKey: null,
+          adapter: null,
+          connected: true,
+          autoConnect: false,
+          id: blockchainType,
           wallet_address: primaryWallet.address,
-          blockchain_type: blockchainType,
-          username: `${blockchainType}User_${primaryWallet.address.slice(-8)}`,
-          dynamic_authenticated: true
-        },
-        identities: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_anonymous: false
-      };
+          blockchain_type: blockchainType
+        };
 
-      // Create session object
-      const authenticatedSession: Session = {
-        user: authenticatedUser,
-        access_token: 'dynamic-native-auth',
-        refresh_token: 'dynamic-native-refresh',
-        expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
-        expires_in: 24 * 60 * 60,
-        token_type: 'dynamic-native'
-      };
+        setUser(authenticatedUser);
+        setSession(authenticatedSession);
+        setWalletData(walletInfo);
+        setLoading(false);
 
-      // Set wallet data
-      const walletInfo = {
-        address: primaryWallet.address,
-        publicKey: null,
-        adapter: null,
-        connected: true,
-        autoConnect: false,
-        id: blockchainType,
-        wallet_address: primaryWallet.address,
-        blockchain_type: blockchainType
-      };
-
-      setUser(authenticatedUser);
-      setSession(authenticatedSession);
-      setWalletData(walletInfo);
-      setLoading(false);
-
-      console.log('✅ Authentication state synchronized with Dynamic SDK');
+        console.log('✅ Authentication state synchronized with Dynamic SDK');
+      }
       
-    } else if (!isAuthenticated && !user) {
-      // Only clear state if we don't already have a user (prevents clearing during navigation)
-      console.log('❌ Dynamic SDK not authenticated and no existing user, clearing state');
+    } else if (!isAuthenticated && user) {
+      // Only clear state if Dynamic SDK is not authenticated but we have a user
+      console.log('❌ Dynamic SDK not authenticated, clearing existing state');
       setUser(null);
       setSession(null);
       setWalletData(null);
