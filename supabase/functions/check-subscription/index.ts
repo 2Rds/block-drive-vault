@@ -46,12 +46,16 @@ serve(async (req) => {
         logStep("Regular user authenticated", { email: userEmail, userId });
       }
     } catch (error) {
-      logStep("Standard auth failed, treating as wallet auth", { error });
+      logStep("Standard auth failed, checking for Dynamic SDK user", { error });
     }
 
-    // If regular auth failed, treat as wallet auth
+    // If regular auth failed, this might be a Dynamic SDK user
     if (!userEmail) {
-      // For wallet users, the token is the user ID from wallet_auth_tokens
+      // For Dynamic SDK users, the token is the user ID directly
+      // Check if we can find a user_signups record with a matching user ID pattern
+      // or if this looks like a Dynamic SDK user ID
+      
+      // First, try to find by wallet auth tokens
       const { data: walletToken, error: walletError } = await supabaseService
         .from('wallet_auth_tokens')
         .select('wallet_address, user_id')
@@ -59,26 +63,96 @@ serve(async (req) => {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (walletError || !walletToken) {
-        throw new Error("Invalid authentication token");
+      if (walletToken) {
+        // Use the wallet-specific email format
+        userEmail = `${walletToken.user_id}@blockdrive.wallet`;
+        userId = walletToken.user_id;
+        logStep("Wallet user authenticated via token", { email: userEmail, userId });
+      } else {
+        // This might be a Dynamic SDK user - check if there's a signup with this user pattern
+        // Try to find user_signups by various means
+        const possibleEmails = [
+          `${token}@blockdrive.wallet`,
+        ];
+        
+        for (const email of possibleEmails) {
+          const { data: signup, error: signupError } = await supabaseService
+            .from('user_signups')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle();
+            
+          if (signup) {
+            userEmail = email;
+            userId = token;
+            logStep("Dynamic SDK user found via signup", { email: userEmail, userId });
+            break;
+          }
+        }
+        
+        if (!userEmail) {
+          // Last resort: check if token looks like an email or if there are any subscribers with this pattern
+          if (token.includes('@')) {
+            userEmail = token;
+            userId = token;
+            logStep("Using token as email directly", { email: userEmail });
+          } else {
+            throw new Error("Unable to authenticate user");
+          }
+        }
       }
-
-      // Use the wallet-specific email format
-      userEmail = `${walletToken.user_id}@blockdrive.wallet`;
-      userId = walletToken.user_id;
-      logStep("Wallet user authenticated", { email: userEmail, userId });
     }
 
     if (!userEmail) {
       throw new Error("Unable to determine user email");
     }
 
-    // Query the subscribers table for this user
-    const { data: subscriber, error: subscriberError } = await supabaseService
+    // Try to find subscriber by exact email match first
+    let subscriber = null;
+    let subscriberError = null;
+    
+    // If we have a Dynamic SDK user, check if there are any subscribers with that exact email
+    const { data: subscriberByEmail, error: emailSubscriberError } = await supabaseService
       .from('subscribers')
       .select('*')
       .eq('email', userEmail)
       .maybeSingle();
+    
+    if (emailSubscriberError) {
+      logStep("Error querying subscriber by email", emailSubscriberError);
+      subscriberError = emailSubscriberError;
+    } else if (subscriberByEmail) {
+      subscriber = subscriberByEmail;
+      logStep("Found subscriber by exact email match", { email: userEmail });
+    } else {
+      // If no exact match, try alternative email formats
+      // For Dynamic SDK users, check if there are subscribers with regular email format
+      if (userEmail.endsWith('@blockdrive.wallet') && userId) {
+        // Check if there are any real email subscribers for this user
+        const { data: realEmailSubscribers, error: realEmailError } = await supabaseService
+          .from('user_signups')
+          .select('email')
+          .eq('wallet_address', userId)
+          .maybeSingle();
+        
+        if (!realEmailError && realEmailSubscribers?.email) {
+          // Try to find subscriber with this real email
+          const { data: subscriberByRealEmail, error: realEmailSubscriberError } = await supabaseService
+            .from('subscribers')
+            .select('*')
+            .eq('email', realEmailSubscribers.email)
+            .maybeSingle();
+          
+          if (!realEmailSubscriberError && subscriberByRealEmail) {
+            subscriber = subscriberByRealEmail;
+            logStep("Found subscriber by real email from user_signups", { 
+              walletAddress: userId,
+              realEmail: realEmailSubscribers.email 
+            });
+          }
+        }
+      }
+    }
 
     if (subscriberError) {
       logStep("Error querying subscriber", subscriberError);
