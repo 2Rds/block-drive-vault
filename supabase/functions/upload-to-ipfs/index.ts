@@ -34,7 +34,19 @@ serve(async (req) => {
       throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_SECRET_API_KEY in edge function secrets.");
     }
 
-    // Initialize Supabase client with service role (bypasses RLS)
+    // Initialize Supabase client for auth validation (using anon key for JWT validation)
+    const supabaseAuthClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { 
+        auth: { 
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    );
+    
+    // Initialize service role client for database operations (bypasses RLS)
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -45,7 +57,7 @@ serve(async (req) => {
         }
       }
     );
-    logStep("Supabase client initialized");
+    logStep("Supabase clients initialized");
 
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
@@ -67,8 +79,8 @@ serve(async (req) => {
       try {
         logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
         
-        // For JWT tokens, we need to validate them with the auth service
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+        // For JWT tokens, use the auth client with anon key for validation
+        const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
         
         if (userError) {
           logStep("JWT validation error", { error: userError.message });
