@@ -1,8 +1,58 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Download, ExternalLink, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IPFSFile } from '@/types/ipfs';
+
+// Component to handle image loading with fallback URLs
+const ImageWithFallback = ({ src, fallbackUrls, alt, className }: {
+  src: string;
+  fallbackUrls: string[];
+  alt: string;
+  className: string;
+}) => {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [fallbackIndex, setFallbackIndex] = useState(-1);
+  const [hasError, setHasError] = useState(false);
+
+  const handleError = () => {
+    const nextIndex = fallbackIndex + 1;
+    if (nextIndex < fallbackUrls.length) {
+      console.log(`Trying fallback URL ${nextIndex + 1}:`, fallbackUrls[nextIndex]);
+      setCurrentSrc(fallbackUrls[nextIndex]);
+      setFallbackIndex(nextIndex);
+    } else {
+      console.error('All image URLs failed to load');
+      setHasError(true);
+    }
+  };
+
+  const handleLoad = () => {
+    console.log('Image loaded successfully from:', currentSrc);
+    setHasError(false);
+  };
+
+  if (hasError) {
+    return (
+      <div className="text-center py-8">
+        <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-400">Unable to display image preview</p>
+        <p className="text-sm text-gray-500 mt-2">All IPFS gateways failed to load the image</p>
+        <p className="text-sm text-gray-500">Click "View on IPFS" to try viewing in a new tab</p>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      className={className}
+      onLoad={handleLoad}
+      onError={handleError}
+    />
+  );
+};
 
 interface FileViewerProps {
   file: IPFSFile;
@@ -22,10 +72,21 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
   };
 
   const getFileDisplayUrl = () => {
-    const url = `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
+    // Try the stored ipfs_url first, then fallback to other gateways
+    const url = file.ipfsUrl || `https://gateway.pinata.cloud/ipfs/${file.cid}`;
     console.log('FileViewer - Displaying file:', file);
-    console.log('FileViewer - Generated URL:', url);
+    console.log('FileViewer - Using URL:', url);
     return url;
+  };
+
+  const getFallbackUrls = () => {
+    const fallbackGateways = [
+      'https://gateway.pinata.cloud/ipfs',
+      'https://ipfs.io/ipfs',
+      'https://cloudflare-ipfs.com/ipfs',
+      'https://dweb.link/ipfs'
+    ];
+    return fallbackGateways.map(gateway => `${gateway}/${file.cid}`);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -84,23 +145,12 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
         <div className="p-4 overflow-auto max-h-[calc(90vh-120px)]">
           {isImage && (
             <div className="flex justify-center">
-              <img
+              <ImageWithFallback 
                 src={getFileDisplayUrl()}
+                fallbackUrls={getFallbackUrls()}
                 alt={file.filename}
                 className="max-w-full max-h-full object-contain rounded-lg"
-                onLoad={() => console.log('Image loaded successfully')}
-                onError={(e) => {
-                  console.error('Image failed to load:', e);
-                  console.error('Failed URL:', getFileDisplayUrl());
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).nextElementSibling?.setAttribute('style', 'display: block');
-                }}
               />
-              <div style={{ display: 'none' }} className="text-center py-8">
-                <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Unable to display image preview</p>
-                <p className="text-sm text-gray-500 mt-2">Click "View on IPFS" to see the file</p>
-              </div>
             </div>
           )}
 
