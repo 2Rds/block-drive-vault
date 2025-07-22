@@ -23,6 +23,40 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         shadowDOMEnabled: false,
         debugError: true,
         logLevel: 'DEBUG',
+        overrides: {
+          evmNetworks: [
+            {
+              blockExplorerUrls: ['https://etherscan.io/'],
+              chainId: 1,
+              chainName: 'Ethereum Mainnet',
+              iconUrls: ['https://app.dynamic.xyz/assets/networks/eth.svg'],
+              name: 'Ethereum',
+              nativeCurrency: {
+                decimals: 18,
+                name: 'Ether',
+                symbol: 'ETH',
+              },
+              networkId: 1,
+              rpcUrls: ['https://mainnet.infura.io/v3/'],
+              vanityName: 'Ethereum',
+            },
+            {
+              blockExplorerUrls: ['https://polygonscan.com/'],
+              chainId: 137,
+              chainName: 'Polygon Mainnet',
+              iconUrls: ['https://app.dynamic.xyz/assets/networks/polygon.svg'],
+              name: 'Polygon',
+              nativeCurrency: {
+                decimals: 18,
+                name: 'MATIC',
+                symbol: 'MATIC',
+              },
+              networkId: 137,
+              rpcUrls: ['https://polygon-rpc.com/'],
+              vanityName: 'Polygon',
+            },
+          ],
+        },
         events: {
           onAuthSuccess: async (args) => {
             console.log('🎉 Dynamic onAuthSuccess - wallet connected and authenticated!', args);
