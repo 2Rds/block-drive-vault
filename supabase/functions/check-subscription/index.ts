@@ -93,14 +93,113 @@ serve(async (req) => {
     const customersData = await customersResponse.json();
     
     if (customersData.data.length === 0) {
-      logStep("No customer found, checking user_signups for free trial status");
+      logStep("No customer found, checking user_signups and wallet linking");
       
-      // Check if user has a free trial signup using the actual user email
-      const { data: signupData } = await supabaseClient
+      // Check if user has a free trial signup - first try with the synthetic email
+      let { data: signupData } = await supabaseClient
         .from('user_signups')
         .select('*')
         .eq('email', userEmail)
         .maybeSingle();
+        
+      // If no signup found with synthetic email, and this is a wallet user,
+      // check if there's a signup with the wallet address linked to a real email
+      if (!signupData && userEmail.endsWith('@blockdrive.wallet')) {
+        // For wallet users, we need to find the signup by using the actual wallet address
+        // First get the wallet address from wallet_auth_tokens using the user ID
+        const { data: walletToken } = await supabaseClient
+          .from('wallet_auth_tokens')
+          .select('wallet_address')
+          .eq('user_id', userId)
+          .maybeSingle();
+          
+        if (walletToken?.wallet_address) {
+          const { data: walletSignup } = await supabaseClient
+            .from('user_signups')
+            .select('*')
+            .eq('wallet_address', walletToken.wallet_address)
+            .maybeSingle();
+          
+          if (walletSignup) {
+            signupData = walletSignup;
+            userEmail = walletSignup.email; // Use the real email for Stripe lookup
+            logStep("Found signup via wallet address", { walletAddress: walletToken.wallet_address, realEmail: userEmail });
+            
+            // Re-check Stripe with the real email
+            const realEmailCustomersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
+              headers: {
+                'Authorization': `Bearer ${stripeKey}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+            });
+            
+            if (realEmailCustomersResponse.ok) {
+              const realEmailCustomersData = await realEmailCustomersResponse.json();
+              if (realEmailCustomersData.data.length > 0) {
+                // We found a Stripe customer with the real email! Skip the free trial logic and process the subscription
+                logStep("Found Stripe customer with real email, processing subscription");
+                // We need to jump to the subscription processing logic
+                const customerId = realEmailCustomersData.data[0].id;
+                const subscriptionsResponse = await fetch(`https://api.stripe.com/v1/subscriptions?customer=${customerId}&status=active&limit=1`, {
+                  headers: {
+                    'Authorization': `Bearer ${stripeKey}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                });
+                
+                if (subscriptionsResponse.ok) {
+                  const subscriptionsData = await subscriptionsResponse.json();
+                  const hasActiveSub = subscriptionsData.data.length > 0;
+                  let subscriptionTier = 'Free Trial';
+                  let subscriptionEnd = null;
+                  let limits = { storage: 50, bandwidth: 50, seats: 1 };
+                  
+                  if (hasActiveSub) {
+                    const subscription = subscriptionsData.data[0];
+                    subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+                    
+                    const priceId = subscription.items.data[0].price.id;
+                    const priceIdToTier: { [key: string]: string } = {
+                      'price_1RfquDCXWi8NqmFCLUCGHtkZ': 'Starter',
+                      'price_1Rfr9KCXWi8NqmFCoglqEMRH': 'Pro',
+                      'price_1RfrEICXWi8NqmFChG0fYrRy': 'Growth',
+                      'price_1RfrzdCXWi8NqmFCzAJZnHjF': 'Scale'
+                    };
+                    
+                    subscriptionTier = priceIdToTier[priceId] || 'Pro';
+                    if (subscriptionTier && TIER_LIMITS[subscriptionTier]) {
+                      limits = TIER_LIMITS[subscriptionTier];
+                    }
+                  }
+                  
+                  await supabaseClient.from("subscribers").upsert({
+                    email: userEmail,
+                    user_id: userId,
+                    stripe_customer_id: customerId,
+                    subscribed: hasActiveSub,
+                    subscription_tier: subscriptionTier,
+                    subscription_end: subscriptionEnd,
+                    storage_limit_gb: limits.storage,
+                    bandwidth_limit_gb: limits.bandwidth,
+                    seats_limit: limits.seats,
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: 'email' });
+                  
+                  return new Response(JSON.stringify({
+                    subscribed: hasActiveSub,
+                    subscription_tier: subscriptionTier,
+                    subscription_end: subscriptionEnd,
+                    limits
+                  }), {
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    status: 200,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
         
       const hasFreeTrial = signupData?.subscription_tier === 'free_trial';
       logStep("User signup data found", { hasFreeTrial, signupData, userEmail });

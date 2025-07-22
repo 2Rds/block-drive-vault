@@ -50,7 +50,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           id: dynamicUser.userId,
           aud: 'authenticated',
           role: 'authenticated',
-          email: `${primaryWallet.address}@blockdrive.dynamic`,
+          email: `${primaryWallet.address}@blockdrive.wallet`,
           email_confirmed_at: new Date().toISOString(),
           phone: '',
           confirmed_at: new Date().toISOString(),
@@ -68,14 +68,15 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           is_anonymous: false
         };
 
-        // Create session object
+        // For wallet users, don't create a synthetic session - just use the user
+        // The subscription checking will use the user ID directly
         const authenticatedSession: Session = {
           user: authenticatedUser,
-          access_token: 'dynamic-native-auth',
-          refresh_token: 'dynamic-native-refresh',
+          access_token: authenticatedUser.id, // Use user ID directly for wallet auth
+          refresh_token: 'wallet-auth-refresh',
           expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
           expires_in: 24 * 60 * 60,
-          token_type: 'dynamic-native'
+          token_type: 'wallet-auth'
         };
 
         // Set wallet data
