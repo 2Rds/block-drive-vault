@@ -37,106 +37,26 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate user
+    // Get authorization header
     const authHeader = req.headers.get("Authorization");
-    logStep("Checking authorization", { hasAuthHeader: !!authHeader });
-    
     if (!authHeader) {
-      logStep("ERROR: No authorization header");
       throw new Error("No authorization header provided");
     }
 
     const token = authHeader.replace("Bearer ", "");
-    logStep("Token extracted", { tokenLength: token.length });
-    
     let userId: string;
-    let userEmail: string | null = null;
 
-    // Try standard Supabase auth first
-    let walletId: string | null = null;
-    
-    // Check if token looks like a UUID (wallet auth) vs JWT (standard auth)
-    const isWalletToken = token.length === 36 && !token.includes('.');
-    
-    if (isWalletToken) {
-      logStep("Detected wallet token, using wallet auth flow", { tokenLength: token.length });
-      
-      // This is a wallet token - treat it as user_id directly
+    // Simple auth: if token is a UUID, use it as user_id, otherwise try JWT
+    if (token.length === 36 && !token.includes('.')) {
       userId = token;
-      
-      // Try to get wallet_id for this user
-      const { data: walletData, error: walletQueryError } = await supabaseClient
-        .from('wallets')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (walletQueryError) {
-        logStep("Wallet query error", walletQueryError);
-      }
-      
-      walletId = walletData?.id || null;
-      logStep("Wallet auth successful", { userId, walletId });
-      
+      logStep("Using token as user ID", { userId });
     } else {
-      logStep("Detected JWT token, using standard auth flow");
-      
-      try {
-        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-        if (userData.user) {
-          userId = userData.user.id;
-          userEmail = userData.user.email || null;
-          
-          // Try to get wallet_id for this user
-          const { data: walletData, error: walletQueryError } = await supabaseClient
-            .from('wallets')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-          
-          if (walletQueryError) {
-            logStep("Wallet query error", walletQueryError);
-          }
-          
-          walletId = walletData?.id || null;
-          logStep("Standard auth successful", { userId, userEmail, walletId });
-        } else {
-          throw new Error("Standard auth failed");
-        }
-      } catch (error) {
-        // If standard auth fails, try wallet auth as fallback
-        logStep("Standard auth failed, trying wallet auth fallback", { error: error.message });
-        
-        // Check if it's a wallet token in the database
-        const { data: walletToken, error: walletError } = await supabaseClient
-          .from('wallet_auth_tokens')
-          .select('wallet_address, user_id')
-          .eq('auth_token', token)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (walletToken) {
-          userId = walletToken.user_id || token; // Use token as fallback user ID
-          
-          // Try to get the actual wallet for this wallet token
-          const { data: walletData } = await supabaseClient
-            .from('wallets')
-            .select('id')
-            .eq('wallet_address', walletToken.wallet_address)
-            .maybeSingle();
-            
-          walletId = walletData?.id || null;
-          logStep("Wallet auth fallback successful", { userId, walletAddress: walletToken.wallet_address, walletId });
-        } else {
-          logStep("All auth methods failed", { walletError });
-          throw new Error("Unable to authenticate user");
-        }
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError || !userData.user) {
+        throw new Error("Authentication failed");
       }
-    }
-
-    // If no wallet found, that's OK - wallet_id can be null
-    if (!walletId) {
-      logStep("No wallet found for user, proceeding with null wallet_id", { userId });
+      userId = userData.user.id;
+      logStep("JWT auth successful", { userId });
     }
 
     // Parse the form data
@@ -197,7 +117,7 @@ serve(async (req) => {
         file_size: file.size,
         content_type: file.type || 'application/octet-stream',
         user_id: userId,
-        wallet_id: walletId,
+        wallet_id: null, // Simplified: no wallet linking needed
         folder_path: folderPath,
         storage_provider: 'ipfs',
         ipfs_cid: pinataResult.IpfsHash,
