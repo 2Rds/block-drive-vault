@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/hooks/useAuth';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { Navigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -8,6 +9,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, session, loading } = useAuth();
+  const { user: dynamicUser, primaryWallet } = useDynamicContext();
 
   console.log('ProtectedRoute - Auth state:', { 
     loading, 
@@ -27,20 +29,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - handle both Supabase and Dynamic auth
-  const isDynamicAuth = user?.user_metadata?.dynamic_auth === true;
-  const hasValidAuth = user && session && user.id && (
-    isDynamicAuth ? session.access_token === 'dynamic-authenticated' : session.access_token
-  );
+  // Check authentication using Dynamic SDK native state
+  const isDynamicAuthenticated = user?.user_metadata?.dynamic_authenticated === true;
+  const dynamicIsAuthenticated = !!(dynamicUser && primaryWallet);
+  const hasValidAuth = dynamicIsAuthenticated && user && session && user.id;
   
   if (!hasValidAuth) {
     console.log('ProtectedRoute - Authentication incomplete, redirecting to /auth', {
+      dynamicIsAuthenticated,
       hasUser: !!user,
       hasSession: !!session,
       hasUserId: !!(user?.id),
-      hasToken: !!(session?.access_token),
-      isDynamicAuth,
-      sessionToken: session?.access_token
+      dynamicNativeAuth: isDynamicAuthenticated
     });
     return <Navigate to="/auth" replace />;
   }
