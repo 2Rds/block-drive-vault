@@ -24,26 +24,39 @@ serve(async (req) => {
     const pinataSecretKey = Deno.env.get("PINATA_SECRET_API_KEY");
     const pinataGateway = "https://gateway.pinata.cloud";
 
+    logStep("Environment check", { 
+      hasPinataKey: !!pinataApiKey, 
+      hasPinataSecret: !!pinataSecretKey 
+    });
+
     if (!pinataApiKey || !pinataSecretKey) {
+      logStep("ERROR: Missing Pinata API keys");
       throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_SECRET_API_KEY in edge function secrets.");
     }
 
-    logStep("Pinata API keys verified");
-
-    // Initialize Supabase client
+    // Initialize Supabase client with service role (bypasses RLS)
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      { 
+        auth: { 
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
     );
+    logStep("Supabase client initialized");
 
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      logStep("ERROR: No authorization header");
       throw new Error("No authorization header provided");
     }
 
     const token = authHeader.replace("Bearer ", "");
+    logStep("Token extracted", { tokenLength: token.length });
+    
     let userId: string;
 
     // Simple auth: if token is a UUID, use it as user_id, otherwise try JWT
@@ -51,24 +64,37 @@ serve(async (req) => {
       userId = token;
       logStep("Using token as user ID", { userId });
     } else {
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      if (userError || !userData.user) {
-        throw new Error("Authentication failed");
+      try {
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+        if (userError || !userData.user) {
+          logStep("JWT auth failed", { error: userError });
+          throw new Error("Authentication failed");
+        }
+        userId = userData.user.id;
+        logStep("JWT auth successful", { userId });
+      } catch (error) {
+        logStep("Auth error", { error: error.message });
+        throw new Error("Authentication failed: " + error.message);
       }
-      userId = userData.user.id;
-      logStep("JWT auth successful", { userId });
     }
 
     // Parse the form data
+    logStep("Parsing form data");
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const folderPath = formData.get("folderPath") as string || "/";
 
     if (!file) {
+      logStep("ERROR: No file in form data");
       throw new Error("No file provided");
     }
 
-    logStep("File received", { filename: file.name, size: file.size, type: file.type });
+    logStep("File received", { 
+      filename: file.name, 
+      size: file.size, 
+      type: file.type,
+      folderPath: folderPath 
+    });
 
     // Upload to Pinata
     const pinataFormData = new FormData();
