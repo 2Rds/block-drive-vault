@@ -27,31 +27,44 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
           onAuthSuccess: async (args) => {
             console.log('🎉 Dynamic onAuthSuccess triggered:', args);
             
-            // Handle successful wallet connection
             const { user, primaryWallet } = args;
             if (primaryWallet && primaryWallet.address) {
               const walletAddress = primaryWallet.address;
               const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
               
-              console.log('✅ Wallet connected successfully:', {
+              console.log('✅ Wallet connected, requesting signature for authentication:', {
                 address: walletAddress,
                 blockchain: blockchainType,
                 walletName: primaryWallet.connector?.name,
                 chain: primaryWallet.chain
               });
               
-              // Dispatch event to notify our auth system
-              console.log('📤 Dispatching dynamic-wallet-connected event...');
-              window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
-                detail: {
-                  address: walletAddress,
-                  blockchain: blockchainType,
-                  user: user,
-                  walletName: primaryWallet.connector?.name
-                }
-              }));
-              
-              console.log('✅ Event dispatched successfully');
+              try {
+                // Request signature for authentication security
+                const message = `Sign this message to authenticate with BlockDrive\n\nTimestamp: ${Date.now()}\nAddress: ${walletAddress}`;
+                console.log('📝 Requesting signature for message:', message);
+                
+                const signature = await primaryWallet.signMessage(message);
+                console.log('✅ Signature obtained successfully');
+                
+                // Dispatch event with real signature
+                console.log('📤 Dispatching dynamic-wallet-connected event with signature...');
+                window.dispatchEvent(new CustomEvent('dynamic-wallet-connected', {
+                  detail: {
+                    address: walletAddress,
+                    blockchain: blockchainType,
+                    user: user,
+                    walletName: primaryWallet.connector?.name,
+                    signature: signature,
+                    message: message
+                  }
+                }));
+                
+                console.log('✅ Event dispatched successfully with signature');
+              } catch (signatureError) {
+                console.error('❌ Failed to obtain signature:', signatureError);
+                toast.error('Authentication requires wallet signature. Please approve the signature request.');
+              }
             } else {
               console.error('❌ No wallet address found in onAuthSuccess:', { primaryWallet, user });
             }

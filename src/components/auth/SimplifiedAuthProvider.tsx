@@ -78,15 +78,25 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       console.log('🔄 Dynamic wallet auth event received:', event.detail);
       setLoading(true);
       
-      const { address, blockchain, user, walletName } = event.detail;
+      const { address, blockchain, user, walletName, signature, message } = event.detail;
+      
+      // Validate that we have a real signature
+      if (!signature || signature.startsWith('dynamic-signature-')) {
+        console.error('❌ No valid signature received from wallet');
+        toast.error('Authentication requires a valid wallet signature. Please try connecting again.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🔐 Valid signature received, proceeding with authentication...');
       
       try {
-        // Call our authentication service directly
+        // Call our authentication service with the real signature
         const result = await SupabaseAuthService.connectWallet(
           address,
-          `dynamic-signature-${Date.now()}-${address.slice(-6)}`,
+          signature,
           blockchain,
-          'Sign this message to authenticate with BlockDrive'
+          message || 'Sign this message to authenticate with BlockDrive'
         );
         
         console.log('🔄 SupabaseAuthService.connectWallet result:', result);
@@ -141,15 +151,17 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           setWalletData(processedWalletData);
           
           console.log('✅ Authentication completed, redirecting to dashboard...');
+          toast.success(`${blockchain.charAt(0).toUpperCase() + blockchain.slice(1)} wallet authenticated successfully!`);
           
           // Navigate to dashboard after successful authentication
           setTimeout(() => {
+            console.log('🚀 Redirecting to dashboard...');
             window.location.href = '/dashboard';
           }, 1500);
           
         } else {
           console.error('❌ Authentication failed:', result.error);
-          toast.error('Failed to authenticate wallet. Please try again.');
+          toast.error(`Authentication failed: ${result.error?.message || 'Unknown error'}`);
         }
       } catch (error) {
         console.error('❌ Authentication error:', error);
