@@ -17,7 +17,7 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
-        initialAuthenticationMode: 'connect-and-sign',
+        initialAuthenticationMode: 'connect-only', // Changed from 'connect-and-sign'
         enableVisitTrackingOnConnectOnly: true,
         shadowDOMEnabled: false,
         debugError: true,

@@ -19,11 +19,18 @@ export const useDynamicWalletConnection = (
   // Process wallet connection when user explicitly connects
   useEffect(() => {
     if (primaryWallet && userExplicitlyClicked && !isProcessing) {
-      console.log('Processing wallet connection:', {
+      console.log('Processing wallet connection with detailed wallet info:', {
+        wallet: primaryWallet,
         address: primaryWallet.address,
-        chain: primaryWallet.chain
+        chain: primaryWallet.chain,
+        connector: primaryWallet.connector,
+        isConnected: primaryWallet.isConnected
       });
-      handleWalletConnection();
+      
+      // Add a small delay to ensure wallet is fully connected
+      setTimeout(() => {
+        handleWalletConnection();
+      }, 1000);
     }
   }, [primaryWallet, userExplicitlyClicked, isProcessing]);
 
