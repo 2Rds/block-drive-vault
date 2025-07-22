@@ -20,19 +20,6 @@ export const useIPFSUpload = () => {
       return;
     }
 
-    // Check if we have either a custom wallet session or Supabase session
-    const hasValidSession = session || localStorage.getItem('sb-supabase-auth-token');
-    if (!hasValidSession) {
-      toast.error('Authentication session expired. Please reconnect your wallet.');
-      return;
-    }
-
-    console.log('User authenticated for upload:', { 
-      userId: user.id, 
-      hasSession: !!session,
-      hasStoredSession: !!localStorage.getItem('sb-supabase-auth-token')
-    });
-
     setUploading(true);
     setUploadProgress(0);
     
@@ -44,26 +31,74 @@ export const useIPFSUpload = () => {
         const file = files[i];
         console.log(`Uploading file ${i + 1}/${totalFiles}: ${file.name}`);
 
-        // Create form data for the file
+        // Upload directly to Pinata
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('folderPath', folderPath || '/');
+        formData.append('pinataMetadata', JSON.stringify({
+          name: file.name,
+        }));
+        formData.append('pinataOptions', JSON.stringify({
+          cidVersion: 1,
+        }));
 
-        // Upload via edge function
-        const { data, error } = await supabase.functions.invoke('upload-to-ipfs', {
+        const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+          method: 'POST',
+          headers: {
+            'pinata_api_key': 'f684a12c1928d962d5bd',
+            'pinata_secret_api_key': 'a4390de4be6c88fc8b587f9057b0a878678714b09152c4a08e0b9eef7d5d1e41',
+          },
           body: formData,
         });
 
-        if (error) {
-          console.error('Upload error:', error);
-          throw new Error(error.message || 'Upload failed');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Pinata upload failed: ${response.status} - ${errorText}`);
         }
 
-        if (!data.success) {
-          throw new Error(data.error || 'Upload failed');
+        const pinataResult = await response.json();
+        const ipfsUrl = `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${pinataResult.IpfsHash}`;
+
+        // Save to database
+        const { data: savedFile, error: saveError } = await supabase
+          .from('files')
+          .insert({
+            filename: file.name,
+            file_path: `${folderPath || '/'}${(folderPath || '/').endsWith('/') ? '' : '/'}${file.name}`,
+            file_size: file.size,
+            content_type: file.type || 'application/octet-stream',
+            user_id: user.id,
+            folder_path: folderPath || '/',
+            storage_provider: 'ipfs',
+            ipfs_cid: pinataResult.IpfsHash,
+            ipfs_url: ipfsUrl,
+            metadata: {
+              storage_type: 'ipfs',
+              permanence: 'permanent',
+              blockchain: 'ipfs'
+            }
+          })
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error('Database save error:', saveError);
+          throw new Error(`Failed to save file metadata: ${saveError.message}`);
         }
 
-        uploadedFiles.push(data.file);
+        const ipfsFile: IPFSFile = {
+          id: savedFile.id,
+          filename: savedFile.filename,
+          cid: savedFile.ipfs_cid!,
+          size: savedFile.file_size!,
+          contentType: savedFile.content_type!,
+          ipfsUrl: savedFile.ipfs_url!,
+          uploadedAt: savedFile.created_at,
+          userId: savedFile.user_id,
+          folderPath: savedFile.folder_path!,
+          metadata: savedFile.metadata as any
+        };
+
+        uploadedFiles.push(ipfsFile);
         
         // Update progress
         const progress = ((i + 1) / totalFiles) * 100;
