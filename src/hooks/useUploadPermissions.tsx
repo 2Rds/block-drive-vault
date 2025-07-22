@@ -58,7 +58,10 @@ export const useUploadPermissions = () => {
         const hasValidSubscription = 
           subscriptionStatus?.subscribed || 
           subscriptionStatus?.subscription_tier === 'Free Trial' ||
-          signup.subscription_tier === 'free_trial';
+          signup.subscription_tier === 'free_trial' ||
+          signup.subscription_tier === 'starter' ||
+          signup.subscription_tier === 'professional' ||
+          signup.subscription_tier === 'enterprise';
 
         console.log('Upload permission check:', {
           subscriptionStatus,

@@ -110,7 +110,7 @@ serve(async (req) => {
         .upsert({
           email: customerEmail,
           wallet_address: null, // Will be linked later
-          subscription_tier: subscriptionTier.toLowerCase().replace(' ', '_'),
+          subscription_tier: subscriptionTier,
           full_name: session.customer_details?.name || '',
           organization: '',
           wallet_connected: false,
