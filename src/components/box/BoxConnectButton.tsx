@@ -18,12 +18,13 @@ export const BoxConnectButton = ({ loading, onConnect }: BoxConnectButtonProps) 
         <p className="text-muted-foreground">
           Connect your Box account to easily migrate files to BlockDrive and access your cloud storage.
         </p>
-        <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-lg p-4 mb-4">
-          <p className="text-yellow-400 text-sm">
-            <strong>Setup Required:</strong> To connect Box, you'll need to configure OAuth credentials in your Box developer console.
+        <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 mb-4">
+          <p className="text-red-400 text-sm">
+            <strong>Redirect URI Mismatch:</strong> Update your Box OAuth redirect URI to: <br />
+            <code className="text-xs bg-black/20 px-1 rounded">{window.location.origin}/auth</code>
           </p>
-          <p className="text-yellow-400 text-xs mt-2">
-            Visit Box Developer Console → Create App → OAuth 2.0 (Server Authentication)
+          <p className="text-red-400 text-xs mt-2">
+            Go to Box Developer Console → Your App → Configuration → OAuth 2.0 Redirect URI
           </p>
         </div>
         <Button 
