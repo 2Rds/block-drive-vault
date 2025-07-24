@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, code, access_token } = await req.json()
+    const { action, code, access_token, file_id } = await req.json()
     console.log('Box integration request:', { action })
 
     const supabase = createClient(
@@ -32,7 +32,6 @@ serve(async (req) => {
         return await getBoxFiles(access_token)
       
       case 'download_file':
-        const { file_id } = await req.json()
         return await downloadBoxFile(access_token, file_id)
       
       default:
