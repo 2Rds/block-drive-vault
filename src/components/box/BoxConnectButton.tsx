@@ -21,7 +21,7 @@ export const BoxConnectButton = ({ loading, onConnect }: BoxConnectButtonProps) 
         <div className="bg-red-900/20 border border-red-500/20 rounded-lg p-4 mb-4">
           <p className="text-red-400 text-sm">
             <strong>Redirect URI Mismatch:</strong> Update your Box OAuth redirect URI to: <br />
-            <code className="text-xs bg-black/20 px-1 rounded">{window.location.origin}/auth</code>
+            <code className="text-xs bg-black/20 px-1 rounded">{window.location.origin}/dashboard</code>
           </p>
           <p className="text-red-400 text-xs mt-2">
             Go to Box Developer Console → Your App → Configuration → OAuth 2.0 Redirect URI

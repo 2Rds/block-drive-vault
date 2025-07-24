@@ -95,7 +95,7 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
     try {
       // Initiate Box OAuth flow
       const clientId = 't3pgad8ucoxzrolvf4ljngfgpvb9ov5y';
-      const redirectUri = encodeURIComponent(window.location.origin + '/auth');
+      const redirectUri = encodeURIComponent(window.location.origin + '/dashboard');
       const state = Math.random().toString(36).substring(7);
       
       // Store state for verification
