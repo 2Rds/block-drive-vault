@@ -11,10 +11,12 @@ import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegrati
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
+import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
+  const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
   const [selectedFolder, setSelectedFolder] = React.useState('all');
   const [showSlackIntegration, setShowSlackIntegration] = React.useState(false);
   const [showOneDriveIntegration, setShowOneDriveIntegration] = React.useState(false);

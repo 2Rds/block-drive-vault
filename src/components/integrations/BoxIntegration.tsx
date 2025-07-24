@@ -35,58 +35,9 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
     if (boxAccessToken) {
       setIsConnected(true);
       syncFiles();
-      return;
-    }
-
-    // Handle OAuth callback
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-    const storedState = localStorage.getItem('box_oauth_state');
-    
-    if (code && state && state === storedState) {
-      handleOAuthCallback(code);
     }
   }, []);
 
-  const handleOAuthCallback = async (code: string) => {
-    setLoading(true);
-    console.log('Processing Box OAuth callback...');
-    
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const { data, error } = await supabase.functions.invoke('box-integration', {
-        body: { action: 'exchange_code', code }
-      });
-
-      if (error) throw error;
-
-      localStorage.setItem('box_access_token', data.access_token);
-      localStorage.removeItem('box_oauth_state');
-      
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
-      setIsConnected(true);
-      
-      toast({
-        title: "Connected to Box",
-        description: "Successfully connected to your Box account.",
-      });
-      
-      await syncFiles();
-    } catch (error) {
-      console.error('Box OAuth callback error:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to complete Box connection. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleConnect = async () => {
     setLoading(true);
