@@ -7,13 +7,6 @@ export const useBoxOAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is already connected to Box
-    const boxAccessToken = localStorage.getItem('box_access_token');
-    if (boxAccessToken) {
-      setIsConnected(true);
-      return;
-    }
-
     // Handle OAuth callback when landing on dashboard
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -21,7 +14,16 @@ export const useBoxOAuth = () => {
     const storedState = localStorage.getItem('box_oauth_state');
     
     if (code && state && state === storedState) {
+      console.log('Box OAuth callback detected, processing...');
       handleOAuthCallback(code);
+      return;
+    }
+
+    // Check if user is already connected to Box
+    const boxAccessToken = localStorage.getItem('box_access_token');
+    if (boxAccessToken) {
+      console.log('Existing Box access token found');
+      setIsConnected(true);
     }
   }, []);
 
