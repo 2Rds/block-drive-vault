@@ -35,24 +35,39 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
     if (boxAccessToken) {
       setIsConnected(true);
       syncFiles();
+      return;
+    }
+
+    // Handle OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const storedState = localStorage.getItem('box_oauth_state');
+    
+    if (code && state && state === storedState) {
+      handleOAuthCallback(code);
     }
   }, []);
 
-  const handleConnect = async () => {
+  const handleOAuthCallback = async (code: string) => {
     setLoading(true);
-    console.log('Initiating Box connection...');
+    console.log('Processing Box OAuth callback...');
     
     try {
-      // Box OAuth flow would typically happen here
-      // For demo purposes, we'll simulate a successful connection
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      // In a real implementation, you would:
-      // 1. Redirect to Box OAuth URL
-      // 2. Handle the callback with authorization code
-      // 3. Exchange code for access token
+      const { data, error } = await supabase.functions.invoke('box-integration', {
+        body: { action: 'exchange_code', code }
+      });
+
+      if (error) throw error;
+
+      localStorage.setItem('box_access_token', data.access_token);
+      localStorage.removeItem('box_oauth_state');
       
-      localStorage.setItem('box_access_token', 'demo_box_token');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       setIsConnected(true);
       
       toast({
@@ -62,13 +77,42 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
       
       await syncFiles();
     } catch (error) {
-      console.error('Box connection error:', error);
+      console.error('Box OAuth callback error:', error);
       toast({
         title: "Connection Failed",
-        description: "Failed to connect to Box. Please try again.",
+        description: "Failed to complete Box connection. Please try again.",
         variant: "destructive",
       });
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    setLoading(true);
+    console.log('Initiating Box OAuth connection...');
+    
+    try {
+      // Initiate Box OAuth flow
+      const clientId = 't3pgad8ucoxzrolvf4ljngfgpvb9ov5y';
+      const redirectUri = encodeURIComponent(window.location.origin + '/auth');
+      const state = Math.random().toString(36).substring(7);
+      
+      // Store state for verification
+      localStorage.setItem('box_oauth_state', state);
+      
+      const authUrl = `https://account.box.com/api/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
+      
+      // Redirect to Box OAuth
+      window.location.href = authUrl;
+      
+    } catch (error) {
+      console.error('Box connection error:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to initiate Box connection. Please try again.",
+        variant: "destructive",
+      });
       setLoading(false);
     }
   };
@@ -89,39 +133,24 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
     console.log('Syncing Box files...');
     
     try {
-      // Simulate API call to Box
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const accessToken = localStorage.getItem('box_access_token');
+      if (!accessToken) {
+        throw new Error('No Box access token found');
+      }
+
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      // Mock Box files data
-      const mockFiles: BoxFile[] = [
-        {
-          id: 'box1',
-          name: 'Project Proposal.docx',
-          size: 2048000,
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          modified_at: '2024-01-15T10:30:00Z'
-        },
-        {
-          id: 'box2',
-          name: 'Financial Report.pdf',
-          size: 1536000,
-          type: 'application/pdf',
-          modified_at: '2024-01-14T15:45:00Z'
-        },
-        {
-          id: 'box3',
-          name: 'Team Meeting.mp4',
-          size: 52428800,
-          type: 'video/mp4',
-          modified_at: '2024-01-13T09:15:00Z'
-        }
-      ];
-      
-      setFiles(mockFiles);
+      const { data, error } = await supabase.functions.invoke('box-integration', {
+        body: { action: 'get_files', access_token: accessToken }
+      });
+
+      if (error) throw error;
+
+      setFiles(data.files);
       
       toast({
         title: "Files Synced",
-        description: `Synced ${mockFiles.length} files from Box.`,
+        description: `Synced ${data.files.length} files from Box.`,
       });
     } catch (error) {
       console.error('Box sync error:', error);
@@ -139,19 +168,47 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
     console.log('Downloading file from Box:', file.name);
     
     try {
-      // In a real implementation, you would download the file from Box API
-      // and then upload it to IPFS
+      const accessToken = localStorage.getItem('box_access_token');
+      if (!accessToken) {
+        throw new Error('No Box access token found');
+      }
+
       toast({
         title: "Download Started",
         description: `Downloading ${file.name} from Box...`,
       });
+
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      // Simulate download process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data, error } = await supabase.functions.invoke('box-integration', {
+        body: { 
+          action: 'download_file', 
+          access_token: accessToken,
+          file_id: file.id 
+        }
+      });
+
+      if (error) throw error;
+
+      // Download the file using the provided URL
+      const response = await fetch(data.download_url);
+      if (!response.ok) throw new Error('Failed to download file');
+      
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
       toast({
         title: "Download Complete",
-        description: `${file.name} has been downloaded and added to BlockDrive.`,
+        description: `${file.name} has been downloaded successfully.`,
       });
     } catch (error) {
       console.error('Box download error:', error);
