@@ -7,39 +7,62 @@ export const useBoxOAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('useBoxOAuth: useEffect triggered');
+    console.log('useBoxOAuth: Current URL:', window.location.href);
+    
     // Handle OAuth callback when landing on dashboard
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const storedState = localStorage.getItem('box_oauth_state');
     
+    console.log('useBoxOAuth: URL params check:', { 
+      code: code ? 'present' : 'missing', 
+      state: state ? 'present' : 'missing',
+      storedState: storedState ? 'present' : 'missing',
+      stateMatch: state === storedState
+    });
+    
     if (code && state && state === storedState) {
-      console.log('Box OAuth callback detected, processing...');
+      console.log('useBoxOAuth: OAuth callback detected, processing...');
       handleOAuthCallback(code);
       return;
     }
 
     // Check if user is already connected to Box
     const boxAccessToken = localStorage.getItem('box_access_token');
+    console.log('useBoxOAuth: Existing token check:', boxAccessToken ? 'found' : 'not found');
     if (boxAccessToken) {
-      console.log('Existing Box access token found');
+      console.log('useBoxOAuth: Setting connected to true');
       setIsConnected(true);
     }
   }, []);
 
   const handleOAuthCallback = async (code: string) => {
     setLoading(true);
-    console.log('Processing Box OAuth callback...');
+    console.log('useBoxOAuth: Processing Box OAuth callback with code:', code);
     
     try {
       const { supabase } = await import('@/integrations/supabase/client');
       
+      console.log('useBoxOAuth: Calling box-integration edge function...');
       const { data, error } = await supabase.functions.invoke('box-integration', {
         body: { action: 'exchange_code', code }
       });
 
-      if (error) throw error;
+      console.log('useBoxOAuth: Edge function response:', { data, error });
 
+      if (error) {
+        console.error('useBoxOAuth: Edge function error:', error);
+        throw error;
+      }
+
+      if (!data?.access_token) {
+        console.error('useBoxOAuth: No access token in response:', data);
+        throw new Error('No access token received');
+      }
+
+      console.log('useBoxOAuth: Storing access token and cleaning up...');
       localStorage.setItem('box_access_token', data.access_token);
       localStorage.removeItem('box_oauth_state');
       
@@ -47,6 +70,7 @@ export const useBoxOAuth = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
       
       setIsConnected(true);
+      console.log('useBoxOAuth: Connection successful!');
       
       toast({
         title: "Connected to Box",
@@ -54,7 +78,7 @@ export const useBoxOAuth = () => {
       });
       
     } catch (error) {
-      console.error('Box OAuth callback error:', error);
+      console.error('useBoxOAuth: OAuth callback error:', error);
       toast({
         title: "Connection Failed",
         description: "Failed to complete Box connection. Please try again.",
