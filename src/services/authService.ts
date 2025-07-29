@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SecureSessionManager } from '@/utils/secureSessionManager';
 import { validateWalletAddress, isRateLimited } from '@/utils/inputValidation';
+import { 
+  logSecurityEvent, 
+  standardizeError, 
+  getAuthDelay, 
+  validateWalletSecurely 
+} from '@/utils/securityUtils';
 
 export class AuthService {
   static async loadWalletData(userId: string) {
@@ -27,17 +33,46 @@ export class AuthService {
   }
 
   static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') {
+    const startTime = Date.now();
+    
     try {
-      // Rate limiting check
+      // Enhanced rate limiting with progressive delays
       const rateLimitKey = `wallet_auth_${walletAddress}`;
+      const attemptKey = `auth_attempts_${walletAddress}`;
+      
       if (isRateLimited(rateLimitKey, 3, 5 * 60 * 1000)) {
-        return { error: { message: 'Too many authentication attempts. Please wait 5 minutes before trying again.' } };
+        logSecurityEvent('auth_rate_limited', { 
+          walletAddress: walletAddress.slice(0, 6) + '...', 
+          blockchainType 
+        }, 'medium');
+        
+        return { error: { message: standardizeError(null, 'rate_limit') } };
       }
 
-      // Input validation
-      const walletValidation = validateWalletAddress(walletAddress, blockchainType);
+      // Get current attempt count for progressive delays
+      const attemptCount = parseInt(localStorage.getItem(attemptKey) || '0') + 1;
+      localStorage.setItem(attemptKey, attemptCount.toString());
+      
+      if (attemptCount > 1) {
+        const delay = getAuthDelay(attemptCount);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      // Enhanced input validation with security logging
+      const walletValidation = validateWalletSecurely(walletAddress, blockchainType);
       if (!walletValidation.isValid) {
-        return { error: { message: walletValidation.error || 'Invalid wallet address' } };
+        logSecurityEvent('invalid_wallet_input', { 
+          blockchainType,
+          error: walletValidation.error 
+        });
+        
+        return { error: { message: standardizeError(walletValidation.error, 'validation') } };
+      }
+
+      // Validate signature format
+      if (!signature || signature.length < 10) {
+        logSecurityEvent('invalid_signature_format', { blockchainType });
+        return { error: { message: standardizeError(null, 'validation') } };
       }
 
       console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
@@ -55,11 +90,28 @@ export class AuthService {
       });
 
       if (error) {
-        console.error('Wallet authentication error:', error);
-        return { error: { message: 'Failed to authenticate wallet. Please try again.' } };
+        logSecurityEvent('wallet_auth_failed', { 
+          walletAddress: walletAddress.slice(0, 6) + '...', 
+          blockchainType,
+          error: error.message,
+          duration: Date.now() - startTime
+        }, 'medium');
+        
+        window.dispatchEvent(new CustomEvent('auth-failure'));
+        return { error: { message: standardizeError(error, 'wallet') } };
       }
 
       if (data?.success && data?.authToken) {
+        // Clear failed attempt counter on success
+        localStorage.removeItem(attemptKey);
+        
+        logSecurityEvent('wallet_auth_success', { 
+          walletAddress: walletAddress.slice(0, 6) + '...', 
+          blockchainType,
+          isFirstTime: data.isFirstTime,
+          duration: Date.now() - startTime
+        });
+        
         console.log('Wallet authentication successful, creating session...');
         
         // Create a comprehensive session using the auth token
@@ -127,24 +179,48 @@ export class AuthService {
         
         return { error: null, data: sessionData };
       } else {
-        return { error: { message: 'Wallet authentication failed' } };
+        logSecurityEvent('wallet_auth_unexpected_failure', { 
+          walletAddress: walletAddress.slice(0, 6) + '...', 
+          blockchainType 
+        });
+        
+        window.dispatchEvent(new CustomEvent('auth-failure'));
+        return { error: { message: standardizeError(null, 'wallet') } };
       }
     } catch (error: any) {
-      console.error('Connect wallet error:', error);
-      return { error: { message: error.message || 'Failed to connect wallet' } };
+      logSecurityEvent('wallet_auth_exception', { 
+        walletAddress: walletAddress.slice(0, 6) + '...', 
+        blockchainType,
+        error: error.message,
+        duration: Date.now() - startTime
+      }, 'high');
+      
+      window.dispatchEvent(new CustomEvent('auth-failure'));
+      return { error: { message: standardizeError(error, 'network') } };
     }
   }
 
   static async signOut() {
-    // Clear secure session
-    SecureSessionManager.clearSession();
-    
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      toast.success('Signed out successfully');
-      // Redirect to auth page
-      window.location.href = '/auth';
+    try {
+      logSecurityEvent('signout_initiated', {});
+      
+      // Clear secure session
+      SecureSessionManager.clearSession();
+      
+      const { error } = await supabase.auth.signOut();
+      if (!error) {
+        toast.success('Signed out successfully');
+        logSecurityEvent('signout_success', {});
+        
+        // Redirect to auth page
+        window.location.href = '/auth';
+      } else {
+        logSecurityEvent('signout_error', { error: error.message }, 'medium');
+      }
+      return { error };
+    } catch (error: any) {
+      logSecurityEvent('signout_exception', { error: error.message }, 'high');
+      return { error: standardizeError(error, 'auth') };
     }
-    return { error };
   }
 }
