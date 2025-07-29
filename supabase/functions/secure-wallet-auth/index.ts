@@ -1,299 +1,354 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2.50.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+// Rate limiting helper
+const checkRateLimit = async (supabase: any, identifier: string): Promise<boolean> => {
+  const now = new Date();
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  
+  // Check if IP/wallet is currently blocked
+  const { data: blocked } = await supabase
+    .from('auth_rate_limits')
+    .select('blocked_until')
+    .eq('identifier', identifier)
+    .gte('blocked_until', now.toISOString())
+    .single();
+
+  if (blocked) {
+    return false; // Still blocked
+  }
+
+  // Count attempts in last 5 minutes
+  const { data: attempts } = await supabase
+    .from('auth_rate_limits')
+    .select('attempt_count')
+    .eq('identifier', identifier)
+    .gte('last_attempt', fiveMinutesAgo.toISOString());
+
+  const totalAttempts = attempts?.reduce((sum: number, record: any) => sum + record.attempt_count, 0) || 0;
+
+  if (totalAttempts >= 5) {
+    // Block for 15 minutes
+    const blockUntil = new Date(now.getTime() + 15 * 60 * 1000);
+    await supabase
+      .from('auth_rate_limits')
+      .upsert({
+        identifier,
+        attempt_count: 1,
+        last_attempt: now.toISOString(),
+        blocked_until: blockUntil.toISOString()
+      });
+    return false;
+  }
+
+  // Log this attempt
+  await supabase
+    .from('auth_rate_limits')
+    .upsert({
+      identifier,
+      attempt_count: 1,
+      last_attempt: now.toISOString()
+    });
+
+  return true;
+};
+
+// Secure token generation
+const generateSecureToken = (): string => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+// Signature verification for Ethereum
+const verifyEthereumSignature = async (message: string, signature: string, address: string): Promise<boolean> => {
+  try {
+    // Import ethers dynamically
+    const { ethers } = await import('https://cdn.skypack.dev/ethers@5.8.0');
+    
+    // Create message hash
+    const messageHash = ethers.utils.hashMessage(message);
+    
+    // Recover address from signature
+    const recoveredAddress = ethers.utils.recoverAddress(messageHash, signature);
+    
+    // Compare addresses (case insensitive)
+    return recoveredAddress.toLowerCase() === address.toLowerCase();
+  } catch (error) {
+    console.error('Ethereum signature verification error:', error);
+    return false;
+  }
+};
+
+// Signature verification for Solana
+const verifySolanaSignature = async (message: string, signature: string, publicKey: string): Promise<boolean> => {
+  try {
+    // Import Solana web3 dynamically
+    const { PublicKey, ed25519 } = await import('https://cdn.skypack.dev/@solana/web3.js@1.98.2');
+    
+    // Convert message to bytes
+    const messageBytes = new TextEncoder().encode(message);
+    
+    // Convert signature from hex to bytes
+    const signatureBytes = new Uint8Array(signature.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+    
+    // Convert public key
+    const pubKey = new PublicKey(publicKey);
+    
+    // Verify signature using ed25519
+    return ed25519.verify(signatureBytes, messageBytes, pubKey.toBytes());
+  } catch (error) {
+    console.error('Solana signature verification error:', error);
+    return false;
+  }
+};
 
 interface WalletAuthRequest {
-  walletAddress: string
-  signature: string
-  message: string
-  nonce?: string
-  timestamp?: number
-  blockchainType?: 'solana' | 'ethereum'
-  createWalletOnly?: boolean
-  userId?: string
+  walletAddress: string;
+  signature: string;
+  message: string;
+  timestamp: number;
+  nonce: string;
+  blockchainType: 'solana' | 'ethereum';
+  createWalletOnly?: boolean;
+  userId?: string;
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    const { 
-      walletAddress, 
-      signature, 
-      message, 
-      nonce, 
-      timestamp, 
-      blockchainType = 'ethereum',
-      createWalletOnly = false,
-      userId
-    }: WalletAuthRequest = await req.json()
+    const body: WalletAuthRequest = await req.json();
+    const { walletAddress, signature, message, timestamp, nonce, blockchainType, createWalletOnly, userId } = body;
 
-    // Validate required fields
+    // Input validation
     if (!walletAddress || !signature || !message) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: walletAddress, signature, message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    // Handle wallet creation only request
-    if (createWalletOnly && userId) {
-      console.log('Creating wallet for user:', userId)
-      
-      try {
-        // First, ensure the user profile exists
-        const { data: existingProfile, error: profileCheckError } = await supabaseClient
-          .from('profiles')
-          .select('id')
-          .eq('id', userId)
-          .maybeSingle()
+    // Get client IP for rate limiting
+    const clientIP = req.headers.get('CF-Connecting-IP') || 
+                    req.headers.get('X-Forwarded-For') || 
+                    'unknown';
 
-        if (profileCheckError && profileCheckError.code !== 'PGRST116') {
-          console.error('Error checking profile:', profileCheckError)
-        }
-
-        if (!existingProfile) {
-          // Create user profile first
-          const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
-          const email = `${walletAddress}@blockdrive.wallet`
-
-          const { error: profileError } = await supabaseClient
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: email,
-              username: username
-            })
-
-          if (profileError) {
-            console.error('Failed to create profile:', profileError)
-            // Continue anyway, as the profile might already exist
-          } else {
-            console.log('Created user profile for wallet:', walletAddress)
-          }
-        }
-
-        // Now create the wallet record using service role to bypass RLS
-        const { data: newWallet, error: createWalletError } = await supabaseClient
-          .from('wallets')
-          .insert({
-            user_id: userId,
-            wallet_address: walletAddress,
-            public_key: '',
-            private_key_encrypted: '',
-            blockchain_type: blockchainType
-          })
-          .select('id')
-          .single()
-
-        if (createWalletError) {
-          console.error('Failed to create wallet:', createWalletError)
-          return new Response(
-            JSON.stringify({ 
-              error: 'Failed to create wallet',
-              details: createWalletError.message 
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-
-        console.log('Successfully created wallet:', newWallet)
-        return new Response(
-          JSON.stringify({
-            success: true,
-            walletId: newWallet.id,
-            message: 'Wallet created successfully'
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-
-      } catch (walletCreationError) {
-        console.error('Wallet creation process failed:', walletCreationError)
-        return new Response(
-          JSON.stringify({ 
-            error: 'Wallet creation failed',
-            details: walletCreationError.message 
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
-
-    // Validate wallet address format based on blockchain type
-    if (blockchainType === 'solana') {
-      const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-      if (!solanaAddressRegex.test(walletAddress)) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid Solana wallet address format' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    } else if (blockchainType === 'ethereum') {
-      const ethereumAddressRegex = /^0x[a-fA-F0-9]{40}$/
-      if (!ethereumAddressRegex.test(walletAddress)) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid Ethereum wallet address format' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
-
-    // Check timestamp to prevent replay attacks (5 minute window)
-    if (timestamp && Math.abs(Date.now() - timestamp) > 300000) {
+    // Check rate limit
+    const rateLimitOk = await checkRateLimit(supabase, `${clientIP}:${walletAddress}`);
+    if (!rateLimitOk) {
       return new Response(
-        JSON.stringify({ error: 'Request timestamp too old' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({ error: 'Too many authentication attempts. Please try again later.' }),
+        { status: 429, headers: corsHeaders }
+      );
     }
 
-    console.log(`Validating signature for ${blockchainType} wallet:`, walletAddress)
+    // Handle wallet creation only
+    if (createWalletOnly && userId) {
+      // Create user profile if it doesn't exist
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
 
-    // For demo purposes, we'll skip actual signature verification
-    // In production, you would verify the signature based on blockchain type:
-    // - For Ethereum: use ethers.js to verify ECDSA signature
-    // - For Solana: use @solana/web3.js to verify Ed25519 signature
+      if (!profile && !profileError) {
+        await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            username: `${blockchainType}_user_${walletAddress.slice(0, 8)}`,
+          });
+      }
+
+      // Insert wallet record
+      const { data: wallet, error: walletError } = await supabase
+        .from('wallets')
+        .insert({
+          user_id: userId,
+          wallet_address: walletAddress,
+          public_key: walletAddress,
+          blockchain_type: blockchainType,
+          private_key_encrypted: ''
+        })
+        .select()
+        .single();
+
+      if (walletError) {
+        console.error('Error creating wallet:', walletError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create wallet' }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, walletId: wallet.id }),
+        { headers: corsHeaders }
+      );
+    }
+
+    // Validate wallet address format
+    const isValidAddress = blockchainType === 'ethereum' 
+      ? /^0x[a-fA-F0-9]{40}$/.test(walletAddress)
+      : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(walletAddress);
+
+    if (!isValidAddress) {
+      return new Response(
+        JSON.stringify({ error: `Invalid ${blockchainType} address format` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate timestamp (prevent replay attacks)
+    const now = Date.now();
+    const timeDiff = Math.abs(now - timestamp);
+    if (timeDiff > 5 * 60 * 1000) { // 5 minutes
+      return new Response(
+        JSON.stringify({ error: 'Request timestamp is too old or invalid' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Verify signature
+    console.log('Verifying signature for', blockchainType, 'wallet');
+    let signatureValid = false;
     
-    console.log(`Signature validation passed for ${blockchainType} wallet:`, walletAddress)
+    if (blockchainType === 'ethereum') {
+      signatureValid = await verifyEthereumSignature(message, signature, walletAddress);
+    } else if (blockchainType === 'solana') {
+      signatureValid = await verifySolanaSignature(message, signature, walletAddress);
+    }
 
-    // Check for existing wallet authentication
-    const { data: existingAuth, error: authError } = await supabaseClient
+    if (!signatureValid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Check for existing authentication token
+    const { data: existingToken, error: tokenError } = await supabase
       .from('wallet_auth_tokens')
       .select('*')
       .eq('wallet_address', walletAddress)
       .eq('blockchain_type', blockchainType)
       .eq('is_active', true)
-      .maybeSingle()
+      .single();
 
-    if (authError && authError.code !== 'PGRST116') {
-      console.error('Database error:', authError)
-      return new Response(
-        JSON.stringify({ error: 'Authentication service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    let authToken: string;
+    let isFirstTime = false;
 
-    let authToken: string
-    let isFirstTime = !existingAuth
-
-    if (isFirstTime) {
-      // Generate secure authentication token
-      authToken = crypto.randomUUID()
+    if (!existingToken && tokenError?.code === 'PGRST116') {
+      // First time authentication - generate new token
+      isFirstTime = true;
+      authToken = generateSecureToken();
       
-      const { error: insertError } = await supabaseClient
+      console.log('First time authentication, generating new token');
+
+      // Create user profile
+      const userProfile = {
+        id: authToken,
+        username: `${blockchainType}_user_${walletAddress.slice(0, 8)}`,
+        email: `${walletAddress}@blockdrive.wallet`
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert(userProfile);
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+      }
+
+      // Insert new authentication token
+      const { error: insertError } = await supabase
         .from('wallet_auth_tokens')
         .insert({
+          auth_token: authToken,
           wallet_address: walletAddress,
           blockchain_type: blockchainType,
-          auth_token: authToken,
+          user_id: authToken,
           is_active: true,
           first_login_at: new Date().toISOString(),
           last_login_at: new Date().toISOString()
-        })
+        });
 
       if (insertError) {
-        console.error('Failed to create auth token:', insertError)
+        console.error('Error inserting wallet auth token:', insertError);
         return new Response(
-          JSON.stringify({ error: 'Failed to create authentication' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+          JSON.stringify({ error: 'Failed to create authentication token' }),
+          { status: 500, headers: corsHeaders }
+        );
       }
 
-      console.log(`Created new authentication for ${blockchainType} wallet:`, walletAddress)
+      // Create wallet record
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .insert({
+          user_id: authToken,
+          wallet_address: walletAddress,
+          public_key: walletAddress,
+          blockchain_type: blockchainType,
+          private_key_encrypted: '' // Encrypted private key would go here
+        });
 
-      // Create user profile for first-time users
-      try {
-        const username = `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)}User_${walletAddress.slice(-8)}`
-        const email = `${walletAddress}@blockdrive.wallet`
-
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .insert({
-            id: authToken,
-            email: email,
-            username: username
-          })
-
-        if (profileError) {
-          console.log('Profile creation failed (may already exist):', profileError)
-          // Don't fail the auth process if profile creation fails
-        } else {
-          console.log(`Created user profile for ${blockchainType} wallet:`, walletAddress)
-        }
-      } catch (profileErr) {
-        console.log('Error creating profile:', profileErr)
-        // Don't fail the auth process if profile creation fails
+      if (walletError) {
+        console.error('Error creating wallet record:', walletError);
       }
 
-      // Create wallet record for first-time users using service role
-      try {
-        const { data: newWallet, error: walletError } = await supabaseClient
-          .from('wallets')
-          .insert({
-            user_id: authToken,
-            wallet_address: walletAddress,
-            public_key: '',
-            private_key_encrypted: '',
-            blockchain_type: blockchainType
-          })
-          .select('id')
-          .single()
-
-        if (walletError) {
-          console.error('Failed to create wallet record:', walletError)
-          // Don't fail the auth process if wallet creation fails
-        } else {
-          console.log(`Created wallet record for ${blockchainType} wallet:`, walletAddress)
-        }
-      } catch (walletErr) {
-        console.log('Error creating wallet record:', walletErr)
-        // Don't fail the auth process if wallet creation fails
-      }
-
-    } else {
-      authToken = existingAuth.auth_token
+    } else if (existingToken) {
+      // Existing user - update last login
+      authToken = existingToken.auth_token;
       
-      // Update last login time
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await supabase
         .from('wallet_auth_tokens')
         .update({ last_login_at: new Date().toISOString() })
         .eq('wallet_address', walletAddress)
-        .eq('blockchain_type', blockchainType)
+        .eq('blockchain_type', blockchainType);
 
       if (updateError) {
-        console.error('Failed to update login time:', updateError)
+        console.error('Error updating last login:', updateError);
       }
-
-      console.log(`Updated login time for existing ${blockchainType} wallet:`, walletAddress)
+    } else {
+      console.error('Unexpected error checking for existing token:', tokenError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 500, headers: corsHeaders }
+      );
     }
+
+    console.log('Authentication successful for wallet:', walletAddress);
 
     return new Response(
       JSON.stringify({
         success: true,
-        isFirstTime,
         authToken,
         walletAddress,
         blockchainType,
-        message: isFirstTime ? `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet registered successfully` : 'Welcome back!'
+        isFirstTime
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { headers: corsHeaders }
+    );
 
   } catch (error) {
-    console.error('Wallet authentication error:', error)
+    console.error('Wallet authentication error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { status: 500, headers: corsHeaders }
+    );
   }
-})
+});
