@@ -18,12 +18,14 @@ import TeamInvitation from "./pages/TeamInvitation";
 import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
 import { DynamicProvider } from "./components/auth/DynamicProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { SecurityHeaders } from "./components/SecurityHeaders";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <SecurityHeaders />
       <Toaster />
       <Sonner />
       <BrowserRouter>

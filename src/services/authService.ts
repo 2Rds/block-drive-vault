@@ -1,6 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SecureSessionManager } from '@/utils/secureSessionManager';
+import { validateWalletAddress, isRateLimited } from '@/utils/inputValidation';
 
 export class AuthService {
   static async loadWalletData(userId: string) {
@@ -26,6 +28,18 @@ export class AuthService {
 
   static async connectWallet(walletAddress: string, signature: string, blockchainType: 'solana' | 'ethereum') {
     try {
+      // Rate limiting check
+      const rateLimitKey = `wallet_auth_${walletAddress}`;
+      if (isRateLimited(rateLimitKey, 3, 5 * 60 * 1000)) {
+        return { error: { message: 'Too many authentication attempts. Please wait 5 minutes before trying again.' } };
+      }
+
+      // Input validation
+      const walletValidation = validateWalletAddress(walletAddress, blockchainType);
+      if (!walletValidation.isValid) {
+        return { error: { message: walletValidation.error || 'Invalid wallet address' } };
+      }
+
       console.log(`Attempting to authenticate ${blockchainType} wallet:`, walletAddress);
       
       // Use the secure authentication endpoint
@@ -66,8 +80,27 @@ export class AuthService {
           token_type: 'bearer'
         };
 
-        // Store session in localStorage for persistence
-        localStorage.setItem('sb-supabase-auth-token', JSON.stringify(sessionData));
+        // Store session securely using SecureSessionManager
+        const mockUser = {
+          id: data.authToken,
+          email: `${walletAddress}@blockdrive.wallet`,
+          user_metadata: {
+            wallet_address: walletAddress,
+            blockchain_type: blockchainType,
+            username: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} User`,
+            full_name: `${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} Wallet User`
+          }
+        };
+        
+        const mockSession = {
+          access_token: data.authToken,
+          refresh_token: data.authToken,
+          expires_at: Date.now() + (24 * 60 * 60 * 1000),
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        SecureSessionManager.storeSession(mockUser as any, mockSession as any);
         
         // Set wallet data immediately for UI consistency
         const walletData = {
@@ -103,8 +136,8 @@ export class AuthService {
   }
 
   static async signOut() {
-    // Clear custom session
-    localStorage.removeItem('sb-supabase-auth-token');
+    // Clear secure session
+    SecureSessionManager.clearSession();
     
     const { error } = await supabase.auth.signOut();
     if (!error) {

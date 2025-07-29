@@ -74,28 +74,35 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
-  )
+  // Create CSS text safely without dangerouslySetInnerHTML
+  const cssText = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const themeRules = colorConfig
+        .map(([key, itemConfig]) => {
+          const color =
+            itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+            itemConfig.color
+          // Sanitize color values to prevent injection
+          const sanitizedColor = color?.replace(/[<>"'&]/g, '') || ''
+          return sanitizedColor ? `  --color-${key}: ${sanitizedColor};` : null
+        })
+        .filter(Boolean)
+        .join("\n")
+      
+      return `${prefix} [data-chart=${id}] {\n${themeRules}\n}`
+    })
+    .join("\n")
+
+  // Use a ref and useEffect to safely inject CSS
+  const styleRef = React.useRef<HTMLStyleElement>(null)
+  
+  React.useEffect(() => {
+    if (styleRef.current) {
+      styleRef.current.textContent = cssText
+    }
+  }, [cssText])
+
+  return <style ref={styleRef} />
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

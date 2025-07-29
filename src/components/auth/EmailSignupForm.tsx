@@ -8,6 +8,7 @@ import { Mail, User, Building } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 import { SignupService } from '@/services/signupService';
 import { toast } from 'sonner';
+import { validateEmail, sanitizeText, isRateLimited } from '@/utils/inputValidation';
 
 interface EmailSignupFormProps {
   onSuccess: (data: any) => void;
@@ -31,8 +32,22 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.fullName) {
-      toast.error('Please fill in all required fields');
+    // Rate limiting check
+    const rateLimitKey = `email_signup_${formData.email}`;
+    if (isRateLimited(rateLimitKey, 3, 15 * 60 * 1000)) {
+      toast.error('Too many signup attempts. Please wait 15 minutes before trying again.');
+      return;
+    }
+    
+    // Input validation
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      toast.error(emailValidation.error || 'Invalid email address');
+      return;
+    }
+    
+    if (!formData.fullName.trim()) {
+      toast.error('Please enter your full name');
       return;
     }
 
@@ -40,9 +55,9 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
 
     try {
       const result = await SignupService.registerUser({
-        email: formData.email,
-        fullName: formData.fullName,
-        organization: formData.organization,
+        email: formData.email.trim().toLowerCase(),
+        fullName: sanitizeText(formData.fullName.trim()),
+        organization: sanitizeText(formData.organization.trim()),
         subscriptionTier: 'free_trial'
       });
 
@@ -62,7 +77,9 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Basic input sanitization
+    const sanitizedValue = field === 'email' ? value.trim().toLowerCase() : sanitizeText(value);
+    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
   };
 
   return (
