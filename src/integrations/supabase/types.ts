@@ -620,6 +620,33 @@ export type Database = {
         }
         Relationships: []
       }
+      security_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          identifier: string | null
+          severity: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          identifier?: string | null
+          severity?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          identifier?: string | null
+          severity?: string | null
+        }
+        Relationships: []
+      }
       subdomain_registrations: {
         Row: {
           blockchain_type: string
@@ -948,6 +975,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_security_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_auth_token: {
         Args: { user_wallet_address: string }
         Returns: string
