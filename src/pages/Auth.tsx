@@ -5,7 +5,6 @@ import { FeatureCards } from '@/components/auth/FeatureCards';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthHero } from '@/components/auth/AuthHero';
 import { AuthConnectors } from '@/components/auth/AuthConnectors';
-import { WalletDownloadSection } from '@/components/auth/WalletDownloadSection';
 import { toast } from 'sonner';
 const Auth = () => {
   const {
@@ -121,8 +120,6 @@ const Auth = () => {
             <div className="space-y-6 auth-buttons">
               <AuthConnectors dynamicReady={true} sdkError={false} sdkHasLoaded={true} onRetry={() => window.location.reload()} onWalletConnected={handleWalletConnected} />
             </div>
-            
-            <WalletDownloadSection />
             
             <FeatureCards />
           </div>
