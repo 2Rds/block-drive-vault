@@ -28,9 +28,9 @@ export const AuthHero = () => {
           <Globe className="w-5 h-5 text-blue-400 mr-2" />
           <span className="text-blue-400 text-sm font-medium">Multi-Chain Support</span>
         </div>
-        <div className="flex items-center justify-center p-3 bg-secondary/20 rounded-lg border border-secondary/30">
-          <Zap className="w-5 h-5 text-secondary-foreground mr-2" />
-          <span className="text-secondary-foreground text-sm font-medium">Lightning Fast</span>
+        <div className="flex items-center justify-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <Zap className="w-5 h-5 text-primary mr-2" />
+          <span className="text-primary text-sm font-medium">Lightning Fast</span>
         </div>
       </div>
     </div>
