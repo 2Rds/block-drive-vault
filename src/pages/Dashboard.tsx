@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { DataDashboard } from "@/components/DataDashboard";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Settings } from 'lucide-react';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { BarChart3, Files, Settings, Users, Crown } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
@@ -15,6 +15,7 @@ import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { subscriptionStatus } = useSubscriptionStatus();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
   const [selectedFolder, setSelectedFolder] = React.useState('all');
@@ -40,6 +41,16 @@ const Dashboard = () => {
     console.log('Navigating to account');
     navigate('/account');
   };
+
+  const handleTeamsClick = () => {
+    console.log('Navigating to teams');
+    navigate('/teams');
+  };
+
+  // Check if user has growth or scale subscription
+  const isSubscribed = subscriptionStatus?.subscribed || false;
+  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
+  const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
@@ -71,6 +82,19 @@ const Dashboard = () => {
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
                 </Button>
+                {canAccessTeams && (
+                  <Button
+                    onClick={handleTeamsClick}
+                    variant="outline"
+                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Teams
+                    {subscriptionTier === 'growth' && (
+                      <Crown className="w-3 h-3 ml-1 text-yellow-500" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   onClick={handleAccountClick}
                   variant="outline"
