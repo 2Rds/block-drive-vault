@@ -990,6 +990,10 @@ export type Database = {
         Args: { team_uuid: string }
         Returns: boolean
       }
+      validate_airdrop_eligibility: {
+        Args: { campaign_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
       validate_profile_access: {
         Args: { profile_id: string }
         Returns: boolean
