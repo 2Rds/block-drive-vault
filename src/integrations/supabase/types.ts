@@ -1011,6 +1011,15 @@ export type Database = {
         Args: { team_uuid: string }
         Returns: boolean
       }
+      secure_user_signup: {
+        Args: {
+          email_param: string
+          full_name_param: string
+          organization_param?: string
+          subscription_tier_param?: string
+        }
+        Returns: Json
+      }
       validate_airdrop_eligibility: {
         Args: { campaign_uuid: string; user_uuid: string }
         Returns: boolean
@@ -1025,6 +1034,14 @@ export type Database = {
       }
       validate_service_token_operation: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      validate_signup_attempt: {
+        Args: {
+          email_param: string
+          full_name_param: string
+          organization_param?: string
+        }
         Returns: boolean
       }
       validate_subscription_access: {

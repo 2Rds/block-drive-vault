@@ -14,16 +14,13 @@ export class SignupService {
     try {
       console.log('Registering user with email:', signupData.email);
       
-      const { data, error } = await supabase
-        .from('user_signups')
-        .insert({
-          email: signupData.email,
-          full_name: signupData.fullName,
-          organization: signupData.organization,
-          subscription_tier: signupData.subscriptionTier || 'free_trial'
-        })
-        .select()
-        .single();
+      // Use the secure signup function instead of direct table insertion
+      const { data, error } = await supabase.rpc('secure_user_signup', {
+        email_param: signupData.email,
+        full_name_param: signupData.fullName,
+        organization_param: signupData.organization || null,
+        subscription_tier_param: signupData.subscriptionTier || 'free_trial'
+      });
 
       if (error) {
         console.error('Signup error:', error);
