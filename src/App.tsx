@@ -69,11 +69,7 @@ const App = () => {
                     <Account />
                   </ProtectedRoute>
                 } />
-                <Route path="/teams" element={
-                  <ProtectedRoute>
-                    <Teams />
-                  </ProtectedRoute>
-                } />
+                <Route path="/teams" element={<Teams />} />
                 <Route path="/team-invitation" element={<TeamInvitation />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
