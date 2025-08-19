@@ -1,6 +1,7 @@
 import { useTeams } from '@/hooks/useTeams';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { useNavigate } from 'react-router-dom';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
 import { TeamSelector } from '@/components/team/TeamSelector';
 import { InviteTeamMemberModal } from '@/components/team/InviteTeamMemberModal';
@@ -11,10 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
@@ -46,6 +49,18 @@ export default function Teams() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/dashboard')}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Teams</h1>
