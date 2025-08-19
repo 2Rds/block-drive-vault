@@ -982,6 +982,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_expired_auth_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_expired_tokens: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -989,6 +993,15 @@ export type Database = {
       cleanup_old_security_logs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      detect_suspicious_token_activity: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_count: number
+          identifier: string
+          last_event: string
+          suspicious_activity: string
+        }[]
       }
       get_user_auth_token: {
         Args: { user_wallet_address: string }
