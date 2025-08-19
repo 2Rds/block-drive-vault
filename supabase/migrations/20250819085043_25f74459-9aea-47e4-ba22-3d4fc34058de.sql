@@ -1,0 +1,100 @@
+-- Fix security linter warnings introduced by the previous migration
+
+-- 1. Fix the security definer view by removing it and using proper RLS instead
+DROP VIEW IF EXISTS public.subscriber_summary;
+
+-- 2. Fix function search path issues by setting search_path explicitly
+DROP FUNCTION IF EXISTS public.log_subscription_access();
+DROP FUNCTION IF EXISTS public.check_subscription_rate_limit();
+
+-- Recreate the audit log function with proper search_path
+CREATE OR REPLACE FUNCTION public.log_subscription_access()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Log any access to subscription data for security monitoring
+  INSERT INTO security_logs (event_type, identifier, details, severity)
+  VALUES (
+    'subscription_access',
+    COALESCE(NEW.email, OLD.email),
+    jsonb_build_object(
+      'user_id', auth.uid(),
+      'action', TG_OP,
+      'table', TG_TABLE_NAME,
+      'timestamp', NOW()
+    ),
+    'low'
+  );
+  
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$;
+
+-- Recreate the rate limiting function with proper search_path
+CREATE OR REPLACE FUNCTION public.check_subscription_rate_limit()
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  recent_operations_count integer;
+BEGIN
+  -- Check if user has made too many subscription operations recently
+  SELECT COUNT(*) INTO recent_operations_count
+  FROM security_logs
+  WHERE event_type = 'subscription_access'
+    AND details->>'user_id' = auth.uid()::text
+    AND created_at > NOW() - INTERVAL '1 minute';
+  
+  -- Allow up to 10 operations per minute per user
+  RETURN recent_operations_count < 10;
+END;
+$$;
+
+-- Recreate the trigger (it was dropped when we dropped the function)
+CREATE TRIGGER subscription_access_audit
+  AFTER INSERT OR UPDATE OR DELETE ON public.subscribers
+  FOR EACH ROW EXECUTE FUNCTION public.log_subscription_access();
+
+-- Instead of the problematic view, create a secure function to get masked subscription data
+CREATE OR REPLACE FUNCTION public.get_masked_subscription_data()
+RETURNS TABLE (
+  id uuid,
+  user_id uuid,
+  email text,
+  subscribed boolean,
+  subscription_tier text,
+  subscription_end timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  masked_customer_id text
+)
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    s.id,
+    s.user_id,
+    s.email,
+    s.subscribed,
+    s.subscription_tier,
+    s.subscription_end,
+    s.created_at,
+    s.updated_at,
+    -- Mask the Stripe customer ID for additional security
+    CONCAT('cus_', RIGHT(s.stripe_customer_id, 8)) as masked_customer_id
+  FROM subscribers s
+  WHERE validate_subscription_access(s.user_id, s.email);
+END;
+$$;
