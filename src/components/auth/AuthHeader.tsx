@@ -1,4 +1,6 @@
 import React from 'react';
+import { DynamicConnectButton } from './DynamicConnectButton';
+
 export const AuthHeader = () => {
   return <header className="border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="flex items-center justify-between px-8 py-4">
@@ -12,6 +14,11 @@ export const AuthHeader = () => {
           </div>
         </div>
         
+        <div className="flex items-center">
+          <div className="w-48">
+            <DynamicConnectButton onConnectClick={() => {}} />
+          </div>
+        </div>
       </div>
     </header>;
 };

@@ -117,10 +117,6 @@ const Auth = () => {
           </div>
 
           <div className="max-w-2xl mx-auto space-y-12">
-            <div className="space-y-6 auth-buttons">
-              <AuthConnectors dynamicReady={true} sdkError={false} sdkHasLoaded={true} onRetry={() => window.location.reload()} onWalletConnected={handleWalletConnected} />
-            </div>
-            
             <FeatureCards />
           </div>
         </div>
