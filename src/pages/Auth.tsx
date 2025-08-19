@@ -105,26 +105,40 @@ const Auth = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <AuthHeader />
 
-      <div className="container mx-auto px-4 py-8 main-content">
-        <div className="max-w-6xl mx-auto">
+      <div className="container mx-auto px-6 py-16 main-content">
+        <div className="max-w-7xl mx-auto">
           <AuthHero />
           
-          <div className="mb-8 text-center">
+          {/* Auth Connectors Section */}
+          <div className="mt-24 max-w-2xl mx-auto space-y-12">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-4">
+                Get Started with BlockDrive
+              </h2>
+              <p className="text-muted-foreground">
+                Connect your wallet to start managing your data securely on the decentralized web
+              </p>
+            </div>
             
-          </div>
-
-          <div className="max-w-2xl mx-auto space-y-12">
             <div className="space-y-6 auth-buttons">
-              <AuthConnectors dynamicReady={true} sdkError={false} sdkHasLoaded={true} onRetry={() => window.location.reload()} onWalletConnected={handleWalletConnected} />
+              <AuthConnectors 
+                dynamicReady={true} 
+                sdkError={false} 
+                sdkHasLoaded={true} 
+                onRetry={() => window.location.reload()} 
+                onWalletConnected={handleWalletConnected} 
+              />
             </div>
             
             <FeatureCards />
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Auth;
