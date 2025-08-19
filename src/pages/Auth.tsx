@@ -105,26 +105,34 @@ const Auth = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <AuthHeader />
 
-      <div className="container mx-auto px-4 py-8 main-content">
-        <div className="max-w-6xl mx-auto">
-          <AuthHero />
-          
-          <div className="mb-8 text-center">
+      <main className="main-content">
+        {/* Hero Section */}
+        <section className="py-24 px-8 bg-gradient-to-br from-background via-background to-card/30">
+          <div className="max-w-7xl mx-auto">
+            <AuthHero />
             
-          </div>
-
-          <div className="max-w-2xl mx-auto space-y-12">
-            <div className="space-y-6 auth-buttons">
-              <AuthConnectors dynamicReady={true} sdkError={false} sdkHasLoaded={true} onRetry={() => window.location.reload()} onWalletConnected={handleWalletConnected} />
+            <div className="flex justify-center mb-16 auth-buttons">
+              <AuthConnectors 
+                dynamicReady={true} 
+                sdkError={false} 
+                sdkHasLoaded={true} 
+                onRetry={() => window.location.reload()} 
+                onWalletConnected={handleWalletConnected} 
+              />
             </div>
-            
-            <FeatureCards />
           </div>
-        </div>
-      </div>
-    </div>;
+        </section>
+        
+        {/* Features Section */}
+        <section className="py-24 px-8">
+          <FeatureCards />
+        </section>
+      </main>
+    </div>
+  );
 };
 export default Auth;

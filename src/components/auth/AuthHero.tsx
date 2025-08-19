@@ -1,36 +1,59 @@
 
 import React from 'react';
-import { Database, Globe, Zap } from 'lucide-react';
+import { Shield, Cloud, Zap } from 'lucide-react';
 
 export const AuthHero = () => {
   return (
-    <div className="text-center mb-12">
-      <h2 className="text-4xl font-bold text-foreground mb-6">
-        Welcome to BlockDrive
-        <br />
-        <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-          Next-Generation Web3 Data Management
+    <div className="text-center mb-16">
+      <div className="mb-4">
+        <span className="text-primary text-sm font-medium tracking-wider uppercase">
+          Web3 Data Management Platform
         </span>
-      </h2>
-      <p className="text-muted-foreground text-lg mb-8 max-w-3xl mx-auto">
-        Transform how you store, manage, and share data across the decentralized web. 
-        BlockDrive combines the power of IPFS, blockchain technology, and multi-chain wallet integration 
-        to deliver enterprise-grade data management with complete ownership control.
+      </div>
+      
+      <h1 className="text-6xl font-bold text-foreground mb-6 leading-tight">
+        Store Files{' '}
+        <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Securely
+        </span>{' '}
+        Without Limits
+      </h1>
+      
+      <p className="text-muted-foreground text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+        BlockDrive creates a secure environment for storing and managing your files 
+        with decentralized technology, eliminating data loss and access restrictions.
       </p>
       
-      {/* Feature Badges */}
-      <div className="flex flex-wrap justify-center gap-4 mb-8">
-        <div className="flex items-center justify-center p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <Database className="w-5 h-5 text-primary mr-2" />
-          <span className="text-primary text-sm font-medium">Decentralized Storage</span>
+      {/* Feature Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Shield className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Secure Storage</h3>
+          <p className="text-muted-foreground text-sm">
+            Military-grade encryption with blockchain-verified integrity for all your files.
+          </p>
         </div>
-        <div className="flex items-center justify-center p-3 bg-gradient-to-r from-blue-600/10 via-blue-500/10 to-purple-600/10 rounded-lg border border-blue-500/30">
-          <Globe className="w-5 h-5 text-blue-400 mr-2" />
-          <span className="text-blue-400 text-sm font-medium">Multi-Chain Support</span>
+        
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Cloud className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">IPFS Integration</h3>
+          <p className="text-muted-foreground text-sm">
+            Decentralized storage that ensures your data is always accessible and permanent.
+          </p>
         </div>
-        <div className="flex items-center justify-center p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <Zap className="w-5 h-5 text-primary mr-2" />
-          <span className="text-primary text-sm font-medium">Lightning Fast</span>
+        
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Zap className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Lightning Fast</h3>
+          <p className="text-muted-foreground text-sm">
+            Optimized upload and retrieval speeds with global CDN distribution.
+          </p>
         </div>
       </div>
     </div>
