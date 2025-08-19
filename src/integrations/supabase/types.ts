@@ -975,9 +975,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      subscriber_summary: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          masked_customer_id: string | null
+          subscribed: boolean | null
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          masked_customer_id?: never
+          subscribed?: boolean | null
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          masked_customer_id?: never
+          subscribed?: boolean | null
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_subscription_rate_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       cleanup_old_security_logs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -996,6 +1035,10 @@ export type Database = {
       }
       validate_profile_access: {
         Args: { profile_id: string }
+        Returns: boolean
+      }
+      validate_subscription_access: {
+        Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
     }
