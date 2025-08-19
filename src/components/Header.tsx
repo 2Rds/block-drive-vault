@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Bell, User, Wallet, LogOut, LogIn } from 'lucide-react';
+import { Search, Bell, User, Wallet, LogOut, LogIn, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -79,6 +79,25 @@ export const Header = () => {
                       </p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-600" />
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
+                    onClick={() => navigate('/teams')}
+                  >
+                    <div className="flex items-center">
+                      <Users className="mr-3 h-4 w-4" />
+                      <span>Teams</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
+                    onClick={() => navigate('/account')}
+                  >
+                    <div className="flex items-center">
+                      <User className="mr-3 h-4 w-4" />
+                      <span>Account</span>
+                    </div>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-600" />
                   <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" onClick={handleSignOut} disabled={isLoading}>
                     <LogOut className="mr-3 h-4 w-4" />

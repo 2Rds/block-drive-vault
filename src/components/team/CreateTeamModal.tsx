@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTeams } from '@/hooks/useTeams';
-import { Plus } from 'lucide-react';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { Plus, Crown } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const CreateTeamModal = () => {
   const [open, setOpen] = useState(false);
@@ -16,11 +18,27 @@ export const CreateTeamModal = () => {
     plan_type: 'growth',
   });
   const [loading, setLoading] = useState(false);
-  const { createTeam } = useTeams();
+  const { createTeam, teams } = useTeams();
+  const { subscriptionStatus } = useSubscriptionStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
+
+    // Check subscription limits for team creation
+    const isSubscribed = subscriptionStatus?.subscribed || false;
+    const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
+    
+    if (!isSubscribed) {
+      toast.error('Upgrade your subscription to create teams');
+      return;
+    }
+
+    // Growth plan allows 1 team, Scale allows unlimited
+    if (subscriptionTier === 'growth' && teams.length >= 1) {
+      toast.error('Growth plan allows 1 team. Upgrade to Scale for unlimited teams.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -34,12 +52,24 @@ export const CreateTeamModal = () => {
     }
   };
 
+  // Check subscription status
+  const isSubscribed = subscriptionStatus?.subscribed || false;
+  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
+  const isGrowthPlan = subscriptionTier === 'growth';
+  const isAtTeamLimit = isGrowthPlan && teams.length >= 1;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          disabled={!isSubscribed || isAtTeamLimit}
+        >
           <Plus className="h-4 w-4" />
           Create Team
+          {isGrowthPlan && (
+            <Crown className="h-3 w-3 ml-1 text-yellow-500" />
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

@@ -1,5 +1,6 @@
 import { useTeams } from '@/hooks/useTeams';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
 import { TeamSelector } from '@/components/team/TeamSelector';
 import { InviteTeamMemberModal } from '@/components/team/InviteTeamMemberModal';
@@ -7,12 +8,14 @@ import { TeamMembersTable } from '@/components/team/TeamMembersTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, UserPlus, Clock, Settings } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Users, UserPlus, Clock, Settings, Crown, Star, Info } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
   const { user } = useAuth();
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
+  const { subscriptionStatus } = useSubscriptionStatus();
 
   if (loading) {
     return (
@@ -30,6 +33,8 @@ export default function Teams() {
   }
 
   const isCurrentTeamOwner = currentTeam && user && currentTeam.owner_id === user.id;
+  const isSubscribed = subscriptionStatus?.subscribed || false;
+  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -45,6 +50,27 @@ export default function Teams() {
           <CreateTeamModal />
         </div>
       </div>
+
+      {/* Subscription Status Alert */}
+      {!isSubscribed && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Upgrade your subscription to create teams and collaborate with colleagues. 
+            Growth plan allows 1 team with up to 3 members, Scale plan offers unlimited teams and members.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isSubscribed && subscriptionTier === 'growth' && (
+        <Alert>
+          <Crown className="h-4 w-4 text-yellow-500" />
+          <AlertDescription>
+            <strong>Growth Plan:</strong> You can create 1 team with up to 3 members total. 
+            Upgrade to Scale for unlimited teams and members.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {teams.length === 0 ? (
         <Card>
