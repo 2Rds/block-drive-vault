@@ -109,22 +109,13 @@ const Auth = () => {
     <div className="min-h-screen bg-background">
       <AuthHeader />
 
-      <div className="container mx-auto px-6 py-16 main-content">
-        <div className="max-w-7xl mx-auto">
-          <AuthHero />
-          
-          {/* Auth Connectors Section */}
-          <div className="mt-24 max-w-2xl mx-auto space-y-12">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Get Started with BlockDrive
-              </h2>
-              <p className="text-muted-foreground">
-                Connect your wallet to start managing your data securely on the decentralized web
-              </p>
-            </div>
+      <main className="main-content">
+        {/* Hero Section */}
+        <section className="py-24 px-8 bg-gradient-to-br from-background via-background to-card/30">
+          <div className="max-w-7xl mx-auto">
+            <AuthHero />
             
-            <div className="space-y-6 auth-buttons">
+            <div className="flex justify-center mb-16 auth-buttons">
               <AuthConnectors 
                 dynamicReady={true} 
                 sdkError={false} 
@@ -133,11 +124,14 @@ const Auth = () => {
                 onWalletConnected={handleWalletConnected} 
               />
             </div>
-            
-            <FeatureCards />
           </div>
-        </div>
-      </div>
+        </section>
+        
+        {/* Features Section */}
+        <section className="py-24 px-8">
+          <FeatureCards />
+        </section>
+      </main>
     </div>
   );
 };

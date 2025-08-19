@@ -1,79 +1,60 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Shield, Cloud, Zap } from 'lucide-react';
 
 export const AuthHero = () => {
   return (
-    <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[600px]">
-      {/* Left Side - Hero Content */}
-      <div className="space-y-8">
-        <div className="text-sm text-primary font-medium">
+    <div className="text-center mb-16">
+      <div className="mb-4">
+        <span className="text-primary text-sm font-medium tracking-wider uppercase">
           Web3 Data Management Platform
-        </div>
-        
-        <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-          Store Your Data{' '}
-          <span className="text-primary">Securely</span>{' '}
-          Without Centralization
-        </h1>
-        
-        <p className="text-lg text-muted-foreground max-w-lg">
-          BlockDrive creates a secure environment for storing and managing your data 
-          with decentralized infrastructure, eliminating single points of failure 
-          and ensuring complete ownership control.
-        </p>
-        
-        <div className="flex gap-4">
-          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            Explore Dashboard →
-          </Button>
-          <Button size="lg" variant="outline" className="border-border text-foreground hover:bg-muted">
-            Create Account
-          </Button>
-        </div>
+        </span>
       </div>
       
-      {/* Right Side - Featured Files Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-foreground">Featured Files</h3>
+      <h1 className="text-6xl font-bold text-foreground mb-6 leading-tight">
+        Store Files{' '}
+        <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Securely
+        </span>{' '}
+        Without Limits
+      </h1>
+      
+      <p className="text-muted-foreground text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+        BlockDrive creates a secure environment for storing and managing your files 
+        with decentralized technology, eliminating data loss and access restrictions.
+      </p>
+      
+      {/* Feature Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Shield className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Secure Storage</h3>
+          <p className="text-muted-foreground text-sm">
+            Military-grade encryption with blockchain-verified integrity for all your files.
+          </p>
         </div>
         
-        <div className="space-y-4">
-          {[
-            { name: 'PROJECT', size: '2.5MB', type: 'Document', badge: 'Team' },
-            { name: 'DATASET', size: '15.7MB', type: 'Data', badge: 'Private' },
-            { name: 'BACKUP', size: '834KB', type: 'Archive', badge: 'Secure' }
-          ].map((file, index) => (
-            <div key={index} className="bg-card border border-border rounded-lg p-4 hover:bg-card/80 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                    <span className="text-primary font-semibold text-sm">
-                      {file.name.substring(0, 2)}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">{file.name}</div>
-                    <div className="text-sm text-muted-foreground">{file.size} • {file.type}</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
-                    {file.badge}
-                  </span>
-                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80">
-                    View
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Cloud className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">IPFS Integration</h3>
+          <p className="text-muted-foreground text-sm">
+            Decentralized storage that ensures your data is always accessible and permanent.
+          </p>
         </div>
         
-        <button className="text-primary hover:text-primary/80 text-sm font-medium">
-          View all files →
-        </button>
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:bg-card/70 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Zap className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Lightning Fast</h3>
+          <p className="text-muted-foreground text-sm">
+            Optimized upload and retrieval speeds with global CDN distribution.
+          </p>
+        </div>
       </div>
     </div>
   );
