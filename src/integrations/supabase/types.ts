@@ -1048,6 +1048,10 @@ export type Database = {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
+      validate_wallet_access: {
+        Args: { wallet_user_id: string }
+        Returns: boolean
+      }
       validate_wallet_token_access: {
         Args: { token_user_id: string }
         Returns: boolean

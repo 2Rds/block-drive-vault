@@ -67,12 +67,20 @@ export const getUserWallet = async (userId: string) => {
   const { data: wallet, error } = await supabase
     .from('wallets')
     .select(`
-      *,
+      id,
+      user_id,
+      wallet_address,
+      public_key,
+      blockchain_type,
+      created_at,
       blockchain_tokens (*)
     `)
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching wallet (private key excluded for security):', error);
+    throw error;
+  }
   return wallet;
 };
