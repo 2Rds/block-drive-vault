@@ -5,11 +5,13 @@ import { CreateTeamModal } from '@/components/team/CreateTeamModal';
 import { TeamSelector } from '@/components/team/TeamSelector';
 import { InviteTeamMemberModal } from '@/components/team/InviteTeamMemberModal';
 import { TeamMembersTable } from '@/components/team/TeamMembersTable';
+import { TeamFileGrid } from '@/components/team/TeamFileGrid';
+import { TeamUploadArea } from '@/components/team/TeamUploadArea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, UserPlus, Clock, Settings, Crown, Star, Info } from 'lucide-react';
+import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
@@ -132,6 +134,8 @@ export default function Teams() {
             <Tabs defaultValue="members" className="w-full">
               <TabsList>
                 <TabsTrigger value="members">Members</TabsTrigger>
+                <TabsTrigger value="files">Team Files</TabsTrigger>
+                <TabsTrigger value="upload">Upload Files</TabsTrigger>
                 <TabsTrigger value="invitations">Pending Invitations</TabsTrigger>
               </TabsList>
               
@@ -141,6 +145,14 @@ export default function Teams() {
                   teamId={currentTeam.id}
                   isOwner={isCurrentTeamOwner || false}
                 />
+              </TabsContent>
+              
+              <TabsContent value="files" className="space-y-4">
+                <TeamFileGrid selectedTeamId={currentTeam.id} />
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-4">
+                <TeamUploadArea />
               </TabsContent>
               
               <TabsContent value="invitations" className="space-y-4">
