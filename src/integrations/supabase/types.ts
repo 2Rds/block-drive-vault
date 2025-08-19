@@ -998,12 +998,24 @@ export type Database = {
         Args: { campaign_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      validate_auth_token_access: {
+        Args: { token_email: string; token_user_id?: string }
+        Returns: boolean
+      }
       validate_profile_access: {
         Args: { profile_id: string }
         Returns: boolean
       }
+      validate_service_token_operation: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       validate_subscription_access: {
         Args: { subscription_email: string; subscription_user_id: string }
+        Returns: boolean
+      }
+      validate_wallet_token_access: {
+        Args: { token_user_id: string }
         Returns: boolean
       }
     }
