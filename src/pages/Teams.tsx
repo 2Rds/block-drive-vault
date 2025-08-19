@@ -19,6 +19,12 @@ export default function Teams() {
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
 
+  // Debug logging
+  console.log('Teams page - User:', user?.id, user?.email);
+  console.log('Teams page - Subscription status:', subscriptionStatus);
+  console.log('Teams page - Teams:', teams.length);
+  console.log('Teams page - Current team:', currentTeam?.id);
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
