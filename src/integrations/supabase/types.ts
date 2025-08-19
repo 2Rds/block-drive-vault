@@ -982,6 +982,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_expired_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_security_logs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
