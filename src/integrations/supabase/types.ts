@@ -987,6 +987,10 @@ export type Database = {
         Args: { team_uuid: string }
         Returns: boolean
       }
+      validate_profile_access: {
+        Args: { profile_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       blockchain_network: "mainnet-beta" | "devnet" | "testnet"
