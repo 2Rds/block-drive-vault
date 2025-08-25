@@ -43,12 +43,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user.id;
   
   if (!hasValidAuth) {
-    console.log('ProtectedRoute - Authentication incomplete, redirecting to /auth', {
+    console.log('ProtectedRoute - Authentication incomplete, redirecting to home', {
       dynamicIsAuthenticated,
       localAuthReady,
       hasUserId: !!(user?.id)
     });
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   console.log('ProtectedRoute - Authentication valid, rendering content');
