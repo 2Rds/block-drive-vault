@@ -40,11 +40,13 @@ const Index = () => {
       {/* Add padding top to account for fixed navigation */}
       <div className="pt-16">
         <LandingHero />
-        <StatsSection />
-        <FeatureSection />
-        <PlatformShowcase />
-        <TestimonialsSection />
-        <CTASection />
+        <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1000px' }}>
+          <StatsSection />
+          <FeatureSection />
+          <PlatformShowcase />
+          <TestimonialsSection />
+          <CTASection />
+        </div>
       </div>
       
       {/* Footer */}

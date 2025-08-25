@@ -8,6 +8,30 @@
     <link rel="icon" href="/lovable-uploads/9d20560d-44cf-4c16-a68e-3145caaecd84.png" type="image/png">
     <meta name="description" content="BlockDrive - Web3 Decentralized Storage Platform for the Future" />
     <meta name="author" content="BlockDrive" />
+    
+    <!-- Performance optimizations for LCP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
+    <style>
+      /* Critical CSS for LCP optimization */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      /* Optimize font rendering */
+      * {
+        font-display: swap;
+      }
+      /* Ensure hero text renders immediately */
+      .hero-title {
+        font-size: 3.75rem;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin-bottom: 1.5rem;
+      }
+    </style>
 
     <meta property="og:title" content="BlockDrive - Decentralized Storage Platform" />
     <meta property="og:description" content="BlockDrive - Web3 Decentralized Storage Platform for the Future" />
