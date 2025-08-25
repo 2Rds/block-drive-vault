@@ -2,12 +2,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Globe, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
 export const LandingHero = () => {
   const navigate = useNavigate();
-
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
+  return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
       <div className="absolute inset-0 bg-grid-black/[0.02] bg-[size:50px_50px]" />
       <div className="relative max-w-7xl mx-auto px-6 py-32 text-center">
         {/* Announcement Banner */}
@@ -25,28 +22,15 @@ export const LandingHero = () => {
           Data Management Platform
         </h1>
 
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
-          From IPFS storage to blockchain authentication and multi-chain wallet integration, 
-          BlockDrive provides all the tools you need to build the best decentralized applications 
-          with enterprise-grade security and performance.
-        </p>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">From IPFS storage to blockchain authentication and multi-chain wallet integration, BlockDrive provides all the tools you need to manage your data securely with enterprise-grade security and performance.</p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Button 
-            size="lg" 
-            className="text-lg px-8 py-6 bg-primary hover:bg-primary/90"
-            onClick={() => navigate('/auth')}
-          >
+          <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90" onClick={() => navigate('/auth')}>
             Start for Free
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="text-lg px-8 py-6"
-            onClick={() => navigate('/pricing')}
-          >
+          <Button variant="outline" size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/pricing')}>
             View Pricing
           </Button>
         </div>
@@ -72,6 +56,5 @@ export const LandingHero = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
