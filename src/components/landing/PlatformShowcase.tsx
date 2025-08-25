@@ -21,32 +21,32 @@ export const PlatformShowcase = () => {
               Upload, manage, and share files with enterprise-grade security.
             </p>
 
-            <div className="space-y-6 mb-8 max-w-md mx-auto">
-              <div className="flex items-center gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
+              <div className="flex flex-col items-center text-center gap-4">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Upload className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-left">
+                <div>
                   <h4 className="font-semibold text-foreground">Drag & Drop Upload</h4>
                   <p className="text-sm text-muted-foreground">Upload files instantly to IPFS</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center text-center gap-4">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Eye className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-left">
+                <div>
                   <h4 className="font-semibold text-foreground">Real-time Preview</h4>
                   <p className="text-sm text-muted-foreground">View files without downloading</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center text-center gap-4">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Share className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-left">
+                <div>
                   <h4 className="font-semibold text-foreground">Secure Sharing</h4>
                   <p className="text-sm text-muted-foreground">Share with wallet-based permissions</p>
                 </div>
