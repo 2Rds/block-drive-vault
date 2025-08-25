@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Upload, Eye, Download, Share } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
 
 export const PlatformShowcase = () => {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export const PlatformShowcase = () => {
             </div>
 
             <div className="flex justify-center">
-              <DynamicConnectButton onConnectClick={() => {}} />
+              <LazyDynamicConnectButton onConnectClick={() => {}} />
             </div>
           </div>
 

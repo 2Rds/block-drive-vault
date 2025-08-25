@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Globe, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
 export const LandingHero = () => {
   const navigate = useNavigate();
   return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">

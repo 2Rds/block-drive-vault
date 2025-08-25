@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
 
 export const CTASection = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export const CTASection = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <div className="flex justify-center">
-            <DynamicConnectButton onConnectClick={() => {}} />
+            <LazyDynamicConnectButton onConnectClick={() => {}} />
           </div>
           <Button 
             variant="outline" 
