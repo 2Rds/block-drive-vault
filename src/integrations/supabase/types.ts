@@ -254,6 +254,13 @@ export type Database = {
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "blockchain_tokens_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       blockdrive_nfts: {
@@ -1062,7 +1069,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      wallets_safe: {
+        Row: {
+          blockchain_type: string | null
+          created_at: string | null
+          id: string | null
+          public_key: string | null
+          user_id: string | null
+          wallet_address: string | null
+        }
+        Insert: {
+          blockchain_type?: string | null
+          created_at?: string | null
+          id?: string | null
+          public_key?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Update: {
+          blockchain_type?: string | null
+          created_at?: string | null
+          id?: string | null
+          public_key?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_subscription_rate_limit: {
@@ -1166,6 +1199,17 @@ export type Database = {
       get_user_auth_token: {
         Args: { user_wallet_address: string }
         Returns: string
+      }
+      get_user_wallet_safe: {
+        Args: { target_user_id: string }
+        Returns: {
+          blockchain_type: string
+          created_at: string
+          id: string
+          public_key: string
+          user_id: string
+          wallet_address: string
+        }[]
       }
       get_wallet_private_key: {
         Args: { operation_context: string; target_user_id: string }
