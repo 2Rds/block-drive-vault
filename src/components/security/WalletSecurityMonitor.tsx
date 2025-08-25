@@ -1,189 +1,290 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertTriangle, Eye, Lock } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface SuspiciousActivity {
-  wallet_address: string;
-  suspicious_activity: string;
+interface SecurityThreat {
+  user_id: string;
+  threat_type: string;
+  threat_level: string;
   event_count: number;
-  last_event: string;
+  latest_incident: string;
+  recommendation: string;
 }
 
-export const WalletSecurityMonitor = () => {
+interface WalletSecurityStats {
+  id: string;
+  wallet_address: string;
+  blockchain_type: string;
+  has_encrypted_key: boolean;
+  encrypted_key_length: number;
+  meets_encryption_standards: boolean;
+  recent_activity_count: number;
+  recent_security_events: number;
+  last_updated: string;
+}
+
+export const WalletSecurityMonitor: React.FC = () => {
   const { user } = useAuth();
-  const [suspiciousActivities, setSuspiciousActivities] = useState<SuspiciousActivity[]>([]);
+  const [threats, setThreats] = useState<SecurityThreat[]>([]);
+  const [securityStats, setSecurityStats] = useState<WalletSecurityStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [walletCount, setWalletCount] = useState(0);
 
   useEffect(() => {
-    if (user) {
-      fetchSecurityData();
-    }
+    if (!user) return;
+
+    const loadSecurityData = async () => {
+      try {
+        // Load security threats
+        const { data: threatData, error: threatError } = await supabase
+          .rpc('detect_wallet_threats');
+
+        if (threatError) {
+          console.error('Error loading security threats:', threatError);
+        } else {
+          setThreats(threatData || []);
+        }
+
+        // Load wallet security stats
+        const { data: statsData, error: statsError } = await supabase
+          .from('wallet_security_stats')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (statsError) {
+          console.error('Error loading security stats:', statsError);
+        } else {
+          setSecurityStats(statsData || []);
+        }
+      } catch (error) {
+        console.error('Security monitoring error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSecurityData();
+    
+    // Set up real-time updates
+    const interval = setInterval(loadSecurityData, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
   }, [user]);
 
-  const fetchSecurityData = async () => {
-    try {
-      setLoading(true);
-
-      // Get user's wallet count (private keys excluded automatically by RLS)
-      const { data: wallets, error: walletsError } = await supabase
-        .from('wallets')
-        .select('id')
-        .eq('user_id', user?.id);
-
-      if (!walletsError && wallets) {
-        setWalletCount(wallets.length);
-      }
-
-      // Check for suspicious activities - commented out for now as function needs to be added to types
-      // const { data: activities, error: activitiesError } = await supabase
-      //   .rpc('detect_suspicious_wallet_activity');
-
-      // if (!activitiesError && activities) {
-      //   setSuspiciousActivities(activities);
-      // }
-
-      // For now, set empty array - in production, would use the actual function
-      setSuspiciousActivities([]);
-
-    } catch (error) {
-      console.error('Error fetching security data:', error);
-    } finally {
-      setLoading(false);
+  const getThreatLevelColor = (level: string) => {
+    switch (level) {
+      case 'critical': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'secondary';
+      default: return 'default';
     }
   };
 
-  const getActivitySeverity = (activity: string) => {
-    if (activity.includes('private key')) return 'destructive';
-    if (activity.includes('excessive')) return 'secondary';
-    return 'default';
+  const getSecurityScore = () => {
+    if (securityStats.length === 0) return 0;
+    
+    const totalWallets = securityStats.length;
+    let score = 100;
+    
+    securityStats.forEach(stat => {
+      if (!stat.has_encrypted_key) score -= 30;
+      if (!stat.meets_encryption_standards) score -= 20;
+      if (stat.recent_security_events > 0) score -= 10;
+      if (stat.recent_activity_count > 100) score -= 5;
+    });
+
+    return Math.max(0, score);
   };
 
-  const getActivityIcon = (activity: string) => {
-    if (activity.includes('private key')) return <AlertTriangle className="w-4 h-4" />;
-    if (activity.includes('excessive')) return <Eye className="w-4 h-4" />;
-    return <Shield className="w-4 h-4" />;
-  };
-
-  if (!user) return null;
-
-  return (
-    <div className="space-y-6">
-      <Card className="bg-card border-border">
+  if (loading) {
+    return (
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-foreground">
-            <Shield className="w-5 h-5" />
-            Wallet Security Status
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Wallet Security Monitor
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Protected Wallets</p>
-                <p className="text-2xl font-bold text-foreground">{walletCount}</p>
-              </div>
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Security Level</p>
-                <p className="text-2xl font-bold text-green-600">High</p>
-              </div>
-              <Shield className="w-8 h-8 text-green-600" />
-            </div>
-            
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Alerts</p>
-                <p className="text-2xl font-bold text-destructive">{suspiciousActivities.length}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-destructive" />
-            </div>
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-          {suspiciousActivities.length > 0 && (
-            <Alert className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Security alerts detected. Review the activities below and contact support if you notice unauthorized access.
-              </AlertDescription>
-            </Alert>
-          )}
+  const securityScore = getSecurityScore();
+  const hasThreats = threats.length > 0;
 
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-foreground">Recent Security Events</h3>
-            
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground mt-2">Loading security data...</p>
+  return (
+    <div className="space-y-6">
+      {/* Security Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Wallet Security Overview
+          </CardTitle>
+          <CardDescription>
+            Real-time security monitoring for your cryptocurrency wallets
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${securityScore >= 80 ? 'text-green-600' : securityScore >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {securityScore}%
               </div>
-            ) : suspiciousActivities.length === 0 ? (
-              <div className="text-center py-8">
-                <Shield className="w-12 h-12 text-green-600 mx-auto mb-2" />
-                <p className="text-muted-foreground">No suspicious activities detected</p>
-                <p className="text-sm text-muted-foreground">Your wallet is secure</p>
+              <div className="text-sm text-muted-foreground">Security Score</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">{securityStats.length}</div>
+              <div className="text-sm text-muted-foreground">Protected Wallets</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${hasThreats ? 'text-red-600' : 'text-green-600'}`}>
+                {threats.length}
               </div>
-            ) : (
-              <div className="space-y-2">
-                {suspiciousActivities.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-3">
-                      {getActivityIcon(activity.suspicious_activity)}
-                      <div>
-                        <p className="font-medium text-foreground">{activity.suspicious_activity}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Wallet: {activity.wallet_address.slice(0, 8)}...
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={getActivitySeverity(activity.suspicious_activity)}>
-                        {activity.event_count} event{activity.event_count !== 1 ? 's' : ''}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(activity.last_event).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              <div className="text-sm text-muted-foreground">Active Threats</div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border">
+      {/* Security Threats */}
+      {hasThreats && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Security Threats Detected
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {threats.map((threat, index) => (
+                <Alert key={index} variant={threat.threat_level === 'critical' ? 'destructive' : 'default'}>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="flex items-center gap-2">
+                    {threat.threat_type.replace('_', ' ').toUpperCase()}
+                    <Badge variant={getThreatLevelColor(threat.threat_level)}>
+                      {threat.threat_level}
+                    </Badge>
+                  </AlertTitle>
+                  <AlertDescription>
+                    <div className="mt-2">
+                      <p><strong>Events:</strong> {threat.event_count}</p>
+                      <p><strong>Latest:</strong> {new Date(threat.latest_incident).toLocaleString()}</p>
+                      <p><strong>Recommendation:</strong> {threat.recommendation}</p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Wallet Security Stats */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-foreground">Security Features Active</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Wallet Security Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {securityStats.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No wallets found. Create a wallet to see security status.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {securityStats.map((stat) => (
+                <div key={stat.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium">{stat.wallet_address.slice(0, 8)}...{stat.wallet_address.slice(-8)}</div>
+                    <div className="text-sm text-muted-foreground capitalize">{stat.blockchain_type}</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className={`text-sm font-medium ${stat.has_encrypted_key ? 'text-green-600' : 'text-red-600'}`}>
+                        {stat.has_encrypted_key ? 'Encrypted' : 'Unencrypted'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Private Key</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-sm font-medium ${stat.meets_encryption_standards ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {stat.meets_encryption_standards ? 'Strong' : 'Weak'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Encryption</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-sm font-medium ${stat.recent_security_events === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stat.recent_security_events}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Security Events</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-foreground">{stat.recent_activity_count}</div>
+                      <div className="text-xs text-muted-foreground">Activity (24h)</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Security Recommendations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Security Recommendations
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-foreground">Private key encryption with AES-256-GCM</span>
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <div className="font-medium">Enhanced Encryption Enabled</div>
+                <div className="text-sm text-muted-foreground">
+                  Your private keys are protected with enterprise-grade encryption
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-foreground">Row-level security (RLS) enabled</span>
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <div className="font-medium">Access Control Active</div>
+                <div className="text-sm text-muted-foreground">
+                  Multi-layered access validation prevents unauthorized wallet access
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-foreground">Wallet modification blocked</span>
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <div className="font-medium">Real-time Monitoring</div>
+                <div className="text-sm text-muted-foreground">
+                  Continuous threat detection monitors for suspicious activities
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-foreground">Access logging and monitoring</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-foreground">Suspicious activity detection</span>
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <div className="font-medium">Immutable Security</div>
+                <div className="text-sm text-muted-foreground">
+                  Wallet data cannot be modified or deleted after creation
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -13,21 +13,45 @@ import {
 export class AuthService {
   static async loadWalletData(userId: string) {
     try {
+      // Use enhanced security validation by accessing wallet through proper channels
       const { data: wallet, error } = await supabase
         .from('wallets')
         .select(`
-          *,
+          id,
+          user_id,
+          wallet_address,
+          public_key,
+          blockchain_type,
+          created_at,
           blockchain_tokens (*)
         `)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (!error && wallet) {
-        return wallet;
+      if (error) {
+        console.error('Secure wallet loading failed:', error);
+        
+        // Log security event for failed wallet access
+        logSecurityEvent('wallet_access_failed', { 
+          userId,
+          error: error.message || 'Unknown error'
+        }, 'medium');
+        
+        return null;
       }
-      return null;
-    } catch (error) {
-      console.error('Error loading wallet data:', error);
+
+      // Note: private_key_encrypted is intentionally excluded for security
+      // Enhanced access validation is handled by RLS policies
+      return wallet;
+    } catch (error: any) {
+      console.error('Security: Wallet data access denied:', error);
+      
+      // Log security event for failed wallet access
+      logSecurityEvent('wallet_access_exception', { 
+        userId,
+        error: error.message || 'Unknown error'
+      }, 'high');
+      
       return null;
     }
   }

@@ -251,13 +251,6 @@ export type Database = {
             foreignKeyName: "blockchain_tokens_wallet_id_fkey"
             columns: ["wallet_id"]
             isOneToOne: false
-            referencedRelation: "wallet_security_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blockchain_tokens_wallet_id_fkey"
-            columns: ["wallet_id"]
-            isOneToOne: false
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
@@ -950,6 +943,51 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_security_stats: {
+        Row: {
+          blockchain_type: string
+          created_at: string | null
+          encrypted_key_length: number
+          has_encrypted_key: boolean
+          id: string
+          last_updated: string | null
+          meets_encryption_standards: boolean
+          recent_activity_count: number | null
+          recent_security_events: number | null
+          user_id: string
+          wallet_address: string
+          wallet_id: string
+        }
+        Insert: {
+          blockchain_type: string
+          created_at?: string | null
+          encrypted_key_length: number
+          has_encrypted_key: boolean
+          id?: string
+          last_updated?: string | null
+          meets_encryption_standards: boolean
+          recent_activity_count?: number | null
+          recent_security_events?: number | null
+          user_id: string
+          wallet_address: string
+          wallet_id: string
+        }
+        Update: {
+          blockchain_type?: string
+          created_at?: string | null
+          encrypted_key_length?: number
+          has_encrypted_key?: boolean
+          id?: string
+          last_updated?: string | null
+          meets_encryption_standards?: boolean
+          recent_activity_count?: number | null
+          recent_security_events?: number | null
+          user_id?: string
+          wallet_address?: string
+          wallet_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           blockchain_type: string
@@ -982,45 +1020,7 @@ export type Database = {
       }
     }
     Views: {
-      wallet_security_dashboard: {
-        Row: {
-          blockchain_type: string | null
-          created_at: string | null
-          encrypted_key_length: number | null
-          has_encrypted_key: boolean | null
-          id: string | null
-          meets_encryption_standards: boolean | null
-          recent_activity_count: number | null
-          recent_security_events: number | null
-          user_id: string | null
-          wallet_address: string | null
-        }
-        Insert: {
-          blockchain_type?: string | null
-          created_at?: string | null
-          encrypted_key_length?: never
-          has_encrypted_key?: never
-          id?: string | null
-          meets_encryption_standards?: never
-          recent_activity_count?: never
-          recent_security_events?: never
-          user_id?: string | null
-          wallet_address?: string | null
-        }
-        Update: {
-          blockchain_type?: string | null
-          created_at?: string | null
-          encrypted_key_length?: never
-          has_encrypted_key?: never
-          id?: string | null
-          meets_encryption_standards?: never
-          recent_activity_count?: never
-          recent_security_events?: never
-          user_id?: string | null
-          wallet_address?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_subscription_rate_limit: {
@@ -1075,6 +1075,10 @@ export type Database = {
           subscription_tier_param?: string
         }
         Returns: Json
+      }
+      update_wallet_security_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       validate_airdrop_eligibility: {
         Args: { campaign_uuid: string; user_uuid: string }
