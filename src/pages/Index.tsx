@@ -6,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
 import { LandingHero } from '@/components/landing/LandingHero';
 
-// Lazy load all below-the-fold sections to reduce initial JavaScript bundle
-const FeatureSection = lazy(() => import('@/components/landing/FeatureSection').then(m => ({ default: m.FeatureSection })));
-const StatsSection = lazy(() => import('@/components/landing/StatsSection').then(m => ({ default: m.StatsSection })));
-const PlatformShowcase = lazy(() => import('@/components/landing/PlatformShowcase').then(m => ({ default: m.PlatformShowcase })));
-const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
-const CTASection = lazy(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })));
+// Lazy load sections with preload hints to break critical request chains
+const FeatureSection = lazy(() => import(/* webpackPreload: true */ '@/components/landing/FeatureSection').then(m => ({ default: m.FeatureSection })));
+const StatsSection = lazy(() => import(/* webpackPreload: true */ '@/components/landing/StatsSection').then(m => ({ default: m.StatsSection })));
+const PlatformShowcase = lazy(() => import(/* webpackPreload: true */ '@/components/landing/PlatformShowcase').then(m => ({ default: m.PlatformShowcase })));
+const TestimonialsSection = lazy(() => import(/* webpackPrefetch: true */ '@/components/landing/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
+const CTASection = lazy(() => import(/* webpackPreload: true */ '@/components/landing/CTASection').then(m => ({ default: m.CTASection })));
 
 const Index = () => {
   const navigate = useNavigate();
