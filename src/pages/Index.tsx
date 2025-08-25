@@ -1,5 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { FeatureSection } from '@/components/landing/FeatureSection';
@@ -9,6 +12,27 @@ import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { CTASection } from '@/components/landing/CTASection';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, session } = useAuth();
+  const { user: dynamicUser, primaryWallet } = useDynamicContext();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    const isAuthenticated = !!(user && session && dynamicUser && primaryWallet);
+    
+    console.log('🏠 Index page - checking auth status:', {
+      hasUser: !!user,
+      hasSession: !!session,
+      hasDynamicUser: !!dynamicUser,
+      hasPrimaryWallet: !!primaryWallet,
+      isAuthenticated
+    });
+
+    if (isAuthenticated) {
+      console.log('🚀 User is authenticated, redirecting to dashboard...');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, session, dynamicUser, primaryWallet, navigate]);
   return (
     <div className="min-h-screen bg-background">
       <LandingNavigation />
