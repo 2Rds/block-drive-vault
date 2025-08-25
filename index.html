@@ -253,66 +253,69 @@
 
   <body>
     <div id="root">
-      <!-- Static LCP hero content for immediate render - React will hydrate over this -->
-      <section class="relative overflow-hidden bg-gradient-to-br from-background via-card to-background min-h-screen">
-        <div class="absolute inset-0 bg-grid-black/[0.02] bg-[size:50px_50px]"></div>
-        <div class="hero-container relative max-w-7xl mx-auto px-6 py-32 text-center">
-          <!-- Announcement Banner -->
-          <div class="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 mb-8">
-            <span class="text-sm font-medium text-primary">Coming Soon</span>
-            <div class="mx-2 h-4 w-px bg-primary/20"></div>
-            <span class="text-sm text-muted-foreground">Multi-Chain Wallet Authentication</span>
-            <svg class="ml-2 h-3 w-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </div>
+      <!-- Immediate LCP render - Static HTML with inline styles to prevent render delay -->
+      <div class="pt-16">
+        <section class="relative overflow-hidden" style="background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--card)), hsl(var(--background))); min-height: 100vh;">
+          <div class="absolute inset-0" style="background-image: radial-gradient(circle, rgba(0, 0, 0, 0.02) 1px, transparent 1px); background-size: 50px 50px;"></div>
+          <div class="relative" style="max-width: 80rem; margin-left: auto; margin-right: auto; padding: 8rem 1.5rem; text-align: center;">
+            
+            <!-- Announcement Banner -->
+            <div style="display: inline-flex; align-items: center; border-radius: 9999px; border: 1px solid hsl(var(--primary) / 0.2); background-color: hsl(var(--primary) / 0.05); padding: 0.5rem 1rem; margin-bottom: 2rem;">
+              <span style="font-size: 0.875rem; font-weight: 500; color: hsl(var(--primary));">Coming Soon</span>
+              <div style="margin: 0 0.5rem; height: 1rem; width: 1px; background-color: hsl(var(--primary) / 0.2);"></div>
+              <span style="font-size: 0.875rem; color: hsl(var(--muted-foreground));">Multi-Chain Wallet Authentication</span>
+              <svg style="margin-left: 0.5rem; height: 0.75rem; width: 0.75rem; color: hsl(var(--primary));" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </div>
 
-          <!-- Main Hero - LCP Element for immediate render -->
-          <h1 class="hero-title text-6xl font-bold tracking-tight text-foreground mb-6">
-            The <span class="hero-gradient bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">Web3</span>
-            <br>
-            Data Management Platform
-          </h1>
+            <!-- Critical LCP Element - H1 with inline styles for immediate render -->
+            <h1 style="font-size: 3.75rem; line-height: 1; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground)); margin-bottom: 1.5rem; font-display: swap; contain: layout style paint;" class="text-6xl font-bold tracking-tight text-foreground mb-6">
+              The <span style="background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--primary) / 0.8), hsl(var(--accent))); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Web3</span>
+              <br>
+              Data Management Platform
+            </h1>
 
-          <p class="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
-            From IPFS storage to blockchain authentication and multi-chain wallet integration, BlockDrive provides all the tools you need to manage your data securely with enterprise-grade security and performance.
-          </p>
-
-          <!-- CTA Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <button class="inline-flex items-center justify-center rounded-md text-lg font-medium border border-primary bg-transparent px-8 py-6 text-primary hover:bg-primary/10 transition-colors" onclick="window.location.href='/pricing'">
-              View Pricing
-            </button>
-          </div>
-
-          <!-- Trust Indicators -->
-          <div class="text-center">
-            <p class="text-sm text-muted-foreground mb-6 uppercase tracking-wider">
-              🤝 Trusted by Web3 Teams Worldwide
+            <p style="font-size: 1.25rem; line-height: 1.75rem; color: hsl(var(--muted-foreground)); max-width: 48rem; margin: 0 auto 3rem auto; line-height: 1.625;">
+              From IPFS storage to blockchain authentication and multi-chain wallet integration, BlockDrive provides all the tools you need to manage your data securely with enterprise-grade security and performance.
             </p>
-            <div class="flex flex-wrap justify-center items-center gap-8 opacity-60">
-              <div class="flex items-center gap-2">
-                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
-                <span class="font-semibold">Enterprise Security</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
-                </svg>
-                <span class="font-semibold">Global CDN</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                <span class="font-semibold">Lightning Fast</span>
+
+            <!-- CTA Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; margin-bottom: 4rem;">
+              <button style="display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 1.125rem; font-weight: 500; border: 1px solid hsl(var(--primary)); background-color: transparent; padding: 1.5rem 2rem; color: hsl(var(--primary)); transition: background-color 150ms ease; cursor: pointer;" onclick="window.location.href='/pricing'" onmouseover="this.style.backgroundColor='hsl(var(--primary) / 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                View Pricing
+              </button>
+            </div>
+
+            <!-- Trust Indicators -->
+            <div style="text-align: center;">
+              <p style="font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                🤝 Trusted by Web3 Teams Worldwide
+              </p>
+              <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2rem; opacity: 0.6;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg style="height: 2rem; width: 2rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                  </svg>
+                  <span style="font-weight: 600;">Enterprise Security</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg style="height: 2rem; width: 2rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                  </svg>
+                  <span style="font-weight: 600;">Global CDN</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg style="height: 2rem; width: 2rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                  <span style="font-weight: 600;">Lightning Fast</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx" defer></script>
     
