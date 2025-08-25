@@ -256,17 +256,17 @@ export class SecurityService {
     });
   }
 
-  // Initialize security monitoring
-  static initializeSecurityMonitoring(): void {
-    // Validate security headers on load
-    this.validateSecurityHeaders();
-
-    // Set up periodic session validation
+  // Initialize session monitoring only
+  static initializeSessionMonitoring(): void {
+    // Set up periodic session validation with longer interval
     setInterval(() => {
       this.validateSession();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 10 * 60 * 1000); // Every 10 minutes instead of 5
+  }
 
-    // Monitor for suspicious activity
+  // Initialize activity monitoring with passive listeners
+  static initializeActivityMonitoring(): void {
+    // Monitor for suspicious activity with passive listeners to reduce TBT
     let clickCount = 0;
     let keyPressCount = 0;
     
@@ -278,31 +278,36 @@ export class SecurityService {
     // Reset counters every minute
     setInterval(resetCounters, 60 * 1000);
 
-    // Monitor excessive clicking (potential bot activity)
+    // Use passive listeners to avoid blocking
     document.addEventListener('click', () => {
       clickCount++;
-      if (clickCount > 100) { // More than 100 clicks per minute
-        this.logSecurityEvent('suspicious_click_activity', {
-          clickCount,
-          timeWindow: '1 minute'
-        }, 'medium');
+      if (clickCount > 100) {
+        // Defer logging to avoid blocking
+        setTimeout(() => {
+          this.logSecurityEvent('suspicious_click_activity', {
+            clickCount,
+            timeWindow: '1 minute'
+          }, 'medium');
+        }, 0);
         resetCounters();
       }
-    });
+    }, { passive: true });
 
-    // Monitor excessive key presses
     document.addEventListener('keypress', () => {
       keyPressCount++;
-      if (keyPressCount > 500) { // More than 500 key presses per minute
-        this.logSecurityEvent('suspicious_keyboard_activity', {
-          keyPressCount,
-          timeWindow: '1 minute'
-        }, 'medium');
+      if (keyPressCount > 500) {
+        // Defer logging to avoid blocking
+        setTimeout(() => {
+          this.logSecurityEvent('suspicious_keyboard_activity', {
+            keyPressCount,
+            timeWindow: '1 minute'
+          }, 'medium');
+        }, 0);
         resetCounters();
       }
-    });
+    }, { passive: true });
 
-    // Monitor for developer tools (in production)
+    // Developer tools detection with longer interval
     if (process.env.NODE_ENV === 'production') {
       let devtools = { open: false };
       
@@ -311,15 +316,25 @@ export class SecurityService {
             window.outerWidth - window.innerWidth > 200) {
           if (!devtools.open) {
             devtools.open = true;
-            this.logSecurityEvent('developer_tools_detected', {
-              heightDiff: window.outerHeight - window.innerHeight,
-              widthDiff: window.outerWidth - window.innerWidth
-            }, 'low');
+            // Defer logging to avoid blocking
+            setTimeout(() => {
+              this.logSecurityEvent('developer_tools_detected', {
+                heightDiff: window.outerHeight - window.innerHeight,
+                widthDiff: window.outerWidth - window.innerWidth
+              }, 'low');
+            }, 0);
           }
         } else {
           devtools.open = false;
         }
-      }, 1000);
+      }, 5000); // Check every 5 seconds instead of 1 second
     }
+  }
+
+  // Legacy method - kept for compatibility
+  static initializeSecurityMonitoring(): void {
+    this.validateSecurityHeaders();
+    this.initializeSessionMonitoring();
+    this.initializeActivityMonitoring();
   }
 }

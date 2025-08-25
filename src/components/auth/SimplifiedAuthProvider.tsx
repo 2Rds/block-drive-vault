@@ -5,7 +5,7 @@ import { useWalletSession } from '@/hooks/useWalletSession';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { IntercomMessenger } from '@/components/IntercomMessenger';
+import { OptimizedIntercomMessenger } from '@/components/OptimizedIntercomMessenger';
 import { supabase } from '@/integrations/supabase/client';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
@@ -210,7 +210,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       disconnectWallet,
       signOut
     }}>
-      <IntercomMessenger 
+      <OptimizedIntercomMessenger 
         user={intercomUser}
         isAuthenticated={!!user}
       />

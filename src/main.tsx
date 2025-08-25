@@ -4,26 +4,52 @@ import React from 'react'
 import App from './App.tsx'
 import './index.css'
 
-// Optimize FID by deferring React hydration until main thread is less busy
+// Optimize TBT by chunking React initialization and using scheduler
 const initializeApp = () => {
+  // Create root first (lightweight operation)
   const root = createRoot(document.getElementById("root")!, {
     // Enable concurrent features to break up long tasks
     identifierPrefix: 'blockdrive-'
   });
 
-  // Use time slicing to prevent blocking the main thread
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  // Use modern scheduling APIs to break up rendering work
+  if ('scheduler' in window && (window as any).scheduler?.postTask) {
+    // Use Scheduler API for optimal task scheduling
+    (window as any).scheduler.postTask(() => {
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    }, { priority: 'user-visible' });
+  } else if ('MessageChannel' in window) {
+    // Fallback: Use MessageChannel for yielding to browser
+    const channel = new MessageChannel();
+    channel.port2.onmessage = () => {
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    };
+    channel.port1.postMessage(null);
+  } else {
+    // Final fallback: Use time slicing with React concurrent features
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  }
 };
 
-// Defer initialization to reduce FID and allow static content to be interactive
+// More aggressive deferring to reduce TBT
 if ('requestIdleCallback' in window) {
-  // Use idle time to initialize React, reducing main thread blocking
-  requestIdleCallback(initializeApp, { timeout: 100 });
+  // Use multiple idle callbacks to spread work across frames
+  requestIdleCallback(() => {
+    requestIdleCallback(initializeApp, { timeout: 200 });
+  }, { timeout: 100 });
 } else {
-  // Fallback: defer with setTimeout for browsers without requestIdleCallback
-  setTimeout(initializeApp, 50);
+  // Fallback: use longer delay to ensure main thread is free
+  setTimeout(initializeApp, 150);
 }

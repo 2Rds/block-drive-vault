@@ -29,23 +29,69 @@ const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
 const Teams = lazy(() => import("./pages/Teams"));
 const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
 
-const queryClient = new QueryClient();
+// Optimize QueryClient for better TBT performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduce background refetching to prevent blocking
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      // Use smaller batch sizes to prevent blocking
+      networkMode: 'online'
+    },
+    mutations: {
+      // Don't retry mutations aggressively to reduce TBT
+      retry: 1
+    }
+  }
+});
 
 const App = () => {
   useEffect(() => {
-    // Defer security monitoring initialization to avoid blocking main thread
-    // Use requestIdleCallback for better FID performance
-    const initSecurity = () => {
-      startTransition(() => {
-        SecurityService.initializeSecurityMonitoring();
-      });
+    // Aggressively defer security monitoring to prevent TBT
+    // Use multiple idle callbacks to break up the work
+    const initSecurityInChunks = () => {
+      // First chunk: just basic header validation
+      const initBasicSecurity = () => {
+        startTransition(() => {
+          SecurityService.validateSecurityHeaders();
+        });
+      };
+      
+      // Second chunk: session monitoring (defer more)
+      const initSessionMonitoring = () => {
+        startTransition(() => {
+          SecurityService.initializeSessionMonitoring();
+        });
+      };
+      
+      // Third chunk: activity monitoring (defer most)
+      const initActivityMonitoring = () => {
+        startTransition(() => {
+          SecurityService.initializeActivityMonitoring();
+        });
+      };
+      
+      if ('requestIdleCallback' in window) {
+        // Spread initialization across multiple idle periods
+        requestIdleCallback(initBasicSecurity, { timeout: 500 });
+        requestIdleCallback(initSessionMonitoring, { timeout: 2000 });
+        requestIdleCallback(initActivityMonitoring, { timeout: 5000 });
+      } else {
+        // Fallback with increased delays
+        setTimeout(initBasicSecurity, 100);
+        setTimeout(initSessionMonitoring, 1000);
+        setTimeout(initActivityMonitoring, 3000);  
+      }
     };
     
+    // Defer the entire initialization even further
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(initSecurity, { timeout: 1000 });
+      requestIdleCallback(initSecurityInChunks, { timeout: 2000 });
     } else {
-      // Fallback for browsers without requestIdleCallback
-      setTimeout(initSecurity, 100);
+      setTimeout(initSecurityInChunks, 1000);
     }
   }, []);
 
