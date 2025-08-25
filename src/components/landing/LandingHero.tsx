@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
 export const LandingHero = () => {
   const navigate = useNavigate();
-  return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background" style={{ contentVisibility: 'auto' }}>
+  return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
       <div className="absolute inset-0 bg-grid-black/[0.02] bg-[size:50px_50px]" />
-      <div className="relative max-w-7xl mx-auto px-6 py-32 text-center">
+      <div className="hero-container relative max-w-7xl mx-auto px-6 py-32 text-center">
         {/* Announcement Banner */}
         <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 mb-8">
           <span className="text-sm font-medium text-primary">Coming Soon</span>
@@ -16,9 +16,9 @@ export const LandingHero = () => {
           <ArrowRight className="ml-2 h-3 w-3 text-primary" />
         </div>
 
-        {/* Main Hero - Optimized for LCP */}
-        <h1 className="hero-title text-6xl font-bold tracking-tight text-foreground mb-6" style={{ willChange: 'auto' }}>
-          The <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">Web3</span>
+        {/* Main Hero - Optimized for immediate LCP render */}
+        <h1 className="hero-title text-6xl font-bold tracking-tight text-foreground mb-6">
+          The <span className="hero-gradient bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">Web3</span>
           <br />
           Data Management Platform
         </h1>

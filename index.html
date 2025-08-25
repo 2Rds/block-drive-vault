@@ -13,23 +13,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx">
+    <link rel="preload" href="/src/index.css" as="style">
     <style>
       /* Critical CSS for LCP optimization */
       body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
       }
-      /* Optimize font rendering */
+      /* Optimize font rendering - prevent render blocking */
       * {
         font-display: swap;
       }
-      /* Ensure hero text renders immediately */
+      /* Critical styles for LCP element - ensure immediate render */
       .hero-title {
         font-size: 3.75rem;
         line-height: 1;
         font-weight: 700;
         letter-spacing: -0.025em;
         margin-bottom: 1.5rem;
+        /* Force immediate render without waiting for JS */
+        contain: layout style paint;
+        will-change: auto;
+      }
+      /* Prevent layout shifts during hydration */
+      .hero-container {
+        min-height: 400px;
+        contain: layout;
+      }
+      /* Ensure gradient text renders immediately */
+      .hero-gradient {
+        background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 80%, hsl(var(--accent)) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-fill-color: transparent;
       }
     </style>
 
