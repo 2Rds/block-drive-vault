@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
@@ -6,11 +5,12 @@ import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
-interface DynamicProviderProps {
+interface DynamicProviderWrapperProps {
   children: React.ReactNode;
 }
 
-export const DynamicProvider = ({ children }: DynamicProviderProps) => {
+export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps) => {
+  const navigate = useNavigate();
 
   return (
     <DynamicContextProvider
@@ -75,8 +75,11 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
 
               toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
               
-              // Don't redirect here - let the auth state sync and React Router handle navigation
-              console.log('🚀 Authentication successful - state sync will handle navigation');
+              // Navigate to dashboard after successful authentication
+              console.log('🚀 Navigating to dashboard after successful authentication');
+              setTimeout(() => {
+                navigate('/dashboard', { replace: true });
+              }, 1500); // Give time for state to sync
               
             } else {
               console.error('❌ Missing user or wallet data in onAuthSuccess:', { user, primaryWallet });
@@ -88,7 +91,8 @@ export const DynamicProvider = ({ children }: DynamicProviderProps) => {
           },
           onLogout: (args) => {
             console.log('Dynamic onLogout:', args);
-            // Don't force redirect - let React Router handle navigation
+            // Navigate back to home on logout
+            navigate('/', { replace: true });
           }
         },
         cssOverrides: `

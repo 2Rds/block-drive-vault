@@ -40,6 +40,14 @@ export const DynamicWalletConnector = ({
     handleConnectClick
   } = useDynamicWalletConnection(onWalletConnected, onWalletNeedsSignup);
 
+  console.log('🔍 DynamicWalletConnector state:', {
+    primaryWallet: !!primaryWallet,
+    isProcessing,
+    userExplicitlyClicked,
+    sdkHasLoaded,
+    showAuthFlow
+  });
+
   // Monitor SDK loading status
   useEffect(() => {
     if (sdkError) {

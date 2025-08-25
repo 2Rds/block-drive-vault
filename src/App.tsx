@@ -17,7 +17,7 @@ import SubscriptionCancel from "./pages/SubscriptionCancel";
 import Teams from "./pages/Teams";
 import TeamInvitation from "./pages/TeamInvitation";
 import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
-import { DynamicProvider } from "./components/auth/DynamicProvider";
+import { DynamicProviderWrapper } from "./components/auth/DynamicProviderWrapper";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
@@ -37,7 +37,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <DynamicProvider>
+          <DynamicProviderWrapper>
             <SimplifiedAuthProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -69,7 +69,7 @@ const App = () => {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SimplifiedAuthProvider>
-          </DynamicProvider>
+          </DynamicProviderWrapper>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

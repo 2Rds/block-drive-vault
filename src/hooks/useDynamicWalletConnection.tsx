@@ -16,21 +16,28 @@ export const useDynamicWalletConnection = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [userExplicitlyClicked, setUserExplicitlyClicked] = useState(false);
 
-  // Process wallet connection when user explicitly connects
-  useEffect(() => {
-    if (primaryWallet && userExplicitlyClicked && !isProcessing) {
-      console.log('Processing wallet connection with detailed wallet info:', {
-        wallet: primaryWallet,
-        address: primaryWallet.address,
-        chain: primaryWallet.chain,
-        connector: primaryWallet.connector,
-        isConnected: primaryWallet.isConnected
-      });
-      
-      // Process immediately without delay
-      handleWalletConnection();
-    }
-  }, [primaryWallet, userExplicitlyClicked, isProcessing]);
+   // Process wallet connection when user explicitly connects
+   useEffect(() => {
+     console.log('🔍 useDynamicWalletConnection useEffect:', {
+       hasPrimaryWallet: !!primaryWallet,
+       userExplicitlyClicked,
+       isProcessing,
+       walletAddress: primaryWallet?.address
+     });
+     
+     if (primaryWallet && userExplicitlyClicked && !isProcessing) {
+       console.log('✅ Processing wallet connection with detailed wallet info:', {
+         wallet: primaryWallet,
+         address: primaryWallet.address,
+         chain: primaryWallet.chain,
+         connector: primaryWallet.connector,
+         isConnected: primaryWallet.isConnected
+       });
+       
+       // Process immediately without delay
+       handleWalletConnection();
+     }
+   }, [primaryWallet, userExplicitlyClicked, isProcessing]);
 
   const handleWalletConnection = async () => {
     if (!primaryWallet || isProcessing) return;
@@ -126,9 +133,12 @@ export const useDynamicWalletConnection = (
         });
       }
 
-      // Navigate to dashboard after successful auth
-      console.log('Auth successful, navigating to dashboard');
-      navigate('/dashboard', { replace: true });
+      // Navigate to dashboard after successful auth - add delay for state sync
+      console.log('🚀 Auth successful, navigating to dashboard in 1 second...');
+      setTimeout(() => {
+        console.log('🚀 Actually navigating to dashboard now');
+        navigate('/dashboard', { replace: true });
+      }, 1000);
 
     } catch (error: any) {
       console.error('Wallet authentication error:', error);
