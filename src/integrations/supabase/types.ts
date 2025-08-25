@@ -1218,10 +1218,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      validate_service_signup_operation: {
-        Args: { operation_type: string; target_email: string }
-        Returns: boolean
-      }
       validate_service_token_operation: {
         Args: Record<PropertyKey, never>
         Returns: boolean
