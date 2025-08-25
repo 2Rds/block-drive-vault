@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingNavigation = () => {
@@ -42,18 +43,7 @@ export const LandingNavigation = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/app')}
-            >
-              Sign In
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => navigate('/app')}
-            >
-              Open App
-            </Button>
+            <DynamicConnectButton onConnectClick={() => {}} />
           </div>
         </div>
       </div>

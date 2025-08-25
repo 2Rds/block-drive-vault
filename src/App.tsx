@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import IPFSFiles from "./pages/IPFSFiles";
-import Auth from "./pages/Auth";
+
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 import Pricing from "./pages/Pricing";
@@ -41,12 +41,6 @@ const App = () => {
             <SimplifiedAuthProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/app" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/auth" element={<Auth />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />

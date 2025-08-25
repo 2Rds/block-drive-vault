@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, Globe, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
 export const LandingHero = () => {
   const navigate = useNavigate();
   return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
@@ -26,10 +27,9 @@ export const LandingHero = () => {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90" onClick={() => navigate('/auth')}>
-            Start Free Trial
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <div className="flex justify-center">
+            <DynamicConnectButton onConnectClick={() => {}} />
+          </div>
           <Button variant="outline" size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/pricing')}>
             View Pricing
           </Button>
