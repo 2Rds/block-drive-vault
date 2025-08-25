@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check } from 'lucide-react';
+import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check, Wallet, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 
 interface DocsContentProps {
@@ -261,6 +261,219 @@ const uploadFile = async (file: File) => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'core-features') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-4">Core Features</h1>
+          <p className="text-xl text-muted-foreground">
+            Discover the powerful features that make BlockDrive the leading Web3 data management platform.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                IPFS Storage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Decentralized file storage with enterprise-grade reliability and global accessibility.
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Secure upload to IPFS via Pinata
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Organize files in folders with metadata
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Files pinned for guaranteed availability
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Global CDN for fast access worldwide
+                </li>
+              </ul>
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <code className="text-sm">
+                  const result = await IPFSService.uploadFile(file);
+                </code>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="w-5 h-5" />
+                Multi-Chain Support
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Connect with 50+ blockchain networks and wallet providers seamlessly.
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Ethereum, Solana, and 50+ other chains
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Phantom, MetaMask, WalletConnect support
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Secure authentication without private keys
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Cross-chain compatibility
+                </li>
+              </ul>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                  💡 Supported: Ethereum • Solana • Polygon • BSC • Avalanche
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Enterprise Security
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Bank-grade security with blockchain-powered authentication and encryption.
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  End-to-end encryption for all files
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Blockchain authentication proofs
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Comprehensive audit trails
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Role-based access controls
+                </li>
+              </ul>
+              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-xs text-green-700 dark:text-green-300 font-medium">
+                  🔒 SOC 2 Compliant • 99.9% Uptime SLA
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Real-Time Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Monitor your storage usage, team activity, and platform performance in real-time.
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Storage metrics and quota tracking
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Network status monitoring
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Activity logs and audit trails
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Performance insights dashboard
+                </li>
+              </ul>
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+                  📊 Real-time metrics • Sub-100ms response times
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-2xl font-semibold mb-6">Storage Quotas by Plan</h2>
+          <div className="grid md:grid-cols-4 gap-4">
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Starter</CardTitle>
+                <p className="text-sm text-muted-foreground">$9/month</p>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">50 GB</p>
+                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Pro</CardTitle>
+                <p className="text-sm text-muted-foreground">$29/month</p>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">150 GB</p>
+                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-primary">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Growth</CardTitle>
+                <p className="text-sm text-muted-foreground">$59/month</p>
+                <Badge variant="secondary" className="w-fit">Most Popular</Badge>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">300 GB</p>
+                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Scale</CardTitle>
+                <p className="text-sm text-muted-foreground">$99/month/seat</p>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">500 GB</p>
+                <p className="text-xs text-muted-foreground">Per seat</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
