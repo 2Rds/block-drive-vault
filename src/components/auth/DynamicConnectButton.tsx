@@ -8,10 +8,22 @@ interface DynamicConnectButtonProps {
 }
 
 export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonProps) => {
-  const { setShowAuthFlow } = useDynamicContext();
+  // Safely check if we're within a Dynamic context
+  let dynamicContext;
+  try {
+    dynamicContext = useDynamicContext();
+  } catch (error) {
+    // If we're not within a Dynamic context, use fallback behavior
+    dynamicContext = null;
+  }
 
   const handleClick = () => {
-    setShowAuthFlow(true);
+    if (dynamicContext?.setShowAuthFlow) {
+      dynamicContext.setShowAuthFlow(true);
+    } else {
+      // Fallback behavior - redirect to pricing page where auth context is available
+      window.location.href = '/pricing';
+    }
     onConnectClick();
   };
 
