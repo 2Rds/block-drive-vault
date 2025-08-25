@@ -16,8 +16,13 @@
     <link rel="preconnect" href="https://app.dynamicauth.com" crossorigin>
     <link rel="preconnect" href="https://dynamic-static-assets.com" crossorigin>
     <link rel="preconnect" href="https://iconic.dynamic-static-assets.com" crossorigin>
+    
+    <!-- Preload critical Dynamic Auth API endpoints to reduce network latency -->
+    <link rel="dns-prefetch" href="//app.dynamicauth.com">
+    <link rel="preload" href="https://dynamic-static-assets.com/wallet-book/v1/stable/wallet-book.json" as="fetch" crossorigin>
+    
+    <!-- Critical resource preloading to optimize dependency chain -->
     <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
-    <!-- Preload critical resources -->
     <link rel="modulepreload" href="/src/main.tsx">
     <link rel="preload" href="/src/index.css" as="style">
     <style>
