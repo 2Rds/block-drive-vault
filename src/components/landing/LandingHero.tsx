@@ -17,7 +17,7 @@ export const LandingHero = () => {
         </div>
 
         {/* Main Hero - Optimized for immediate LCP render */}
-        <h1 className="hero-title text-6xl font-bold tracking-tight text-foreground mb-6">
+        <h1 className="hero-title text-6xl font-bold tracking-tight text-foreground mb-6 leading-tight">
           The <span className="hero-gradient bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">Web3</span>
           <br />
           Data Management Platform
