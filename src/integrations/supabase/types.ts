@@ -1143,8 +1143,16 @@ export type Database = {
         Args: { wallet_user_id: string }
         Returns: boolean
       }
+      validate_wallet_access_ultra_secure: {
+        Args: { request_type?: string; wallet_user_id: string }
+        Returns: boolean
+      }
       validate_wallet_token_access: {
         Args: { token_user_id: string }
+        Returns: boolean
+      }
+      validate_wallet_token_access_ultra: {
+        Args: { token_user_id: string; token_wallet_address: string }
         Returns: boolean
       }
     }
