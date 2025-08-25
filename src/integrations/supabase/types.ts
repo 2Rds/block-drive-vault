@@ -1059,6 +1059,18 @@ export type Database = {
           suspicious_activity: string
         }[]
       }
+      detect_wallet_tampering_attempts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_count: number
+          latest_incident: string
+          recommended_action: string
+          risk_score: number
+          severity_level: string
+          threat_type: string
+          user_id: string
+        }[]
+      }
       detect_wallet_threats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1099,12 +1111,28 @@ export type Database = {
         Args: { token_email: string; token_user_id?: string }
         Returns: boolean
       }
+      validate_emergency_wallet_access: {
+        Args: { operation_type: string; target_user_id: string }
+        Returns: boolean
+      }
+      validate_private_key_access: {
+        Args: { access_context?: string; wallet_user_id: string }
+        Returns: boolean
+      }
       validate_private_key_encryption: {
         Args: { encrypted_key: string }
         Returns: boolean
       }
       validate_profile_access: {
         Args: { profile_id: string }
+        Returns: boolean
+      }
+      validate_service_operation_enhanced: {
+        Args: {
+          operation_type: string
+          target_resource: string
+          target_user_id?: string
+        }
         Returns: boolean
       }
       validate_service_signup_operation: {
