@@ -33,7 +33,10 @@ export const LandingNavigation = () => {
             >
               Pricing
             </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
+            <button 
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => navigate('/docs')}
+            >
               Docs
             </button>
             <button className="text-muted-foreground hover:text-foreground transition-colors">
