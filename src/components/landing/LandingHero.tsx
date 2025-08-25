@@ -27,7 +27,7 @@ export const LandingHero = () => {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90" onClick={() => navigate('/auth')}>
-            Start for Free
+            Start Free Trial
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <Button variant="outline" size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/pricing')}>

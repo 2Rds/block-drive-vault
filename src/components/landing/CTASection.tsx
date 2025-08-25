@@ -24,7 +24,7 @@ export const CTASection = () => {
 
         <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
           Join thousands of developers already building the future with BlockDrive. 
-          Start with our free plan and scale as you grow.
+          Start with a 7-day free trial and scale as you grow.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -33,7 +33,7 @@ export const CTASection = () => {
             className="text-lg px-10 py-6 bg-primary hover:bg-primary/90"
             onClick={() => navigate('/auth')}
           >
-            Get Started Free
+            Start Free Trial
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <Button 
@@ -47,7 +47,7 @@ export const CTASection = () => {
         </div>
 
         <div className="mt-8 text-sm text-muted-foreground">
-          No credit card required • Free forever plan available • Cancel anytime
+          7-day free trial available • No commitment • Cancel anytime
         </div>
       </div>
     </section>
