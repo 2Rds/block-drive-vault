@@ -917,6 +917,7 @@ export type Database = {
           organization: string | null
           subscription_tier: string | null
           updated_at: string
+          user_id: string | null
           wallet_address: string | null
           wallet_connected: boolean | null
         }
@@ -929,6 +930,7 @@ export type Database = {
           organization?: string | null
           subscription_tier?: string | null
           updated_at?: string
+          user_id?: string | null
           wallet_address?: string | null
           wallet_connected?: boolean | null
         }
@@ -941,6 +943,7 @@ export type Database = {
           organization?: string | null
           subscription_tier?: string | null
           updated_at?: string
+          user_id?: string | null
           wallet_address?: string | null
           wallet_connected?: boolean | null
         }
@@ -1186,6 +1189,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      link_signup_to_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       secure_private_key_access: {
         Args: {
           operation_context: string
@@ -1267,6 +1274,10 @@ export type Database = {
           full_name_param: string
           organization_param?: string
         }
+        Returns: boolean
+      }
+      validate_signup_ownership: {
+        Args: { signup_email: string; signup_user_id?: string }
         Returns: boolean
       }
       validate_subscription_access: {
