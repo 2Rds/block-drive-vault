@@ -30,9 +30,12 @@ export interface SlackUser {
 }
 
 export class BlockDriveSlack {
-  private clientId = "7000743189300.9094403349587";
-  private clientSecret = "27eac3369ca9e7bd0184c6f1b0ab1ec5";
+  private clientId = "7000743189300.9094403349587"; // Public client ID is safe
   private baseUrl = "https://slack.com/api";
+  
+  constructor() {
+    console.warn('BlockDriveSlack is deprecated for security. Use secureSlackService instead.');
+  }
 
   async getAuthUrl(redirectUri: string, state?: string): Promise<string> {
     console.log('Generating OAuth URL with:', { redirectUri, state });
@@ -60,21 +63,8 @@ export class BlockDriveSlack {
   }
 
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<any> {
-    console.log('Exchanging OAuth code for token...');
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/oauth.v2.access`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-          code,
-          redirect_uri: redirectUri
-        })
-      });
+    // Deprecated for security - client secret exposure
+    throw new Error('Direct OAuth exchange disabled for security. Use secureSlackService instead.');
 
       console.log('Token exchange response status:', response.status);
       const data = await response.json();

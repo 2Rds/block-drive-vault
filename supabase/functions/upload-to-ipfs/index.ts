@@ -75,34 +75,27 @@ serve(async (req) => {
     
     let userId: string;
 
-    // Check if token is a UUID (wallet-based auth) or JWT
-    if (token.length === 36 && token.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      // UUID token - use directly as user ID
-      userId = token;
-      logStep("Using UUID token as user ID", { userId });
-    } else {
-      // JWT token - validate with Supabase auth
-      try {
-        logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
-        
-        const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-        
-        if (userError) {
-          logStep("JWT validation error", { error: userError.message });
-          throw new Error(`JWT validation failed: ${userError.message}`);
-        }
-        
-        if (!user) {
-          logStep("JWT validation failed - no user returned");
-          throw new Error("JWT validation failed - no user found");
-        }
-        
-        userId = user.id;
-        logStep("JWT auth successful", { userId });
-      } catch (error) {
-        logStep("Auth error caught", { error: error.message });
-        throw new Error("Authentication failed: " + error.message);
+    // Only accept valid Supabase JWTs - no UUID bypass
+    try {
+      logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
+      
+      const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
+      
+      if (userError) {
+        logStep("JWT validation error", { error: userError.message });
+        throw new Error(`JWT validation failed: ${userError.message}`);
       }
+      
+      if (!user) {
+        logStep("JWT validation failed - no user returned");
+        throw new Error("JWT validation failed - no user found");
+      }
+      
+      userId = user.id;
+      logStep("JWT auth successful", { userId });
+    } catch (error) {
+      logStep("Auth error caught", { error: error.message });
+      throw new Error("Authentication failed: " + error.message);
     }
 
     // Parse the form data

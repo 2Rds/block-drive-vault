@@ -38,24 +38,23 @@ serve(async (req) => {
 
     logStep("Linking wallet to email", { email, wallet_address, blockchain_type, fullName, username });
 
-    // Check if this is a UUID (wallet auth token)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+    // Only accept valid Supabase JWTs - no UUID bypass
     let userId;
     
-    if (uuidRegex.test(token)) {
-      // This is a wallet auth token (user ID)
-      userId = token;
-      logStep("Wallet authentication detected", { userId });
-    } else {
-      // This is a JWT token - get user from it
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      if (userError || !userData.user) {
-        throw new Error(`Authentication failed: ${userError?.message}`);
-      }
-      userId = userData.user.id;
-      logStep("JWT authentication successful", { userId });
+    // Validate JWT with auth client
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    const { data: { user }, error: userError } = await authClient.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error(`Authentication failed: ${userError?.message || 'Invalid token'}`);
     }
+    
+    userId = user.id;
+    logStep("JWT authentication successful", { userId });
 
     // Create or update user_signups record linking wallet to email
     const { data: existingSignup, error: lookupError } = await supabaseClient
