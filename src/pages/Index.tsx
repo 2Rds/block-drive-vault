@@ -1,181 +1,72 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
-import { Sidebar } from '@/components/Sidebar';
-import { IPFSFileGrid } from '@/components/IPFSFileGrid';
-import { IPFSUploadArea } from '@/components/IPFSUploadArea';
-import { StatsCards } from '@/components/StatsCards';
-import { WalletInfo } from '@/components/WalletInfo';
-import { DataDashboard } from '@/components/DataDashboard';
-import { FileViewer } from '@/components/FileViewer';
-import { Button } from '@/components/ui/button';
-import { BarChart3, Files, Settings } from 'lucide-react';
-import { SlackIntegration } from '@/components/SlackIntegration';
-import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
-import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
-import { BoxIntegration } from '@/components/integrations/BoxIntegration';
-import { useFolderNavigation } from '@/hooks/useFolderNavigation';
-import { useIPFSUpload } from '@/hooks/useIPFSUpload';
+import React from 'react';
+import { LandingNavigation } from '@/components/landing/LandingNavigation';
+import { LandingHero } from '@/components/landing/LandingHero';
+import { FeatureSection } from '@/components/landing/FeatureSection';
+import { StatsSection } from '@/components/landing/StatsSection';
+import { PlatformShowcase } from '@/components/landing/PlatformShowcase';
+import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
+import { CTASection } from '@/components/landing/CTASection';
 
 const Index = () => {
-  const navigate = useNavigate();
-  const [selectedFolder, setSelectedFolder] = useState('all');
-  const [userFolders, setUserFolders] = useState<string[]>([]);
-  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
-  const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
-  const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
-  const [showBoxIntegration, setShowBoxIntegration] = useState(false);
-  
-  const {
-    currentPath,
-    openFolders,
-    selectedFile,
-    showFileViewer,
-    navigateToFolder,
-    toggleFolder,
-    selectFile,
-    closeFileViewer,
-    goBack
-  } = useFolderNavigation();
-
-  const { downloadFromIPFS } = useIPFSUpload();
-
-  const handleCreateFolder = (folderName: string) => {
-    setUserFolders(prev => [...prev, folderName]);
-    console.log('User folders updated:', [...userFolders, folderName]);
-  };
-
-  const handleFolderClick = (folderPath: string) => {
-    console.log('Folder clicked:', folderPath);
-    toggleFolder(folderPath);
-    navigateToFolder(folderPath);
-  };
-
-  const handleFileSelect = (file: any) => {
-    console.log('File selected:', file);
-    selectFile(file);
-  };
-
-  const handleDownloadFile = async (file: any) => {
-    await downloadFromIPFS(file.cid, file.filename);
-  };
-
-  const handleDashboardClick = () => {
-    console.log('Navigating to dashboard');
-    navigate('/dashboard');
-  };
-
-  const handleAccountClick = () => {
-    console.log('Navigating to account');
-    navigate('/account');
-  };
-
-  const handleFilesClick = () => {
-    console.log('Navigating to IPFS files');
-    navigate('/files');
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
-      <Header />
-      <div className="flex">
-        <Sidebar 
-          selectedFolder={selectedFolder} 
-          onFolderSelect={setSelectedFolder}
-          userFolders={userFolders}
-          onFolderClick={handleFolderClick}
-          openFolders={openFolders}
-          onSlackClick={() => setShowSlackIntegration(true)}
-          onOneDriveClick={() => setShowOneDriveIntegration(true)}
-          onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
-          onBoxClick={() => setShowBoxIntegration(true)}
-        />
-        <main className="flex-1 p-8 ml-64">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  IPFS File Storage
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Decentralized file storage on the InterPlanetary File System
-                </p>
+    <div className="min-h-screen bg-background">
+      <LandingNavigation />
+      
+      {/* Add padding top to account for fixed navigation */}
+      <div className="pt-16">
+        <LandingHero />
+        <StatsSection />
+        <FeatureSection />
+        <PlatformShowcase />
+        <TestimonialsSection />
+        <CTASection />
+      </div>
+      
+      {/* Footer */}
+      <footer className="bg-card/50 border-t border-border/50 py-12">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center space-x-3 mb-4">
+                <img 
+                  src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" 
+                  alt="BlockDrive Logo" 
+                  className="w-8 h-8 object-contain" 
+                />
+                <span className="text-xl font-bold text-foreground">BlockDrive</span>
               </div>
-              <div className="flex items-center space-x-4">
-                <Button
-                  onClick={handleDashboardClick}
-                  variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button
-                  onClick={handleAccountClick}
-                  variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Account
-                </Button>
-                <Button
-                  onClick={handleFilesClick}
-                  variant="default"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Files className="w-4 h-4 mr-2" />
-                  IPFS Files
-                </Button>
+              <p className="text-muted-foreground mb-4 max-w-md">
+                The ultimate Web3 data management platform. Store, secure, and scale 
+                your decentralized applications with enterprise-grade infrastructure.
+              </p>
+              <div className="text-sm text-muted-foreground">
+                © 2024 BlockDrive. All rights reserved.
               </div>
             </div>
-
-            <WalletInfo />
-            <StatsCards />
-            <IPFSUploadArea 
-              onCreateFolder={handleCreateFolder}
-              selectedFolder={selectedFolder}
-            />
-            <IPFSFileGrid 
-              selectedFolder={selectedFolder} 
-              userFolders={userFolders}
-              currentPath={currentPath}
-              onGoBack={goBack}
-              onFileSelect={handleFileSelect}
-            />
+            
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Product</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div>Features</div>
+                <div>Pricing</div>
+                <div>Documentation</div>
+                <div>API Reference</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Company</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div>About</div>
+                <div>Blog</div>
+                <div>Careers</div>
+                <div>Contact</div>
+              </div>
+            </div>
           </div>
-        </main>
-      </div>
-
-      {/* File Viewer Modal */}
-      {showFileViewer && selectedFile && (
-        <FileViewer
-          file={selectedFile}
-          onClose={closeFileViewer}
-          onDownload={handleDownloadFile}
-        />
-      )}
-
-      {/* Integration Modals */}
-      <SlackIntegration
-        isOpen={showSlackIntegration}
-        onClose={() => setShowSlackIntegration(false)}
-      />
-
-      <OneDriveIntegration
-        isOpen={showOneDriveIntegration}
-        onClose={() => setShowOneDriveIntegration(false)}
-      />
-
-      <GoogleDriveIntegration
-        isOpen={showGoogleDriveIntegration}
-        onClose={() => setShowGoogleDriveIntegration(false)}
-      />
-
-      <BoxIntegration
-        isOpen={showBoxIntegration}
-        onClose={() => setShowBoxIntegration(false)}
-      />
+        </div>
+      </footer>
     </div>
   );
 };
