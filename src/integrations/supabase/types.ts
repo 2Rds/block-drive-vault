@@ -1169,6 +1169,10 @@ export type Database = {
         Args: { team_uuid: string }
         Returns: boolean
       }
+      link_legacy_subscription_to_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       secure_user_signup: {
         Args: {
           email_param: string
@@ -1243,6 +1247,10 @@ export type Database = {
         Returns: boolean
       }
       validate_subscription_access_enhanced: {
+        Args: { subscription_email: string; subscription_user_id: string }
+        Returns: boolean
+      }
+      validate_subscription_access_strict: {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
