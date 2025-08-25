@@ -1,53 +1,26 @@
-
-import { IPFSConfig } from './ipfsConfig';
+import { secureIPFSService } from '../secureIPFSService';
 
 export class IPFSPinningService {
   static async pinFile(cid: string): Promise<boolean> {
+    console.warn('IPFSPinningService is deprecated for security. Use secureIPFSService instead.');
+    
     try {
-      console.log(`Pinning file to IPFS via Pinata: ${cid}`);
-      
-      const response = await fetch('https://api.pinata.cloud/pinning/pinByHash', {
-        method: 'POST',
-        headers: {
-          ...IPFSConfig.getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          hashToPin: cid,
-        }),
-      });
-      
-      if (response.ok) {
-        console.log(`File pinned successfully to IPFS via Pinata: ${cid}`);
-        return true;
-      } else {
-        console.warn('Failed to pin file to IPFS via Pinata:', await response.text());
-        return false;
-      }
+      const result = await secureIPFSService.pinFile(cid);
+      return result.success;
     } catch (error) {
-      console.error('IPFS pinning via Pinata failed:', error);
+      console.error('IPFS pinning failed:', error);
       return false;
     }
   }
   
   static async unpinFile(cid: string): Promise<boolean> {
+    console.warn('IPFSPinningService is deprecated for security. Use secureIPFSService instead.');
+    
     try {
-      console.log(`Unpinning file from IPFS via Pinata: ${cid}`);
-      
-      const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
-        method: 'DELETE',
-        headers: IPFSConfig.getAuthHeaders(),
-      });
-      
-      if (response.ok) {
-        console.log(`File unpinned successfully from IPFS via Pinata: ${cid}`);
-        return true;
-      } else {
-        console.warn('Failed to unpin file from IPFS via Pinata:', await response.text());
-        return false;
-      }
+      const result = await secureIPFSService.unpinFile(cid);
+      return result.success;
     } catch (error) {
-      console.error('IPFS unpinning via Pinata failed:', error);
+      console.error('IPFS unpinning failed:', error);
       return false;
     }
   }

@@ -65,176 +65,36 @@ export class BlockDriveSlack {
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<any> {
     // Deprecated for security - client secret exposure
     throw new Error('Direct OAuth exchange disabled for security. Use secureSlackService instead.');
-
-      console.log('Token exchange response status:', response.status);
-      const data = await response.json();
-      console.log('Token exchange response:', { 
-        ok: data.ok, 
-        error: data.error,
-        warning: data.warning,
-        hasAccessToken: !!data.access_token 
-      });
-      
-      if (!response.ok || !data.ok) {
-        const errorMsg = `OAuth exchange failed: ${data.error || data.warning || 'Unknown error'}`;
-        console.error(errorMsg, data);
-        throw new Error(errorMsg);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Token exchange error:', error);
-      throw error;
-    }
   }
 
   async verifyConnection(accessToken: string): Promise<boolean> {
-    console.log('Verifying Slack connection...');
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/auth.test`, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const data = await response.json();
-      console.log('Connection verification result:', { ok: data.ok, error: data.error });
-      return data.ok === true;
-    } catch (error) {
-      console.error('Connection verification failed:', error);
-      return false;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct token verification disabled for security. Use secureSlackService instead.');
   }
 
   async getTeamInfo(accessToken: string): Promise<SlackTeamInfo | null> {
-    console.log('Fetching team info...');
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/team.info`, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const data = await response.json();
-      console.log('Team info response:', { ok: data.ok, error: data.error });
-      
-      if (!data.ok) {
-        console.error('Failed to fetch team info:', data.error);
-        return null;
-      }
-      
-      return data.team;
-    } catch (error) {
-      console.error('Error fetching team info:', error);
-      return null;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct API access disabled for security. Use secureSlackService instead.');
   }
 
   async getChannels(accessToken: string): Promise<SlackChannel[]> {
-    console.log('Fetching channels...');
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/conversations.list?types=public_channel,private_channel`, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const data = await response.json();
-      console.log('Channels response:', { ok: data.ok, error: data.error, count: data.channels?.length || 0 });
-      
-      if (!data.ok) {
-        throw new Error(`Failed to fetch channels: ${data.error}`);
-      }
-
-      return data.channels || [];
-    } catch (error) {
-      console.error('Error fetching channels:', error);
-      throw error;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct API access disabled for security. Use secureSlackService instead.');
   }
 
   async getFiles(accessToken: string, limit: number = 100): Promise<SlackFile[]> {
-    console.log('Fetching files...');
-    
-    try {
-      const response = await fetch(`${this.baseUrl}/files.list?count=${limit}`, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const data = await response.json();
-      console.log('Files response:', { ok: data.ok, error: data.error, count: data.files?.length || 0 });
-      
-      if (!data.ok) {
-        throw new Error(`Failed to fetch files: ${data.error}`);
-      }
-
-      return data.files || [];
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      throw error;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct API access disabled for security. Use secureSlackService instead.');
   }
 
   async uploadFileToSlack(accessToken: string, file: File, channels: string[], title?: string, initialComment?: string): Promise<any> {
-    console.log('Uploading file to Slack:', { fileName: file.name, channels, title });
-    
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("channels", channels.join(","));
-      if (title) formData.append("title", title);
-      if (initialComment) formData.append("initial_comment", initialComment);
-
-      const response = await fetch(`${this.baseUrl}/files.upload`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`
-        },
-        body: formData
-      });
-
-      const data = await response.json();
-      console.log('File upload response:', { ok: data.ok, error: data.error });
-      
-      if (!data.ok) {
-        throw new Error(`Upload failed: ${data.error}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct file upload disabled for security. Use secureSlackService instead.');
   }
 
   async downloadFileFromSlack(accessToken: string, fileUrl: string): Promise<Blob> {
-    console.log('Downloading file from Slack:', fileUrl);
-    
-    try {
-      const response = await fetch(fileUrl, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
-      }
-
-      return response.blob();
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      throw error;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct file download disabled for security. Use secureSlackService instead.');
   }
 
   async syncSlackFiles(accessToken: string, userId: string): Promise<void> {
@@ -271,39 +131,8 @@ export class BlockDriveSlack {
   }
 
   async postMessage(accessToken: string, channel: string, text: string, blocks?: any[]): Promise<any> {
-    console.log('Posting message to Slack:', { channel, text: text.substring(0, 50) + '...' });
-    
-    try {
-      const payload: any = {
-        channel,
-        text
-      };
-
-      if (blocks) {
-        payload.blocks = blocks;
-      }
-
-      const response = await fetch(`${this.baseUrl}/chat.postMessage`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      console.log('Message post response:', { ok: data.ok, error: data.error });
-      
-      if (!data.ok) {
-        throw new Error(`Failed to post message: ${data.error}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error posting message:', error);
-      throw error;
-    }
+    // Deprecated - tokens should not be stored client-side
+    throw new Error('Direct message posting disabled for security. Use secureSlackService instead.');
   }
 
   private async handleRateLimit(response: Response): Promise<void> {

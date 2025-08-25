@@ -1,7 +1,5 @@
-
-
 import { toast } from 'sonner';
-import { IPFSConfig } from './ipfsConfig';
+import { secureIPFSService } from '../secureIPFSService';
 
 interface IPFSUploadResult {
   cid: string;
@@ -13,43 +11,25 @@ interface IPFSUploadResult {
 
 export class IPFSUploadService {
   static async uploadFile(file: File): Promise<IPFSUploadResult | null> {
+    console.warn('IPFSUploadService is deprecated for security. Use secureIPFSService instead.');
+    
     try {
-      console.log(`Starting IPFS upload via your custom Pinata gateway for file: ${file.name} (${file.size} bytes)`);
+      const result = await secureIPFSService.uploadFile(file);
       
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('pinataMetadata', JSON.stringify({
-        name: file.name,
-      }));
-      formData.append('pinataOptions', JSON.stringify({
-        cidVersion: 1,
-      }));
-      
-      const response = await fetch(IPFSConfig.PINATA_API_URL, {
-        method: 'POST',
-        headers: IPFSConfig.getUploadHeaders(),
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Pinata API error:', response.status, errorText);
-        throw new Error(`Pinata API error: ${response.status} - ${errorText}`);
+      if (!result.success || !result.file) {
+        throw new Error(result.error || 'Upload failed');
       }
       
-      const result = await response.json();
-      console.log('Pinata upload result:', result);
-      
       const uploadResult: IPFSUploadResult = {
-        cid: result.IpfsHash,
-        url: IPFSConfig.getPinataIPFSUrl(result.IpfsHash),
-        filename: file.name,
-        size: file.size,
-        contentType: file.type || 'application/octet-stream'
+        cid: result.file.cid,
+        url: result.file.ipfsUrl,
+        filename: result.file.filename,
+        size: result.file.size,
+        contentType: result.file.contentType
       };
       
-      console.log('IPFS upload successful via your custom Pinata gateway:', uploadResult);
-      toast.success(`File uploaded to IPFS: ${result.IpfsHash}`);
+      console.log('IPFS upload successful via secure service:', uploadResult);
+      toast.success(`File uploaded to IPFS: ${result.file.cid}`);
       return uploadResult;
       
     } catch (error) {
@@ -64,17 +44,16 @@ export class IPFSUploadService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via your custom Pinata gateway...`);
+      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via secure service...`);
       const result = await this.uploadFile(file);
       if (result) {
         results.push(result);
       }
     }
     
-    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via your custom Pinata gateway`);
+    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via secure service`);
     return results;
   }
 }
 
 export type { IPFSUploadResult };
-

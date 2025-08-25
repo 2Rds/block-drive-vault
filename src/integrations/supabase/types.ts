@@ -650,6 +650,45 @@ export type Database = {
         }
         Relationships: []
       }
+      slack_tokens: {
+        Row: {
+          access_token: string
+          authed_user: Json | null
+          created_at: string
+          id: string
+          scope: string | null
+          team_id: string | null
+          team_name: string | null
+          token_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          authed_user?: Json | null
+          created_at?: string
+          id?: string
+          scope?: string | null
+          team_id?: string | null
+          team_name?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          authed_user?: Json | null
+          created_at?: string
+          id?: string
+          scope?: string | null
+          team_id?: string | null
+          team_name?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subdomain_registrations: {
         Row: {
           blockchain_type: string
