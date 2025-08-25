@@ -254,13 +254,6 @@ export type Database = {
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "blockchain_tokens_wallet_id_fkey"
-            columns: ["wallet_id"]
-            isOneToOne: false
-            referencedRelation: "wallets_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       blockdrive_nfts: {
@@ -1069,33 +1062,7 @@ export type Database = {
       }
     }
     Views: {
-      wallets_safe: {
-        Row: {
-          blockchain_type: string | null
-          created_at: string | null
-          id: string | null
-          public_key: string | null
-          user_id: string | null
-          wallet_address: string | null
-        }
-        Insert: {
-          blockchain_type?: string | null
-          created_at?: string | null
-          id?: string | null
-          public_key?: string | null
-          user_id?: string | null
-          wallet_address?: string | null
-        }
-        Update: {
-          blockchain_type?: string | null
-          created_at?: string | null
-          id?: string | null
-          public_key?: string | null
-          user_id?: string | null
-          wallet_address?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_subscription_rate_limit: {

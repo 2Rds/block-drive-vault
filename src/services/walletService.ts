@@ -65,30 +65,55 @@ export const createSecureWalletForUser = async (
 
 export const getUserWallet = async (userId: string) => {
   try {
-    const { data: wallet, error } = await supabase
-      .from('wallets')
-      .select(`
-        id,
-        user_id,
-        wallet_address,
-        public_key,
-        blockchain_type,
-        created_at,
-        blockchain_tokens (*)
-      `)
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Use the secure database function that never returns private keys
+    const { data: walletResult, error } = await supabase
+      .rpc('get_user_wallet_safe', { target_user_id: userId });
 
     if (error) {
-      console.error('Error fetching wallet (private key excluded for security):', error);
+      console.error('Error fetching wallet via secure function:', error);
       throw error;
     }
     
-    // Note: private_key_encrypted is intentionally excluded from the query for security
-    // Private keys should only be accessed through specific secure operations
-    return wallet;
+    if (!walletResult || walletResult.length === 0) {
+      return null;
+    }
+    
+    const walletData = walletResult[0];
+    
+    // Fetch associated blockchain tokens separately
+    const { data: tokens, error: tokensError } = await supabase
+      .from('blockchain_tokens')
+      .select('*')
+      .eq('wallet_id', walletData.id);
+    
+    if (tokensError) {
+      console.warn('Failed to fetch blockchain tokens:', tokensError);
+    }
+    
+    // Return wallet with tokens
+    return {
+      ...walletData,
+      blockchain_tokens: tokens || []
+    };
   } catch (error) {
     console.error('Security: Wallet access failed:', error);
     throw error;
+  }
+};
+
+// Enhanced security function to validate wallet operations
+export const validateWalletAccess = async (userId: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user || user.id !== userId) {
+      console.error('Wallet access denied: User ID mismatch');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Wallet access validation failed:', error);
+    return false;
   }
 };
