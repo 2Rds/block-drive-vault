@@ -280,12 +280,30 @@
               From IPFS storage to blockchain authentication and multi-chain wallet integration, BlockDrive provides all the tools you need to manage your data securely with enterprise-grade security and performance.
             </p>
 
-            <!-- CTA Buttons -->
+            <!-- CTA Buttons with immediate interactivity -->
             <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; margin-bottom: 4rem;">
-              <button style="display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 1.125rem; font-weight: 500; border: 1px solid hsl(var(--primary)); background-color: transparent; padding: 1.5rem 2rem; color: hsl(var(--primary)); transition: background-color 150ms ease; cursor: pointer;" onclick="window.location.href='/pricing'" onmouseover="this.style.backgroundColor='hsl(var(--primary) / 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+              <button id="pricing-btn" style="display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 1.125rem; font-weight: 500; border: 1px solid hsl(var(--primary)); background-color: transparent; padding: 1.5rem 2rem; color: hsl(var(--primary)); transition: background-color 150ms ease; cursor: pointer;">
                 View Pricing
               </button>
             </div>
+
+            <script>
+              // Immediate interactivity for FID optimization - doesn't wait for React
+              (function() {
+                const btn = document.getElementById('pricing-btn');
+                if (btn) {
+                  btn.addEventListener('click', function() {
+                    window.location.href = '/pricing';
+                  });
+                  btn.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                  });
+                  btn.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = 'transparent';
+                  });
+                }
+              })();
+            </script>
 
             <!-- Trust Indicators -->
             <div style="text-align: center;">
