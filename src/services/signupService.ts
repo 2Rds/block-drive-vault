@@ -37,6 +37,9 @@ export class SignupService {
 
   static async updateWalletConnection(email: string, walletAddress: string, blockchainType: string) {
     try {
+      // Enhanced security logging for wallet connection attempts
+      console.log('Wallet connection attempt for email:', email);
+      
       const { data, error } = await supabase
         .from('user_signups')
         .update({
@@ -46,7 +49,7 @@ export class SignupService {
           updated_at: new Date().toISOString()
         })
         .eq('email', email)
-        .select()
+        .select('id, email, full_name, organization, subscription_tier, wallet_connected, created_at, updated_at') // Exclude sensitive data
         .single();
 
       if (error) {
@@ -63,9 +66,10 @@ export class SignupService {
 
   static async getSignupByEmail(email: string) {
     try {
+      // Only select non-sensitive fields for security
       const { data, error } = await supabase
         .from('user_signups')
-        .select('*')
+        .select('id, email, full_name, organization, subscription_tier, wallet_connected, created_at, updated_at')
         .eq('email', email)
         .single();
 

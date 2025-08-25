@@ -1039,6 +1039,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      detect_signup_threats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_count: number
+          latest_incident: string
+          recommendation: string
+          threat_level: string
+          threat_type: string
+          user_id: string
+        }[]
+      }
       detect_suspicious_token_activity: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1096,12 +1107,20 @@ export type Database = {
         Args: { profile_id: string }
         Returns: boolean
       }
+      validate_service_signup_operation: {
+        Args: { operation_type: string; target_email: string }
+        Returns: boolean
+      }
       validate_service_token_operation: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
       validate_service_wallet_operation: {
         Args: { operation_type: string; user_id: string }
+        Returns: boolean
+      }
+      validate_signup_access_enhanced: {
+        Args: { signup_email: string; signup_user_id?: string }
         Returns: boolean
       }
       validate_signup_attempt: {
