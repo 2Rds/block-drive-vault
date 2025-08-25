@@ -65,7 +65,7 @@ const Index = () => {
                 your decentralized applications with enterprise-grade infrastructure.
               </p>
               <div className="text-sm text-muted-foreground">
-                © 2024 BlockDrive. All rights reserved.
+                © 2025 BlockDrive. All rights reserved.
               </div>
             </div>
             
