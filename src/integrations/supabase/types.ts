@@ -1078,6 +1078,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      detect_auth_token_threats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_count: number
+          latest_incident: string
+          recommendation: string
+          threat_level: string
+          threat_type: string
+          user_identifier: string
+        }[]
+      }
       detect_signup_threats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1161,6 +1172,10 @@ export type Database = {
         Returns: boolean
       }
       validate_auth_token_access: {
+        Args: { token_email: string; token_user_id?: string }
+        Returns: boolean
+      }
+      validate_auth_token_access_enhanced: {
         Args: { token_email: string; token_user_id?: string }
         Returns: boolean
       }
