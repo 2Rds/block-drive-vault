@@ -1086,6 +1086,20 @@ export type Database = {
         Args: { user_wallet_address: string }
         Returns: string
       }
+      get_wallet_private_key: {
+        Args: { operation_context: string; target_user_id: string }
+        Returns: string
+      }
+      get_wallet_safe_data: {
+        Args: { target_user_id: string }
+        Returns: {
+          blockchain_type: string
+          created_at: string
+          id: string
+          public_key: string
+          wallet_address: string
+        }[]
+      }
       is_team_owner: {
         Args: { team_uuid: string }
         Returns: boolean
@@ -1160,6 +1174,10 @@ export type Database = {
         Returns: boolean
       }
       validate_subscription_access: {
+        Args: { subscription_email: string; subscription_user_id: string }
+        Returns: boolean
+      }
+      validate_subscription_access_enhanced: {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
