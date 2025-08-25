@@ -4,32 +4,46 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense, startTransition } from 'react';
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import IPFSFiles from "./pages/IPFSFiles";
-import Docs from "./pages/Docs";
-import Account from "./pages/Account";
-import NotFound from "./pages/NotFound";
-import { TermsOfService } from "./pages/TermsOfService";
-import { PrivacyPolicy } from "./pages/PrivacyPolicy";
-import Pricing from "./pages/Pricing";
-import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import SubscriptionCancel from "./pages/SubscriptionCancel";
-import Teams from "./pages/Teams";
-import TeamInvitation from "./pages/TeamInvitation";
 import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
 import { DynamicProviderWrapper } from "./components/auth/DynamicProviderWrapper";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 
+// Lazy load non-critical pages to reduce initial bundle size
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const IPFSFiles = lazy(() => import("./pages/IPFSFiles"));
+const Docs = lazy(() => import("./pages/Docs"));
+const Account = lazy(() => import("./pages/Account"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService").then(m => ({ default: m.TermsOfService })));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
+const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
+const Teams = lazy(() => import("./pages/Teams"));
+const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
+
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // Initialize security monitoring on app start
-    SecurityService.initializeSecurityMonitoring();
+    // Defer security monitoring initialization to avoid blocking main thread
+    // Use requestIdleCallback for better FID performance
+    const initSecurity = () => {
+      startTransition(() => {
+        SecurityService.initializeSecurityMonitoring();
+      });
+    };
+    
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(initSecurity, { timeout: 1000 });
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(initSecurity, 100);
+    }
   }, []);
 
   return (
@@ -41,38 +55,42 @@ const App = () => {
         <BrowserRouter>
           <DynamicProviderWrapper>
             <SimplifiedAuthProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/docs" element={<Docs />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/files" element={
-                  <ProtectedRoute>
-                    <IPFSFiles />
-                  </ProtectedRoute>
-                } />
-                <Route path="/index" element={
-                  <ProtectedRoute>
-                    <IPFSFiles />
-                  </ProtectedRoute>
-                } />
-                <Route path="/account" element={
-                  <ProtectedRoute>
-                    <Account />
-                  </ProtectedRoute>
-                } />
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/team-invitation" element={<TeamInvitation />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-foreground">Loading...</div>
+              </div>}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/docs" element={<Docs />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                  <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/files" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/index" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account" element={
+                    <ProtectedRoute>
+                      <Account />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/team-invitation" element={<TeamInvitation />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </SimplifiedAuthProvider>
           </DynamicProviderWrapper>
         </BrowserRouter>

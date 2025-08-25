@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, startTransition, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
@@ -16,10 +16,13 @@ const Index = () => {
   const { user, session } = useAuth();
   const { user: dynamicUser, primaryWallet } = useDynamicContext();
 
+  // Memoize authentication status to avoid unnecessary recalculations
+  const isAuthenticated = useMemo(() => {
+    return !!(user && session && dynamicUser && primaryWallet);
+  }, [user, session, dynamicUser, primaryWallet]);
+
   // Redirect authenticated users to dashboard
   useEffect(() => {
-    const isAuthenticated = !!(user && session && dynamicUser && primaryWallet);
-    
     console.log('🏠 Index page - checking auth status:', {
       hasUser: !!user,
       hasSession: !!session,
@@ -30,9 +33,12 @@ const Index = () => {
 
     if (isAuthenticated) {
       console.log('🚀 User is authenticated, redirecting to dashboard...');
-      navigate('/dashboard', { replace: true });
+      // Use startTransition to avoid blocking user interactions
+      startTransition(() => {
+        navigate('/dashboard', { replace: true });
+      });
     }
-  }, [user, session, dynamicUser, primaryWallet, navigate]);
+  }, [isAuthenticated, navigate]);
   return (
     <div className="min-h-screen bg-background">
       <LandingNavigation />
