@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Search, Bell, User, Wallet, LogOut, LogIn, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -51,8 +50,6 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <ThemeToggle />
-          
           {user ? (
             // Authenticated user content
             <>
