@@ -251,6 +251,13 @@ export type Database = {
             foreignKeyName: "blockchain_tokens_wallet_id_fkey"
             columns: ["wallet_id"]
             isOneToOne: false
+            referencedRelation: "wallet_security_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blockchain_tokens_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
@@ -975,7 +982,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      wallet_security_dashboard: {
+        Row: {
+          blockchain_type: string | null
+          created_at: string | null
+          encrypted_key_length: number | null
+          has_encrypted_key: boolean | null
+          id: string | null
+          meets_encryption_standards: boolean | null
+          recent_activity_count: number | null
+          recent_security_events: number | null
+          user_id: string | null
+          wallet_address: string | null
+        }
+        Insert: {
+          blockchain_type?: string | null
+          created_at?: string | null
+          encrypted_key_length?: never
+          has_encrypted_key?: never
+          id?: string | null
+          meets_encryption_standards?: never
+          recent_activity_count?: never
+          recent_security_events?: never
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Update: {
+          blockchain_type?: string | null
+          created_at?: string | null
+          encrypted_key_length?: never
+          has_encrypted_key?: never
+          id?: string | null
+          meets_encryption_standards?: never
+          recent_activity_count?: never
+          recent_security_events?: never
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_subscription_rate_limit: {
@@ -1003,6 +1048,17 @@ export type Database = {
           suspicious_activity: string
         }[]
       }
+      detect_wallet_threats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_count: number
+          latest_incident: string
+          recommendation: string
+          threat_level: string
+          threat_type: string
+          user_id: string
+        }[]
+      }
       get_user_auth_token: {
         Args: { user_wallet_address: string }
         Returns: string
@@ -1028,12 +1084,20 @@ export type Database = {
         Args: { token_email: string; token_user_id?: string }
         Returns: boolean
       }
+      validate_private_key_encryption: {
+        Args: { encrypted_key: string }
+        Returns: boolean
+      }
       validate_profile_access: {
         Args: { profile_id: string }
         Returns: boolean
       }
       validate_service_token_operation: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      validate_service_wallet_operation: {
+        Args: { operation_type: string; user_id: string }
         Returns: boolean
       }
       validate_signup_attempt: {
@@ -1049,6 +1113,10 @@ export type Database = {
         Returns: boolean
       }
       validate_wallet_access: {
+        Args: { wallet_user_id: string }
+        Returns: boolean
+      }
+      validate_wallet_access_enhanced: {
         Args: { wallet_user_id: string }
         Returns: boolean
       }
