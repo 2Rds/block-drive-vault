@@ -266,6 +266,537 @@ const uploadFile = async (file: File) => {
     );
   }
 
+  if (activeSection === 'wallet-auth') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Wallet Authentication</h1>
+          <p className="text-lg text-muted-foreground">
+            Connect securely with 50+ blockchain wallets across multiple networks.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Supported Wallets & Networks</CardTitle>
+            <CardDescription>
+              BlockDrive supports a wide range of wallets and blockchain networks
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🦊 Popular Wallets</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>MetaMask</li>
+                  <li>Phantom</li>
+                  <li>Solflare</li>
+                  <li>WalletConnect</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">⛓️ Supported Networks</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>Ethereum</li>
+                  <li>Solana</li>
+                  <li>Polygon</li>
+                  <li>+47 more chains</li>
+                </ul>
+              </div>
+            </div>
+            <CodeBlock id="wallet-connect">
+{`// Connect wallet using Dynamic SDK
+import { DynamicConnectButton } from '@dynamic-labs/sdk-react-core';
+
+<DynamicConnectButton>
+  Connect Wallet
+</DynamicConnectButton>`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'dynamic-integration') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Dynamic Labs Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Enterprise-grade wallet infrastructure powering BlockDrive authentication.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Key Components</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CodeBlock id="dynamic-components">
+{`// Core Dynamic components in BlockDrive
+import { DynamicProviderWrapper } from '@/components/auth/DynamicProviderWrapper';
+import { SimplifiedAuthProvider } from '@/components/auth/SimplifiedAuthProvider';
+import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+
+// Wrapper setup
+<DynamicProviderWrapper>
+  <SimplifiedAuthProvider>
+    <App />
+  </SimplifiedAuthProvider>
+</DynamicProviderWrapper>`}
+            </CodeBlock>
+            
+            <div className="grid gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🔗 DynamicProviderWrapper</h4>
+                <p className="text-sm text-muted-foreground">Main authentication provider that handles wallet communication</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🔐 SimplifiedAuthProvider</h4>
+                <p className="text-sm text-muted-foreground">Supabase integration layer for session management</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🎯 DynamicConnectButton</h4>
+                <p className="text-sm text-muted-foreground">User-facing wallet connection interface</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'auth-flow') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Authentication Flow</h1>
+          <p className="text-lg text-muted-foreground">
+            Step-by-step process of how wallet authentication works in BlockDrive.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Process</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {[
+              { step: 1, title: "User Initiation", desc: "User clicks 'Connect Wallet' button" },
+              { step: 2, title: "Wallet Selection", desc: "Choose from 50+ supported wallets" },
+              { step: 3, title: "Connection", desc: "Dynamic SDK handles wallet communication" },
+              { step: 4, title: "Verification", desc: "Cryptographic signature verification" },
+              { step: 5, title: "Session Creation", desc: "Generate secure session tokens" },
+              { step: 6, title: "Redirection", desc: "Automatic redirect to dashboard" }
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {item.step}
+                </div>
+                <div>
+                  <h4 className="font-medium">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'ipfs-integration') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">IPFS Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Decentralized storage powered by IPFS with enterprise-grade reliability.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>IPFS Architecture</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">📡 Pinata Provider</h4>
+                <p className="text-sm text-muted-foreground">Primary IPFS gateway for reliable storage</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🌍 Global CDN</h4>
+                <p className="text-sm text-muted-foreground">Fast access through worldwide gateway network</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">📌 Auto Pinning</h4>
+                <p className="text-sm text-muted-foreground">Automatic pinning for permanent storage</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🔒 Redundant Storage</h4>
+                <p className="text-sm text-muted-foreground">Multiple nodes ensure data availability</p>
+              </div>
+            </div>
+            
+            <CodeBlock id="ipfs-upload">
+{`// Upload file to IPFS
+import { IPFSService } from '@/services/ipfsService';
+
+const uploadFile = async (file: File) => {
+  const result = await IPFSService.uploadFile(file);
+  console.log('File uploaded:', result.cid);
+  return result; // Returns CID and metadata
+};
+
+// Retrieve file from IPFS
+const downloadFile = async (cid: string) => {
+  const blob = await IPFSService.retrieveFile(cid);
+  return blob;
+};`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'file-management') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">File Management</h1>
+          <p className="text-lg text-muted-foreground">
+            Organize, search, and manage your files with enterprise-grade tools.
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Core Features</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">📁 Folder Organization</h4>
+                  <p className="text-sm text-muted-foreground">Hierarchical folder structure for organization</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">🏷️ File Metadata</h4>
+                  <p className="text-sm text-muted-foreground">Size, type, upload date, blockchain info</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">🔍 Search & Filter</h4>
+                  <p className="text-sm text-muted-foreground">Find files by name, type, or date</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">📦 Batch Operations</h4>
+                  <p className="text-sm text-muted-foreground">Upload and manage multiple files</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>File Operations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CodeBlock id="file-ops">
+{`// Create folder
+const createFolder = async (folderName: string) => {
+  const folder = await folderService.create(folderName);
+  return folder;
+};
+
+// Search files
+const searchFiles = async (query: string) => {
+  const results = await fileService.search(query);
+  return results;
+};
+
+// Generate sharing link
+const shareFile = async (fileId: string) => {
+  const link = await fileService.generateShareLink(fileId);
+  return link;
+};`}
+              </CodeBlock>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'storage-quotas') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Storage Quotas</h1>
+          <p className="text-lg text-muted-foreground">
+            Storage and bandwidth limits based on your subscription plan.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Storage by Plan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {[
+                { plan: "Starter", storage: "50 GB", bandwidth: "50 GB", price: "$9/month" },
+                { plan: "Pro", storage: "150 GB", bandwidth: "150 GB", price: "$29/month" },
+                { plan: "Growth", storage: "300 GB", bandwidth: "300 GB", price: "$59/month" },
+                { plan: "Scale", storage: "500 GB/seat", bandwidth: "500 GB/seat", price: "$99/month/seat" }
+              ].map((tier) => (
+                <div key={tier.plan} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">{tier.plan}</h4>
+                      <p className="text-sm text-muted-foreground">{tier.price}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Storage: {tier.storage}</p>
+                      <p className="text-sm">Bandwidth: {tier.bandwidth}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'team-management') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Team Management</h1>
+          <p className="text-lg text-muted-foreground">
+            Create teams, invite members, and manage collaborative workspaces.
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Features</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">👥 Multiple Teams</h4>
+                  <p className="text-sm text-muted-foreground">Create and manage multiple teams</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">🛡️ Role-Based Access</h4>
+                  <p className="text-sm text-muted-foreground">Owner and Member roles with different permissions</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">📧 Email Invitations</h4>
+                  <p className="text-sm text-muted-foreground">Invite members via secure email links</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h4 className="font-medium mb-2">📁 Shared Storage</h4>
+                  <p className="text-sm text-muted-foreground">Team-specific file storage and sharing</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Operations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CodeBlock id="team-ops">
+{`// Team file upload
+const teamUpload = async (file: File, teamId: string) => {
+  const result = await uploadToTeamStorage(file, teamId);
+  return result;
+};
+
+// Invite team member
+const inviteMember = async (email: string, teamId: string, role: string) => {
+  const invitation = await sendTeamInvitation(email, teamId, role);
+  return invitation;
+};`}
+              </CodeBlock>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Requirements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2">Growth Plan</h4>
+                  <p className="text-sm text-muted-foreground">1 team, up to 3 members total</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2">Scale Plan</h4>
+                  <p className="text-sm text-muted-foreground">Unlimited teams and members</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'slack') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Slack Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Share files directly to Slack channels with notifications and commands.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Slack Features</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">📤 File Sharing</h4>
+                <p className="text-sm text-muted-foreground">Share files to Slack channels</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">🔔 Notifications</h4>
+                <p className="text-sm text-muted-foreground">Real-time upload notifications</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">⌨️ Commands</h4>
+                <p className="text-sm text-muted-foreground">Slash command interactions</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'pricing-tiers') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Pricing Tiers</h1>
+          <p className="text-lg text-muted-foreground">
+            Flexible pricing plans to match your storage and collaboration needs.
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          {[
+            {
+              name: "Starter",
+              price: "$9/month",
+              storage: "50 GB storage & bandwidth",
+              users: "1 user",
+              features: ["Basic blockchain features", "7-day free trial"],
+              popular: false
+            },
+            {
+              name: "Pro", 
+              price: "$29/month",
+              storage: "150 GB storage & bandwidth",
+              users: "Enhanced features",
+              features: ["Priority support", "Advanced sharing"],
+              popular: false
+            },
+            {
+              name: "Growth",
+              price: "$59/month",
+              storage: "300 GB storage & bandwidth", 
+              users: "Up to 3 team members",
+              features: ["Team collaboration tools", "Advanced analytics"],
+              popular: true
+            },
+            {
+              name: "Scale",
+              price: "$99/month/seat",
+              storage: "500 GB per seat",
+              users: "Unlimited team members",
+              features: ["Custom solutions", "24/7 support"],
+              popular: false
+            }
+          ].map((plan) => (
+            <Card key={plan.name} className={plan.popular ? "border-primary" : ""}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {plan.name}
+                      {plan.popular && <Badge>Most Popular</Badge>}
+                    </CardTitle>
+                    <CardDescription>{plan.price}</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="font-medium">{plan.storage}</p>
+                  <p className="text-muted-foreground">{plan.users}</p>
+                  <ul className="text-sm space-y-1">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="text-muted-foreground">• {feature}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'edge-functions') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Edge Functions</h1>
+          <p className="text-lg text-muted-foreground">
+            Serverless functions powering BlockDrive's backend operations.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Core Functions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {[
+                { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS with metadata storage" },
+                { name: "check-subscription", desc: "Verify user subscription status and quotas" },
+                { name: "secure-wallet-auth", desc: "Authenticate wallet connections securely" },
+                { name: "create-checkout", desc: "Process Stripe payments and subscriptions" },
+                { name: "send-team-invitation", desc: "Handle team member invitation emails" }
+              ].map((func) => (
+                <div key={func.name} className="p-4 border rounded-lg">
+                  <h4 className="font-medium font-mono text-sm">{func.name}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{func.desc}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Default content for other sections
   return (
     <div className="space-y-8">
