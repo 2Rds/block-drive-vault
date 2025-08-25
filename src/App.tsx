@@ -21,6 +21,7 @@ import { DynamicProviderWrapper } from "./components/auth/DynamicProviderWrapper
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 const queryClient = new QueryClient();
 
@@ -32,46 +33,48 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SecurityHeaders />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <DynamicProviderWrapper>
-            <SimplifiedAuthProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/files" element={
-                  <ProtectedRoute>
-                    <IPFSFiles />
-                  </ProtectedRoute>
-                } />
-                <Route path="/index" element={
-                  <ProtectedRoute>
-                    <IPFSFiles />
-                  </ProtectedRoute>
-                } />
-                <Route path="/account" element={
-                  <ProtectedRoute>
-                    <Account />
-                  </ProtectedRoute>
-                } />
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/team-invitation" element={<TeamInvitation />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </SimplifiedAuthProvider>
-          </DynamicProviderWrapper>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <TooltipProvider>
+          <SecurityHeaders />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <DynamicProviderWrapper>
+              <SimplifiedAuthProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                  <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/files" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/index" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account" element={
+                    <ProtectedRoute>
+                      <Account />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/team-invitation" element={<TeamInvitation />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </SimplifiedAuthProvider>
+            </DynamicProviderWrapper>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

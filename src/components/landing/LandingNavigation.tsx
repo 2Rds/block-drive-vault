@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingNavigation = () => {
@@ -43,6 +44,7 @@ export const LandingNavigation = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             <DynamicConnectButton onConnectClick={() => {}} />
           </div>
         </div>
