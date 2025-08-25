@@ -11,14 +11,7 @@ export const LandingNavigation = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png" 
-                alt="BlockDrive Logo" 
-                className="w-8 h-8 object-contain" 
-              />
-            </div>
+          <div className="flex items-center">
             <span className="text-xl font-bold text-foreground">BlockDrive</span>
           </div>
 
