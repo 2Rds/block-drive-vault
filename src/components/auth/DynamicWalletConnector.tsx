@@ -133,7 +133,7 @@ export const DynamicWalletConnector = ({
 
       {!showAuthFlow && (
         <div className="w-full">
-          <DynamicConnectButton onConnectClick={() => {}} />
+          <DynamicConnectButton onConnectClick={handleConnectClick} />
         </div>
       )}
       
