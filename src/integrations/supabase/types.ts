@@ -1234,8 +1234,8 @@ export type Database = {
         Args: { signup_email: string; signup_user_id?: string }
         Returns: boolean
       }
-      validate_signup_access_ultra_secure: {
-        Args: { signup_email: string; signup_user_id?: string }
+      validate_signup_access_simple: {
+        Args: { signup_email: string }
         Returns: boolean
       }
       validate_signup_attempt: {
