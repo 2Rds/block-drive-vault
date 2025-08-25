@@ -50,7 +50,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-card/50 border-t border-border/50 py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
                 <img 
@@ -82,10 +82,28 @@ const Index = () => {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Company</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <div>About</div>
-                <div>Blog</div>
-                <div>Careers</div>
-                <div>Contact</div>
+                <div className="cursor-pointer hover:text-foreground transition-colors">About</div>
+                <div className="cursor-pointer hover:text-foreground transition-colors">Blog</div>
+                <div className="cursor-pointer hover:text-foreground transition-colors">Careers</div>
+                <div className="cursor-pointer hover:text-foreground transition-colors">Contact</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div 
+                  className="cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => navigate('/terms-of-service')}
+                >
+                  Terms of Service
+                </div>
+                <div 
+                  className="cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => navigate('/privacy-policy')}
+                >
+                  Privacy Policy
+                </div>
               </div>
             </div>
           </div>

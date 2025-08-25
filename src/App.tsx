@@ -11,6 +11,8 @@ import IPFSFiles from "./pages/IPFSFiles";
 import Docs from "./pages/Docs";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
+import { TermsOfService } from "./pages/TermsOfService";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import Pricing from "./pages/Pricing";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancel from "./pages/SubscriptionCancel";
@@ -43,6 +45,8 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/docs" element={<Docs />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
                 <Route path="/dashboard" element={
