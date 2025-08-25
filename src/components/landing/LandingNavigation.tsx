@@ -44,13 +44,13 @@ export const LandingNavigation = () => {
           <div className="flex items-center space-x-4">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/app')}
             >
               Sign In
             </Button>
             <Button 
               className="bg-primary hover:bg-primary/90"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/app')}
             >
               Open App
             </Button>

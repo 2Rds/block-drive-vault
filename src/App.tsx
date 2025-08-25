@@ -40,7 +40,8 @@ const App = () => {
           <DynamicProvider>
             <SimplifiedAuthProvider>
               <Routes>
-                <Route path="/" element={
+                <Route path="/" element={<Index />} />
+                <Route path="/app" element={
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
