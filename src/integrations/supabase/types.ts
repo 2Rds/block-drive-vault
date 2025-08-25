@@ -1147,6 +1147,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_secure_wallet_info: {
+        Args: { target_user_id?: string }
+        Returns: {
+          blockchain_type: string
+          created_at: string
+          has_private_key: boolean
+          id: string
+          key_integrity_hash: string
+          public_key: string
+          user_id: string
+          wallet_address: string
+        }[]
+      }
       get_user_auth_token: {
         Args: { user_wallet_address: string }
         Returns: string
@@ -1172,6 +1185,16 @@ export type Database = {
       link_legacy_subscription_to_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      secure_private_key_access: {
+        Args: {
+          operation_context: string
+          security_token?: string
+          target_user_id: string
+        }
+        Returns: {
+          wallet_data: Json
+        }[]
       }
       secure_user_signup: {
         Args: {
@@ -1212,6 +1235,10 @@ export type Database = {
       }
       validate_profile_access: {
         Args: { profile_id: string }
+        Returns: boolean
+      }
+      validate_secure_wallet_access: {
+        Args: { operation_type?: string; wallet_user_id: string }
         Returns: boolean
       }
       validate_service_operation_enhanced: {
