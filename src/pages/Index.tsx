@@ -1,15 +1,17 @@
 
-import React, { useEffect, startTransition, useMemo } from 'react';
+import { useEffect, startTransition, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
 import { LandingHero } from '@/components/landing/LandingHero';
-import { FeatureSection } from '@/components/landing/FeatureSection';
-import { StatsSection } from '@/components/landing/StatsSection';
-import { PlatformShowcase } from '@/components/landing/PlatformShowcase';
-import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { CTASection } from '@/components/landing/CTASection';
+
+// Lazy load non-critical sections to reduce initial JavaScript execution
+const FeatureSection = lazy(() => import('@/components/landing/FeatureSection').then(m => ({ default: m.FeatureSection })));
+const StatsSection = lazy(() => import('@/components/landing/StatsSection').then(m => ({ default: m.StatsSection })));
+const PlatformShowcase = lazy(() => import('@/components/landing/PlatformShowcase').then(m => ({ default: m.PlatformShowcase })));
+const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
+const CTASection = lazy(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })));
 
 const Index = () => {
   const navigate = useNavigate();
@@ -46,13 +48,17 @@ const Index = () => {
       {/* Add padding top to account for fixed navigation */}
       <div className="pt-16">
         <LandingHero />
-        <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1000px' }}>
-          <StatsSection />
-          <FeatureSection />
-          <PlatformShowcase />
-          <TestimonialsSection />
-          <CTASection />
-        </div>
+        <Suspense fallback={<div className="h-24 flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>}>
+          <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1000px' }}>
+            <StatsSection />
+            <FeatureSection />
+            <PlatformShowcase />
+            <TestimonialsSection />
+            <CTASection />
+          </div>
+        </Suspense>
       </div>
       
       {/* Footer */}
