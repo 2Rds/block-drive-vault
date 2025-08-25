@@ -12,7 +12,7 @@ export const PlatformShowcase = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left side - Content */}
-          <div>
+          <div className="text-center">
             <h2 className="text-4xl font-bold text-foreground mb-6">
               See BlockDrive in action
             </h2>
@@ -21,12 +21,12 @@ export const PlatformShowcase = () => {
               Upload, manage, and share files with enterprise-grade security.
             </p>
 
-            <div className="space-y-6 mb-8">
+            <div className="space-y-6 mb-8 max-w-md mx-auto">
               <div className="flex items-center gap-4">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Upload className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="text-left">
                   <h4 className="font-semibold text-foreground">Drag & Drop Upload</h4>
                   <p className="text-sm text-muted-foreground">Upload files instantly to IPFS</p>
                 </div>
@@ -36,7 +36,7 @@ export const PlatformShowcase = () => {
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Eye className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="text-left">
                   <h4 className="font-semibold text-foreground">Real-time Preview</h4>
                   <p className="text-sm text-muted-foreground">View files without downloading</p>
                 </div>
@@ -46,7 +46,7 @@ export const PlatformShowcase = () => {
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Share className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="text-left">
                   <h4 className="font-semibold text-foreground">Secure Sharing</h4>
                   <p className="text-sm text-muted-foreground">Share with wallet-based permissions</p>
                 </div>
