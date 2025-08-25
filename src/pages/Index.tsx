@@ -1,12 +1,12 @@
 
-import { useEffect, startTransition, useMemo, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+
+// Landing components that need to load immediately
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
 import { LandingHero } from '@/components/landing/LandingHero';
 
-// Lazy load non-critical sections to reduce initial JavaScript execution
+// Lazy load all below-the-fold sections to reduce initial JavaScript bundle
 const FeatureSection = lazy(() => import('@/components/landing/FeatureSection').then(m => ({ default: m.FeatureSection })));
 const StatsSection = lazy(() => import('@/components/landing/StatsSection').then(m => ({ default: m.StatsSection })));
 const PlatformShowcase = lazy(() => import('@/components/landing/PlatformShowcase').then(m => ({ default: m.PlatformShowcase })));
@@ -15,32 +15,10 @@ const CTASection = lazy(() => import('@/components/landing/CTASection').then(m =
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
-  const { user: dynamicUser, primaryWallet } = useDynamicContext();
-
-  // Memoize authentication status to avoid unnecessary recalculations
-  const isAuthenticated = useMemo(() => {
-    return !!(user && session && dynamicUser && primaryWallet);
-  }, [user, session, dynamicUser, primaryWallet]);
-
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    console.log('🏠 Index page - checking auth status:', {
-      hasUser: !!user,
-      hasSession: !!session,
-      hasDynamicUser: !!dynamicUser,
-      hasPrimaryWallet: !!primaryWallet,
-      isAuthenticated
-    });
-
-    if (isAuthenticated) {
-      console.log('🚀 User is authenticated, redirecting to dashboard...');
-      // Use startTransition to avoid blocking user interactions
-      startTransition(() => {
-        navigate('/dashboard', { replace: true });
-      });
-    }
-  }, [isAuthenticated, navigate]);
+  
+  // For landing page, we don't need auth checking - defer auth logic entirely
+  // This removes heavy auth dependencies from initial bundle
+  
   return (
     <div className="min-h-screen bg-background">
       <LandingNavigation />

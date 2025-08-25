@@ -6,13 +6,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, lazy, Suspense, startTransition } from 'react';
 import Index from "./pages/Index";
-import { SimplifiedAuthProvider } from "./components/auth/SimplifiedAuthProvider";
-import { DynamicProviderWrapper } from "./components/auth/DynamicProviderWrapper";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 
-// Lazy load non-critical pages to reduce initial bundle size
+// Lazy load all auth providers to reduce initial bundle size
+// These are heavy libraries that aren't needed for landing page
+const SimplifiedAuthProvider = lazy(() => import("./components/auth/SimplifiedAuthProvider").then(m => ({ default: m.SimplifiedAuthProvider })));
+const DynamicProviderWrapper = lazy(() => import("./components/auth/DynamicProviderWrapper").then(m => ({ default: m.DynamicProviderWrapper })));
+const ProtectedRoute = lazy(() => import("./components/ProtectedRoute").then(m => ({ default: m.ProtectedRoute })));
+
+// Lazy load all non-landing pages to reduce initial bundle size
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const IPFSFiles = lazy(() => import("./pages/IPFSFiles"));
 const Docs = lazy(() => import("./pages/Docs"));
@@ -53,46 +56,61 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <DynamicProviderWrapper>
-            <SimplifiedAuthProvider>
-              <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-foreground">Loading...</div>
-              </div>}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/docs" element={<Docs />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/terms-of-service" element={<TermsOfService />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                  <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/files" element={
-                    <ProtectedRoute>
-                      <IPFSFiles />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/index" element={
-                    <ProtectedRoute>
-                      <IPFSFiles />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/account" element={
-                    <ProtectedRoute>
-                      <Account />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/teams" element={<Teams />} />
-                  <Route path="/team-invitation" element={<TeamInvitation />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </SimplifiedAuthProvider>
-          </DynamicProviderWrapper>
+          <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+              <div className="text-foreground">Loading application...</div>
+            </div>
+          }>
+            <Routes>
+              {/* Landing page loads immediately without auth providers */}
+              <Route path="/" element={<Index />} />
+              
+              {/* All other routes wrapped with lazy-loaded auth providers */}
+              <Route path="/*" element={
+                <DynamicProviderWrapper>
+                  <SimplifiedAuthProvider>
+                    <Suspense fallback={
+                      <div className="min-h-screen bg-background flex items-center justify-center">
+                        <div className="text-foreground">Loading...</div>
+                      </div>
+                    }>
+                      <Routes>
+                        <Route path="/docs" element={<Docs />} />
+                        <Route path="/pricing" element={<Pricing />} />
+                        <Route path="/terms-of-service" element={<TermsOfService />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                        <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                        <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                        <Route path="/dashboard" element={
+                          <ProtectedRoute>
+                            <Dashboard />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/files" element={
+                          <ProtectedRoute>
+                            <IPFSFiles />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/index" element={
+                          <ProtectedRoute>
+                            <IPFSFiles />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/account" element={
+                          <ProtectedRoute>
+                            <Account />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/teams" element={<Teams />} />
+                        <Route path="/team-invitation" element={<TeamInvitation />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </SimplifiedAuthProvider>
+                </DynamicProviderWrapper>
+              } />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
