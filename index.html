@@ -242,8 +242,8 @@
       }
     </style>
     
-    <!-- Defer full CSS file until after critical rendering -->
-    <link rel="preload" href="/src/index.css" as="style">
+    <!-- Load CSS in non-render-blocking way to eliminate render-blocking resources -->
+    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
     <meta property="og:title" content="BlockDrive - Decentralized Storage Platform" />
@@ -346,12 +346,6 @@
     <script>
       // Defer heavy third-party scripts until after initial page load
       window.addEventListener('load', function() {
-        // Load the main CSS file after critical rendering is complete
-        const mainCSS = document.createElement('link');
-        mainCSS.rel = 'stylesheet';
-        mainCSS.href = '/src/index.css';
-        document.head.appendChild(mainCSS);
-        
         // Load non-critical CSS after page load to reduce unused CSS blocking
         const deferredStyles = [
           // Any additional non-critical stylesheets can be loaded here
