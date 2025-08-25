@@ -1078,6 +1078,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_signup_security_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       detect_auth_token_threats: {
         Args: Record<PropertyKey, never>
         Returns: {
