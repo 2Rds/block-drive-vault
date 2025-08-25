@@ -12,6 +12,10 @@
     <!-- Performance optimizations for LCP -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <!-- Critical preconnect hints for Dynamic Auth to reduce network dependency chain -->
+    <link rel="preconnect" href="https://app.dynamicauth.com" crossorigin>
+    <link rel="preconnect" href="https://dynamic-static-assets.com" crossorigin>
+    <link rel="preconnect" href="https://iconic.dynamic-static-assets.com" crossorigin>
     <link rel="preload" href="/src/main.tsx" as="script" crossorigin>
     <!-- Preload critical resources -->
     <link rel="modulepreload" href="/src/main.tsx">
