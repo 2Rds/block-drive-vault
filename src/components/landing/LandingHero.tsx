@@ -12,7 +12,7 @@ export const LandingHero = () => {
         <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 mb-8">
           <span className="text-sm font-medium text-primary">Coming Soon</span>
           <div className="mx-2 h-4 w-px bg-primary/20" />
-          <span className="text-sm text-muted-foreground">Multi-Chain Wallet Authentication</span>
+          <span className="text-sm text-muted-foreground">Multi-Chain Authentication Agent</span>
           <ArrowRight className="ml-2 h-3 w-3 text-primary" />
         </div>
 
