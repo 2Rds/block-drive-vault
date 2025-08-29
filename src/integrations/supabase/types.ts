@@ -1305,6 +1305,10 @@ export type Database = {
         Args: { signup_email: string; signup_user_id?: string }
         Returns: boolean
       }
+      validate_simple_auth_token_access: {
+        Args: { token_email: string }
+        Returns: boolean
+      }
       validate_subscription_access: {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
