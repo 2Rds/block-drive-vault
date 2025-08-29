@@ -1085,6 +1085,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_wallet_with_context: {
+        Args: {
+          blockchain_type_param: string
+          private_key_encrypted_param: string
+          public_key_param: string
+          target_user_id: string
+          wallet_address_param: string
+        }
+        Returns: string
+      }
       detect_auth_token_threats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1265,6 +1275,10 @@ export type Database = {
           target_resource: string
           target_user_id?: string
         }
+        Returns: boolean
+      }
+      validate_service_role_wallet_operation: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       validate_service_token_operation: {

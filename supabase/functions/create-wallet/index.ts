@@ -72,20 +72,27 @@ serve(async (req) => {
     // Simple encryption (use proper encryption in production)
     const encryptedPrivateKey = btoa(walletData.privateKey + '|' + password);
 
-    // Create wallet in database
-    const { data: wallet, error: walletError } = await supabaseClient
-      .from('wallets')
-      .insert({
-        user_id: userId,
-        wallet_address: walletData.address,
-        private_key_encrypted: encryptedPrivateKey,
-        public_key: walletData.publicKey,
-        blockchain_type: blockchainType
-      })
-      .select()
-      .single();
+    // Create wallet using secure function with operation context
+    const { data: walletId, error: walletError } = await supabaseClient
+      .rpc('create_wallet_with_context', {
+        target_user_id: userId,
+        wallet_address_param: walletData.address,
+        public_key_param: walletData.publicKey,
+        private_key_encrypted_param: encryptedPrivateKey,
+        blockchain_type_param: blockchainType
+      });
 
     if (walletError) throw walletError;
+
+    // Get the created wallet data (without private key)
+    const { data: wallet, error: getWalletError } = await supabaseClient
+      .rpc('get_user_wallet_safe', { target_user_id: userId });
+
+    if (getWalletError || !wallet || wallet.length === 0) {
+      throw new Error('Failed to retrieve created wallet');
+    }
+
+    const walletRecord = wallet[0];
 
     // Generate unique token
     const timestamp = Date.now();
@@ -96,7 +103,7 @@ serve(async (req) => {
     const { data: token, error: tokenError } = await supabaseClient
       .from('blockchain_tokens')
       .insert({
-        wallet_id: wallet.id,
+        wallet_id: walletRecord.id,
         token_id: tokenId,
         blockchain_type: blockchainType,
         token_metadata: {
@@ -114,7 +121,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        wallet: wallet,
+        wallet: walletRecord,
         token: token
       }),
       {
