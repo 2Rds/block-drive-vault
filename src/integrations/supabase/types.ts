@@ -1265,6 +1265,10 @@ export type Database = {
         Args: { profile_id: string }
         Returns: boolean
       }
+      validate_restricted_service_token_operation: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       validate_secure_wallet_access: {
         Args: { operation_type?: string; wallet_user_id: string }
         Returns: boolean

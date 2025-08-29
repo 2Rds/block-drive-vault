@@ -30,11 +30,30 @@ export const storeToken = async (tokenData: {
   wallet_address: string;
   blockchain_type: string;
 }) => {
+  // Set operation context for service role access
+  const { error: configError } = await supabase
+    .rpc('set_config', {
+      setting_name: 'app.auth_token_operation',
+      new_value: 'token_creation',
+      is_local: true
+    });
+
+  if (configError) {
+    console.error('Failed to set operation context:', configError);
+  }
+
   const { data, error } = await supabase
     .from('auth_tokens')
     .insert(tokenData)
     .select()
     .single();
+
+  // Clear operation context
+  await supabase.rpc('set_config', {
+    setting_name: 'app.auth_token_operation', 
+    new_value: '',
+    is_local: true
+  });
 
   if (error) {
     throw new Error('Failed to store authentication token');
