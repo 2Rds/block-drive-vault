@@ -7,6 +7,18 @@ const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const checkExistingToken = async (walletAddress: string, blockchainType: string) => {
+  // Set operation context for service role access
+  const { error: configError } = await supabase
+    .rpc('set_config', {
+      setting_name: 'app.auth_token_operation',
+      new_value: 'duplicate_check',
+      is_local: true
+    });
+
+  if (configError) {
+    console.error('Failed to set operation context:', configError);
+  }
+
   const { data: existingToken, error: checkError } = await supabase
     .from('auth_tokens')
     .select('*')
@@ -14,6 +26,13 @@ export const checkExistingToken = async (walletAddress: string, blockchainType: 
     .eq('blockchain_type', blockchainType)
     .eq('is_used', false)
     .single();
+
+  // Clear operation context
+  await supabase.rpc('set_config', {
+    setting_name: 'app.auth_token_operation',
+    new_value: '',
+    is_local: true
+  });
 
   if (checkError && checkError.code !== 'PGRST116') {
     throw new Error('Failed to check existing registration');
