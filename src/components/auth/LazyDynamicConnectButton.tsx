@@ -22,11 +22,6 @@ export const LazyDynamicConnectButton: React.FC<LazyDynamicConnectButtonProps> =
     onConnectClick();
   };
 
-  const handleFallbackNavigation = () => {
-    // Navigate to pricing page where Dynamic context is available
-    navigate('/pricing');
-  };
-
   if (showDynamic) {
     return (
       <Suspense fallback={
@@ -34,7 +29,7 @@ export const LazyDynamicConnectButton: React.FC<LazyDynamicConnectButtonProps> =
           Loading...
         </Button>
       }>
-        <DynamicConnectButton onConnectClick={handleFallbackNavigation} />
+        <DynamicConnectButton onConnectClick={() => {}} />
       </Suspense>
     );
   }

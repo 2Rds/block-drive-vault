@@ -107,55 +107,44 @@ const App = () => {
               <div className="text-foreground">Loading application...</div>
             </div>
           }>
-            <Routes>
-              {/* Landing page loads immediately without auth providers */}
-              <Route path="/" element={<Index />} />
-              
-              {/* All other routes wrapped with lazy-loaded auth providers */}
-              <Route path="/*" element={
-                <DynamicProviderWrapper>
-                  <SimplifiedAuthProvider>
-                    <Suspense fallback={
-                      <div className="min-h-screen bg-background flex items-center justify-center">
-                        <div className="text-foreground">Loading...</div>
-                      </div>
-                    }>
-                      <Routes>
-                        <Route path="/docs" element={<Docs />} />
-                        <Route path="/pricing" element={<Pricing />} />
-                        <Route path="/terms-of-service" element={<TermsOfService />} />
-                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                        <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                        <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                        <Route path="/dashboard" element={
-                          <ProtectedRoute>
-                            <Dashboard />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/files" element={
-                          <ProtectedRoute>
-                            <IPFSFiles />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/index" element={
-                          <ProtectedRoute>
-                            <IPFSFiles />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/account" element={
-                          <ProtectedRoute>
-                            <Account />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/teams" element={<Teams />} />
-                        <Route path="/team-invitation" element={<TeamInvitation />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Suspense>
-                  </SimplifiedAuthProvider>
-                </DynamicProviderWrapper>
-              } />
-            </Routes>
+            {/* Wrap entire app with Dynamic providers for wallet connection from anywhere */}
+            <DynamicProviderWrapper>
+              <SimplifiedAuthProvider>
+                <Routes>
+                  {/* Landing page now has access to wallet connection */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/docs" element={<Docs />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                  <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/files" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/index" element={
+                    <ProtectedRoute>
+                      <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account" element={
+                    <ProtectedRoute>
+                      <Account />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/team-invitation" element={<TeamInvitation />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </SimplifiedAuthProvider>
+            </DynamicProviderWrapper>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
