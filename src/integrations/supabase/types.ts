@@ -1065,6 +1065,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_auth_token_rate_limit: {
+        Args: { user_email: string }
+        Returns: boolean
+      }
       check_subscription_rate_limit: {
         Args: Record<PropertyKey, never>
         Returns: boolean
