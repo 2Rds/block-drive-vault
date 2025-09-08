@@ -1349,6 +1349,10 @@ export type Database = {
         Args: { token_user_id: string; token_wallet_address: string }
         Returns: boolean
       }
+      verify_auth_token_securely: {
+        Args: { provided_token: string; user_email: string }
+        Returns: Json
+      }
     }
     Enums: {
       blockchain_network: "mainnet-beta" | "devnet" | "testnet"
