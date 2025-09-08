@@ -19,13 +19,12 @@ export const checkExistingToken = async (walletAddress: string, blockchainType: 
     console.error('Failed to set operation context:', configError);
   }
 
-  const { data: existingToken, error: checkError } = await supabase
-    .from('auth_tokens')
-    .select('id, wallet_address, blockchain_type, is_used, expires_at')
-    .eq('wallet_address', walletAddress)
-    .eq('blockchain_type', blockchainType)
-    .eq('is_used', false)
-    .maybeSingle();
+  // Use the secure function to check token existence
+  const { data: checkResult, error: checkError } = await supabase
+    .rpc('check_token_exists_secure', {
+      wallet_address_param: walletAddress,
+      blockchain_type_param: blockchainType
+    });
 
   // Clear operation context
   await supabase.rpc('set_config', {
@@ -34,11 +33,11 @@ export const checkExistingToken = async (walletAddress: string, blockchainType: 
     is_local: true
   });
 
-  if (checkError && checkError.code !== 'PGRST116') {
+  if (checkError) {
     throw new Error('Failed to check existing registration');
   }
 
-  return existingToken;
+  return checkResult?.exists ? { exists: true } : null;
 };
 
 export const storeToken = async (tokenData: {
@@ -49,30 +48,16 @@ export const storeToken = async (tokenData: {
   wallet_address: string;
   blockchain_type: string;
 }) => {
-  // Set operation context for service role access
-  const { error: configError } = await supabase
-    .rpc('set_config', {
-      setting_name: 'app.auth_token_operation',
-      new_value: 'token_creation',
-      is_local: true
-    });
-
-  if (configError) {
-    console.error('Failed to set operation context:', configError);
-  }
-
+  // Use the secure function to store tokens
   const { data, error } = await supabase
-    .from('auth_tokens')
-    .insert(tokenData)
-    .select('id, expires_at, created_at')
-    .single();
-
-  // Clear operation context
-  await supabase.rpc('set_config', {
-    setting_name: 'app.auth_token_operation', 
-    new_value: '',
-    is_local: true
-  });
+    .rpc('store_token_secure', {
+      token_param: tokenData.token,
+      email_param: tokenData.email,
+      full_name_param: tokenData.full_name,
+      organization_param: tokenData.organization,
+      wallet_address_param: tokenData.wallet_address,
+      blockchain_type_param: tokenData.blockchain_type
+    });
 
   if (error) {
     throw new Error('Failed to store authentication token');

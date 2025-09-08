@@ -1073,6 +1073,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_token_exists_secure: {
+        Args: { blockchain_type_param: string; wallet_address_param: string }
+        Returns: Json
+      }
       cleanup_expired_auth_tokens: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1234,6 +1238,17 @@ export type Database = {
           full_name_param: string
           organization_param?: string
           subscription_tier_param?: string
+        }
+        Returns: Json
+      }
+      store_token_secure: {
+        Args: {
+          blockchain_type_param: string
+          email_param: string
+          full_name_param: string
+          organization_param: string
+          token_param: string
+          wallet_address_param: string
         }
         Returns: Json
       }
