@@ -1257,10 +1257,6 @@ export type Database = {
         Args: { token_email: string; token_user_id?: string }
         Returns: boolean
       }
-      validate_auth_token_access_ultra_secure: {
-        Args: { token_email: string }
-        Returns: boolean
-      }
       validate_emergency_wallet_access: {
         Args: { operation_type: string; target_user_id: string }
         Returns: boolean
@@ -1337,10 +1333,6 @@ export type Database = {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
-      validate_token_owner_strict: {
-        Args: { token_email: string }
-        Returns: boolean
-      }
       validate_wallet_access: {
         Args: { wallet_user_id: string }
         Returns: boolean
@@ -1360,6 +1352,10 @@ export type Database = {
       validate_wallet_token_access_ultra: {
         Args: { token_user_id: string; token_wallet_address: string }
         Returns: boolean
+      }
+      verify_auth_token_secure: {
+        Args: { provided_token: string; user_email: string }
+        Returns: Json
       }
       verify_auth_token_securely: {
         Args: { provided_token: string; user_email: string }
