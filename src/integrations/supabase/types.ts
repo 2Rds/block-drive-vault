@@ -1103,17 +1103,6 @@ export type Database = {
         }
         Returns: string
       }
-      detect_auth_token_threats: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          event_count: number
-          latest_incident: string
-          recommendation: string
-          threat_level: string
-          threat_type: string
-          user_identifier: string
-        }[]
-      }
       detect_signup_threats: {
         Args: Record<PropertyKey, never>
         Returns: {
