@@ -1337,6 +1337,10 @@ export type Database = {
         Args: { subscription_email: string; subscription_user_id: string }
         Returns: boolean
       }
+      validate_token_owner_strict: {
+        Args: { token_email: string }
+        Returns: boolean
+      }
       validate_wallet_access: {
         Args: { wallet_user_id: string }
         Returns: boolean
