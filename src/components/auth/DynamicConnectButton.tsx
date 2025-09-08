@@ -19,12 +19,14 @@ export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonPro
 
   const handleClick = () => {
     if (dynamicContext?.setShowAuthFlow) {
+      // We have Dynamic context - open the auth modal directly
       dynamicContext.setShowAuthFlow(true);
+      onConnectClick();
     } else {
-      // Fallback behavior - redirect to pricing page where auth context is available
-      window.location.href = '/pricing';
+      // No Dynamic context available (likely on landing page)
+      // Use React Router navigation instead of window.location
+      onConnectClick();
     }
-    onConnectClick();
   };
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 // Lazy load the actual DynamicConnectButton to reduce initial bundle size
 const DynamicConnectButton = lazy(() => 
@@ -14,10 +15,16 @@ export const LazyDynamicConnectButton: React.FC<LazyDynamicConnectButtonProps> =
   onConnectClick 
 }) => {
   const [showDynamic, setShowDynamic] = useState(false);
+  const navigate = useNavigate();
 
   const handleClick = () => {
     setShowDynamic(true);
     onConnectClick();
+  };
+
+  const handleFallbackNavigation = () => {
+    // Navigate to pricing page where Dynamic context is available
+    navigate('/pricing');
   };
 
   if (showDynamic) {
@@ -27,7 +34,7 @@ export const LazyDynamicConnectButton: React.FC<LazyDynamicConnectButtonProps> =
           Loading...
         </Button>
       }>
-        <DynamicConnectButton onConnectClick={onConnectClick} />
+        <DynamicConnectButton onConnectClick={handleFallbackNavigation} />
       </Suspense>
     );
   }
