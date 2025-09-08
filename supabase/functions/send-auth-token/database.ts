@@ -21,11 +21,11 @@ export const checkExistingToken = async (walletAddress: string, blockchainType: 
 
   const { data: existingToken, error: checkError } = await supabase
     .from('auth_tokens')
-    .select('*')
+    .select('id, wallet_address, blockchain_type, is_used, expires_at')
     .eq('wallet_address', walletAddress)
     .eq('blockchain_type', blockchainType)
     .eq('is_used', false)
-    .single();
+    .maybeSingle();
 
   // Clear operation context
   await supabase.rpc('set_config', {
@@ -64,7 +64,7 @@ export const storeToken = async (tokenData: {
   const { data, error } = await supabase
     .from('auth_tokens')
     .insert(tokenData)
-    .select()
+    .select('id, expires_at, created_at')
     .single();
 
   // Clear operation context
