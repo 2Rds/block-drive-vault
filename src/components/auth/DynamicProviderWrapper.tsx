@@ -27,6 +27,21 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
         overrides: {
           evmNetworks: [
             {
+              blockExplorerUrls: ['https://basescan.org/'],
+              chainId: 8453,
+              chainName: 'Base',
+              iconUrls: ['https://app.dynamic.xyz/assets/networks/base.svg'],
+              name: 'Base',
+              nativeCurrency: {
+                decimals: 18,
+                name: 'Ether',
+                symbol: 'ETH',
+              },
+              networkId: 8453,
+              rpcUrls: ['https://mainnet.base.org'],
+              vanityName: 'Base',
+            },
+            {
               blockExplorerUrls: ['https://etherscan.io/'],
               chainId: 1,
               chainName: 'Ethereum Mainnet',
@@ -40,21 +55,6 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
               networkId: 1,
               rpcUrls: ['https://mainnet.infura.io/v3/'],
               vanityName: 'Ethereum',
-            },
-            {
-              blockExplorerUrls: ['https://polygonscan.com/'],
-              chainId: 137,
-              chainName: 'Polygon Mainnet',
-              iconUrls: ['https://app.dynamic.xyz/assets/networks/polygon.svg'],
-              name: 'Polygon',
-              nativeCurrency: {
-                decimals: 18,
-                name: 'MATIC',
-                symbol: 'MATIC',
-              },
-              networkId: 137,
-              rpcUrls: ['https://polygon-rpc.com/'],
-              vanityName: 'Polygon',
             },
           ],
         },
