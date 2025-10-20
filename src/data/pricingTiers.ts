@@ -51,17 +51,17 @@ export const pricingTiers: PricingTier[] = [
       },
       {
         period: 'quarterly',
-        price: '$79',
+        price: '$139',
         priceId: 'price_1RixAICXWi8NqmFCXmfOkywQ',
         paymentLink: 'price_1RixAICXWi8NqmFCXmfOkywQ',
-        savings: 'Save 9%'
+        savings: 'Save 5%'
       },
       {
         period: 'annual',
-        price: '$299',
+        price: '$499',
         priceId: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
         paymentLink: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
-        savings: 'Save 14%'
+        savings: 'Save 15%'
       }
     ],
     description: 'Enhanced storage for growing needs',
@@ -88,17 +88,17 @@ export const pricingTiers: PricingTier[] = [
       },
       {
         period: 'quarterly',
-        price: '$267',
+        price: '$279',
         priceId: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
         paymentLink: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
-        savings: 'Save 10%'
+        savings: 'Save 6%'
       },
       {
         period: 'annual',
-        price: '$950',
+        price: '$999',
         priceId: 'price_1RiyDACXWi8NqmFCiLttoIg2',
         paymentLink: 'price_1RiyDACXWi8NqmFCiLttoIg2',
-        savings: 'Save 20%'
+        savings: 'Save 16%'
       }
     ],
     description: 'Ideal for small teams and collaboration',
@@ -127,17 +127,17 @@ export const pricingTiers: PricingTier[] = [
       },
       {
         period: 'quarterly',
-        price: '$537',
+        price: '$549',
         priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         paymentLink: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
-        savings: 'Save 10%'
+        savings: 'Save 8%'
       },
       {
         period: 'annual',
-        price: '$1,910',
+        price: '$1,999',
         priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
         paymentLink: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
-        savings: 'Save 20%'
+        savings: 'Save 16%'
       }
     ],
     description: 'Scalable solution for growing businesses',
