@@ -14,6 +14,8 @@ import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
+import { PinataSettingsModal } from '@/components/PinataSettingsModal';
+import { Key } from 'lucide-react';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ const IPFSFiles = () => {
   const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
   const [showBoxIntegration, setShowBoxIntegration] = useState(false);
+  const [showPinataSettings, setShowPinataSettings] = useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -86,6 +89,14 @@ const IPFSFiles = () => {
                 <p className="text-muted-foreground">Upload, manage, and access your files on the decentralized web</p>
               </div>
               <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setShowPinataSettings(true)}
+                  variant="outline"
+                  className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  API Settings
+                </Button>
                 <Button
                   onClick={handleDashboardClick}
                   variant="outline"
@@ -148,6 +159,11 @@ const IPFSFiles = () => {
       <BoxIntegration
         isOpen={showBoxIntegration}
         onClose={() => setShowBoxIntegration(false)}
+      />
+
+      <PinataSettingsModal
+        isOpen={showPinataSettings}
+        onClose={() => setShowPinataSettings(false)}
       />
     </div>
   );
