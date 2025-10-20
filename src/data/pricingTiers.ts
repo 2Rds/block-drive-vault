@@ -45,7 +45,7 @@ export const pricingTiers: PricingTier[] = [
     pricing: [
       {
         period: 'monthly',
-        price: '$29',
+        price: '$49',
         priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
         paymentLink: 'price_1Rfr9KCXWi8NqmFCoglqEMRH'
       },
