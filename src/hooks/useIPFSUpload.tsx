@@ -37,11 +37,11 @@ export const useIPFSUpload = () => {
         formData.append('folderPath', folderPath || '/');
 
         // Upload via edge function (using stored Pinata secrets)
-        // Pass the user ID as authorization since that's what your auth system uses
+        // Use the session access token for proper JWT authentication
         const { data, error } = await supabase.functions.invoke('upload-to-ipfs', {
           body: formData,
           headers: {
-            'Authorization': `Bearer ${user?.id}`,
+            'Authorization': `Bearer ${session?.access_token}`,
           },
         });
 
