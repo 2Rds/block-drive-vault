@@ -80,23 +80,9 @@ serve(async (req) => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
     
     if (isUUID) {
-      // Direct user ID from Dynamic SDK wallet auth
+      // Direct user ID from Dynamic SDK wallet auth - no additional validation needed
       logStep("Using user ID from Dynamic SDK", { userId: token });
       userId = token;
-      
-      // Verify user exists in user_signups table
-      const { data: userSignup, error: signupError } = await supabaseClient
-        .from('user_signups')
-        .select('id, email, wallet_address')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (signupError || !userSignup) {
-        logStep("User ID validation failed", { error: signupError?.message });
-        throw new Error("Invalid user ID or user not found");
-      }
-      
-      logStep("User ID validated", { userId, email: userSignup.email });
     } else {
       // Standard JWT authentication
       try {
