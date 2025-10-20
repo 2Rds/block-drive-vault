@@ -216,8 +216,9 @@ serve(async (req) => {
     // Tier-based limits
     const tierLimits = {
       'starter': { storage: 50, bandwidth: 50, seats: 1 },
-      'professional': { storage: 250, bandwidth: 250, seats: 5 },
-      'enterprise': { storage: 1000, bandwidth: 1000, seats: 999 },
+      'pro': { storage: 150, bandwidth: 150, seats: 1 },
+      'growth': { storage: 300, bandwidth: 300, seats: 3 },
+      'scale': { storage: 500, bandwidth: 500, seats: 999 },
       'free trial': { storage: 50, bandwidth: 50, seats: 1 }
     };
 
@@ -228,6 +229,39 @@ serve(async (req) => {
         subscription_tier: null,
         subscription_end: null,
         limits: defaultLimits
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Check if subscription has expired
+    const now = new Date();
+    const subscriptionEnd = subscriber.subscription_end ? new Date(subscriber.subscription_end) : null;
+    const isExpired = subscriptionEnd && subscriptionEnd < now;
+
+    if (isExpired) {
+      logStep("Subscription expired", { 
+        subscriptionEnd: subscriber.subscription_end, 
+        now: now.toISOString() 
+      });
+
+      // Update subscriber record to reflect expired status
+      await supabaseService
+        .from('subscribers')
+        .update({ 
+          subscribed: false,
+          subscription_tier: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', userEmail);
+
+      return new Response(JSON.stringify({
+        subscribed: false,
+        subscription_tier: null,
+        subscription_end: subscriber.subscription_end,
+        limits: defaultLimits,
+        expired: true
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

@@ -68,7 +68,7 @@ serve(async (req) => {
     logStep("Customer details", { email: customerEmail, stripeCustomerId });
 
     // Determine subscription tier from the subscription
-    let subscriptionTier = "Premium";
+    let subscriptionTier = "Starter";
     let subscriptionEnd = null;
 
     if (session.subscription) {
@@ -83,18 +83,22 @@ serve(async (req) => {
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
       
-      if (amount <= 999) {
+      // Match actual pricing tiers: Starter ($9), Pro ($29), Growth ($59), Scale ($99+)
+      if (amount <= 1000) {
         subscriptionTier = "Starter";
-      } else if (amount <= 2999) {
-        subscriptionTier = "Professional";
+      } else if (amount <= 3000) {
+        subscriptionTier = "Pro";
+      } else if (amount <= 6000) {
+        subscriptionTier = "Growth";
       } else {
-        subscriptionTier = "Enterprise";
+        subscriptionTier = "Scale";
       }
       
       logStep("Subscription details", { 
         subscriptionId: subscription.id, 
         tier: subscriptionTier, 
-        endDate: subscriptionEnd 
+        endDate: subscriptionEnd,
+        amount: amount 
       });
     }
 
