@@ -65,12 +65,12 @@ export const pricingTiers: PricingTier[] = [
       }
     ],
     description: 'Enhanced storage for growing needs',
-    storage: '150 GB',
-    bandwidth: '150 GB',
+    storage: '250 GB',
+    bandwidth: '250 GB',
     seats: '1 user',
     features: [
-      '150 GB secure storage',
-      '150 GB bandwidth',
+      '250 GB secure storage',
+      '250 GB bandwidth',
       'Advanced blockchain features',
       'Priority support',
       'Enhanced file encryption',
@@ -82,33 +82,33 @@ export const pricingTiers: PricingTier[] = [
     pricing: [
       {
         period: 'monthly',
-        price: '$59',
+        price: '$99',
         priceId: 'price_1RimjLCXWi8NqmFCerzhpbOF',
         paymentLink: 'price_1RimjLCXWi8NqmFCerzhpbOF'
       },
       {
         period: 'quarterly',
-        price: '$159',
+        price: '$267',
         priceId: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
         paymentLink: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
         savings: 'Save 10%'
       },
       {
         period: 'annual',
-        price: '$599',
+        price: '$950',
         priceId: 'price_1RiyDACXWi8NqmFCiLttoIg2',
         paymentLink: 'price_1RiyDACXWi8NqmFCiLttoIg2',
-        savings: 'Save 16%'
+        savings: 'Save 20%'
       }
     ],
     description: 'Ideal for small teams and collaboration',
-    storage: '300 GB',
-    bandwidth: '300 GB',
+    storage: '500 GB',
+    bandwidth: '500 GB',
     seats: '3 users',
     popular: true,
     features: [
-      '300 GB secure storage',
-      '300 GB bandwidth',
+      '500 GB secure storage',
+      '500 GB bandwidth',
       'Up to 3 team members',
       'Team collaboration tools',
       'Advanced blockchain features',
@@ -121,33 +121,34 @@ export const pricingTiers: PricingTier[] = [
     pricing: [
       {
         period: 'monthly',
-        price: '$99/month/seat',
+        price: '$199',
         priceId: 'price_1RjjLjCXWi8NqmFCUSZpnelu',
         paymentLink: 'price_1RjjLjCXWi8NqmFCUSZpnelu'
       },
       {
         period: 'quarterly',
-        price: '$267/quarter/seat',
+        price: '$537',
         priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         paymentLink: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         savings: 'Save 10%'
       },
       {
         period: 'annual',
-        price: '$950/year/seat',
+        price: '$1,910',
         priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
         paymentLink: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
         savings: 'Save 20%'
       }
     ],
     description: 'Scalable solution for growing businesses',
-    storage: '500 GB per seat',
-    bandwidth: '500 GB per seat',
-    seats: 'Unlimited users',
+    storage: '1 TB',
+    bandwidth: '1 TB',
+    seats: '5 users',
     features: [
-      '500 GB secure storage per seat',
-      '500 GB bandwidth per seat',
-      'Unlimited team members',
+      '1 TB secure storage',
+      '1 TB bandwidth',
+      'Up to 5 team members',
+      'Additional seats: $39/month (+200GB per seat)',
       'Advanced analytics',
       'Custom blockchain solutions',
       '24/7 priority support',

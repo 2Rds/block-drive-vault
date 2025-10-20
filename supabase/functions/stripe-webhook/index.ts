@@ -85,7 +85,7 @@ serve(async (req) => {
           subscriptionTier = "Starter";
         } else if (amount <= 4999) {
           subscriptionTier = "Pro";
-        } else if (amount <= 5999) {
+        } else if (amount <= 9999) {
           subscriptionTier = "Growth";
         } else {
           subscriptionTier = "Scale";

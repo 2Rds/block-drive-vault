@@ -216,9 +216,9 @@ serve(async (req) => {
     // Tier-based limits
     const tierLimits = {
       'starter': { storage: 50, bandwidth: 50, seats: 1 },
-      'pro': { storage: 150, bandwidth: 150, seats: 1 },
-      'growth': { storage: 300, bandwidth: 300, seats: 3 },
-      'scale': { storage: 500, bandwidth: 500, seats: 999 },
+      'pro': { storage: 250, bandwidth: 250, seats: 1 },
+      'growth': { storage: 500, bandwidth: 500, seats: 3 },
+      'scale': { storage: 1000, bandwidth: 1000, seats: 999 },
       'free trial': { storage: 50, bandwidth: 50, seats: 1 }
     };
 

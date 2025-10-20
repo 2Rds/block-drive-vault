@@ -83,12 +83,12 @@ serve(async (req) => {
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
       
-      // Match actual pricing tiers: Starter ($9), Pro ($49), Growth ($59), Scale ($99+)
+      // Match actual pricing tiers: Starter ($9), Pro ($49), Growth ($99), Scale ($199+)
       if (amount <= 1000) {
         subscriptionTier = "Starter";
       } else if (amount <= 5000) {
         subscriptionTier = "Pro";
-      } else if (amount <= 6000) {
+      } else if (amount <= 10000) {
         subscriptionTier = "Growth";
       } else {
         subscriptionTier = "Scale";
