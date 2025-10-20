@@ -1,6 +1,7 @@
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 // Landing components that need to load immediately
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
@@ -15,9 +16,15 @@ const CTASection = lazy(() => import(/* webpackPreload: true */ '@/components/la
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   
-  // For landing page, we don't need auth checking - defer auth logic entirely
-  // This removes heavy auth dependencies from initial bundle
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('✅ User already authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
   
   return (
     <div className="min-h-screen bg-background">
