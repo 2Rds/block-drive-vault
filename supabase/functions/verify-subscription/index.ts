@@ -85,14 +85,14 @@ serve(async (req) => {
       
       // Match actual pricing tiers including quarterly/annual
       // Starter: $9/mo, $24/qtr, $89/yr
-      // Pro: $49/mo, $139/qtr, $499/yr
-      // Growth: $99/mo, $279/qtr, $999/yr
+      // Pro: $49/mo, $134/qtr, $499/yr
+      // Growth: $99/mo, $269/qtr, $999/yr
       // Scale: $199/mo, $549/qtr, $1999/yr
       if (amount <= 2400) {
         subscriptionTier = "Starter";
-      } else if (amount <= 13900) {
+      } else if (amount <= 13400) {
         subscriptionTier = "Pro";
-      } else if (amount <= 27900) {
+      } else if (amount <= 26900) {
         subscriptionTier = "Growth";
       } else {
         subscriptionTier = "Scale";

@@ -51,10 +51,10 @@ export const pricingTiers: PricingTier[] = [
       },
       {
         period: 'quarterly',
-        price: '$139',
+        price: '$134',
         priceId: 'price_1RixAICXWi8NqmFCXmfOkywQ',
         paymentLink: 'price_1RixAICXWi8NqmFCXmfOkywQ',
-        savings: 'Save 5%'
+        savings: 'Save 9%'
       },
       {
         period: 'annual',
@@ -88,10 +88,10 @@ export const pricingTiers: PricingTier[] = [
       },
       {
         period: 'quarterly',
-        price: '$279',
+        price: '$269',
         priceId: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
         paymentLink: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
-        savings: 'Save 6%'
+        savings: 'Save 9%'
       },
       {
         period: 'annual',
