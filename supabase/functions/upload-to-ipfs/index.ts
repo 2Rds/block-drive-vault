@@ -75,27 +75,51 @@ serve(async (req) => {
     
     let userId: string;
 
-    // Only accept valid Supabase JWTs - no UUID bypass
-    try {
-      logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
+    // Support both JWT tokens and user IDs for Dynamic SDK wallet authentication
+    // UUID pattern: 8-4-4-4-12 format with hyphens
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+    
+    if (isUUID) {
+      // Direct user ID from Dynamic SDK wallet auth
+      logStep("Using user ID from Dynamic SDK", { userId: token });
+      userId = token;
       
-      const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
+      // Verify user exists in user_signups table
+      const { data: userSignup, error: signupError } = await supabaseClient
+        .from('user_signups')
+        .select('id, email, wallet_address')
+        .eq('user_id', userId)
+        .maybeSingle();
       
-      if (userError) {
-        logStep("JWT validation error", { error: userError.message });
-        throw new Error(`JWT validation failed: ${userError.message}`);
+      if (signupError || !userSignup) {
+        logStep("User ID validation failed", { error: signupError?.message });
+        throw new Error("Invalid user ID or user not found");
       }
       
-      if (!user) {
-        logStep("JWT validation failed - no user returned");
-        throw new Error("JWT validation failed - no user found");
+      logStep("User ID validated", { userId, email: userSignup.email });
+    } else {
+      // Standard JWT authentication
+      try {
+        logStep("Attempting JWT authentication", { tokenPrefix: token.substring(0, 20) + "..." });
+        
+        const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
+        
+        if (userError) {
+          logStep("JWT validation error", { error: userError.message });
+          throw new Error(`JWT validation failed: ${userError.message}`);
+        }
+        
+        if (!user) {
+          logStep("JWT validation failed - no user returned");
+          throw new Error("JWT validation failed - no user found");
+        }
+        
+        userId = user.id;
+        logStep("JWT auth successful", { userId });
+      } catch (error) {
+        logStep("Auth error caught", { error: error.message });
+        throw new Error("Authentication failed: " + error.message);
       }
-      
-      userId = user.id;
-      logStep("JWT auth successful", { userId });
-    } catch (error) {
-      logStep("Auth error caught", { error: error.message });
-      throw new Error("Authentication failed: " + error.message);
     }
 
     // Parse the form data
