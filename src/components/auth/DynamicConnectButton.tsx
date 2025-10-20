@@ -1,29 +1,35 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { Loader2 } from 'lucide-react';
 
 interface DynamicConnectButtonProps {
   onConnectClick: () => void;
 }
 
 export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonProps) => {
-  // Safely check if we're within a Dynamic context
-  let dynamicContext;
-  try {
-    dynamicContext = useDynamicContext();
-  } catch (error) {
-    // If we're not within a Dynamic context, use fallback behavior
-    dynamicContext = null;
-  }
+  const [isSDKReady, setIsSDKReady] = useState(false);
+  
+  // Get Dynamic context - no try-catch needed as this is always in DynamicProvider
+  const { setShowAuthFlow, sdkHasLoaded } = useDynamicContext();
+
+  // Wait for SDK to be fully loaded before allowing interactions
+  useEffect(() => {
+    if (sdkHasLoaded) {
+      console.log('✅ Dynamic SDK ready for connections');
+      setIsSDKReady(true);
+    }
+  }, [sdkHasLoaded]);
 
   const handleClick = () => {
-    if (dynamicContext?.setShowAuthFlow) {
-      // We have Dynamic context - open the auth modal directly
-      dynamicContext.setShowAuthFlow(true);
-    } else {
-      console.log('No Dynamic context available');
+    if (!isSDKReady || !setShowAuthFlow) {
+      console.log('⚠️ Dynamic SDK not ready yet, please wait...');
+      return;
     }
+    
+    console.log('🔵 Opening Dynamic auth flow');
+    setShowAuthFlow(true);
     onConnectClick();
   };
 
@@ -31,9 +37,17 @@ export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonPro
     <div className="w-full max-w-md">
       <Button 
         onClick={handleClick}
-        className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+        disabled={!isSDKReady}
+        className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Connect Wallet
+        {!isSDKReady ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Initializing...
+          </>
+        ) : (
+          'Connect Wallet'
+        )}
       </Button>
     </div>
   );

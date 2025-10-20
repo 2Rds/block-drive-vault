@@ -1,6 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 
 // Lazy load the actual DynamicConnectButton to reduce initial bundle size
 const DynamicConnectButton = lazy(() => 
@@ -14,32 +13,14 @@ interface LazyDynamicConnectButtonProps {
 export const LazyDynamicConnectButton: React.FC<LazyDynamicConnectButtonProps> = ({ 
   onConnectClick 
 }) => {
-  const [showDynamic, setShowDynamic] = useState(false);
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    setShowDynamic(true);
-    onConnectClick();
-  };
-
-  if (showDynamic) {
-    return (
-      <Suspense fallback={
-        <Button disabled>
-          Loading...
-        </Button>
-      }>
-        <DynamicConnectButton onConnectClick={() => {}} />
-      </Suspense>
-    );
-  }
-
+  // Load Dynamic immediately on mount to prevent double-click issue
   return (
-    <Button 
-      onClick={handleClick}
-      className="bg-primary hover:bg-primary/90 text-primary-foreground"
-    >
-      Connect Wallet
-    </Button>
+    <Suspense fallback={
+      <Button disabled className="bg-primary/50 text-primary-foreground">
+        <span className="animate-pulse">Initializing...</span>
+      </Button>
+    }>
+      <DynamicConnectButton onConnectClick={onConnectClick} />
+    </Suspense>
   );
 };
