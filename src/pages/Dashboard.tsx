@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { DataDashboard } from "@/components/DataDashboard";
@@ -15,6 +15,7 @@ import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { subscriptionStatus } = useSubscriptionStatus();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
@@ -51,6 +52,9 @@ const Dashboard = () => {
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
   const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
+  
+  // Determine active page for button styling
+  const isOnDashboard = location.pathname === '/dashboard';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
@@ -74,6 +78,16 @@ const Dashboard = () => {
                 <p className="text-muted-foreground">View your data usage, file activity, and blockchain analytics</p>
               </div>
               <div className="flex items-center space-x-4">
+                <Button
+                  variant={isOnDashboard ? "default" : "outline"}
+                  className={isOnDashboard 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                    : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  }
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
                 <Button
                   onClick={handleFilesClick}
                   variant="outline"
@@ -102,13 +116,6 @@ const Dashboard = () => {
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Account
-                </Button>
-                <Button
-                  variant="default"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
                 </Button>
               </div>
             </div>

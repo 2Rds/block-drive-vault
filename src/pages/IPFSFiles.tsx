@@ -6,19 +6,18 @@ import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { IPFSUploadArea } from "@/components/IPFSUploadArea";
 import { FileViewer } from "@/components/FileViewer";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { BarChart3, Settings, Files } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
-import { PinataSettingsModal } from '@/components/PinataSettingsModal';
-import { Key } from 'lucide-react';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { 
     currentPath, 
     openFolders, 
@@ -35,7 +34,9 @@ const IPFSFiles = () => {
   const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
   const [showBoxIntegration, setShowBoxIntegration] = useState(false);
-  const [showPinataSettings, setShowPinataSettings] = useState(false);
+  
+  // Determine active page for button styling
+  const isOnIPFSFiles = location.pathname === '/files' || location.pathname === '/index';
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -90,20 +91,22 @@ const IPFSFiles = () => {
               </div>
               <div className="flex items-center space-x-4">
                 <Button
-                  onClick={() => setShowPinataSettings(true)}
-                  variant="outline"
-                  className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
-                >
-                  <Key className="w-4 h-4 mr-2" />
-                  API Settings
-                </Button>
-                <Button
                   onClick={handleDashboardClick}
                   variant="outline"
                   className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
+                </Button>
+                <Button
+                  variant={isOnIPFSFiles ? "default" : "outline"}
+                  className={isOnIPFSFiles 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                    : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  }
+                >
+                  <Files className="w-4 h-4 mr-2" />
+                  IPFS Files
                 </Button>
                 <Button
                   onClick={handleAccountClick}
@@ -159,11 +162,6 @@ const IPFSFiles = () => {
       <BoxIntegration
         isOpen={showBoxIntegration}
         onClose={() => setShowBoxIntegration(false)}
-      />
-
-      <PinataSettingsModal
-        isOpen={showPinataSettings}
-        onClose={() => setShowPinataSettings(false)}
       />
     </div>
   );

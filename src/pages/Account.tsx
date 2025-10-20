@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
@@ -15,6 +15,7 @@ import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
 const Account = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { subscriptionStatus } = useSubscriptionStatus();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
@@ -51,6 +52,9 @@ const Account = () => {
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
   const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
+  
+  // Determine active page for button styling
+  const isOnAccount = location.pathname === '/account';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -104,8 +108,11 @@ const Account = () => {
                   </Button>
                 )}
                 <Button
-                  variant="default"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  variant={isOnAccount ? "default" : "outline"}
+                  className={isOnAccount 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                    : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  }
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Account
