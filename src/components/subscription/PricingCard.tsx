@@ -35,7 +35,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
 
   const getPriceDisplay = (option: PricingOption) => {
     if (tier.isEnterprise) return option.price;
-    if (tier.name === 'Scale') return option.price; // Already includes /month/seat
     if (option.period === 'quarterly') return `${option.price}/quarter`;
     if (option.period === 'annual') return `${option.price}/year`;
     return `${option.price}/month`;
