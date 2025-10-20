@@ -138,12 +138,24 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       }
       
     } else if (!isAuthenticated && user) {
-      // Only clear state if Dynamic SDK is not authenticated but we have a user
-      console.log('❌ Dynamic SDK not authenticated, clearing existing state');
-      setUser(null);
-      setSession(null);
-      setWalletData(null);
-      setLoading(false);
+      // CRITICAL FIX: Add delay before clearing state to prevent false logout during re-renders
+      // Only clear if Dynamic SDK remains unauthenticated after a stability check
+      console.log('⚠️ Dynamic SDK appears unauthenticated, waiting for stability check...');
+      
+      const timeoutId = setTimeout(() => {
+        // Double-check Dynamic SDK state after delay
+        if (!dynamicUser && !primaryWallet && user) {
+          console.log('❌ Dynamic SDK confirmed unauthenticated after stability check, clearing state');
+          setUser(null);
+          setSession(null);
+          setWalletData(null);
+          setLoading(false);
+        } else {
+          console.log('✅ Dynamic SDK state restored, keeping user authenticated');
+        }
+      }, 500); // 500ms stability delay
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [dynamicUser, primaryWallet]);
 
