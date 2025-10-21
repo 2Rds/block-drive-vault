@@ -80,17 +80,17 @@ serve(async (req) => {
         const price = await stripe.prices.retrieve(priceId);
         const amount = price.unit_amount || 0;
         
-        // Match actual pricing tiers including quarterly/annual
-        // Starter: $9/mo, $24/qtr, $89/yr
-        // Pro: $49/mo, $134/qtr, $499/yr
-        // Growth: $99/mo, $269/qtr, $999/yr
-        // Scale: $199/mo, $549/qtr, $1999/yr
+        // Match actual pricing tiers (amounts in cents)
+        // Starter: $9/mo (900), $24/qtr (2400), $89/yr (8900)
+        // Pro: $49/mo (4900), $134/qtr (13400), $499/yr (49900)
+        // Growth: $99/mo (9900), $269/qtr (26900), $999/yr (99900)
+        // Scale: $199/mo (19900), $549/qtr (54900), $1999/yr (199900)
         let subscriptionTier = "Starter";
-        if (amount <= 2400) {
+        if (amount <= 8900) {
           subscriptionTier = "Starter";
-        } else if (amount <= 13400) {
+        } else if (amount <= 49900) {
           subscriptionTier = "Pro";
-        } else if (amount <= 26900) {
+        } else if (amount <= 99900) {
           subscriptionTier = "Growth";
         } else {
           subscriptionTier = "Scale";
