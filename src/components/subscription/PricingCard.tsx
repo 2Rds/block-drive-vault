@@ -17,6 +17,30 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
   // Find the pricing option for the selected period
   const currentOption = tier.pricing.find(option => option.period === selectedPeriod) || tier.pricing[0];
   
+  // Get dynamic additional seats feature based on period for Scale tier
+  const getAdditionalSeatsFeature = () => {
+    if (tier.name !== 'Scale') return null;
+    
+    switch (selectedPeriod) {
+      case 'monthly':
+        return 'Additional seats: $39/month (+400GB per seat)';
+      case 'quarterly':
+        return 'Additional seats: $109/quarter (+400GB per seat, prorated to match billing cycle)';
+      case 'annual':
+        return 'Additional seats: $399/year (+400GB per seat, prorated to match billing cycle)';
+      default:
+        return 'Additional seats: $39/month (+400GB per seat)';
+    }
+  };
+  
+  // Replace dynamic placeholders with period-specific content
+  const displayFeatures = tier.features.map(feature => {
+    if (feature === 'ADDITIONAL_SEATS_DYNAMIC') {
+      return getAdditionalSeatsFeature();
+    }
+    return feature;
+  }).filter(Boolean) as string[];
+  
   const handleButtonClick = () => {
     onSubscribe(tier, currentOption);
   };
@@ -101,7 +125,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
         </div>
 
         <div className="space-y-2">
-          {tier.features.map((feature, index) => (
+          {displayFeatures.map((feature, index) => (
             <div key={index} className="flex items-start gap-2">
               <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
               <span className="text-gray-300 text-xs">{feature}</span>
