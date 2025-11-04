@@ -1,11 +1,13 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from '@/components/ui/button';
 import { 
   Slack, Cloud, HardDrive, Box, Anchor, MessageSquare, Database, 
   CloudCog, Server, Building2, FileText, CheckSquare, Briefcase,
-  DollarSign, Calculator, Users, Phone, TrendingUp, Heart
+  DollarSign, Calculator, Users, Phone, TrendingUp, Heart, BarChart3, 
+  Files, Puzzle
 } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
@@ -13,10 +15,14 @@ import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveInt
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 const Integrations = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const { isConnected: isBoxConnected } = useBoxOAuth();
+  const { subscriptionStatus } = useSubscriptionStatus();
   const [selectedFolder, setSelectedFolder] = React.useState('all');
   const [showSlackIntegration, setShowSlackIntegration] = React.useState(false);
   const [showOneDriveIntegration, setShowOneDriveIntegration] = React.useState(false);
@@ -30,6 +36,25 @@ const Integrations = () => {
   const handleFolderClick = (folderPath: string) => {
     toggleFolder(folderPath);
   };
+
+  const handleDashboardClick = () => {
+    navigate('/dashboard');
+  };
+
+  const handleFilesClick = () => {
+    navigate('/files');
+  };
+
+  const handleTeamsClick = () => {
+    navigate('/teams');
+  };
+
+  // Check if user has growth or scale subscription
+  const isSubscribed = subscriptionStatus?.subscribed || false;
+  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
+  const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
+
+  const isOnIntegrations = location.pathname === '/integrations';
 
   const integrations = [
     {
@@ -206,9 +231,49 @@ const Integrations = () => {
         />
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Integrations</h1>
-              <p className="text-muted-foreground">Connect BlockDrive with your favorite tools and services</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Integrations</h1>
+                <p className="text-muted-foreground">Connect BlockDrive with your favorite tools and services</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={handleDashboardClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button
+                  onClick={handleFilesClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Files className="w-4 h-4 mr-2" />
+                  IPFS Files
+                </Button>
+                <Button
+                  variant={isOnIntegrations ? "default" : "outline"}
+                  className={isOnIntegrations 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                    : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  }
+                >
+                  <Puzzle className="w-4 h-4 mr-2" />
+                  Integrations
+                </Button>
+                {canAccessTeams && (
+                  <Button
+                    onClick={handleTeamsClick}
+                    variant="outline"
+                    className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Teams
+                  </Button>
+                )}
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
