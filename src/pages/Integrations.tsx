@@ -2,7 +2,11 @@ import React from 'react';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from '@/components/ui/button';
-import { Slack, Cloud, HardDrive, Box, Anchor } from 'lucide-react';
+import { 
+  Slack, Cloud, HardDrive, Box, Anchor, MessageSquare, Database, 
+  CloudCog, Server, Building2, FileText, CheckSquare, Briefcase,
+  DollarSign, Calculator, Users, Phone, TrendingUp, Heart
+} from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
@@ -32,7 +36,7 @@ const Integrations = () => {
       id: 'slack',
       name: 'Slack',
       icon: Slack,
-      color: 'text-blue-400',
+      color: 'text-purple-400',
       description: 'Connect your Slack workspace to share files and collaborate with your team.',
       onClick: () => setShowSlackIntegration(true)
     },
@@ -40,7 +44,7 @@ const Integrations = () => {
       id: 'onedrive',
       name: 'OneDrive',
       icon: Cloud,
-      color: 'text-blue-600',
+      color: 'text-blue-500',
       description: 'Sync your OneDrive files with BlockDrive for seamless cloud storage.',
       onClick: () => setShowOneDriveIntegration(true)
     },
@@ -48,15 +52,15 @@ const Integrations = () => {
       id: 'googledrive',
       name: 'Google Drive',
       icon: HardDrive,
-      color: 'text-green-500',
+      color: 'text-yellow-500',
       description: 'Import and export files between Google Drive and BlockDrive.',
       onClick: () => setShowGoogleDriveIntegration(true)
     },
     {
-      id: 'box',
+      id: 'dropbox',
       name: 'Dropbox',
       icon: Box,
-      color: 'text-blue-500',
+      color: 'text-blue-400',
       description: 'Connect Dropbox to access your files on the blockchain.',
       onClick: () => setShowBoxIntegration(true)
     },
@@ -64,8 +68,128 @@ const Integrations = () => {
       id: 'opensea',
       name: 'OpenSea',
       icon: Anchor,
-      color: 'text-cyan-500',
+      color: 'text-cyan-400',
       description: 'View and manage your NFTs stored on BlockDrive.',
+      onClick: () => {}
+    },
+    {
+      id: 'telegram',
+      name: 'Telegram',
+      icon: MessageSquare,
+      color: 'text-blue-400',
+      description: 'Share and receive files through Telegram with blockchain-backed security.',
+      onClick: () => {}
+    },
+    {
+      id: 'netsuite',
+      name: 'Oracle NetSuite',
+      icon: Database,
+      color: 'text-red-500',
+      description: 'Integrate with Oracle NetSuite for enterprise resource planning and document management.',
+      onClick: () => {}
+    },
+    {
+      id: 'aws',
+      name: 'AWS',
+      icon: CloudCog,
+      color: 'text-orange-500',
+      description: 'Connect Amazon Web Services for scalable cloud infrastructure and storage solutions.',
+      onClick: () => {}
+    },
+    {
+      id: 'gcp',
+      name: 'Google Cloud Services',
+      icon: Server,
+      color: 'text-blue-500',
+      description: 'Integrate with Google Cloud Platform for advanced computing and storage capabilities.',
+      onClick: () => {}
+    },
+    {
+      id: 'azure',
+      name: 'Microsoft Azure',
+      icon: CloudCog,
+      color: 'text-blue-600',
+      description: 'Connect Microsoft Azure for enterprise-grade cloud services and data management.',
+      onClick: () => {}
+    },
+    {
+      id: 'ibm',
+      name: 'IBM Cloud',
+      icon: Server,
+      color: 'text-blue-700',
+      description: 'Leverage IBM Cloud for AI-powered insights and secure data storage.',
+      onClick: () => {}
+    },
+    {
+      id: 'salesforce',
+      name: 'Salesforce',
+      icon: Building2,
+      color: 'text-cyan-500',
+      description: 'Sync customer data and documents with Salesforce CRM platform.',
+      onClick: () => {}
+    },
+    {
+      id: 'notion',
+      name: 'Notion',
+      icon: FileText,
+      color: 'text-gray-400',
+      description: 'Connect Notion workspaces to sync documents and collaborative content.',
+      onClick: () => {}
+    },
+    {
+      id: 'asana',
+      name: 'Asana',
+      icon: CheckSquare,
+      color: 'text-pink-500',
+      description: 'Integrate project management workflows and attach files to Asana tasks.',
+      onClick: () => {}
+    },
+    {
+      id: 'mercury',
+      name: 'Mercury',
+      icon: DollarSign,
+      color: 'text-purple-500',
+      description: 'Connect your Mercury banking for automated financial document storage.',
+      onClick: () => {}
+    },
+    {
+      id: 'xero',
+      name: 'Xero',
+      icon: Calculator,
+      color: 'text-teal-500',
+      description: 'Sync accounting data and financial documents with Xero platform.',
+      onClick: () => {}
+    },
+    {
+      id: 'quickbooks',
+      name: 'QuickBooks',
+      icon: Calculator,
+      color: 'text-green-600',
+      description: 'Integrate QuickBooks for seamless bookkeeping and invoice management.',
+      onClick: () => {}
+    },
+    {
+      id: 'apollo',
+      name: 'Apollo',
+      icon: Users,
+      color: 'text-indigo-500',
+      description: 'Connect Apollo.io for sales intelligence and contact data management.',
+      onClick: () => {}
+    },
+    {
+      id: 'pipedrive',
+      name: 'Pipedrive',
+      icon: TrendingUp,
+      color: 'text-green-500',
+      description: 'Integrate Pipedrive CRM for sales pipeline management and document tracking.',
+      onClick: () => {}
+    },
+    {
+      id: 'gusto',
+      name: 'Gusto',
+      icon: Heart,
+      color: 'text-red-400',
+      description: 'Connect Gusto for automated payroll and HR document management.',
       onClick: () => {}
     }
   ];
@@ -87,28 +211,27 @@ const Integrations = () => {
               <p className="text-muted-foreground">Connect BlockDrive with your favorite tools and services</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {integrations.map((integration) => (
                 <div
                   key={integration.id}
-                  className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 hover:border-primary/30 hover:bg-card/70 transition-all"
+                  className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-5 hover:border-primary/30 hover:bg-card/70 transition-all group"
                 >
-                  <div className="flex items-start space-x-4 mb-4">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <integration.icon className={`w-6 h-6 ${integration.color}`} />
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                      <integration.icon className={`w-5 h-5 ${integration.color}`} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-foreground mb-1">
-                        {integration.name}
-                      </h3>
-                    </div>
+                    <h3 className="text-base font-semibold text-foreground">
+                      {integration.name}
+                    </h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
                     {integration.description}
                   </p>
                   <Button
                     onClick={integration.onClick}
                     variant="outline"
+                    size="sm"
                     className="w-full bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
                   >
                     Connect
