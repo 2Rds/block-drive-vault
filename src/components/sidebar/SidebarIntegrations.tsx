@@ -41,7 +41,7 @@ export const SidebarIntegrations = ({
     },
     {
       id: 'box',
-      name: 'Box',
+      name: 'Dropbox',
       icon: Box,
       color: 'text-blue-500',
       onClick: onBoxClick
