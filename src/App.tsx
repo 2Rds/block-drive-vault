@@ -18,6 +18,7 @@ const ProtectedRoute = lazy(() => import("./components/ProtectedRoute").then(m =
 // Lazy load all non-landing pages to reduce initial bundle size
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const IPFSFiles = lazy(() => import("./pages/IPFSFiles"));
+const Integrations = lazy(() => import("./pages/Integrations"));
 const Docs = lazy(() => import("./pages/Docs"));
 const Account = lazy(() => import("./pages/Account"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -127,6 +128,11 @@ const App = () => {
                   <Route path="/files" element={
                     <ProtectedRoute>
                       <IPFSFiles />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/integrations" element={
+                    <ProtectedRoute>
+                      <Integrations />
                     </ProtectedRoute>
                   } />
                   <Route path="/index" element={

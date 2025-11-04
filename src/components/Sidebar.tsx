@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { SidebarFolders } from './sidebar/SidebarFolders';
-import { SidebarIntegrations } from './sidebar/SidebarIntegrations';
 import { SidebarStats } from './sidebar/SidebarStats';
 import { SidebarProTip } from './sidebar/SidebarProTip';
 import { useUserData } from '@/hooks/useUserData';
@@ -12,11 +11,6 @@ interface SidebarProps {
   userFolders?: string[];
   onFolderClick?: (folderPath: string) => void;
   openFolders?: string[];
-  onSlackClick?: () => void;
-  onOneDriveClick?: () => void;
-  onGoogleDriveClick?: () => void;
-  onBoxClick?: () => void;
-  onOpenSeaClick?: () => void;
 }
 
 export const Sidebar = ({ 
@@ -24,12 +18,7 @@ export const Sidebar = ({
   onFolderSelect, 
   userFolders = [], 
   onFolderClick,
-  openFolders = [],
-  onSlackClick,
-  onOneDriveClick,
-  onGoogleDriveClick,
-  onBoxClick,
-  onOpenSeaClick
+  openFolders = []
 }: SidebarProps) => {
   const { loading } = useUserData();
 
@@ -67,14 +56,6 @@ export const Sidebar = ({
           userFolders={userFolders}
           onFolderClick={onFolderClick}
           openFolders={openFolders}
-        />
-
-        <SidebarIntegrations
-          onSlackClick={onSlackClick}
-          onOneDriveClick={onOneDriveClick}
-          onGoogleDriveClick={onGoogleDriveClick}
-          onBoxClick={onBoxClick}
-          onOpenSeaClick={onOpenSeaClick}
         />
 
         <SidebarStats />

@@ -6,14 +6,10 @@ import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { IPFSUploadArea } from "@/components/IPFSUploadArea";
 import { FileViewer } from "@/components/FileViewer";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Settings, Files } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
-import { SlackIntegration } from '@/components/SlackIntegration';
-import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
-import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
-import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
@@ -30,10 +26,6 @@ const IPFSFiles = () => {
   } = useFolderNavigation();
   const { downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [showSlackIntegration, setShowSlackIntegration] = useState(false);
-  const [showOneDriveIntegration, setShowOneDriveIntegration] = useState(false);
-  const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = useState(false);
-  const [showBoxIntegration, setShowBoxIntegration] = useState(false);
   
   // Determine active page for button styling
   const isOnIPFSFiles = location.pathname === '/files' || location.pathname === '/index';
@@ -52,6 +44,10 @@ const IPFSFiles = () => {
 
   const handleAccountClick = () => {
     navigate('/account');
+  };
+
+  const handleIntegrationsClick = () => {
+    navigate('/integrations');
   };
 
   const handleUploadComplete = () => {
@@ -77,10 +73,6 @@ const IPFSFiles = () => {
           onFolderSelect={handleFolderSelect}
           onFolderClick={handleFolderClick}
           openFolders={openFolders}
-          onSlackClick={() => setShowSlackIntegration(true)}
-          onOneDriveClick={() => setShowOneDriveIntegration(true)}
-          onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
-          onBoxClick={() => setShowBoxIntegration(true)}
         />
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -107,6 +99,14 @@ const IPFSFiles = () => {
                 >
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
+                </Button>
+                <Button
+                  onClick={handleIntegrationsClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Puzzle className="w-4 h-4 mr-2" />
+                  Integrations
                 </Button>
                 <Button
                   onClick={handleAccountClick}
@@ -142,27 +142,6 @@ const IPFSFiles = () => {
           onDownload={handleDownloadFile}
         />
       )}
-
-      {/* Integration Modals */}
-      <SlackIntegration
-        isOpen={showSlackIntegration}
-        onClose={() => setShowSlackIntegration(false)}
-      />
-
-      <OneDriveIntegration
-        isOpen={showOneDriveIntegration}
-        onClose={() => setShowOneDriveIntegration(false)}
-      />
-
-      <GoogleDriveIntegration
-        isOpen={showGoogleDriveIntegration}
-        onClose={() => setShowGoogleDriveIntegration(false)}
-      />
-
-      <BoxIntegration
-        isOpen={showBoxIntegration}
-        onClose={() => setShowBoxIntegration(false)}
-      />
     </div>
   );
 };

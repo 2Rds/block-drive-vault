@@ -5,11 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { DataDashboard } from "@/components/DataDashboard";
 import { Button } from '@/components/ui/button';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { BarChart3, Files, Settings, Users, Crown } from 'lucide-react';
-import { SlackIntegration } from '@/components/SlackIntegration';
-import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
-import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
-import { BoxIntegration } from '@/components/integrations/BoxIntegration';
+import { BarChart3, Files, Settings, Users, Crown, Puzzle } from 'lucide-react';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
@@ -20,10 +16,6 @@ const Dashboard = () => {
   const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
   const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
   const [selectedFolder, setSelectedFolder] = React.useState('all');
-  const [showSlackIntegration, setShowSlackIntegration] = React.useState(false);
-  const [showOneDriveIntegration, setShowOneDriveIntegration] = React.useState(false);
-  const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = React.useState(false);
-  const [showBoxIntegration, setShowBoxIntegration] = React.useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -48,6 +40,11 @@ const Dashboard = () => {
     navigate('/teams');
   };
 
+  const handleIntegrationsClick = () => {
+    console.log('Navigating to integrations');
+    navigate('/integrations');
+  };
+
   // Check if user has growth or scale subscription
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
@@ -65,10 +62,6 @@ const Dashboard = () => {
           onFolderSelect={handleFolderSelect}
           onFolderClick={handleFolderClick}
           openFolders={openFolders}
-          onSlackClick={() => setShowSlackIntegration(true)}
-          onOneDriveClick={() => setShowOneDriveIntegration(true)}
-          onGoogleDriveClick={() => setShowGoogleDriveIntegration(true)}
-          onBoxClick={() => setShowBoxIntegration(true)}
         />
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -95,6 +88,14 @@ const Dashboard = () => {
                 >
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
+                </Button>
+                <Button
+                  onClick={handleIntegrationsClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Puzzle className="w-4 h-4 mr-2" />
+                  Integrations
                 </Button>
                 {canAccessTeams && (
                   <Button
@@ -125,26 +126,6 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* Integration Modals */}
-      <SlackIntegration
-        isOpen={showSlackIntegration}
-        onClose={() => setShowSlackIntegration(false)}
-      />
-
-      <OneDriveIntegration
-        isOpen={showOneDriveIntegration}
-        onClose={() => setShowOneDriveIntegration(false)}
-      />
-
-      <GoogleDriveIntegration
-        isOpen={showGoogleDriveIntegration}
-        onClose={() => setShowGoogleDriveIntegration(false)}
-      />
-
-      <BoxIntegration
-        isOpen={showBoxIntegration}
-        onClose={() => setShowBoxIntegration(false)}
-      />
     </div>
   );
 };
