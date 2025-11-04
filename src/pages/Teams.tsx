@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft, BarChart3, Puzzle, Bot } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
@@ -47,27 +47,87 @@ export default function Teams() {
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
 
+  const handleDashboardClick = () => {
+    navigate('/dashboard');
+  };
+
+  const handleFilesClick = () => {
+    navigate('/files');
+  };
+
+  const handleIntegrationsClick = () => {
+    navigate('/integrations');
+  };
+
+  const handleAgentsClick = () => {
+    navigate('/agents');
+  };
+
+  const handleAccountClick = () => {
+    navigate('/account');
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/dashboard')}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-      </div>
-      
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Teams</h1>
           <p className="text-muted-foreground">
             Manage your teams and collaborate with your colleagues
           </p>
         </div>
+        <div className="flex items-center space-x-4">
+          <Button
+            onClick={handleDashboardClick}
+            variant="outline"
+            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Dashboard
+          </Button>
+          <Button
+            onClick={handleFilesClick}
+            variant="outline"
+            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+          >
+            <Files className="w-4 h-4 mr-2" />
+            IPFS Files
+          </Button>
+          <Button
+            onClick={handleIntegrationsClick}
+            variant="outline"
+            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+          >
+            <Puzzle className="w-4 h-4 mr-2" />
+            Integrations
+          </Button>
+          <Button
+            variant="default"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Teams
+          </Button>
+          <Button
+            onClick={handleAgentsClick}
+            variant="outline"
+            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            Agents
+          </Button>
+          <Button
+            onClick={handleAccountClick}
+            variant="outline"
+            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Account
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <TeamSelector />
           <CreateTeamModal />

@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { Button } from '@/components/ui/button';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { BarChart3, Files, Settings, Users, Crown, Puzzle } from 'lucide-react';
+import { BarChart3, Files, Settings, Users, Crown, Puzzle, Bot } from 'lucide-react';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
@@ -43,6 +43,11 @@ const Account = () => {
   const handleIntegrationsClick = () => {
     console.log('Navigating to integrations');
     navigate('/integrations');
+  };
+
+  const handleAgentsClick = () => {
+    console.log('Navigating to agents');
+    navigate('/agents');
   };
 
   // Check if user has growth or scale subscription
@@ -108,6 +113,14 @@ const Account = () => {
                     )}
                   </Button>
                 )}
+                <Button
+                  onClick={handleAgentsClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  Agents
+                </Button>
                 <Button
                   variant={isOnAccount ? "default" : "outline"}
                   className={isOnAccount 

@@ -7,7 +7,7 @@ import {
   Slack, Cloud, HardDrive, Box, Anchor, MessageSquare, Database, 
   CloudCog, Server, Building2, FileText, CheckSquare, Briefcase,
   DollarSign, Calculator, Users, Phone, TrendingUp, Heart, BarChart3, 
-  Files, Puzzle, Settings
+  Files, Puzzle, Settings, Bot
 } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
@@ -51,6 +51,10 @@ const Integrations = () => {
 
   const handleAccountClick = () => {
     navigate('/account');
+  };
+
+  const handleAgentsClick = () => {
+    navigate('/agents');
   };
 
   // Check if user has growth or scale subscription
@@ -271,12 +275,20 @@ const Integrations = () => {
                   <Button
                     onClick={handleTeamsClick}
                     variant="outline"
-                    className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
                   >
                     <Users className="w-4 h-4 mr-2" />
                     Teams
                   </Button>
                 )}
+                <Button
+                  onClick={handleAgentsClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  Agents
+                </Button>
                 <Button
                   onClick={handleAccountClick}
                   variant="outline"

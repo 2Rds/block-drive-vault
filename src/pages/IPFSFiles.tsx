@@ -6,14 +6,16 @@ import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { IPFSUploadArea } from "@/components/IPFSUploadArea";
 import { FileViewer } from "@/components/FileViewer";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Settings, Files, Puzzle } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { subscriptionStatus } = useSubscriptionStatus();
   const { 
     currentPath, 
     openFolders, 
@@ -49,6 +51,19 @@ const IPFSFiles = () => {
   const handleIntegrationsClick = () => {
     navigate('/integrations');
   };
+
+  const handleTeamsClick = () => {
+    navigate('/teams');
+  };
+
+  const handleAgentsClick = () => {
+    navigate('/agents');
+  };
+
+  // Check if user has growth or scale subscription
+  const isSubscribed = subscriptionStatus?.subscribed || false;
+  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
+  const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
 
   const handleUploadComplete = () => {
     // Refresh the file grid when upload completes
@@ -107,6 +122,27 @@ const IPFSFiles = () => {
                 >
                   <Puzzle className="w-4 h-4 mr-2" />
                   Integrations
+                </Button>
+                {canAccessTeams && (
+                  <Button
+                    onClick={handleTeamsClick}
+                    variant="outline"
+                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Teams
+                    {subscriptionTier === 'growth' && (
+                      <Crown className="w-3 h-3 ml-1 text-yellow-500" />
+                    )}
+                  </Button>
+                )}
+                <Button
+                  onClick={handleAgentsClick}
+                  variant="outline"
+                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  Agents
                 </Button>
                 <Button
                   onClick={handleAccountClick}
