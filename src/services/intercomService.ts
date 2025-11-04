@@ -21,9 +21,20 @@ class IntercomService {
   private currentJWT: string | null = null;
   private jwtExpiration: number | null = null;
 
-  private async generateJWT(): Promise<string | null> {
+  private async generateJWT(user?: IntercomUser): Promise<string | null> {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-intercom-jwt');
+      // Prepare request body with user information for Dynamic SDK auth
+      const body: any = {};
+      if (user?.userId) {
+        body.userId = user.userId;
+      }
+      if (user?.email) {
+        body.email = user.email;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-intercom-jwt', {
+        body
+      });
       
       if (error) {
         console.error('Failed to generate Intercom JWT:', error);
@@ -42,7 +53,7 @@ class IntercomService {
     }
   }
 
-  private async getValidJWT(): Promise<string | null> {
+  private async getValidJWT(user?: IntercomUser): Promise<string | null> {
     // Check if we have a valid JWT that hasn't expired
     if (this.currentJWT && this.jwtExpiration) {
       const now = Math.floor(Date.now() / 1000);
@@ -54,7 +65,7 @@ class IntercomService {
     }
 
     // Generate a new JWT if we don't have one or it's expired
-    return await this.generateJWT();
+    return await this.generateJWT(user);
   }
 
   async initialize(user?: IntercomUser) {
@@ -65,7 +76,7 @@ class IntercomService {
     try {
       // For authenticated users, use JWT
       if (user?.userId) {
-        const jwt = await this.getValidJWT();
+        const jwt = await this.getValidJWT(user);
         
         if (jwt) {
           await Intercom({
@@ -107,7 +118,7 @@ class IntercomService {
     try {
       // For authenticated users, use JWT
       if (user?.userId) {
-        const jwt = await this.getValidJWT();
+        const jwt = await this.getValidJWT(user);
         
         if (jwt) {
           await Intercom({
@@ -144,7 +155,7 @@ class IntercomService {
     try {
       // For authenticated users, use JWT
       if (user.userId) {
-        const jwt = await this.getValidJWT();
+        const jwt = await this.getValidJWT(user);
         
         if (jwt) {
           await Intercom({
