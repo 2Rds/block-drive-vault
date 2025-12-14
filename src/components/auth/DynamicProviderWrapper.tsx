@@ -96,19 +96,33 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
           }
         },
         cssOverrides: `
-          .dynamic-widget-modal { z-index: 10000 !important; }
-          .dynamic-widget-modal-overlay { z-index: 9999 !important; }
-          .dynamic-widget-inline-controls { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
-          .dynamic-widget-inline-controls > div { background: transparent !important; border: none !important; }
-          .dynamic-widget-card { background: transparent !important; border: none !important; box-shadow: none !important; }
-          .dynamic-connect-button { 
-            background: hsl(var(--primary)) !important;
-            color: hsl(var(--primary-foreground)) !important;
+          /* Ensure inline widget wrapper has no white pill background */
+          .dynamic-inline-widget,
+          .dynamic-widget-inline-controls,
+          .dynamic-widget-inline-controls > div,
+          .dynamic-widget-card,
+          .dynamic-connect-button-container {
+            background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
           }
-          .dynamic-connect-button:hover {
-            opacity: 0.9 !important;
+
+          /* Remove extra focus outline from container */
+          .dynamic-inline-widget:focus-visible,
+          .dynamic-connect-button-container:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+
+          /* Keep the actual button styled via our Tailwind classes only */
+          .dynamic-connect-button {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
           }
         `,
       }}
