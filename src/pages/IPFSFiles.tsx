@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
@@ -9,6 +9,7 @@ import { SharedFilesPanel } from "@/components/files/SharedFilesPanel";
 import { SharedWithMePanel } from "@/components/files/SharedWithMePanel";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
+import { CryptoSetupModal } from "@/components/crypto/CryptoSetupModal";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe, Share2, Inbox } from 'lucide-react';
@@ -20,8 +21,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { useSolanaWalletSigning } from '@/hooks/useSolanaWalletSigning';
 import { useSharedFileDownload } from '@/hooks/useSharedFileDownload';
+import { useWalletCrypto } from '@/hooks/useWalletCrypto';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
+import { ParsedDelegation, ParsedFileRecord } from '@/services/solana';
 import { toast } from 'sonner';
 
 const IPFSFiles = () => {
@@ -32,6 +35,7 @@ const IPFSFiles = () => {
   const { signTransaction } = useSolanaWalletSigning();
   const { downloadAndSave, previewSharedFile } = useSharedFileDownload();
   const { subscriptionStatus } = useSubscriptionStatus();
+  const { state: cryptoState, isSessionValid, initializeKeys } = useWalletCrypto();
   const { 
     currentPath, 
     openFolders, 
@@ -46,6 +50,12 @@ const IPFSFiles = () => {
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [activeTab, setActiveTab] = useState<'all' | 'on-chain' | 'shared' | 'inbox'>('all');
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [cryptoSetupOpen, setCryptoSetupOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'download' | 'preview';
+    file: ParsedFileRecord;
+    delegation: ParsedDelegation;
+  } | null>(null);
   const [fileToShare, setFileToShare] = useState<any>(null);
   
   // Determine active page for button styling
@@ -152,6 +162,51 @@ const IPFSFiles = () => {
   const handleShareComplete = () => {
     loadUserFiles();
   };
+
+  // Check if keys are initialized before downloading shared files
+  const handleSharedFileDownload = useCallback((file: ParsedFileRecord, delegation: ParsedDelegation) => {
+    if (!cryptoState.isInitialized || !isSessionValid) {
+      // Keys not ready, prompt setup and store pending action
+      setPendingAction({ type: 'download', file, delegation });
+      setCryptoSetupOpen(true);
+      toast.info('Please set up your encryption keys first');
+      return;
+    }
+    downloadAndSave(file, delegation);
+  }, [cryptoState.isInitialized, isSessionValid, downloadAndSave]);
+
+  const handleSharedFilePreview = useCallback(async (file: ParsedFileRecord, delegation: ParsedDelegation) => {
+    if (!cryptoState.isInitialized || !isSessionValid) {
+      // Keys not ready, prompt setup and store pending action
+      setPendingAction({ type: 'preview', file, delegation });
+      setCryptoSetupOpen(true);
+      toast.info('Please set up your encryption keys first');
+      return;
+    }
+    const result = await previewSharedFile(file, delegation);
+    if (result) {
+      window.open(result.url, '_blank');
+    }
+  }, [cryptoState.isInitialized, isSessionValid, previewSharedFile]);
+
+  const handleCryptoSetupComplete = useCallback(async () => {
+    setCryptoSetupOpen(false);
+    
+    // Execute pending action after keys are initialized
+    if (pendingAction) {
+      toast.success('Keys initialized! Processing your request...');
+      
+      if (pendingAction.type === 'download') {
+        downloadAndSave(pendingAction.file, pendingAction.delegation);
+      } else if (pendingAction.type === 'preview') {
+        const result = await previewSharedFile(pendingAction.file, pendingAction.delegation);
+        if (result) {
+          window.open(result.url, '_blank');
+        }
+      }
+      setPendingAction(null);
+    }
+  }, [pendingAction, downloadAndSave, previewSharedFile]);
 
   // signTransaction is now provided by useSolanaWalletSigning hook
 
@@ -332,15 +387,8 @@ const IPFSFiles = () => {
                 <SharedWithMePanel 
                   walletAddress={walletData?.address || ''}
                   signTransaction={signTransaction}
-                  onDownload={(file, delegation) => {
-                    downloadAndSave(file, delegation);
-                  }}
-                  onPreview={async (file, delegation) => {
-                    const result = await previewSharedFile(file, delegation);
-                    if (result) {
-                      window.open(result.url, '_blank');
-                    }
-                  }}
+                  onDownload={handleSharedFileDownload}
+                  onPreview={handleSharedFilePreview}
                 />
               </TabsContent>
             </Tabs>
@@ -376,6 +424,16 @@ const IPFSFiles = () => {
         ownerAddress={walletData?.address || ''}
         signTransaction={signTransaction}
         onShareComplete={handleShareComplete}
+      />
+
+      {/* Crypto Setup Modal - triggered before downloading shared files */}
+      <CryptoSetupModal
+        isOpen={cryptoSetupOpen}
+        onClose={() => {
+          setCryptoSetupOpen(false);
+          setPendingAction(null);
+        }}
+        onComplete={handleCryptoSetupComplete}
       />
     </div>
   );
