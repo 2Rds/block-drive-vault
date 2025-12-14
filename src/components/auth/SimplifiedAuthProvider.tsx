@@ -21,7 +21,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     setLoading
   } = useWalletSession();
 
-  const { primaryWallet, user: dynamicUser, handleLogOut } = useDynamicContext();
+  const { primaryWallet, user: dynamicUser, handleLogOut, setShowAuthFlow } = useDynamicContext() as any;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -117,6 +117,12 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         setLoading(false);
 
         console.log('✅ Authentication state synchronized with connected wallet');
+        
+        // Close Dynamic auth modal if it's still open
+        if (typeof setShowAuthFlow === 'function') {
+          console.log('🧹 Hiding Dynamic auth modal after successful wallet connection');
+          setShowAuthFlow(false);
+        }
         
         // Navigate to dashboard now that wallet is connected
         console.log('🚀 Navigating to dashboard after wallet connection');
