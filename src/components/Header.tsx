@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PricingButton } from '@/components/PricingButton';
+import { MembershipBadge } from '@/components/membership/MembershipBadge';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -53,6 +54,9 @@ export const Header = () => {
           {user ? (
             // Authenticated user content
             <>
+              {/* NFT Membership Badge */}
+              <MembershipBadge variant="compact" />
+              
               <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white" />
               
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
