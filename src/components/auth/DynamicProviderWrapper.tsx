@@ -60,30 +60,29 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
         },
         events: {
           onAuthSuccess: async (args) => {
-            console.log('🎉 Dynamic onAuthSuccess - wallet connected and authenticated!', args);
+            console.log('🎉 Dynamic onAuthSuccess - wallet connected!', args);
+            // NOTE: Do NOT navigate here - wait for onboarding to complete
+            // The SimplifiedAuthProvider will handle navigation after user is fully logged in
             
             const { user, primaryWallet } = args;
             if (user && primaryWallet && primaryWallet.address) {
-              const walletAddress = primaryWallet.address;
               const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
-              
-              console.log('✅ User authenticated with Dynamic SDK:', {
+              console.log('✅ User wallet connected:', {
                 userId: user.userId,
-                walletAddress,
+                walletAddress: primaryWallet.address,
                 blockchainType
               });
-
-              toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet authenticated successfully!`);
-              
-              // Navigate to dashboard after successful authentication
-              console.log('🚀 Navigating to dashboard after successful authentication');
-              setTimeout(() => {
-                navigate('/dashboard', { replace: true });
-              }, 1500); // Give time for state to sync
-              
-            } else {
-              console.error('❌ Missing user or wallet data in onAuthSuccess:', { user, primaryWallet });
+              // Just show toast, don't navigate - onboarding modal still needs to complete
+              toast.success(`${blockchainType.charAt(0).toUpperCase() + blockchainType.slice(1)} wallet connected!`);
             }
+          },
+          onUserProfileUpdate: (args) => {
+            console.log('🎉 Dynamic onUserProfileUpdate - onboarding complete!', args);
+            toast.success('Profile updated successfully!');
+            // Navigate to dashboard after onboarding is fully complete
+            setTimeout(() => {
+              navigate('/dashboard', { replace: true });
+            }, 500);
           },
           onAuthFailure: (args) => {
             console.error('Dynamic onAuthFailure:', args);

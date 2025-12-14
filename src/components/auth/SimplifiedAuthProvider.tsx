@@ -4,9 +4,10 @@ import { AuthContext } from '@/contexts/AuthContext';
 import { useWalletSession } from '@/hooks/useWalletSession';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
 import { OptimizedIntercomMessenger } from '@/components/OptimizedIntercomMessenger';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -21,9 +22,12 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   } = useWalletSession();
 
   const { primaryWallet, user: dynamicUser, handleLogOut } = useDynamicContext();
+  const isLoggedIn = useIsLoggedIn(); // Only true after onboarding is complete
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔍 SimplifiedAuthProvider useEffect triggered:', {
+      isLoggedIn, // Use this instead of checking dynamicUser && primaryWallet
       hasDynamicUser: !!dynamicUser,
       hasPrimaryWallet: !!primaryWallet,
       dynamicUserId: dynamicUser?.userId,
@@ -32,11 +36,12 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       currentSession: !!session
     });
     
-    // Use Dynamic SDK's native authentication state - check if user is authenticated
-    const isAuthenticated = !!(dynamicUser && primaryWallet);
+    // CRITICAL: Only proceed when isLoggedIn is true (after onboarding completes)
+    // This hook returns true only after the user has completed all required steps
+    const isAuthenticated = isLoggedIn && !!dynamicUser && !!primaryWallet;
     
     if (isAuthenticated) {
-      console.log('✅ Dynamic SDK authenticated user:', {
+      console.log('✅ Dynamic SDK user fully authenticated (onboarding complete):', {
         userId: dynamicUser.userId,
         walletAddress: primaryWallet.address,
         blockchain: primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum'
@@ -109,6 +114,12 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
 
         console.log('✅ Authentication state synchronized with Dynamic SDK');
         
+        // Navigate to dashboard now that user is fully authenticated
+        console.log('🚀 Navigating to dashboard after full authentication');
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 500);
+        
         // Auto-create signup entry if user has email from Dynamic SDK
         if (userEmail && userEmail !== `${primaryWallet.address}@blockdrive.wallet`) {
           setTimeout(async () => {
@@ -157,7 +168,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       return () => clearTimeout(timeoutId);
     }
-  }, [dynamicUser, primaryWallet]);
+  }, [isLoggedIn, dynamicUser, primaryWallet, navigate]);
 
   const connectWallet = async (walletData: any) => {
     console.log('🔄 Connect wallet called - using Dynamic SDK native auth');
