@@ -3,7 +3,7 @@ import { PricingTier } from '@/types/pricing';
 
 export const pricingTiers: PricingTier[] = [
   {
-    name: 'Starter',
+    name: 'Pro',
     pricing: [
       {
         period: 'monthly',
@@ -27,13 +27,13 @@ export const pricingTiers: PricingTier[] = [
       }
     ],
     description: 'Perfect for personal use with 7-day free trial',
-    storage: '100 GB',
-    bandwidth: '100 GB',
+    storage: '200 GB',
+    bandwidth: '200 GB',
     seats: '1 user',
     hasTrial: true,
     features: [
-      '100 GB secure storage',
-      '100 GB bandwidth',
+      '200 GB secure storage',
+      '200 GB bandwidth',
       'Blockchain authentication',
       'File encryption',
       'Basic support',
@@ -41,7 +41,7 @@ export const pricingTiers: PricingTier[] = [
     ]
   },
   {
-    name: 'Pro',
+    name: 'Power',
     pricing: [
       {
         period: 'monthly',
@@ -64,13 +64,13 @@ export const pricingTiers: PricingTier[] = [
         savings: 'Save 15%'
       }
     ],
-    description: 'Enhanced storage for growing needs',
-    storage: '500 GB',
-    bandwidth: '500 GB',
+    description: 'Enhanced storage for power users',
+    storage: '2 TB',
+    bandwidth: '2 TB',
     seats: '1 user',
     features: [
-      '500 GB secure storage',
-      '500 GB bandwidth',
+      '2 TB secure storage',
+      '2 TB bandwidth',
       'Advanced blockchain features',
       'Priority support',
       'Enhanced file encryption',
@@ -78,82 +78,42 @@ export const pricingTiers: PricingTier[] = [
     ]
   },
   {
-    name: 'Growth',
-    pricing: [
-      {
-        period: 'monthly',
-        price: '$99',
-        priceId: 'price_1RimjLCXWi8NqmFCerzhpbOF',
-        paymentLink: 'price_1RimjLCXWi8NqmFCerzhpbOF'
-      },
-      {
-        period: 'quarterly',
-        price: '$269',
-        priceId: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
-        paymentLink: 'price_1Riy8uCXWi8NqmFCAYMg9Tc9',
-        savings: 'Save 9%'
-      },
-      {
-        period: 'annual',
-        price: '$999',
-        priceId: 'price_1RiyDACXWi8NqmFCiLttoIg2',
-        paymentLink: 'price_1RiyDACXWi8NqmFCiLttoIg2',
-        savings: 'Save 16%'
-      }
-    ],
-    description: 'Ideal for small teams and collaboration',
-    storage: '1 TB',
-    bandwidth: '1 TB',
-    seats: '3 users',
-    popular: true,
-    features: [
-      '1 TB secure storage',
-      '1 TB bandwidth',
-      'Up to 3 team members',
-      'Team collaboration tools',
-      'Advanced blockchain features',
-      'Priority support',
-      'Shared workspaces'
-    ]
-  },
-  {
     name: 'Scale',
     pricing: [
       {
         period: 'monthly',
-        price: '$199',
+        price: '$29',
         priceId: 'price_1RjjLjCXWi8NqmFCUSZpnelu',
         paymentLink: 'price_1RjjLjCXWi8NqmFCUSZpnelu'
       },
       {
         period: 'quarterly',
-        price: '$549',
+        price: '$79',
         priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
         paymentLink: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
-        savings: 'Save 8%'
+        savings: 'Save 9%'
       },
       {
         period: 'annual',
-        price: '$1,999',
+        price: '$299',
         priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
         paymentLink: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
-        savings: 'Save 16%'
+        savings: 'Save 14%'
       }
     ],
-    description: 'Scalable solution for growing businesses',
-    storage: '2 TB',
-    bandwidth: '2 TB',
-    seats: '5 users',
+    description: 'Per-seat pricing for teams (2 seat minimum)',
+    storage: '1 TB',
+    bandwidth: '1 TB',
+    seats: '2+ users',
+    popular: true,
     features: [
-      '2 TB secure storage',
-      '2 TB bandwidth',
-      'Up to 5 team members',
-      'ADDITIONAL_SEATS_DYNAMIC',
-      'Advanced analytics',
-      'Custom blockchain solutions',
+      '1 TB storage per seat',
+      '1 TB bandwidth per seat',
+      '2 seat minimum required',
+      'Team collaboration tools',
+      'Advanced blockchain features',
       '24/7 priority support',
-      'Advanced integrations',
-      'Custom branding'
+      'Advanced integrations'
     ]
   }
 ];
