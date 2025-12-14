@@ -18,21 +18,9 @@ import {
 const features = [
   {
     icon: Lock,
-    title: "Programmed Incompleteness",
-    description: "Proprietary architecture splits encrypted files: critical bytes in ZK proofs, content in multi-provider storage. Files can't be stolen.",
+    title: "Programmed Incompleteness + ZK Encryption",
+    description: "Proprietary architecture splits AES-256-GCM encrypted files: critical bytes stored in Groth16 ZK proofs, content across multi-provider storage. Wallet-derived keys never touch our servers.",
     highlight: "Theft-Proof"
-  },
-  {
-    icon: FileKey,
-    title: "Zero-Knowledge Encryption",
-    description: "AES-256-GCM encryption with Groth16 ZK proofs. Wallet-derived keys never touch our servers. Three security levels available.",
-    highlight: "ZK-Powered"
-  },
-  {
-    icon: Wallet,
-    title: "Multichain Authentication", 
-    description: "Dual-chain verification via SNS (.sol) and Basenames (.base) domains. Connect with Phantom, MetaMask, and 50+ wallets.",
-    highlight: "MCA 2-Factor"
   },
   {
     icon: Database,
