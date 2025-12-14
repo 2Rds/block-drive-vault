@@ -2,13 +2,17 @@
  * BlockDrive Upload Service
  * 
  * Unified service that integrates wallet-derived encryption with
- * multi-provider storage. Implements the full BlockDrive architecture:
+ * multi-provider storage and ZK proof generation. Implements the full BlockDrive architecture:
  * 
  * 1. Encrypt file with wallet-derived AES-256-GCM key
  * 2. Extract critical 16 bytes from encrypted content
  * 3. Generate commitment (SHA-256 of critical bytes)
- * 4. Upload encrypted content (without critical bytes) to providers
- * 5. Return critical bytes + commitment for on-chain storage
+ * 4. Generate ZK proof with encrypted critical bytes
+ * 5. Upload encrypted content (without critical bytes) to providers
+ * 6. Upload ZK proof to providers
+ * 7. Return proof CID + commitment for on-chain storage
+ * 
+ * Critical bytes are NEVER stored locally - they exist only in the ZK proof on S3.
  */
 
 import { 
@@ -29,6 +33,8 @@ import {
   encryptCriticalBytes,
   generateFileId
 } from './crypto/blockDriveCryptoService';
+import { zkProofService, ZKProofPackage } from './crypto/zkProofService';
+import { zkProofStorageService } from './zkProofStorageService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { sha256, bytesToBase64 } from './crypto/cryptoUtils';
 
@@ -40,12 +46,20 @@ export interface BlockDriveUploadResult {
   // Storage results
   contentUpload: MultiProviderUploadResult;
   metadataUpload?: MultiProviderUploadResult;
-  proofUpload?: MultiProviderUploadResult;
+  proofUpload?: {
+    success: boolean;
+    proofCid: string;
+    proofHash: string;
+  };
   
-  // Critical data for on-chain storage
+  // Critical data for on-chain storage (ZK-based)
   commitment: string;
-  encryptedCriticalBytes: string;
-  criticalBytesIv: string;
+  proofCid: string;           // CID of ZK proof on storage
+  proofHash: string;          // Hash for integrity verification
+  
+  // Legacy fields for compatibility (deprecated)
+  encryptedCriticalBytes?: string;
+  criticalBytesIv?: string;
   
   // Identifiers for retrieval
   contentCID: string;
@@ -61,6 +75,7 @@ export interface BlockDriveUploadResult {
   // Raw bytes for on-chain registration
   encryptedContentBytes?: Uint8Array;
   criticalBytesRaw?: Uint8Array;
+  fileIv?: Uint8Array;
   
   // Solana on-chain registration
   onChainRegistration?: {
@@ -73,6 +88,7 @@ export interface BlockDriveUploadResult {
   totalTimeMs: number;
   encryptionTimeMs: number;
   uploadTimeMs: number;
+  proofGenerationTimeMs?: number;
 }
 
 // Download result
@@ -102,6 +118,7 @@ class BlockDriveUploadService {
   ): Promise<BlockDriveUploadResult> {
     const startTime = performance.now();
     let encryptionTime = 0;
+    let proofGenerationTime = 0;
     
     try {
       // Step 1: Read file content
@@ -119,9 +136,17 @@ class BlockDriveUploadService {
       );
       encryptionTime = performance.now() - encryptStart;
       
-      // Step 3: Encrypt critical bytes for secure storage
-      const { encrypted: encryptedCriticalBytes, iv: criticalBytesIv } = 
-        await encryptCriticalBytes(encryptedData.criticalBytes, encryptionKey);
+      // Step 3: Generate ZK proof with encrypted critical bytes
+      const proofStart = performance.now();
+      const zkProof = await zkProofService.generateProof(
+        encryptedData.criticalBytes,
+        encryptedData.iv,
+        encryptionKey,
+        encryptedData.commitment
+      );
+      proofGenerationTime = performance.now() - proofStart;
+      
+      console.log('[BlockDriveUpload] ZK proof generated');
       
       // Step 4: Create and encrypt file metadata
       const metadata = createFileMetadata(
@@ -158,20 +183,35 @@ class BlockDriveUploadService {
         }
       );
       
+      // Step 7: Upload ZK proof to storage
+      const proofUploadResult = await zkProofStorageService.uploadProof(
+        zkProof,
+        fileId,
+        storageConfig
+      );
+      
+      if (!proofUploadResult.success) {
+        console.error('[BlockDriveUpload] Failed to upload ZK proof');
+        throw new Error('Failed to upload ZK proof: ' + proofUploadResult.error);
+      }
+      
+      console.log('[BlockDriveUpload] ZK proof uploaded with CID:', proofUploadResult.proofCid);
+      
       // Upload encrypted metadata
       const metadataBlob = new TextEncoder().encode(JSON.stringify({
         encryptedMetadata,
         metadataIv,
         commitment: encryptedData.commitment,
         securityLevel,
-        originalSize: encryptedData.originalSize
+        originalSize: encryptedData.originalSize,
+        proofCid: proofUploadResult.proofCid
       }));
       
       const metadataUpload = await storageOrchestrator.uploadWithRedundancy(
         metadataBlob,
         `${fileId}_metadata.json`,
         'application/json',
-        { ...storageConfig, redundancyLevel: 2 }, // Metadata is critical
+        { ...storageConfig, redundancyLevel: 2 },
         {
           fileId,
           type: 'metadata',
@@ -183,13 +223,18 @@ class BlockDriveUploadService {
       const totalTime = performance.now() - startTime;
       
       return {
-        success: contentUpload.success,
+        success: contentUpload.success && proofUploadResult.success,
         fileId,
         contentUpload,
         metadataUpload,
+        proofUpload: {
+          success: proofUploadResult.success,
+          proofCid: proofUploadResult.proofCid,
+          proofHash: proofUploadResult.proofHash
+        },
         commitment: encryptedData.commitment,
-        encryptedCriticalBytes,
-        criticalBytesIv,
+        proofCid: proofUploadResult.proofCid,
+        proofHash: proofUploadResult.proofHash,
         contentCID: contentUpload.primaryResult.identifier,
         metadataCID: metadataUpload.primaryResult.identifier,
         fileName: file.name,
@@ -199,9 +244,11 @@ class BlockDriveUploadService {
         securityLevel,
         encryptedContentBytes: encryptedData.encryptedContent,
         criticalBytesRaw: encryptedData.criticalBytes,
+        fileIv: encryptedData.iv,
         totalTimeMs: Math.round(totalTime),
         encryptionTimeMs: Math.round(encryptionTime),
-        uploadTimeMs: Math.round(uploadTime)
+        uploadTimeMs: Math.round(uploadTime),
+        proofGenerationTimeMs: Math.round(proofGenerationTime)
       };
       
     } catch (error) {
@@ -228,8 +275,8 @@ class BlockDriveUploadService {
           fileId: ''
         },
         commitment: '',
-        encryptedCriticalBytes: '',
-        criticalBytesIv: '',
+        proofCid: '',
+        proofHash: '',
         contentCID: '',
         fileName: file.name,
         mimeType: file.type || 'application/octet-stream',
@@ -245,6 +292,7 @@ class BlockDriveUploadService {
 
   /**
    * Upload raw encrypted data (for pre-encrypted content)
+   * Generates ZK proof for critical bytes
    */
   async uploadEncryptedData(
     encryptedContent: Uint8Array,
@@ -254,20 +302,37 @@ class BlockDriveUploadService {
     walletAddress: string,
     encryptionKey: CryptoKey,
     securityLevel: SecurityLevel,
-    storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG
+    storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
+    fileIv?: Uint8Array
   ): Promise<BlockDriveUploadResult> {
     const startTime = performance.now();
     
     try {
-      // Encrypt critical bytes
-      const { encrypted: encryptedCriticalBytes, iv: criticalBytesIv } = 
-        await encryptCriticalBytes(criticalBytes, encryptionKey);
-      
       // Generate file ID
       const contentHash = await sha256(encryptedContent);
       const fileId = await generateFileId(contentHash, walletAddress);
       
-      // Upload to providers
+      // Generate ZK proof
+      const iv = fileIv || new Uint8Array(12);
+      const zkProof = await zkProofService.generateProof(
+        criticalBytes,
+        iv,
+        encryptionKey,
+        commitment
+      );
+      
+      // Upload ZK proof
+      const proofUploadResult = await zkProofStorageService.uploadProof(
+        zkProof,
+        fileId,
+        storageConfig
+      );
+      
+      if (!proofUploadResult.success) {
+        throw new Error('Failed to upload ZK proof');
+      }
+      
+      // Upload content
       const contentUpload = await storageOrchestrator.uploadWithRedundancy(
         encryptedContent,
         `${fileId}_content.enc`,
@@ -285,16 +350,21 @@ class BlockDriveUploadService {
       const totalTime = performance.now() - startTime;
       
       return {
-        success: contentUpload.success,
+        success: contentUpload.success && proofUploadResult.success,
         fileId,
         contentUpload,
+        proofUpload: {
+          success: proofUploadResult.success,
+          proofCid: proofUploadResult.proofCid,
+          proofHash: proofUploadResult.proofHash
+        },
         commitment,
-        encryptedCriticalBytes,
-        criticalBytesIv,
+        proofCid: proofUploadResult.proofCid,
+        proofHash: proofUploadResult.proofHash,
         contentCID: contentUpload.primaryResult.identifier,
         fileName,
         mimeType: 'application/octet-stream',
-        originalSize: encryptedContent.length + 16, // Add back critical bytes
+        originalSize: encryptedContent.length + 16,
         encryptedSize: encryptedContent.length + 16,
         securityLevel,
         totalTimeMs: Math.round(totalTime),
@@ -310,6 +380,7 @@ class BlockDriveUploadService {
 
   /**
    * Upload with chunking for large files
+   * Generates ZK proof for critical bytes
    */
   async uploadLargeFile(
     file: File,
@@ -335,12 +406,27 @@ class BlockDriveUploadService {
     );
     const encryptionTime = performance.now() - encryptStart;
     
-    // Encrypt critical bytes
-    const { encrypted: encryptedCriticalBytes, iv: criticalBytesIv } = 
-      await encryptCriticalBytes(encryptedData.criticalBytes, encryptionKey);
-    
     // Generate file ID
     const fileId = await generateFileId(encryptedData.contentHash, walletAddress);
+    
+    // Generate ZK proof
+    const zkProof = await zkProofService.generateProof(
+      encryptedData.criticalBytes,
+      encryptedData.iv,
+      encryptionKey,
+      encryptedData.commitment
+    );
+    
+    // Upload ZK proof
+    const proofUploadResult = await zkProofStorageService.uploadProof(
+      zkProof,
+      fileId,
+      storageConfig
+    );
+    
+    if (!proofUploadResult.success) {
+      throw new Error('Failed to upload ZK proof for large file');
+    }
     
     // Upload with chunking
     const manifest = await storageOrchestrator.uploadChunked(
@@ -379,9 +465,14 @@ class BlockDriveUploadService {
         successfulProviders: manifest.chunkCount,
         fileId
       },
+      proofUpload: {
+        success: proofUploadResult.success,
+        proofCid: proofUploadResult.proofCid,
+        proofHash: proofUploadResult.proofHash
+      },
       commitment: encryptedData.commitment,
-      encryptedCriticalBytes,
-      criticalBytesIv,
+      proofCid: proofUploadResult.proofCid,
+      proofHash: proofUploadResult.proofHash,
       contentCID: manifest.fileId,
       fileName: file.name,
       mimeType: file.type || 'application/octet-stream',
@@ -390,6 +481,7 @@ class BlockDriveUploadService {
       securityLevel,
       encryptedContentBytes: encryptedData.encryptedContent,
       criticalBytesRaw: encryptedData.criticalBytes,
+      fileIv: encryptedData.iv,
       totalTimeMs: Math.round(totalTime),
       encryptionTimeMs: Math.round(encryptionTime),
       uploadTimeMs: Math.round(totalTime - encryptionTime),

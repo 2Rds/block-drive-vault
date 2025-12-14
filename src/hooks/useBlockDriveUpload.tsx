@@ -2,8 +2,10 @@
  * useBlockDriveUpload Hook
  * 
  * React hook for the unified BlockDrive upload flow that combines
- * wallet-derived encryption with multi-provider storage and
- * Solana on-chain file registration.
+ * wallet-derived encryption with multi-provider storage, ZK proof generation,
+ * and Solana on-chain file registration.
+ * 
+ * Critical bytes are stored in ZK proofs on S3 - NOT locally.
  */
 
 import { useState, useCallback } from 'react';
@@ -14,8 +16,6 @@ import { useWalletCrypto } from './useWalletCrypto';
 import { useAuth } from './useAuth';
 import { useBlockDriveSolana } from './useBlockDriveSolana';
 import { SecurityLevel as SolanaSecurityLevel } from '@/services/solana';
-import { criticalBytesStorage } from '@/services/crypto/criticalBytesStorage';
-import { base64ToBytes } from '@/services/crypto/cryptoUtils';
 import { toast } from 'sonner';
 
 interface UploadProgress {
@@ -242,22 +242,9 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         }
       }
 
-      // Store critical bytes locally for future sharing
-      if (result.criticalBytesRaw && result.criticalBytesIv) {
-        try {
-          await criticalBytesStorage.storeCriticalBytes({
-            fileId: result.fileId,
-            contentCID: result.contentCID,
-            criticalBytes: result.criticalBytesRaw,
-            iv: base64ToBytes(result.criticalBytesIv),
-            commitment: result.commitment,
-            securityLevel: securityLevel,
-            walletAddress: walletData.address
-          });
-          console.log('[BlockDriveUpload] Critical bytes stored locally for sharing');
-        } catch (storageError) {
-          console.warn('[BlockDriveUpload] Failed to store critical bytes locally:', storageError);
-        }
+      // ZK proof is now stored on S3 - no local storage needed
+      if (result.proofCid) {
+        console.log('[BlockDriveUpload] ZK proof stored on S3 with CID:', result.proofCid);
       }
 
       setProgress({
