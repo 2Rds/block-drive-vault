@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check, Wallet, BarChart3 } from 'lucide-react';
+import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check, Wallet, BarChart3, Lock, Bot, Building2, Database, RefreshCcw, FileKey } from 'lucide-react';
 import { useState } from 'react';
 
 interface DocsContentProps {
@@ -1010,15 +1010,631 @@ const inviteMember = async (email: string, teamId: string, role: string) => {
     );
   }
 
+  if (activeSection === 'programmed-incompleteness') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Programmed Incompleteness</h1>
+          <p className="text-lg text-muted-foreground">
+            BlockDrive's proprietary privacy-first architecture that makes data theft mathematically impossible.
+          </p>
+        </div>
+
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-foreground mb-2">Core Innovation</h3>
+            <p className="text-muted-foreground">
+              Encrypted files are split into two components that are stored separately. Neither component alone 
+              can reconstruct the original file, making theft of either component useless.
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Critical 16 Bytes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                The first 16 bytes of every encrypted file are extracted and stored separately:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Embedded in Zero-Knowledge Proofs
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Stored on secure S3 infrastructure
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Commitment stored on Solana blockchain
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                Encrypted Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                The remaining encrypted file content is stored on decentralized providers:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Uploaded to Filebase (IPFS)
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Redundantly stored on S3 and Arweave
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  Without critical bytes, content is garbage
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <CodeBlock id="pi-flow">
+{`// Programmed Incompleteness flow
+const uploadWithPI = async (file: File) => {
+  // 1. Encrypt file with wallet-derived key
+  const encrypted = await aesEncrypt(file, walletKey);
+  
+  // 2. Extract critical 16 bytes
+  const criticalBytes = encrypted.slice(0, 16);
+  const remainingContent = encrypted.slice(16);
+  
+  // 3. Generate ZK proof of critical bytes knowledge
+  const { proof, commitment } = await generateZkProof(criticalBytes);
+  
+  // 4. Store separately
+  await storeCriticalBytes(criticalBytes, commitment);  // S3
+  await storeContent(remainingContent);                   // IPFS
+  await registerOnChain(commitment, proof);               // Solana
+};`}
+        </CodeBlock>
+      </div>
+    );
+  }
+
+  if (activeSection === 'aes-encryption') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">AES-256 Encryption</h1>
+          <p className="text-lg text-muted-foreground">
+            Military-grade encryption with three security levels derived from wallet signatures.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Standard</CardTitle>
+              <Badge variant="secondary">General Files</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Basic wallet-derived encryption key. Suitable for general documents.</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-yellow-500/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Sensitive</CardTitle>
+              <Badge className="bg-yellow-500/20 text-yellow-600">Business Docs</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Enhanced HKDF key derivation with additional iterations.</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-red-500/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Maximum</CardTitle>
+              <Badge className="bg-red-500/20 text-red-600">Critical Data</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Strongest key derivation with maximum security parameters.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <CodeBlock id="aes-encrypt">
+{`// AES-256-GCM encryption with wallet-derived keys
+import { blockDriveCryptoService } from '@/services/crypto';
+
+// Initialize from 3-message wallet signature
+await blockDriveCryptoService.initializeKeys(wallet, 'maximum');
+
+// Encrypt file
+const { encrypted, iv, authTag } = await blockDriveCryptoService.encryptFile(file);
+
+// Keys never touch application servers - derived client-side only`}
+        </CodeBlock>
+      </div>
+    );
+  }
+
+  if (activeSection === 'zk-proofs') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Zero-Knowledge Proofs</h1>
+          <p className="text-lg text-muted-foreground">
+            Groth16 ZK proofs via snarkjs/circom prove critical bytes knowledge without revealing them.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Circuit Architecture</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg font-mono text-sm">
+              <p className="text-muted-foreground">// criticalBytesCommitment.circom</p>
+              <p>template CriticalBytesCommitment() {"{"}</p>
+              <p className="ml-4">signal input criticalBytes[16];</p>
+              <p className="ml-4">signal input salt[4];</p>
+              <p className="ml-4">signal output commitment;</p>
+              <p className="ml-4">// Poseidon hash for commitment</p>
+              <p>{"}"}</p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Proof Size</p>
+                <p className="text-2xl font-bold text-primary">~200 bytes</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Verification</p>
+                <p className="text-2xl font-bold text-primary">&lt; 10ms</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Security</p>
+                <p className="text-2xl font-bold text-primary">128-bit</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <CodeBlock id="zk-generate">
+{`// Generate Groth16 proof
+import { snarkjsService } from '@/services/crypto';
+
+const { proof, publicSignals } = await snarkjsService.generateProof(
+  criticalBytes,
+  salt,
+  circuitWasm,
+  provingKey
+);
+
+// Verify proof
+const isValid = await snarkjsService.verifyProof(
+  proof,
+  publicSignals,
+  verificationKey
+);`}
+        </CodeBlock>
+      </div>
+    );
+  }
+
+  if (activeSection === 'instant-revoke') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Instant Revoke</h1>
+          <p className="text-lg text-muted-foreground">
+            Unique to BlockDrive: share files while retaining the ability to permanently revoke access.
+          </p>
+        </div>
+
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <RefreshCcw className="w-8 h-8 text-primary mt-1" />
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">How It Works</h3>
+                <p className="text-muted-foreground">
+                  When you share a file, the recipient receives encrypted critical bytes via ECDH key exchange.
+                  To revoke access, you simply delete the critical bytes commitment on-chain. The file becomes
+                  permanently unreadable - even if the recipient saved a copy of the encrypted content.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Traditional Cloud Storage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                  Once shared, control is lost
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                  Recipients can copy and save files
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                  Revocation only removes access, not copies
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle className="text-primary">BlockDrive Instant Revoke</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  Sender retains cryptographic control
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  Copies become permanently unreadable
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  Mathematically enforced revocation
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'mca-auth') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Multichain Authentication (MCA)</h1>
+          <p className="text-lg text-muted-foreground">
+            Dual-chain verification requiring ownership of both Solana and Base domain names.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>MCA Requirements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                <h4 className="font-medium mb-2">Solana Domain</h4>
+                <p className="font-mono text-sm text-purple-400">label.blockdrive.sol</p>
+                <p className="text-xs text-muted-foreground mt-2">SNS subdomain verification</p>
+              </div>
+              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <h4 className="font-medium mb-2">Base Domain</h4>
+                <p className="font-mono text-sm text-blue-400">label.blockdrive.base</p>
+                <p className="text-xs text-muted-foreground mt-2">Basenames subdomain verification</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Flow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { step: 1, title: "POST /mca/start", desc: "Returns canonical challenge with nonce" },
+              { step: 2, title: "Sign Challenge", desc: "User signs with both Solana and EVM wallets" },
+              { step: 3, title: "POST /mca/verify", desc: "Validates signatures and domain ownership" },
+              { step: 4, title: "JWT Issued", desc: "Short-lived JWT (TTL ≤ 15 min) returned" },
+              { step: 5, title: "GET /mca/check", desc: "Validates JWT for subsequent API calls" }
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {item.step}
+                </div>
+                <div>
+                  <h4 className="font-medium font-mono text-sm">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'agents-overview') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">AI Agents</h1>
+          <p className="text-lg text-muted-foreground">
+            Four proprietary AI agents available as premium add-ons to automate your business workflows.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-pink-500" />
+                Marketing Agent
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Creates and manages social media campaigns</li>
+                <li>• Automated cold email outreach</li>
+                <li>• Content generation and scheduling</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-green-500" />
+                Sales Agent
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Integrates into your sales cycle</li>
+                <li>• Assists in onboarding new users</li>
+                <li>• Lead qualification and follow-up</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-blue-500" />
+                Project Manager Agent
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Manages daily project tasks</li>
+                <li>• Maintains team communication</li>
+                <li>• Progress tracking and reporting</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5 text-purple-500" />
+                Executive Assistant Agent
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Schedule management for executives</li>
+                <li>• Daily task prioritization</li>
+                <li>• Request handling and delegation</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="bg-primary/5 border-primary/30">
+          <CardContent className="p-6">
+            <p className="text-center text-muted-foreground">
+              Agents are available as premium features that can be added to any subscription plan.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'otoco') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">OtoCo Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Instantly spin up an onchain LLC or Delaware C-Corp without leaving BlockDrive.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-emerald-500" />
+              Onchain Company Formation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Zap className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium">Instant Setup</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Shield className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium">Legal Protection</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Database className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium">Onchain Registry</p>
+              </div>
+            </div>
+            <p className="text-muted-foreground">
+              OtoCo's embedded widget allows you to form a legal business entity directly within BlockDrive.
+              Your company is registered on-chain, providing transparent and immutable corporate records.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'solana-architecture') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Solana Program Architecture</h1>
+          <p className="text-lg text-muted-foreground">
+            Anchor-based Solana program for on-chain file registry and access control.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Core Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {[
+                { name: "initialize_vault", desc: "Create user vault PDA with master key commitment" },
+                { name: "register_file", desc: "Register encrypted file with metadata and ZK commitment" },
+                { name: "create_delegation", desc: "Share file with recipient via ECDH-encrypted key" },
+                { name: "revoke_delegation", desc: "Instantly revoke access by deleting delegation" }
+              ].map((inst) => (
+                <div key={inst.name} className="p-4 border rounded-lg">
+                  <h4 className="font-medium font-mono text-sm text-primary">{inst.name}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{inst.desc}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <CodeBlock id="solana-pdas">
+{`// PDA Structures
+pub struct UserVault {
+    pub owner: Pubkey,
+    pub master_key_commitment: [u8; 32],
+    pub file_count: u64,
+    pub created_at: i64,
+}
+
+pub struct FileRecord {
+    pub owner: Pubkey,
+    pub file_id: [u8; 32],
+    pub encrypted_metadata_cid: String,
+    pub critical_bytes_commitment: [u8; 32],
+    pub security_level: u8,
+}
+
+pub struct Delegation {
+    pub grantor: Pubkey,
+    pub grantee: Pubkey,
+    pub file_record: Pubkey,
+    pub encrypted_file_key: [u8; 48],
+    pub permissions: u8,
+}`}
+        </CodeBlock>
+      </div>
+    );
+  }
+
+  if (activeSection === 'multi-provider') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Multi-Provider Storage</h1>
+          <p className="text-lg text-muted-foreground">
+            Automatic failover across Filebase, S3, and Arweave for maximum reliability.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Filebase (Primary)</CardTitle>
+              <Badge variant="secondary">IPFS</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">S3-compatible IPFS API with global CDN and automatic pinning.</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Amazon S3</CardTitle>
+              <Badge variant="secondary">Backup</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Critical bytes storage and redundant content backup.</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Arweave</CardTitle>
+              <Badge variant="secondary">Permanent</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Permanent archival storage with one-time payment model.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Storage Orchestrator</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                Automatic health checks and failover
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                Configurable redundancy per file
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                Provider rotation when health checks fail
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                Chunking for large files
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Default content for other sections
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-4 capitalize">
-          {activeSection.replace('-', ' ')}
+          {activeSection.replace(/-/g, ' ')}
         </h1>
         <p className="text-lg text-muted-foreground">
-          Documentation for {activeSection.replace('-', ' ')} functionality.
+          Documentation for {activeSection.replace(/-/g, ' ')} functionality.
         </p>
       </div>
 

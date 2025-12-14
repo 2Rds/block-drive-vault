@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe } from 'lucide-react';
+import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe, Lock, Bot, Building2, Database } from 'lucide-react';
 
 interface SidebarSection {
   title: string;
@@ -26,21 +26,45 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       ]
     },
     {
+      title: "Security & Cryptography",
+      icon: <Lock className="w-4 h-4" />,
+      items: [
+        { title: "Programmed Incompleteness", id: "programmed-incompleteness" },
+        { title: "AES-256 Encryption", id: "aes-encryption" },
+        { title: "Zero-Knowledge Proofs", id: "zk-proofs" },
+        { title: "Instant Revoke", id: "instant-revoke" }
+      ]
+    },
+    {
       title: "Authentication",
       icon: <Shield className="w-4 h-4" />,
       items: [
+        { title: "Multichain Auth (MCA)", id: "mca-auth" },
+        { title: "SNS Domain Verification", id: "sns-verification" },
+        { title: "Basenames Verification", id: "basenames-verification" },
         { title: "Wallet Connection", id: "wallet-auth" },
-        { title: "Dynamic Labs Integration", id: "dynamic-integration" },
-        { title: "Authentication Flow", id: "auth-flow" }
+        { title: "Dynamic Labs Integration", id: "dynamic-integration" }
       ]
     },
     {
       title: "Storage & Files",
       icon: <FileText className="w-4 h-4" />,
       items: [
+        { title: "Multi-Provider Storage", id: "multi-provider" },
         { title: "IPFS Integration", id: "ipfs-integration" },
+        { title: "On-Chain Registry", id: "onchain-registry" },
         { title: "File Management", id: "file-management" },
         { title: "Storage Quotas", id: "storage-quotas" }
+      ]
+    },
+    {
+      title: "Solana Program",
+      icon: <Database className="w-4 h-4" />,
+      items: [
+        { title: "Program Architecture", id: "solana-architecture" },
+        { title: "UserVault PDA", id: "user-vault" },
+        { title: "FileRecord PDA", id: "file-record" },
+        { title: "Delegation PDA", id: "delegation" }
       ]
     },
     {
@@ -48,18 +72,37 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       icon: <Users className="w-4 h-4" />,
       items: [
         { title: "Team Management", id: "team-management" },
-        { title: "Access Control", id: "access-control" },
-        { title: "Team Operations", id: "team-operations" }
+        { title: "File Sharing", id: "file-sharing" },
+        { title: "Access Control", id: "access-control" }
+      ]
+    },
+    {
+      title: "AI Agents",
+      icon: <Bot className="w-4 h-4" />,
+      items: [
+        { title: "Agent Overview", id: "agents-overview" },
+        { title: "Marketing Agent", id: "marketing-agent" },
+        { title: "Sales Agent", id: "sales-agent" },
+        { title: "Project Manager Agent", id: "pm-agent" },
+        { title: "Executive Assistant", id: "ea-agent" }
+      ]
+    },
+    {
+      title: "Business Formation",
+      icon: <Building2 className="w-4 h-4" />,
+      items: [
+        { title: "OtoCo Integration", id: "otoco" },
+        { title: "Stripe Atlas", id: "stripe-atlas" },
+        { title: "Clerky", id: "clerky" }
       ]
     },
     {
       title: "Integrations",
       icon: <Globe className="w-4 h-4" />,
       items: [
-        { title: "Slack Integration", id: "slack" },
-        { title: "Google Drive", id: "google-drive" },
-        { title: "OneDrive", id: "onedrive" },
-        { title: "Box Integration", id: "box" }
+        { title: "Cloud Storage", id: "cloud-storage" },
+        { title: "Enterprise Systems", id: "enterprise-systems" },
+        { title: "Financial Tools", id: "financial-tools" }
       ]
     },
     {
@@ -67,8 +110,8 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       icon: <Code className="w-4 h-4" />,
       items: [
         { title: "Edge Functions", id: "edge-functions" },
-        { title: "Database Schema", id: "database-schema" },
-        { title: "SDK Integration", id: "sdk-integration" }
+        { title: "SDK Integration", id: "sdk-integration" },
+        { title: "ZK Circuit Compilation", id: "zk-circuits" }
       ]
     },
     {
@@ -77,7 +120,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       items: [
         { title: "Pricing Tiers", id: "pricing-tiers" },
         { title: "Billing Features", id: "billing" },
-        { title: "Payment Processing", id: "payments" }
+        { title: "Agent Add-ons", id: "agent-addons" }
       ]
     }
   ];
