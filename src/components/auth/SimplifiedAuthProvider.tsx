@@ -34,32 +34,37 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       currentSession: !!session
     });
     
-    // Use Dynamic SDK's native authentication state - check if user is authenticated
-    const isAuthenticated = !!(dynamicUser && primaryWallet);
+    // Consider user authenticated as soon as a primary wallet is present
+    const isAuthenticated = !!primaryWallet;
     
     if (isAuthenticated) {
-      console.log('✅ Dynamic SDK authenticated user:', {
-        userId: dynamicUser.userId,
+      console.log('✅ Dynamic SDK detected connected wallet:', {
+        hasDynamicUser: !!dynamicUser,
         walletAddress: primaryWallet.address,
         blockchain: primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum'
       });
 
       const blockchainType = primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum';
+      const dynamicUserId = dynamicUser?.userId || `wallet-${primaryWallet.address}`;
       
       // Only update if user data has changed to prevent loops
-      if (!user || user.id !== dynamicUser.userId || user.user_metadata?.wallet_address !== primaryWallet.address) {
-        console.log('🔍 Dynamic User Data:', dynamicUser);
+      if (!user || user.id !== dynamicUserId || user.user_metadata?.wallet_address !== primaryWallet.address) {
+        console.log('🔍 Dynamic User Data (may be partial):', dynamicUser);
         
-        // Extract email and username from Dynamic SDK user data
-        const userEmail = dynamicUser.email || dynamicUser.verifiedCredentials?.find(c => c.email)?.email || `${primaryWallet.address}@blockdrive.wallet`;
-        const username = dynamicUser.alias || dynamicUser.username || `${blockchainType}User_${primaryWallet.address.slice(-8)}`;
+        // Extract email and username from Dynamic SDK user data, or fall back to wallet-based identifiers
+        const userEmail = dynamicUser?.email 
+          || dynamicUser?.verifiedCredentials?.find((c: any) => c.email)?.email 
+          || `${primaryWallet.address}@blockdrive.wallet`;
+        const username = dynamicUser?.alias 
+          || dynamicUser?.username 
+          || `${blockchainType}User_${primaryWallet.address.slice(-8)}`;
         
-        console.log('✅ Using Dynamic SDK provided email:', userEmail);
-        console.log('✅ Using Dynamic SDK provided username:', username);
+        console.log('✅ Using email for wallet user:', userEmail);
+        console.log('✅ Using username for wallet user:', username);
         
-        // Create user object from Dynamic's data
+        // Create user object from Dynamic / wallet data
         const authenticatedUser: User = {
-          id: dynamicUser.userId,
+          id: dynamicUserId,
           aud: 'authenticated',
           role: 'authenticated',
           email: userEmail,
@@ -71,9 +76,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
           user_metadata: {
             wallet_address: primaryWallet.address,
             blockchain_type: blockchainType,
-            username: username,
-            full_name: dynamicUser.firstName && dynamicUser.lastName ? `${dynamicUser.firstName} ${dynamicUser.lastName}` : undefined,
-            dynamic_authenticated: true
+            username,
+            full_name: dynamicUser?.firstName && dynamicUser?.lastName 
+              ? `${dynamicUser.firstName} ${dynamicUser.lastName}` 
+              : undefined,
+            dynamic_authenticated: !!dynamicUser
           },
           identities: [],
           created_at: new Date().toISOString(),
@@ -85,7 +92,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         // The subscription checking will use the user ID directly
         const authenticatedSession: Session = {
           user: authenticatedUser,
-          access_token: authenticatedUser.id, // Use user ID directly for wallet auth
+          access_token: authenticatedUser.id,
           refresh_token: 'wallet-auth-refresh',
           expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
           expires_in: 24 * 60 * 60,
@@ -109,26 +116,26 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
         setWalletData(walletInfo);
         setLoading(false);
 
-        console.log('✅ Authentication state synchronized with Dynamic SDK');
+        console.log('✅ Authentication state synchronized with connected wallet');
         
-        // Navigate to dashboard now that user is fully authenticated
-        console.log('🚀 Navigating to dashboard after full authentication');
+        // Navigate to dashboard now that wallet is connected
+        console.log('🚀 Navigating to dashboard after wallet connection');
         setTimeout(() => {
           navigate('/dashboard', { replace: true });
-        }, 500);
+        }, 300);
         
-        // Auto-create signup entry if user has email from Dynamic SDK
+        // Auto-create signup entry if user has a non-synthetic email
         if (userEmail && userEmail !== `${primaryWallet.address}@blockdrive.wallet`) {
           setTimeout(async () => {
             try {
-              console.log('🔄 Creating auto-signup entry for Dynamic user');
+              console.log('🔄 Creating auto-signup entry for wallet user');
               const { error } = await supabase.functions.invoke('auto-signup-from-dynamic', {
                 body: {
                   email: userEmail,
                   fullName: authenticatedUser.user_metadata?.full_name,
                   username: authenticatedUser.user_metadata?.username,
                   walletAddress: primaryWallet.address,
-                  blockchainType: blockchainType,
+                  blockchainType,
                   userId: authenticatedUser.id
                 }
               });
@@ -148,18 +155,18 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
     } else if (!isAuthenticated && user) {
       // CRITICAL FIX: Add delay before clearing state to prevent false logout during re-renders
       // Only clear if Dynamic SDK remains unauthenticated after a stability check
-      console.log('⚠️ Dynamic SDK appears unauthenticated, waiting for stability check...');
+      console.log('⚠️ No connected wallet detected, waiting for stability check before clearing auth state...');
       
       const timeoutId = setTimeout(() => {
-        // Double-check Dynamic SDK state after delay
-        if (!dynamicUser && !primaryWallet && user) {
-          console.log('❌ Dynamic SDK confirmed unauthenticated after stability check, clearing state');
+        // Double-check wallet state after delay
+        if (!primaryWallet && user) {
+          console.log('❌ Wallet still disconnected after stability check, clearing auth state');
           setUser(null);
           setSession(null);
           setWalletData(null);
           setLoading(false);
         } else {
-          console.log('✅ Dynamic SDK state restored, keeping user authenticated');
+          console.log('✅ Wallet state restored, keeping user authenticated');
         }
       }, 500); // 500ms stability delay
       
