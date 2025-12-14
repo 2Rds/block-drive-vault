@@ -19,33 +19,34 @@ export const OtoCoIntegration: React.FC<OtoCoIntegrationProps> = ({ isOpen, onCl
   const scriptLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen && !scriptLoadedRef.current) {
-      // Remove any existing script
-      const existingScript = document.getElementById('ctaOtoCo');
-      if (existingScript) {
-        existingScript.remove();
+    if (isOpen && widgetContainerRef.current && !scriptLoadedRef.current) {
+      // Ensure the placeholder button image is present, matching OtoCo's snippet
+      if (widgetContainerRef.current.childElementCount === 0) {
+        const img = new Image();
+        img.src = 'https://widget.otoco.io/buttons/button-small.png';
+        img.alt = 'OtoCo Widget - Click to form your company';
+        img.width = 147;
+        img.height = 49;
+        img.className = 'cursor-pointer hover:opacity-80 transition-opacity';
+        widgetContainerRef.current.appendChild(img);
       }
 
-      // Create and load the OtoCo script
-      const script = document.createElement('script');
-      script.id = 'ctaOtoCo';
-      script.src = 'https://widget.otoco.io/cta-button.js';
-      script.setAttribute('clientid', 'jod2djmttjoxz08tl6q3q');
-      script.setAttribute('theme', '2');
-      script.setAttribute('buttontype', 'small');
-      script.async = true;
-
-      if (widgetContainerRef.current) {
-        widgetContainerRef.current.appendChild(script);
-        scriptLoadedRef.current = true;
+      // Load the OtoCo script once and attach it to the document body,
+      // mirroring their recommended integration snippet
+      let script = document.getElementById('ctaOtoCo') as HTMLScriptElement | null;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'ctaOtoCo';
+        script.src = 'https://widget.otoco.io/cta-button.js';
+        script.setAttribute('clientid', 'jod2djmttjoxz08tl6q3q');
+        script.setAttribute('theme', '2');
+        script.setAttribute('buttontype', 'small');
+        script.async = true;
+        document.body.appendChild(script);
       }
+
+      scriptLoadedRef.current = true;
     }
-
-    return () => {
-      if (!isOpen) {
-        scriptLoadedRef.current = false;
-      }
-    };
   }, [isOpen]);
 
   return (
@@ -87,11 +88,11 @@ export const OtoCoIntegration: React.FC<OtoCoIntegrationProps> = ({ isOpen, onCl
           {/* OtoCo Widget container */}
           <div className="rounded-lg overflow-hidden border border-border/50 bg-background p-6 min-h-[200px] flex items-center justify-center">
             <div ref={widgetContainerRef} id="OtoCoWidget">
-              <img 
-                src="https://widget.otoco.io/buttons/button-small.png" 
-                alt="OtoCo Widget - Click to form your company" 
-                width="147" 
-                height="49"
+              <img
+                src="https://widget.otoco.io/buttons/button-small.png"
+                alt="OtoCo Widget - Click to form your company"
+                width={147}
+                height={49}
                 className="cursor-pointer hover:opacity-80 transition-opacity"
               />
             </div>
