@@ -1,0 +1,20 @@
+{
+  "name": "blockdrive-circuits",
+  "version": "1.0.0",
+  "description": "BlockDrive ZK circuit build configuration",
+  "scripts": {
+    "circuits:build": "bash scripts/build-circuits.sh",
+    "circuits:verify": "snarkjs zkey verify build/circuits/criticalBytesCommitment.r1cs build/ptau/pot14_final.ptau public/circuits/criticalBytesCommitment_final.zkey",
+    "circuits:test": "node scripts/test-circuits.js",
+    "circuits:info": "snarkjs r1cs info build/circuits/criticalBytesCommitment.r1cs"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5"
+  },
+  "circuitConfig": {
+    "name": "criticalBytesCommitment",
+    "ptauSize": 14,
+    "constraintEstimate": 28000,
+    "version": "1.0.0"
+  }
+}

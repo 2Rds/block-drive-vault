@@ -30,3 +30,6 @@ export * from './zkProofService';
 
 // Snarkjs Groth16
 export * from './snarkjsService';
+
+// Circuit Status
+export * from './circuitStatusService';
