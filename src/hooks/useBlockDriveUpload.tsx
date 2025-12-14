@@ -14,6 +14,8 @@ import { useWalletCrypto } from './useWalletCrypto';
 import { useAuth } from './useAuth';
 import { useBlockDriveSolana } from './useBlockDriveSolana';
 import { SecurityLevel as SolanaSecurityLevel } from '@/services/solana';
+import { criticalBytesStorage } from '@/services/crypto/criticalBytesStorage';
+import { base64ToBytes } from '@/services/crypto/cryptoUtils';
 import { toast } from 'sonner';
 
 interface UploadProgress {
@@ -237,6 +239,24 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         } catch (onChainError) {
           console.error('[BlockDriveUpload] On-chain registration failed:', onChainError);
           toast.warning('File uploaded but on-chain registration failed');
+        }
+      }
+
+      // Store critical bytes locally for future sharing
+      if (result.criticalBytesRaw && result.criticalBytesIv) {
+        try {
+          await criticalBytesStorage.storeCriticalBytes({
+            fileId: result.fileId,
+            contentCID: result.contentCID,
+            criticalBytes: result.criticalBytesRaw,
+            iv: base64ToBytes(result.criticalBytesIv),
+            commitment: result.commitment,
+            securityLevel: securityLevel,
+            walletAddress: walletData.address
+          });
+          console.log('[BlockDriveUpload] Critical bytes stored locally for sharing');
+        } catch (storageError) {
+          console.warn('[BlockDriveUpload] Failed to store critical bytes locally:', storageError);
         }
       }
 

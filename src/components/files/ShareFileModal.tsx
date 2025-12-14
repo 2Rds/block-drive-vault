@@ -2,10 +2,10 @@
  * Share File Modal
  * 
  * Modal for sharing encrypted files with other wallets using
- * the Solana delegation system.
+ * the Solana delegation system with ECDH key exchange.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,12 +53,15 @@ import {
   Users,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
+  Key
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { PermissionLevel } from '@/services/solana';
+import { criticalBytesStorage } from '@/services/crypto/criticalBytesStorage';
+import { ecdhKeyExchange } from '@/services/crypto/ecdhKeyExchange';
 import { toast } from 'sonner';
 
 // Solana public key validation (base58 encoded, 32-44 chars)
@@ -81,6 +84,7 @@ interface FileToShare {
   filename: string;
   size: number;
   securityLevel: 'standard' | 'enhanced' | 'maximum';
+  contentCID?: string;
   onChain?: {
     fileRecordPubkey?: string;
     encryptionCommitment?: string;
@@ -94,6 +98,7 @@ interface ShareFileModalProps {
   ownerAddress: string;
   signTransaction: (tx: any) => Promise<any>;
   onShareComplete?: () => void;
+  getEncryptionKey?: () => Promise<CryptoKey | null>;
 }
 
 export function ShareFileModal({
@@ -102,10 +107,13 @@ export function ShareFileModal({
   file,
   ownerAddress,
   signTransaction,
-  onShareComplete
+  onShareComplete,
+  getEncryptionKey
 }: ShareFileModalProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [hasCriticalBytes, setHasCriticalBytes] = useState(false);
+  const [loadingCriticalBytes, setLoadingCriticalBytes] = useState(true);
   const { createDelegation, isLoading } = useBlockDriveSolana();
 
   const form = useForm<ShareFormValues>({
@@ -117,6 +125,32 @@ export function ShareFileModal({
       note: '',
     },
   });
+
+  // Check if we have critical bytes stored for this file
+  useEffect(() => {
+    const checkCriticalBytes = async () => {
+      if (!file?.id) {
+        setHasCriticalBytes(false);
+        setLoadingCriticalBytes(false);
+        return;
+      }
+      
+      setLoadingCriticalBytes(true);
+      try {
+        const exists = await criticalBytesStorage.hasCriticalBytes(file.id);
+        setHasCriticalBytes(exists);
+      } catch (error) {
+        console.error('Failed to check critical bytes:', error);
+        setHasCriticalBytes(false);
+      } finally {
+        setLoadingCriticalBytes(false);
+      }
+    };
+
+    if (isOpen) {
+      checkCriticalBytes();
+    }
+  }, [file?.id, isOpen]);
 
   const handleClose = () => {
     form.reset();
@@ -145,11 +179,41 @@ export function ShareFileModal({
         'reshare': PermissionLevel.Reshare,
       };
 
-      // Generate encrypted file key for grantee
-      // In a real implementation, this would use ECDH key exchange
-      // For now, we'll use a placeholder encrypted key
-      const encryptedFileKey = new Uint8Array(128);
-      crypto.getRandomValues(encryptedFileKey);
+      // Get critical bytes from local storage
+      const criticalData = await criticalBytesStorage.getCriticalBytes(file.id);
+      
+      if (!criticalData) {
+        toast.error('Critical bytes not found. Please re-upload the file.');
+        setIsSharing(false);
+        return;
+      }
+
+      // Get the owner's encryption key for ECDH
+      let encryptedFileKey: Uint8Array;
+      
+      if (getEncryptionKey) {
+        const ownerKey = await getEncryptionKey();
+        if (ownerKey) {
+          // Use wallet key to encrypt critical bytes + IV for the recipient
+          encryptedFileKey = await ecdhKeyExchange.encryptWithWalletKey(
+            criticalData.criticalBytes,
+            criticalData.iv,
+            ownerKey
+          );
+          console.log('[ShareFileModal] Encrypted critical bytes with wallet key');
+        } else {
+          toast.error('Encryption key not available. Please initialize your keys first.');
+          setIsSharing(false);
+          return;
+        }
+      } else {
+        // Fallback: serialize critical bytes directly (less secure)
+        const payload = new Uint8Array(criticalData.criticalBytes.length + criticalData.iv.length);
+        payload.set(criticalData.criticalBytes, 0);
+        payload.set(criticalData.iv, criticalData.criticalBytes.length);
+        encryptedFileKey = payload;
+        console.warn('[ShareFileModal] Using fallback encoding - no encryption key provided');
+      }
 
       const signature = await createDelegation(
         ownerAddress,
@@ -258,7 +322,24 @@ export function ShareFileModal({
           </div>
         </div>
 
-        {!file.onChain?.fileRecordPubkey ? (
+        {loadingCriticalBytes ? (
+          <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            <span className="text-sm text-muted-foreground">Checking encryption data...</span>
+          </div>
+        ) : !hasCriticalBytes ? (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+            <Key className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Critical bytes not found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                The encryption keys for this file are not stored locally. 
+                This may happen if the file was uploaded from a different device. 
+                Please re-upload the file to enable sharing.
+              </p>
+            </div>
+          </div>
+        ) : !file.onChain?.fileRecordPubkey ? (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
