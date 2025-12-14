@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { FileDatabaseService } from './fileDatabaseService';
 import { IPFSFile } from '@/types/ipfs';
@@ -21,10 +20,10 @@ export class IPFSUploadService {
 
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
-      console.log(`Processing file ${i + 1}/${totalFiles} for IPFS via Pinata: ${file.name}`);
+      console.log(`Processing file ${i + 1}/${totalFiles} for IPFS via Filebase: ${file.name}`);
       
       try {
-        // Upload to IPFS via Pinata
+        // Upload to IPFS via Filebase
         const uploadResult = await IPFSService.uploadFile(file);
 
         if (!uploadResult) {
@@ -44,7 +43,8 @@ export class IPFSUploadService {
           metadata: {
             storage_type: 'ipfs' as const,
             permanence: 'permanent' as const,
-            blockchain: 'ipfs'
+            blockchain: 'ipfs',
+            provider: 'filebase'
           }
         };
 
@@ -74,7 +74,7 @@ export class IPFSUploadService {
 
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
-        throw new Error(`Failed to upload ${file.name} to IPFS via Pinata`);
+        throw new Error(`Failed to upload ${file.name} to IPFS via Filebase`);
       }
     }
 
@@ -83,14 +83,32 @@ export class IPFSUploadService {
 
   static async downloadFile(cid: string, filename: string): Promise<void> {
     try {
-      const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
-      const response = await fetch(url);
+      // Try Filebase gateway first, then fallbacks
+      const gateways = [
+        `https://ipfs.filebase.io/ipfs/${cid}`,
+        `https://ipfs.io/ipfs/${cid}`,
+        `https://cloudflare-ipfs.com/ipfs/${cid}`,
+        `https://dweb.link/ipfs/${cid}`
+      ];
       
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
+      let blob: Blob | null = null;
+      
+      for (const url of gateways) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            blob = await response.blob();
+            break;
+          }
+        } catch {
+          continue;
+        }
       }
       
-      const blob = await response.blob();
+      if (!blob) {
+        throw new Error('Failed to download file from all gateways');
+      }
+      
       const downloadUrl = URL.createObjectURL(blob);
       
       const link = document.createElement('a');

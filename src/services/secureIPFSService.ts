@@ -25,7 +25,7 @@ export class SecureIPFSService {
       formData.append('file', file);
       formData.append('folderPath', folderPath);
 
-      // Upload via secure Edge Function that uses server-side Pinata secrets
+      // Upload via secure Edge Function that uses server-side Filebase credentials
       const { data, error } = await supabase.functions.invoke('upload-to-ipfs', {
         body: formData
       });
@@ -92,8 +92,13 @@ export class SecureIPFSService {
     return `${gateway}/ipfs/${cid}`;
   }
 
+  static getFilebaseIPFSUrl(cid: string): string {
+    return `https://ipfs.filebase.io/ipfs/${cid}`;
+  }
+
+  // Legacy method for backwards compatibility
   static getPinataIPFSUrl(cid: string): string {
-    return `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${cid}`;
+    return SecureIPFSService.getFilebaseIPFSUrl(cid);
   }
 
   static isValidCID(cid: string): boolean {

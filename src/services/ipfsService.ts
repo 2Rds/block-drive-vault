@@ -1,4 +1,3 @@
-
 import { IPFSConfig } from './ipfs/ipfsConfig';
 import { IPFSUploadService, IPFSUploadResult } from './ipfs/ipfsUploadService';
 import { IPFSRetrievalService } from './ipfs/ipfsRetrievalService';
@@ -33,8 +32,13 @@ export class IPFSService {
     return IPFSConfig.getIPFSGatewayUrl(cid, gateway);
   }
   
+  static getFilebaseIPFSUrl(cid: string): string {
+    return IPFSConfig.getFilebaseIPFSUrl(cid);
+  }
+
+  // Legacy method for backwards compatibility
   static getPinataIPFSUrl(cid: string): string {
-    return IPFSConfig.getPinataIPFSUrl(cid);
+    return IPFSConfig.getFilebaseIPFSUrl(cid);
   }
   
   static isValidCID(cid: string): boolean {

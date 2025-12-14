@@ -13,12 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    // Get API keys from environment
-    const pinataApiKey = Deno.env.get('PINATA_API_KEY');
-    const pinataSecretKey = Deno.env.get('PINATA_API_SECRET_KEY') || Deno.env.get('PINATA_SECRET_API_KEY');
+    // Get Filebase API token from environment
+    const filebasePinningToken = Deno.env.get('FILEBASE_PINNING_TOKEN');
 
-    if (!pinataApiKey || !pinataSecretKey) {
-      throw new Error('Pinata API keys not configured');
+    if (!filebasePinningToken) {
+      throw new Error('Filebase Pinning API token not configured');
     }
 
     // Validate JWT authentication
@@ -46,7 +45,7 @@ serve(async (req) => {
       );
     }
 
-    const { cid, action } = await req.json();
+    const { cid, action, name } = await req.json();
     
     if (!cid || !action) {
       return new Response(
@@ -56,22 +55,19 @@ serve(async (req) => {
     }
 
     if (action === 'pin') {
-      // Pin existing content
-      const response = await fetch('https://api.pinata.cloud/pinning/pinByHash', {
+      // Pin existing content using Filebase IPFS Pinning Service API
+      const response = await fetch('https://api.filebase.io/v1/ipfs/pins', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'pinata_api_key': pinataApiKey,
-          'pinata_secret_api_key': pinataSecretKey
+          'Authorization': `Bearer ${filebasePinningToken}`
         },
         body: JSON.stringify({
-          hashToPin: cid,
-          pinataMetadata: {
-            name: `User pin: ${cid}`,
-            keyvalues: {
-              user_id: user.id,
-              pinned_at: new Date().toISOString()
-            }
+          cid: cid,
+          name: name || `User pin: ${cid}`,
+          meta: {
+            user_id: user.id,
+            pinned_at: new Date().toISOString()
           }
         })
       });
@@ -90,17 +86,39 @@ serve(async (req) => {
     } 
     
     if (action === 'unpin') {
-      // Unpin content
-      const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
-        method: 'DELETE',
+      // First, we need to get the pin request ID for this CID
+      const listResponse = await fetch(`https://api.filebase.io/v1/ipfs/pins?cid=${cid}`, {
+        method: 'GET',
         headers: {
-          'pinata_api_key': pinataApiKey,
-          'pinata_secret_api_key': pinataSecretKey
+          'Authorization': `Bearer ${filebasePinningToken}`
         }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text();
+        throw new Error(`Failed to find pin: ${errorText}`);
+      }
+
+      const listResult = await listResponse.json();
+      
+      if (!listResult.results || listResult.results.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, message: 'Pin not found, nothing to unpin' }),
+          { headers: corsHeaders }
+        );
+      }
+
+      // Delete the pin using the request ID
+      const pinRequestId = listResult.results[0].requestid;
+      const deleteResponse = await fetch(`https://api.filebase.io/v1/ipfs/pins/${pinRequestId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${filebasePinningToken}`
+        }
+      });
+
+      if (!deleteResponse.ok) {
+        const errorText = await deleteResponse.text();
         throw new Error(`Unpin failed: ${errorText}`);
       }
 

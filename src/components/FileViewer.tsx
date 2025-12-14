@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Download, ExternalLink, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,13 +66,13 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
   const isPDF = file.contentType?.includes('pdf');
 
   const handleViewOnIPFS = () => {
-    const ipfsUrl = `https://gray-acceptable-grouse-462.mypinata.cloud/ipfs/${file.cid}`;
+    const ipfsUrl = `https://ipfs.filebase.io/ipfs/${file.cid}`;
     window.open(ipfsUrl, '_blank');
   };
 
   const getFileDisplayUrl = () => {
-    // Try the stored ipfs_url first, then fallback to other gateways
-    const url = file.ipfsUrl || `https://gateway.pinata.cloud/ipfs/${file.cid}`;
+    // Try the stored ipfs_url first, then fallback to Filebase gateway
+    const url = file.ipfsUrl || `https://ipfs.filebase.io/ipfs/${file.cid}`;
     console.log('FileViewer - Displaying file:', file);
     console.log('FileViewer - Using URL:', url);
     return url;
@@ -81,7 +80,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
 
   const getFallbackUrls = () => {
     const fallbackGateways = [
-      'https://gateway.pinata.cloud/ipfs',
+      'https://ipfs.filebase.io/ipfs',
       'https://ipfs.io/ipfs',
       'https://cloudflare-ipfs.com/ipfs',
       'https://dweb.link/ipfs'
