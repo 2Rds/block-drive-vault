@@ -96,12 +96,13 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
           }
         },
         cssOverrides: `
-          /* Ensure inline widget wrapper has no white pill background */
+          .dynamic-widget-modal { z-index: 10000 !important; }
+          .dynamic-widget-modal-overlay { z-index: 9999 !important; }
+
+          /* Remove white pill/outline around inline connect button */
           .dynamic-inline-widget,
-          .dynamic-widget-inline-controls,
-          .dynamic-widget-inline-controls > div,
-          .dynamic-widget-card,
-          .dynamic-connect-button-container {
+          .dynamic-connect-button-container,
+          .dynamic-widget-inline-controls {
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
@@ -110,14 +111,6 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
             border-radius: 0 !important;
           }
 
-          /* Remove extra focus outline from container */
-          .dynamic-inline-widget:focus-visible,
-          .dynamic-connect-button-container:focus-visible {
-            outline: none !important;
-            box-shadow: none !important;
-          }
-
-          /* Keep the actual button styled via our Tailwind classes only */
           .dynamic-connect-button {
             background: none !important;
             border: none !important;
