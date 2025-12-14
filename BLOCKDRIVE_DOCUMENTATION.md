@@ -34,7 +34,7 @@ BlockDrive is a comprehensive Web3 data management platform that combines decent
 **Backend:**
 - Supabase for database and authentication
 - Edge Functions for serverless compute
-- IPFS (Pinata) for decentralized storage
+- IPFS (Filebase) for decentralized storage
 - Stripe for payment processing
 
 **Blockchain:**
@@ -68,11 +68,11 @@ src/
 ## Core Features
 
 ### 1. Decentralized Storage (IPFS)
-- **File Upload**: Secure upload to IPFS via Pinata
+- **File Upload**: Secure upload to IPFS via Filebase
 - **File Management**: Organize files in folders with metadata
 - **File Viewing**: Preview and download files from IPFS
 - **Permanent Storage**: Files pinned for guaranteed availability
-- **Global CDN**: Fast access through Pinata's gateway network
+- **Global CDN**: Fast access through Filebase's gateway network
 
 ### 2. Multi-Chain Wallet Support
 - **Supported Networks**: Ethereum, Solana, and 50+ other blockchains
@@ -130,7 +130,7 @@ BlockDrive uses Dynamic Labs SDK for comprehensive wallet authentication:
 ### IPFS Integration
 
 **Architecture:**
-- Pinata as primary IPFS provider
+- Filebase as primary IPFS provider (S3-compatible API)
 - Custom gateway for optimized access
 - Redundant storage across global nodes
 - Automatic pinning for permanent storage
@@ -385,7 +385,7 @@ const logSecurityEvent = async (eventType: string, details: any) => {
 - **Hosting**: Lovable.dev platform
 - **CDN**: Global edge locations for fast access
 - **Database**: Supabase PostgreSQL with auto-scaling
-- **Storage**: IPFS via Pinata for decentralized storage
+- **Storage**: IPFS via Filebase for decentralized storage
 - **Monitoring**: Real-time performance and security monitoring
 
 ### Development Setup
@@ -410,8 +410,10 @@ npm run build
 # Required environment variables
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_anon_key
-PINATA_API_KEY=your_pinata_key
-PINATA_SECRET_KEY=your_pinata_secret
+FILEBASE_ACCESS_KEY=your_filebase_access_key
+FILEBASE_SECRET_KEY=your_filebase_secret_key
+FILEBASE_BUCKET=your_filebase_bucket
+FILEBASE_PINNING_TOKEN=your_filebase_pinning_token
 STRIPE_SECRET_KEY=your_stripe_key
 ```
 
