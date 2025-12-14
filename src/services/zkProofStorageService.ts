@@ -5,7 +5,7 @@
  * Proofs are stored on S3/IPFS - only the CID is recorded on-chain.
  */
 
-import { ZKProofPackage, zkProofService } from './crypto/zkProofService';
+import { ZKProofPackage, AnyZKProofPackage, zkProofService } from './crypto/zkProofService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { StorageConfig, DEFAULT_STORAGE_CONFIG, StorageProviderType } from '@/types/storageProvider';
 
@@ -21,7 +21,7 @@ export interface ZKProofUploadResult {
 
 export interface ZKProofDownloadResult {
   success: boolean;
-  proofPackage: ZKProofPackage | null;
+  proofPackage: AnyZKProofPackage | null;
   downloadTimeMs: number;
   error?: string;
 }
@@ -215,18 +215,29 @@ class ZKProofStorageService {
       }
 
       // Step 2: Create an invalidated version with garbage data
-      const invalidatedProof: ZKProofPackage = {
-        ...downloadResult.proofPackage,
-        // Replace encrypted critical bytes with random garbage
-        encryptedCriticalBytes: this.generateGarbageData(64),
-        encryptedIv: this.generateGarbageData(16),
-        encryptionIv: this.generateGarbageData(12),
-        // Update proof hash to reflect invalidation
-        proofHash: 'INVALIDATED_' + Date.now().toString(16),
-        proofTimestamp: Date.now(),
-        // Mark as invalidated
-        walletSignature: 'REVOKED'
-      };
+      const originalProof = downloadResult.proofPackage;
+      const invalidatedProof: AnyZKProofPackage = originalProof.version === 2 
+        ? {
+            ...originalProof,
+            // Replace encrypted critical bytes with random garbage
+            encryptedCriticalBytes: this.generateGarbageData(64),
+            encryptedIv: this.generateGarbageData(16),
+            encryptionIv: this.generateGarbageData(12),
+            // Update proof hash to reflect invalidation
+            proofHash: 'INVALIDATED_' + Date.now().toString(16),
+            proofTimestamp: Date.now(),
+            // Mark as invalidated
+            walletSignature: 'REVOKED'
+          }
+        : {
+            ...originalProof,
+            encryptedCriticalBytes: this.generateGarbageData(64),
+            encryptedIv: this.generateGarbageData(16),
+            encryptionIv: this.generateGarbageData(12),
+            proofHash: 'INVALIDATED_' + Date.now().toString(16),
+            proofTimestamp: Date.now(),
+            walletSignature: 'REVOKED'
+          };
 
       // Step 3: Serialize the invalidated proof
       const invalidatedData = zkProofService.serializeForStorage(invalidatedProof);

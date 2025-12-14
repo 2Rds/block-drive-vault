@@ -27,3 +27,6 @@ export * from './ecdhKeyExchange';
 
 // ZK Proofs
 export * from './zkProofService';
+
+// Snarkjs Groth16
+export * from './snarkjsService';
