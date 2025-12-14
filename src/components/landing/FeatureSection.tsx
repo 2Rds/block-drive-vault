@@ -4,50 +4,89 @@ import {
   Database, 
   Shield, 
   Zap, 
-  Globe, 
   Wallet, 
   Lock,
-  Server,
   CloudUpload,
-  BarChart3
+  BarChart3,
+  FileKey,
+  Bot,
+  Building2,
+  Users,
+  RefreshCcw
 } from 'lucide-react';
 
 const features = [
   {
-    icon: Database,
-    title: "Decentralized Storage",
-    description: "Store files on IPFS with guaranteed availability and redundancy across the global network.",
-    highlight: "99.9% Uptime"
+    icon: Lock,
+    title: "Programmed Incompleteness",
+    description: "Proprietary architecture splits encrypted files: critical bytes in ZK proofs, content in multi-provider storage. Files can't be stolen.",
+    highlight: "Theft-Proof"
+  },
+  {
+    icon: FileKey,
+    title: "Zero-Knowledge Encryption",
+    description: "AES-256-GCM encryption with Groth16 ZK proofs. Wallet-derived keys never touch our servers. Three security levels available.",
+    highlight: "ZK-Powered"
   },
   {
     icon: Wallet,
-    title: "Multi-Chain Wallet Support", 
-    description: "Connect with Phantom, Solflare, MetaMask, and 50+ other wallets across Ethereum, Solana, and more.",
-    highlight: "50+ Wallets"
+    title: "Multichain Authentication", 
+    description: "Dual-chain verification via SNS (.sol) and Basenames (.base) domains. Connect with Phantom, MetaMask, and 50+ wallets.",
+    highlight: "MCA 2-Factor"
+  },
+  {
+    icon: Database,
+    title: "Multi-Provider Storage",
+    description: "Filebase IPFS, Amazon S3, and Arweave with automatic failover. Your files stay available with 99.9% uptime guarantee.",
+    highlight: "99.9% Uptime"
+  },
+  {
+    icon: RefreshCcw,
+    title: "Instant Revoke Sharing",
+    description: "Share encrypted files while retaining control. Revoke access instantly by deleting on-chain critical bytes - files become unreadable.",
+    highlight: "Unique to BlockDrive"
   },
   {
     icon: Shield,
-    title: "Enterprise Security",
-    description: "End-to-end encryption, secure authentication, and comprehensive audit trails for your data.",
-    highlight: "SOC 2 Compliant"
+    title: "On-Chain File Registry",
+    description: "Solana Anchor program records all files, delegations, and access. Immutable audit trail with cryptographic commitments.",
+    highlight: "Blockchain-Backed"
+  },
+  {
+    icon: Bot,
+    title: "AI Agents",
+    description: "Premium AI assistants for marketing, sales, project management, and executive tasks. Automate your business workflows.",
+    highlight: "4 Agents"
+  },
+  {
+    icon: Building2,
+    title: "Business Formation",
+    description: "Spin up onchain LLCs with OtoCo, form C-Corps via Stripe Atlas, or get VC-standard legal docs from Clerky - without leaving BlockDrive.",
+    highlight: "One-Click LLC"
+  },
+  {
+    icon: CloudUpload,
+    title: "20+ Integrations",
+    description: "Connect Slack, Google Drive, OneDrive, Salesforce, Notion, QuickBooks, and more. Migrate your existing workflows seamlessly.",
+    highlight: "Enterprise Ready"
+  },
+  {
+    icon: Users,
+    title: "Team Collaboration",
+    description: "Create teams, manage permissions, and share files securely. Role-based access control with encrypted team workspaces.",
+    highlight: "Teams Built-In"
+  },
+  {
+    icon: BarChart3,
+    title: "Real-Time Analytics",
+    description: "Monitor storage usage, network health, ZK proof status, and security events. Performance insights across all providers.",
+    highlight: "Live Metrics"
   },
   {
     icon: Zap,
     title: "Lightning Fast",
-    description: "Global CDN with edge locations worldwide ensures sub-100ms response times everywhere.",
+    description: "Global CDN with edge locations worldwide ensures sub-100ms response times. Optimized for enterprise-scale operations.",
     highlight: "< 100ms Latency"
-  },
-  {
-    icon: CloudUpload,
-    title: "Seamless Integration",
-    description: "Connect with Slack, Google Drive, OneDrive, and Box. Import and sync your existing files.",
-    highlight: "4+ Integrations"
-  },
-  {
-    icon: BarChart3,
-    title: "Advanced Analytics",
-    description: "Real-time insights into storage usage, bandwidth, access patterns, and security events.",
-    highlight: "Real-time Insights"
   }
 ];
 
@@ -57,30 +96,30 @@ export const FeatureSection = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Everything you need for Web3 data management
+            The most secure Web3 data platform ever built
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Built for developers, loved by enterprises. BlockDrive combines the best of 
-            decentralized storage with enterprise-grade features.
+            BlockDrive combines zero-knowledge cryptography, multi-chain authentication, 
+            and programmed incompleteness for security that's mathematically unbreakable.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {features.map((feature, index) => (
             <Card key={index} className="border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
-              <CardContent className="p-8">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 rounded-lg bg-primary/10">
-                    <feature.icon className="h-6 w-6 text-primary" />
+                    <feature.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
                     {feature.highlight}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
               </CardContent>
