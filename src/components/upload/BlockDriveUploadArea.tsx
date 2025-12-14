@@ -2,10 +2,10 @@
  * BlockDrive Upload Area
  * 
  * Enhanced upload component that uses the unified BlockDrive encryption
- * and multi-provider storage system.
+ * and multi-provider storage system with Solana on-chain registration.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   Upload, 
   Plus, 
@@ -16,10 +16,14 @@ import {
   Key, 
   Lock,
   Settings,
-  AlertCircle
+  AlertCircle,
+  Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { CreateFolderModal } from '../CreateFolderModal';
 import { SubscriptionGate } from '../SubscriptionGate';
 import { CryptoSetupModal } from '../crypto/CryptoSetupModal';
@@ -37,17 +41,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { toast } from 'sonner';
 
 interface BlockDriveUploadAreaProps {
   onCreateFolder?: (folderName: string) => void;
   selectedFolder?: string;
   onUploadComplete?: () => void;
+  signTransaction?: (tx: any) => Promise<any>;
 }
 
 export function BlockDriveUploadArea({ 
   onCreateFolder, 
   selectedFolder, 
-  onUploadComplete 
+  onUploadComplete,
+  signTransaction 
 }: BlockDriveUploadAreaProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -58,17 +65,46 @@ export function BlockDriveUploadArea({
   // Upload settings
   const [securityLevel, setSecurityLevel] = useState<SecurityLevel>(SecurityLevel.STANDARD);
   const [storageConfig, setStorageConfig] = useState<StorageConfig>(DEFAULT_STORAGE_CONFIG);
+  const [enableOnChain, setEnableOnChain] = useState(true);
+  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
+  const [initializingVault, setInitializingVault] = useState(false);
   
-  const { user, session, walletData } = useAuth();
+  const { user, walletData } = useAuth();
   const { 
     isUploading, 
-    isInitialized, 
     progress, 
     hasKeys,
-    initializeCrypto,
-    uploadFiles 
-  } = useBlockDriveUpload();
+    uploadFiles,
+    initializeVault,
+    checkVaultExists,
+    solanaLoading
+  } = useBlockDriveUpload({ enableOnChainRegistration: enableOnChain });
   const { healthStatus, refreshHealth } = useStorageOrchestrator();
+
+  // Check vault status on mount
+  useEffect(() => {
+    if (walletData?.connected && hasKeys) {
+      checkVaultExists().then(setVaultExists);
+    }
+  }, [walletData?.connected, hasKeys, checkVaultExists]);
+
+  const handleInitializeVault = async () => {
+    if (!signTransaction) {
+      toast.error('Wallet signing not available');
+      return;
+    }
+    
+    setInitializingVault(true);
+    try {
+      const success = await initializeVault(signTransaction);
+      if (success) {
+        setVaultExists(true);
+        toast.success('Vault initialized on Solana');
+      }
+    } finally {
+      setInitializingVault(false);
+    }
+  };
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -78,10 +114,27 @@ export function BlockDriveUploadArea({
       setShowCryptoSetup(true);
       return;
     }
+
+    // Check if vault needs initialization for on-chain
+    if (enableOnChain && !vaultExists && signTransaction) {
+      toast.info('Initializing your vault first...');
+      const success = await initializeVault(signTransaction);
+      if (!success) {
+        toast.error('Could not initialize vault. Uploading without on-chain registration.');
+      } else {
+        setVaultExists(true);
+      }
+    }
     
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
     
-    const results = await uploadFiles(files, securityLevel, storageConfig, folderPath);
+    const results = await uploadFiles(
+      files, 
+      securityLevel, 
+      storageConfig, 
+      folderPath,
+      enableOnChain && signTransaction ? signTransaction : undefined
+    );
     
     if (results.length > 0 && onUploadComplete) {
       onUploadComplete();
@@ -177,9 +230,47 @@ export function BlockDriveUploadArea({
     return 'border-border hover:border-primary/50';
   };
 
+  const getProgressLabel = () => {
+    switch (progress?.phase) {
+      case 'encrypting': return 'Encrypting...';
+      case 'uploading': return 'Uploading...';
+      case 'registering': return 'Registering on Solana...';
+      default: return '';
+    }
+  };
+
   return (
     <SubscriptionGate>
       <div className="space-y-4">
+        {/* Vault Status Banner */}
+        {enableOnChain && vaultExists === false && signTransaction && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link2 className="w-5 h-5 text-amber-500" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Solana Vault Not Initialized</p>
+                <p className="text-xs text-muted-foreground">Initialize to register files on-chain</p>
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={handleInitializeVault}
+              disabled={initializingVault || solanaLoading}
+            >
+              {initializingVault ? 'Initializing...' : 'Initialize Vault'}
+            </Button>
+          </div>
+        )}
+
+        {vaultExists && enableOnChain && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Solana Vault Active
+            </Badge>
+          </div>
+        )}
+
         {/* Main Upload Area */}
         <div
           className={cn(
@@ -204,6 +295,8 @@ export function BlockDriveUploadArea({
                   <AlertCircle className="w-8 h-8 text-destructive" />
                 ) : progress?.phase === 'complete' ? (
                   <CheckCircle className="w-8 h-8 text-green-500" />
+                ) : progress?.phase === 'registering' ? (
+                  <Link2 className="w-8 h-8 text-primary animate-pulse" />
                 ) : isUploading ? (
                   <Zap className="w-8 h-8 text-primary animate-pulse" />
                 ) : (
@@ -218,6 +311,7 @@ export function BlockDriveUploadArea({
                 <Lock className="w-5 h-5 text-primary" />
                 {progress?.phase === 'complete' ? 'Upload Complete!' :
                  progress?.phase === 'error' ? 'Upload Failed' :
+                 progress?.phase === 'registering' ? 'Registering On-Chain...' :
                  isUploading ? 'Encrypting & Uploading...' :
                  'Encrypted BlockDrive Upload'}
               </h3>
@@ -227,7 +321,7 @@ export function BlockDriveUploadArea({
             </div>
 
             {/* Features */}
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
                 <Shield className="w-4 h-4 text-primary" />
                 AES-256 Encrypted
@@ -240,6 +334,12 @@ export function BlockDriveUploadArea({
                 <Key className="w-4 h-4 text-primary" />
                 Wallet-Derived Keys
               </span>
+              {enableOnChain && (
+                <span className="flex items-center gap-1">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  Solana Registered
+                </span>
+              )}
             </div>
 
             {/* Progress */}
@@ -247,9 +347,7 @@ export function BlockDriveUploadArea({
               <div className="space-y-3 max-w-md mx-auto">
                 <Progress value={progress.progress} className="h-2" />
                 <p className="text-sm text-muted-foreground">
-                  {progress.phase === 'encrypting' ? 'Encrypting...' : 
-                   progress.phase === 'uploading' ? 'Uploading...' : ''}
-                  {' '}{Math.round(progress.progress)}%
+                  {getProgressLabel()} {Math.round(progress.progress)}%
                 </p>
               </div>
             )}
@@ -307,6 +405,25 @@ export function BlockDriveUploadArea({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4">
+            {/* On-Chain Registration Toggle */}
+            <div className="flex items-center justify-between p-4 bg-card/60 rounded-lg border border-border">
+              <div className="space-y-0.5">
+                <Label htmlFor="on-chain" className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  Solana On-Chain Registration
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Register file commitments on Solana for verifiable ownership
+                </p>
+              </div>
+              <Switch
+                id="on-chain"
+                checked={enableOnChain}
+                onCheckedChange={setEnableOnChain}
+                disabled={isUploading || !signTransaction}
+              />
+            </div>
+
             {/* Security Level */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
