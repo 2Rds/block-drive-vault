@@ -6,11 +6,12 @@ import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { BlockDriveFileGrid } from "@/components/files/BlockDriveFileGrid";
 import { ShareFileModal } from "@/components/files/ShareFileModal";
 import { SharedFilesPanel } from "@/components/files/SharedFilesPanel";
+import { SharedWithMePanel } from "@/components/files/SharedWithMePanel";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe, Share2 } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe, Share2, Inbox } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
@@ -19,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBlockDriveSolana, } from '@/hooks/useBlockDriveSolana';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
+import { toast } from 'sonner';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
@@ -38,7 +40,7 @@ const IPFSFiles = () => {
   } = useFolderNavigation();
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeTab, setActiveTab] = useState<'all' | 'on-chain' | 'shared'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'on-chain' | 'shared' | 'inbox'>('all');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [fileToShare, setFileToShare] = useState<any>(null);
   
@@ -271,7 +273,7 @@ const IPFSFiles = () => {
             />
             
             {/* File View Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'on-chain' | 'shared')}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'on-chain' | 'shared' | 'inbox')}>
               <TabsList className="mb-4">
                 <TabsTrigger value="all" className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
@@ -283,7 +285,11 @@ const IPFSFiles = () => {
                 </TabsTrigger>
                 <TabsTrigger value="shared" className="flex items-center gap-2">
                   <Share2 className="w-4 h-4" />
-                  Files You've Shared
+                  Shared by You
+                </TabsTrigger>
+                <TabsTrigger value="inbox" className="flex items-center gap-2">
+                  <Inbox className="w-4 h-4" />
+                  Shared With Me
                 </TabsTrigger>
               </TabsList>
               
@@ -320,6 +326,21 @@ const IPFSFiles = () => {
                   walletAddress={walletData?.address || ''}
                   signTransaction={signTransaction}
                   onRevoke={loadUserFiles}
+                />
+              </TabsContent>
+
+              <TabsContent value="inbox">
+                <SharedWithMePanel 
+                  walletAddress={walletData?.address || ''}
+                  signTransaction={signTransaction}
+                  onDownload={(file, delegation) => {
+                    console.log('Download shared file:', file, delegation);
+                    toast.info('Download functionality coming soon');
+                  }}
+                  onPreview={(file, delegation) => {
+                    console.log('Preview shared file:', file, delegation);
+                    toast.info('Preview functionality coming soon');
+                  }}
                 />
               </TabsContent>
             </Tabs>
