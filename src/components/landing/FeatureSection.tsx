@@ -3,78 +3,48 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Database, 
   Shield, 
-  Zap, 
-  Wallet, 
   Lock,
   CloudUpload,
-  BarChart3,
-  FileKey,
   Bot,
-  Building2,
-  Users,
   RefreshCcw
 } from 'lucide-react';
 
 const features = [
   {
     icon: Lock,
-    title: "Programmed Incompleteness + ZK Encryption",
-    description: "Proprietary architecture splits encrypted files: critical bytes stored in ZK proofs, content across multi-provider storage. Wallet-derived keys never touch our servers.",
+    title: "Programmed Incompleteness",
+    description: "Proprietary architecture splits encrypted files: critical bytes in ZK proofs, content across providers. Theft-proof by design.",
     highlight: "Theft-Proof"
-  },
-  {
-    icon: Database,
-    title: "Multi-Provider Storage",
-    description: "Filebase IPFS, Amazon S3, and Arweave with automatic failover. Your files stay available with 99.9% uptime guarantee.",
-    highlight: "99.9% Uptime"
   },
   {
     icon: RefreshCcw,
     title: "Instant Revoke Sharing",
-    description: "Share encrypted files while retaining control. Revoke access instantly by deleting on-chain critical bytes - files become unreadable.",
-    highlight: "Unique to BlockDrive"
+    description: "Share files while retaining control. Revoke access instantly - files become permanently unreadable.",
+    highlight: "Unique"
   },
   {
     icon: Shield,
-    title: "On-Chain File Registry",
-    description: "Solana Anchor program records all files, delegations, and access. Immutable audit trail with cryptographic commitments.",
-    highlight: "Blockchain-Backed"
+    title: "On-Chain Registry",
+    description: "Solana program records all files and delegations. Immutable audit trail with cryptographic commitments.",
+    highlight: "Blockchain"
+  },
+  {
+    icon: Database,
+    title: "Multi-Provider Storage",
+    description: "IPFS, S3, and Arweave with automatic failover. 99.9% uptime guaranteed.",
+    highlight: "Redundant"
   },
   {
     icon: Bot,
     title: "AI Agents",
-    description: "Premium AI assistants for marketing, sales, project management, and executive tasks. Automate your business workflows.",
+    description: "Premium AI assistants for marketing, sales, and project management. Automate your workflows.",
     highlight: "4 Agents"
-  },
-  {
-    icon: Building2,
-    title: "Business Formation",
-    description: "Spin up onchain LLCs with OtoCo, form C-Corps via Stripe Atlas, or get VC-standard legal docs from Clerky - without leaving BlockDrive.",
-    highlight: "One-Click LLC"
   },
   {
     icon: CloudUpload,
     title: "20+ Integrations",
-    description: "Connect Slack, Google Drive, OneDrive, Salesforce, Notion, QuickBooks, and more. Migrate your existing workflows seamlessly.",
-    highlight: "Enterprise Ready"
-  },
-  {
-    icon: Users,
-    title: "Team Collaboration",
-    description: "Create teams, manage permissions, and share files securely. Role-based access control with encrypted team workspaces.",
-    highlight: "Teams Built-In"
-  },
-  {
-    icon: BarChart3,
-    title: "Real-Time Analytics",
-    description: "Monitor storage usage, network health, ZK proof status, and security events. Performance insights across all providers.",
-    highlight: "Live Metrics"
-  },
-  {
-    icon: Zap,
-    title: "Lightning Fast",
-    description: "Global CDN with edge locations worldwide ensures sub-100ms response times. Optimized for enterprise-scale operations.",
-    highlight: "< 100ms Latency"
+    description: "Connect Slack, Drive, OneDrive, Salesforce, and more. Enterprise-ready from day one.",
+    highlight: "Enterprise"
   }
 ];
 
@@ -92,7 +62,7 @@ export const FeatureSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <Card key={index} className="border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
               <CardContent className="p-6">

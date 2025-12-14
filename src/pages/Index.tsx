@@ -16,9 +16,6 @@ const StatsSection = lazy(() => import(/* webpackPreload: true */'@/components/l
 const PlatformShowcase = lazy(() => import(/* webpackPreload: true */'@/components/landing/PlatformShowcase').then(m => ({
   default: m.PlatformShowcase
 })));
-const TestimonialsSection = lazy(() => import(/* webpackPrefetch: true */'@/components/landing/TestimonialsSection').then(m => ({
-  default: m.TestimonialsSection
-})));
 const CTASection = lazy(() => import(/* webpackPreload: true */'@/components/landing/CTASection').then(m => ({
   default: m.CTASection
 })));
@@ -51,10 +48,9 @@ const Index = () => {
           contentVisibility: 'auto',
           containIntrinsicSize: '1000px'
         }}>
-            <StatsSection />
             <FeatureSection />
+            <StatsSection />
             <PlatformShowcase />
-            <TestimonialsSection />
             <CTASection />
           </div>
         </Suspense>
