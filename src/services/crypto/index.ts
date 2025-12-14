@@ -18,3 +18,12 @@ export * from './aesEncryptionService';
 
 // BlockDrive-specific crypto
 export * from './blockDriveCryptoService';
+
+// Critical bytes storage (for legacy/sharing)
+export * from './criticalBytesStorage';
+
+// ECDH key exchange
+export * from './ecdhKeyExchange';
+
+// ZK Proofs
+export * from './zkProofService';
