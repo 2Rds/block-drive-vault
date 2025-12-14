@@ -4,13 +4,15 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
-import { FileViewer } from "@/components/FileViewer";
+import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { Button } from '@/components/ui/button';
 import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { SecurityLevel } from '@/types/blockdriveCrypto';
+import { FileRecordData } from '@/services/blockDriveDownloadService';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
@@ -173,12 +175,20 @@ const IPFSFiles = () => {
         </main>
       </div>
 
-      {/* File Viewer Modal */}
+      {/* Encrypted File Viewer Modal */}
       {showFileViewer && selectedFile && (
-        <FileViewer
+        <EncryptedFileViewer
           file={selectedFile}
+          fileRecord={selectedFile.metadata?.blockdrive === 'true' ? {
+            contentCID: selectedFile.cid,
+            metadataCID: selectedFile.metadata?.metadataCID,
+            commitment: selectedFile.metadata?.commitment || '',
+            encryptedCriticalBytes: selectedFile.metadata?.encryptedCriticalBytes || '',
+            criticalBytesIv: selectedFile.metadata?.criticalBytesIv || '',
+            securityLevel: (selectedFile.metadata?.securityLevel as SecurityLevel) || SecurityLevel.STANDARD,
+            storageProvider: 'filebase'
+          } : undefined}
           onClose={closeFileViewer}
-          onDownload={handleDownloadFile}
         />
       )}
     </div>
