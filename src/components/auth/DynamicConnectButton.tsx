@@ -9,9 +9,12 @@ export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonPro
   return (
     <DynamicWidget 
       innerButtonComponent={
-        <span className="inline-flex items-center justify-center bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 cursor-pointer">
+        <button 
+          type="button"
+          className="inline-flex items-center justify-center whitespace-nowrap bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200"
+        >
           Connect Wallet
-        </span>
+        </button>
       }
     />
   );
