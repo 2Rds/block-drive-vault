@@ -13,6 +13,7 @@ import {
   decryptFileWithCriticalBytes,
   decryptFileMetadata 
 } from './crypto/blockDriveCryptoService';
+import { ecdhKeyExchange } from './crypto/ecdhKeyExchange';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { base64ToBytes, bytesToBase64 } from './crypto/cryptoUtils';
 
@@ -36,7 +37,7 @@ class SharedFileDownloadService {
    * Download and decrypt a shared file using delegation data
    * 
    * Flow:
-   * 1. Extract critical bytes from delegation's encryptedFileKey
+   * 1. Decrypt critical bytes + IV from delegation's encryptedFileKey
    * 2. Download encrypted content from storage provider
    * 3. Reconstruct full file with critical bytes
    * 4. Decrypt and verify
@@ -59,20 +60,15 @@ class SharedFileDownloadService {
         throw new Error('View-only permission does not allow downloads');
       }
 
-      // Step 2: Extract and decrypt critical bytes from delegation
-      // The encryptedFileKey in the delegation contains the critical 16 bytes
-      // encrypted with a key derived from the grantee's wallet
+      // Step 2: Decrypt critical bytes + IV from delegation
       const decryptStart = performance.now();
       
-      // The encryptedFileKey structure: [16 bytes critical] [IV] [auth tag]
-      // For simplicity, we'll assume the encryptedFileKey contains the critical bytes
-      // encrypted with a shared key derivation
-      const criticalBytes = await this.decryptCriticalBytesFromDelegation(
+      const { criticalBytes, fileIv } = await this.decryptCriticalBytesFromDelegation(
         delegation.encryptedFileKey,
         recipientDecryptionKey
       );
 
-      console.log('[SharedFileDownload] Critical bytes decrypted');
+      console.log('[SharedFileDownload] Critical bytes and IV decrypted');
 
       // Step 3: Download encrypted content from storage
       const identifiers = new Map<StorageProviderType, string>();
@@ -94,12 +90,11 @@ class SharedFileDownloadService {
       const downloadTime = performance.now() - downloadStart - (performance.now() - decryptStart);
       console.log('[SharedFileDownload] Content downloaded, size:', contentResult.data.length);
 
-      // Step 4: Reconstruct and decrypt file
-      // The content from storage is the encrypted file WITHOUT the critical 16 bytes
+      // Step 4: Reconstruct and decrypt file using decrypted IV
       const decryptResult = await decryptFileWithCriticalBytes(
         contentResult.data,
         criticalBytes,
-        new Uint8Array(12), // IV should be stored with file record
+        fileIv,
         fileRecord.encryptionCommitment,
         recipientDecryptionKey
       );
@@ -150,34 +145,21 @@ class SharedFileDownloadService {
   }
 
   /**
-   * Decrypt the critical bytes from the delegation's encryptedFileKey
-   * 
-   * The encryptedFileKey is structured as:
-   * - First 12 bytes: IV
-   * - Next 16 bytes: Encrypted critical bytes
-   * - Remaining bytes: Auth tag and padding
+   * Decrypt the critical bytes + IV from the delegation's encryptedFileKey
+   * using the wallet-derived key (matches ShareFileModal encryption)
    */
   private async decryptCriticalBytesFromDelegation(
     encryptedFileKey: Uint8Array,
     decryptionKey: CryptoKey
-  ): Promise<Uint8Array> {
-    // Extract components from the encrypted file key
-    const iv = encryptedFileKey.slice(0, 12);
-    const encryptedData = encryptedFileKey.slice(12);
-
+  ): Promise<{ criticalBytes: Uint8Array; fileIv: Uint8Array }> {
     try {
-      // Decrypt using AES-GCM
-      const decrypted = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv: iv,
-        },
-        decryptionKey,
-        encryptedData
+      // Use the ECDH service to decrypt the payload
+      const result = await ecdhKeyExchange.decryptWithWalletKey(
+        encryptedFileKey,
+        decryptionKey
       );
 
-      // Return the first 16 bytes (critical bytes)
-      return new Uint8Array(decrypted).slice(0, 16);
+      return result;
     } catch (error) {
       console.error('[SharedFileDownload] Failed to decrypt critical bytes:', error);
       throw new Error('Failed to decrypt shared file key - access may have been revoked');
