@@ -1,2 +1,3 @@
 export { BlockDriveFileGrid } from './BlockDriveFileGrid';
-export type { } from './BlockDriveFileGrid';
+export { ShareFileModal } from './ShareFileModal';
+

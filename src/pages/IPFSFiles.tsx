@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { BlockDriveFileGrid } from "@/components/files/BlockDriveFileGrid";
+import { ShareFileModal } from "@/components/files/ShareFileModal";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,8 @@ const IPFSFiles = () => {
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [activeTab, setActiveTab] = useState<'all' | 'on-chain'>('all');
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [fileToShare, setFileToShare] = useState<any>(null);
   
   // Determine active page for button styling
   const isOnIPFSFiles = location.pathname === '/files' || location.pathname === '/index';
@@ -133,7 +136,19 @@ const IPFSFiles = () => {
 
   const handleShareFile = (file: any) => {
     console.log('Share file:', file);
-    // Will implement share modal
+    setFileToShare(file);
+    setShareModalOpen(true);
+  };
+
+  const handleShareComplete = () => {
+    loadUserFiles();
+  };
+
+  // Mock sign transaction function - in production this would use wallet adapter
+  const signTransaction = async (tx: any) => {
+    // This would be replaced with actual wallet signing
+    console.log('Signing transaction:', tx);
+    return tx;
   };
 
   return (
@@ -281,6 +296,19 @@ const IPFSFiles = () => {
           onClose={closeFileViewer}
         />
       )}
+
+      {/* Share File Modal */}
+      <ShareFileModal
+        isOpen={shareModalOpen}
+        onClose={() => {
+          setShareModalOpen(false);
+          setFileToShare(null);
+        }}
+        file={fileToShare}
+        ownerAddress={walletData?.address || ''}
+        signTransaction={signTransaction}
+        onShareComplete={handleShareComplete}
+      />
     </div>
   );
 };
