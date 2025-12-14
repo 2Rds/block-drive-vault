@@ -14,6 +14,8 @@ import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegrati
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { OtoCoIntegration } from '@/components/integrations/OtoCoIntegration';
+import { StripeAtlasIntegration } from '@/components/integrations/StripeAtlasIntegration';
+import { ClerkyIntegration } from '@/components/integrations/ClerkyIntegration';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -30,6 +32,8 @@ const Integrations = () => {
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = React.useState(false);
   const [showBoxIntegration, setShowBoxIntegration] = React.useState(false);
   const [showOtoCoIntegration, setShowOtoCoIntegration] = React.useState(false);
+  const [showStripeAtlasIntegration, setShowStripeAtlasIntegration] = React.useState(false);
+  const [showClerkyIntegration, setShowClerkyIntegration] = React.useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -234,6 +238,22 @@ const Integrations = () => {
       color: 'text-emerald-500',
       description: 'Instantly spin up an onchain LLC or Delaware C-Corp without leaving BlockDrive.',
       onClick: () => setShowOtoCoIntegration(true)
+    },
+    {
+      id: 'stripe-atlas',
+      name: 'Stripe Atlas',
+      icon: Briefcase,
+      color: 'text-violet-500',
+      description: 'Form a Delaware C-Corp with integrated Stripe payments and banking.',
+      onClick: () => setShowStripeAtlasIntegration(true)
+    },
+    {
+      id: 'clerky',
+      name: 'Clerky',
+      icon: Files,
+      color: 'text-blue-500',
+      description: 'VC-standard legal paperwork for startups, built by lawyers.',
+      onClick: () => setShowClerkyIntegration(true)
     }
   ];
 
@@ -366,6 +386,16 @@ const Integrations = () => {
       <OtoCoIntegration
         isOpen={showOtoCoIntegration}
         onClose={() => setShowOtoCoIntegration(false)}
+      />
+
+      <StripeAtlasIntegration
+        isOpen={showStripeAtlasIntegration}
+        onClose={() => setShowStripeAtlasIntegration(false)}
+      />
+
+      <ClerkyIntegration
+        isOpen={showClerkyIntegration}
+        onClose={() => setShowClerkyIntegration(false)}
       />
     </div>
   );
