@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,39 @@ interface OtoCoIntegrationProps {
 }
 
 export const OtoCoIntegration: React.FC<OtoCoIntegrationProps> = ({ isOpen, onClose }) => {
+  const widgetContainerRef = useRef<HTMLDivElement>(null);
+  const scriptLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && !scriptLoadedRef.current) {
+      // Remove any existing script
+      const existingScript = document.getElementById('ctaOtoCo');
+      if (existingScript) {
+        existingScript.remove();
+      }
+
+      // Create and load the OtoCo script
+      const script = document.createElement('script');
+      script.id = 'ctaOtoCo';
+      script.src = 'https://widget.otoco.io/cta-button.js';
+      script.setAttribute('clientid', 'jod2djmttjoxz08tl6q3q');
+      script.setAttribute('theme', '2');
+      script.setAttribute('buttontype', 'small');
+      script.async = true;
+
+      if (widgetContainerRef.current) {
+        widgetContainerRef.current.appendChild(script);
+        scriptLoadedRef.current = true;
+      }
+    }
+
+    return () => {
+      if (!isOpen) {
+        scriptLoadedRef.current = false;
+      }
+    };
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden bg-card border-border">
@@ -51,22 +84,17 @@ export const OtoCoIntegration: React.FC<OtoCoIntegrationProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* OtoCo Widget iframe */}
-          <div className="rounded-lg overflow-hidden border border-border/50 bg-background">
-            <iframe
-              title="OtoCo Company Formation"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              src="https://widget.otoco.io/?clientid=jod2djmttjoxz08tl6q3q&theme=2"
-              width="100%"
-              height="500"
-              allowTransparency={true}
-              frameBorder={0}
-              style={{ 
-                backgroundColor: 'transparent', 
-                colorScheme: 'light dark',
-                display: 'block'
-              }}
-            />
+          {/* OtoCo Widget container */}
+          <div className="rounded-lg overflow-hidden border border-border/50 bg-background p-6 min-h-[200px] flex items-center justify-center">
+            <div ref={widgetContainerRef} id="OtoCoWidget">
+              <img 
+                src="https://widget.otoco.io/buttons/button-small.png" 
+                alt="OtoCo Widget - Click to form your company" 
+                width="147" 
+                height="49"
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </div>
           </div>
 
           {/* Footer with external link */}
