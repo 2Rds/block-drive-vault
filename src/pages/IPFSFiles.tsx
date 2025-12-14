@@ -1,22 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
+import { BlockDriveFileGrid } from "@/components/files/BlockDriveFileGrid";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { useAuth } from '@/hooks/useAuth';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
 
 const IPFSFiles = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { walletData } = useAuth();
   const { subscriptionStatus } = useSubscriptionStatus();
   const { 
     currentPath, 
@@ -28,11 +32,28 @@ const IPFSFiles = () => {
     closeFileViewer,
     goBack
   } = useFolderNavigation();
-  const { downloadFromIPFS } = useIPFSUpload();
+  const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'on-chain'>('all');
   
   // Determine active page for button styling
   const isOnIPFSFiles = location.pathname === '/files' || location.pathname === '/index';
+
+  // Convert IPFS files to BlockDrive format for the grid
+  const blockDriveFiles = useMemo(() => {
+    return userFiles.map(file => ({
+      id: file.id,
+      filename: file.filename,
+      size: file.size,
+      mimeType: file.contentType || 'application/octet-stream',
+      cid: file.cid,
+      uploadedAt: new Date(file.uploadedAt),
+      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
+      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
+      folderPath: file.folderPath,
+      onChain: undefined // Will be populated by BlockDriveFileGrid
+    }));
+  }, [userFiles]);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -69,16 +90,50 @@ const IPFSFiles = () => {
 
   const handleUploadComplete = () => {
     // Refresh the file grid when upload completes
-    window.location.reload();
+    loadUserFiles();
   };
 
   const handleFileSelect = (file: any) => {
     console.log('File selected:', file);
-    selectFile(file);
+    // Find original IPFS file or construct a compatible object
+    const ipfsFile = userFiles.find(f => f.id === file.id);
+    if (ipfsFile) {
+      selectFile(ipfsFile);
+    } else {
+      // For files not in userFiles, create a minimal compatible object
+      selectFile({
+        id: file.id,
+        cid: file.cid,
+        filename: file.filename,
+        size: file.size,
+        contentType: file.mimeType,
+        uploadedAt: file.uploadedAt.toISOString(),
+        folderPath: file.folderPath || '/',
+        ipfsUrl: `https://ipfs.filebase.io/ipfs/${file.cid}`,
+        userId: walletData?.address || '',
+        metadata: {
+          blockdrive: file.encrypted ? 'true' : 'false',
+          securityLevel: file.securityLevel,
+          commitment: file.onChain?.encryptionCommitment
+        }
+      });
+    }
   };
 
   const handleDownloadFile = async (file: any) => {
     await downloadFromIPFS(file.cid, file.filename);
+  };
+
+  const handleDeleteFile = async (file: any) => {
+    if (confirm(`Are you sure you want to delete ${file.filename}?`)) {
+      // Delete logic here
+      loadUserFiles();
+    }
+  };
+
+  const handleShareFile = (file: any) => {
+    console.log('Share file:', file);
+    // Will implement share modal
   };
 
   return (
@@ -165,12 +220,47 @@ const IPFSFiles = () => {
               onUploadComplete={handleUploadComplete}
             />
             
-            <IPFSFileGrid 
-              selectedFolder={selectedFolder}
-              currentPath={currentPath}
-              onGoBack={goBack}
-              onFileSelect={handleFileSelect}
-            />
+            {/* File View Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'on-chain')}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="all" className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  All Files
+                </TabsTrigger>
+                <TabsTrigger value="on-chain" className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4" />
+                  On-Chain Files
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all">
+                <BlockDriveFileGrid 
+                  files={blockDriveFiles}
+                  selectedFolder={selectedFolder}
+                  currentPath={currentPath}
+                  onGoBack={goBack}
+                  onFileSelect={handleFileSelect}
+                  onFileDownload={handleDownloadFile}
+                  onFileDelete={handleDeleteFile}
+                  onFileShare={handleShareFile}
+                  onRefresh={loadUserFiles}
+                />
+              </TabsContent>
+              
+              <TabsContent value="on-chain">
+                <BlockDriveFileGrid 
+                  files={blockDriveFiles}
+                  selectedFolder="on-chain"
+                  currentPath={currentPath}
+                  onGoBack={goBack}
+                  onFileSelect={handleFileSelect}
+                  onFileDownload={handleDownloadFile}
+                  onFileDelete={handleDeleteFile}
+                  onFileShare={handleShareFile}
+                  onRefresh={loadUserFiles}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
