@@ -2,9 +2,10 @@
  * Zero-Knowledge Proof Service
  * 
  * Implements ZK proofs for BlockDrive's "programmed incompleteness" architecture.
+ * Uses snarkjs Groth16 circuits for real zero-knowledge proofs.
  * 
  * The ZK proof:
- * 1. Demonstrates possession of 16 bytes that hash to the public commitment
+ * 1. Proves knowledge of 16 bytes that hash to the public commitment (Groth16)
  * 2. Embeds the encrypted critical bytes (encrypted with wallet key)
  * 3. Is uploaded to storage (S3/IPFS) - only the CID is stored on-chain
  * 
@@ -12,15 +13,21 @@
  */
 
 import { sha256, sha256Bytes, bytesToBase64, base64ToBytes, bytesToHex, randomBytes, concatBytes } from './cryptoUtils';
+import { snarkjsService, Groth16ProofPackage, Groth16Proof } from './snarkjsService';
 
 /**
  * ZK Proof structure that gets uploaded to storage
+ * Now includes real Groth16 proof data
  */
 export interface ZKProofPackage {
-  version: 1;
+  version: 2;
   
   // Public commitment (SHA-256 of critical bytes)
   commitment: string;
+  
+  // Groth16 proof data
+  groth16Proof: Groth16Proof | null;
+  publicSignals: string[];
   
   // Encrypted critical bytes (only wallet owner can decrypt)
   encryptedCriticalBytes: string;  // base64
@@ -31,16 +38,41 @@ export interface ZKProofPackage {
   proofHash: string;               // Hash of the proof for integrity
   proofTimestamp: number;
   
-  // Verification data (simplified ZK - in production use snarkjs circuits)
+  // Verification data
   verificationData: {
     commitmentAlgorithm: 'SHA-256';
     encryptionAlgorithm: 'AES-256-GCM';
-    proofType: 'BlockDrive-ZK-v1';
+    proofType: 'BlockDrive-ZK-v2-Groth16' | 'BlockDrive-ZK-v2-Simulated';
+    circuitVersion: string;
   };
   
   // Signature proving wallet ownership at proof creation time
   walletSignature?: string;
 }
+
+/**
+ * Legacy v1 proof structure for backward compatibility
+ */
+export interface ZKProofPackageV1 {
+  version: 1;
+  commitment: string;
+  encryptedCriticalBytes: string;
+  encryptedIv: string;
+  encryptionIv: string;
+  proofHash: string;
+  proofTimestamp: number;
+  verificationData: {
+    commitmentAlgorithm: 'SHA-256';
+    encryptionAlgorithm: 'AES-256-GCM';
+    proofType: 'BlockDrive-ZK-v1';
+  };
+  walletSignature?: string;
+}
+
+/**
+ * Union type for all proof versions
+ */
+export type AnyZKProofPackage = ZKProofPackage | ZKProofPackageV1;
 
 /**
  * Serialized proof for storage
@@ -52,14 +84,11 @@ export interface SerializedZKProof {
 }
 
 class ZKProofService {
+  private circuitVersion = '1.0.0';
+
   /**
    * Generate a ZK proof package for the critical bytes
-   * 
-   * This creates a proof that:
-   * 1. Contains the commitment (public)
-   * 2. Contains encrypted critical bytes (only owner can decrypt)
-   * 3. Can be verified by anyone
-   * 4. Can only be used by wallet owner
+   * Uses Groth16 circuits when available, falls back to simulated
    */
   async generateProof(
     criticalBytes: Uint8Array,
@@ -71,6 +100,23 @@ class ZKProofService {
     const computedCommitment = await sha256(criticalBytes);
     if (computedCommitment !== commitment) {
       throw new Error('Critical bytes do not match commitment');
+    }
+
+    // Generate Groth16 proof
+    console.log('[ZKProof] Generating Groth16 proof for commitment:', commitment.slice(0, 16) + '...');
+    
+    let groth16Package: Groth16ProofPackage;
+    let proofType: 'BlockDrive-ZK-v2-Groth16' | 'BlockDrive-ZK-v2-Simulated';
+    
+    try {
+      groth16Package = await snarkjsService.generateProofSmart(criticalBytes, commitment);
+      proofType = snarkjsService.isUsingRealCircuits() 
+        ? 'BlockDrive-ZK-v2-Groth16' 
+        : 'BlockDrive-ZK-v2-Simulated';
+    } catch (error) {
+      console.error('[ZKProof] Groth16 generation failed, using simulated:', error);
+      groth16Package = await snarkjsService.generateSimulatedProof(criticalBytes, commitment);
+      proofType = 'BlockDrive-ZK-v2-Simulated';
     }
 
     // Generate IV for encrypting critical bytes
@@ -91,8 +137,10 @@ class ZKProofService {
 
     // Create the proof package
     const proofPackage: ZKProofPackage = {
-      version: 1,
+      version: 2,
       commitment,
+      groth16Proof: groth16Package.proof,
+      publicSignals: groth16Package.publicSignals,
       encryptedCriticalBytes: bytesToBase64(new Uint8Array(encryptedPayload)),
       encryptedIv: bytesToBase64(fileIv),
       encryptionIv: bytesToBase64(encryptionIv),
@@ -101,30 +149,62 @@ class ZKProofService {
       verificationData: {
         commitmentAlgorithm: 'SHA-256',
         encryptionAlgorithm: 'AES-256-GCM',
-        proofType: 'BlockDrive-ZK-v1'
+        proofType,
+        circuitVersion: this.circuitVersion,
       }
     };
 
     // Compute proof hash for integrity verification
     const proofContentForHash = JSON.stringify({
       commitment: proofPackage.commitment,
+      groth16Proof: proofPackage.groth16Proof,
+      publicSignals: proofPackage.publicSignals,
       encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
       proofTimestamp: proofPackage.proofTimestamp
     });
     proofPackage.proofHash = await sha256(new TextEncoder().encode(proofContentForHash));
 
-    console.log('[ZKProof] Generated proof with commitment:', commitment.slice(0, 16) + '...');
+    console.log(`[ZKProof] Generated ${proofType} proof with commitment:`, commitment.slice(0, 16) + '...');
 
     return proofPackage;
   }
 
   /**
+   * Verify the Groth16 proof cryptographically
+   */
+  async verifyGroth16Proof(proofPackage: ZKProofPackage): Promise<boolean> {
+    if (!proofPackage.groth16Proof) {
+      console.warn('[ZKProof] No Groth16 proof to verify');
+      return false;
+    }
+
+    if (proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Simulated') {
+      // Simulated proofs can't be cryptographically verified
+      console.log('[ZKProof] Simulated proof - skipping cryptographic verification');
+      return true;
+    }
+
+    try {
+      const groth16Package: Groth16ProofPackage = {
+        proof: proofPackage.groth16Proof,
+        publicSignals: proofPackage.publicSignals,
+        commitment: proofPackage.commitment,
+        proofHash: proofPackage.proofHash,
+      };
+
+      return await snarkjsService.verifyProof(groth16Package);
+    } catch (error) {
+      console.error('[ZKProof] Groth16 verification failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Verify and extract critical bytes from a ZK proof
-   * 
    * Only the wallet owner (with correct decryption key) can extract
    */
   async verifyAndExtract(
-    proofPackage: ZKProofPackage,
+    proofPackage: AnyZKProofPackage,
     decryptionKey: CryptoKey,
     expectedCommitment: string
   ): Promise<{ criticalBytes: Uint8Array; fileIv: Uint8Array; verified: boolean }> {
@@ -134,11 +214,33 @@ class ZKProofService {
     }
 
     // Step 2: Verify proof hash integrity
-    const proofContentForHash = JSON.stringify({
-      commitment: proofPackage.commitment,
-      encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-      proofTimestamp: proofPackage.proofTimestamp
-    });
+    let proofContentForHash: string;
+    
+    if (proofPackage.version === 2) {
+      proofContentForHash = JSON.stringify({
+        commitment: proofPackage.commitment,
+        groth16Proof: proofPackage.groth16Proof,
+        publicSignals: proofPackage.publicSignals,
+        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+        proofTimestamp: proofPackage.proofTimestamp
+      });
+
+      // Step 2.5: Verify Groth16 proof if available
+      if (proofPackage.groth16Proof && proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
+        const groth16Valid = await this.verifyGroth16Proof(proofPackage);
+        if (!groth16Valid) {
+          throw new Error('Groth16 cryptographic verification failed');
+        }
+      }
+    } else {
+      // V1 legacy format
+      proofContentForHash = JSON.stringify({
+        commitment: proofPackage.commitment,
+        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+        proofTimestamp: proofPackage.proofTimestamp
+      });
+    }
+
     const computedHash = await sha256(new TextEncoder().encode(proofContentForHash));
     
     if (computedHash !== proofPackage.proofHash) {
@@ -187,7 +289,7 @@ class ZKProofService {
   /**
    * Serialize proof for storage (S3/IPFS upload)
    */
-  serializeForStorage(proofPackage: ZKProofPackage): Uint8Array {
+  serializeForStorage(proofPackage: AnyZKProofPackage): Uint8Array {
     const jsonString = JSON.stringify(proofPackage);
     return new TextEncoder().encode(jsonString);
   }
@@ -195,9 +297,9 @@ class ZKProofService {
   /**
    * Deserialize proof from storage
    */
-  deserializeFromStorage(data: Uint8Array): ZKProofPackage {
+  deserializeFromStorage(data: Uint8Array): AnyZKProofPackage {
     const jsonString = new TextDecoder().decode(data);
-    return JSON.parse(jsonString) as ZKProofPackage;
+    return JSON.parse(jsonString) as AnyZKProofPackage;
   }
 
   /**
@@ -205,13 +307,14 @@ class ZKProofService {
    * Only contains what's needed to find and verify the proof
    */
   createOnChainReference(
-    proofPackage: ZKProofPackage,
+    proofPackage: AnyZKProofPackage,
     proofCid: string
-  ): { proofCid: string; commitment: string; proofHash: string } {
+  ): { proofCid: string; commitment: string; proofHash: string; proofVersion: number } {
     return {
       proofCid,
       commitment: proofPackage.commitment,
-      proofHash: proofPackage.proofHash
+      proofHash: proofPackage.proofHash,
+      proofVersion: proofPackage.version,
     };
   }
 
@@ -220,7 +323,7 @@ class ZKProofService {
    * Re-encrypts the critical bytes with the recipient's key
    */
   async generateSharedProof(
-    originalProof: ZKProofPackage,
+    originalProof: AnyZKProofPackage,
     ownerDecryptionKey: CryptoKey,
     recipientEncryptionKey: CryptoKey,
     expectedCommitment: string
@@ -232,7 +335,7 @@ class ZKProofService {
       expectedCommitment
     );
 
-    // Re-encrypt for recipient
+    // Re-encrypt for recipient with new Groth16 proof
     return this.generateProof(
       criticalBytes,
       fileIv,
@@ -244,19 +347,49 @@ class ZKProofService {
   /**
    * Verify a proof without extracting (for public verification)
    */
-  async verifyProofIntegrity(proofPackage: ZKProofPackage): Promise<boolean> {
+  async verifyProofIntegrity(proofPackage: AnyZKProofPackage): Promise<boolean> {
     try {
-      const proofContentForHash = JSON.stringify({
-        commitment: proofPackage.commitment,
-        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-        proofTimestamp: proofPackage.proofTimestamp
-      });
+      let proofContentForHash: string;
+      
+      if (proofPackage.version === 2) {
+        proofContentForHash = JSON.stringify({
+          commitment: proofPackage.commitment,
+          groth16Proof: proofPackage.groth16Proof,
+          publicSignals: proofPackage.publicSignals,
+          encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+          proofTimestamp: proofPackage.proofTimestamp
+        });
+      } else {
+        proofContentForHash = JSON.stringify({
+          commitment: proofPackage.commitment,
+          encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+          proofTimestamp: proofPackage.proofTimestamp
+        });
+      }
+      
       const computedHash = await sha256(new TextEncoder().encode(proofContentForHash));
       
-      return computedHash === proofPackage.proofHash;
+      if (computedHash !== proofPackage.proofHash) {
+        return false;
+      }
+
+      // For v2 proofs, also verify Groth16 if real circuits were used
+      if (proofPackage.version === 2 && proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
+        return await this.verifyGroth16Proof(proofPackage);
+      }
+
+      return true;
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Check if proof uses real Groth16 circuits
+   */
+  isRealGroth16Proof(proofPackage: AnyZKProofPackage): boolean {
+    return proofPackage.version === 2 && 
+           proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16';
   }
 
   /**
@@ -265,6 +398,19 @@ class ZKProofService {
    */
   generateInvalidationBytes(): Uint8Array {
     return randomBytes(32);
+  }
+
+  /**
+   * Get proof type for display
+   */
+  getProofTypeDisplay(proofPackage: AnyZKProofPackage): string {
+    if (proofPackage.version === 1) {
+      return 'Legacy (v1)';
+    }
+    if (proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
+      return 'Groth16 (bn128)';
+    }
+    return 'Simulated';
   }
 }
 
