@@ -15,7 +15,7 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
   return (
     <DynamicContextProvider
       settings={{
-        environmentId: 'a4c138ce-a9ab-4480-9f54-0f61b62c07c4',
+        environmentId: '63b19e36-1946-4cfa-a62d-3c6edea09860',
         walletConnectors: [EthereumWalletConnectors, SolanaWalletConnectors],
         appName: 'BlockDrive',
         appLogoUrl: '/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png',
