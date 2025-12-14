@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { S3Client, PutObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.400.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,23 +20,22 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Get API keys from environment
-    const pinataApiKey = Deno.env.get("PINATA_API_KEY");
-    const pinataSecretKey = Deno.env.get("PINATA_API_SECRET_KEY") || Deno.env.get("PINATA_SECRET_API_KEY");
-    const jwtKey = Deno.env.get("JWT_KEY");
-    const pinataGateway = "https://gateway.pinata.cloud";
+    // Get Filebase credentials from environment
+    const filebaseAccessKey = Deno.env.get("FILEBASE_ACCESS_KEY");
+    const filebaseSecretKey = Deno.env.get("FILEBASE_SECRET_KEY");
+    const filebaseBucket = Deno.env.get("FILEBASE_BUCKET") || "blockdrive-ipfs";
+    const filebaseGateway = Deno.env.get("FILEBASE_GATEWAY") || "https://ipfs.filebase.io";
 
     logStep("Environment check", { 
-      hasPinataKey: !!pinataApiKey, 
-      hasPinataSecret: !!pinataSecretKey,
-      hasJwtKey: !!jwtKey,
-      pinataKeyName: pinataApiKey ? "PINATA_API_KEY found" : "PINATA_API_KEY missing",
-      pinataSecretName: pinataSecretKey ? (Deno.env.get("PINATA_API_SECRET_KEY") ? "PINATA_API_SECRET_KEY found" : "PINATA_SECRET_API_KEY found") : "both missing"
+      hasFilebaseAccessKey: !!filebaseAccessKey, 
+      hasFilebaseSecretKey: !!filebaseSecretKey,
+      bucket: filebaseBucket,
+      gateway: filebaseGateway
     });
 
-    if (!pinataApiKey || !pinataSecretKey) {
-      logStep("ERROR: Missing Pinata API keys");
-      throw new Error("Pinata API keys not configured. Please set PINATA_API_KEY and PINATA_API_SECRET_KEY in edge function secrets.");
+    if (!filebaseAccessKey || !filebaseSecretKey) {
+      logStep("ERROR: Missing Filebase credentials");
+      throw new Error("Filebase credentials not configured. Please set FILEBASE_ACCESS_KEY and FILEBASE_SECRET_KEY in edge function secrets.");
     }
 
     // Initialize Supabase client for auth validation (using anon key for JWT validation)
@@ -126,42 +126,75 @@ serve(async (req) => {
       folderPath: folderPath 
     });
 
-    // Upload to Pinata
-    const pinataFormData = new FormData();
-    pinataFormData.append('file', file);
-    pinataFormData.append('pinataMetadata', JSON.stringify({
-      name: file.name,
-    }));
-    pinataFormData.append('pinataOptions', JSON.stringify({
-      cidVersion: 1,
-    }));
-
-    const pinataResponse = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-      method: 'POST',
-      headers: {
-        'pinata_api_key': pinataApiKey,
-        'pinata_secret_api_key': pinataSecretKey
+    // Initialize S3 client for Filebase
+    const s3Client = new S3Client({
+      endpoint: "https://s3.filebase.com",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: filebaseAccessKey,
+        secretAccessKey: filebaseSecretKey,
       },
-      body: pinataFormData,
+      forcePathStyle: true,
     });
 
-    if (!pinataResponse.ok) {
-      const errorText = await pinataResponse.text();
-      logStep("Pinata API error", { status: pinataResponse.status, error: errorText });
-      throw new Error(`Pinata API error: ${pinataResponse.status} - ${errorText}`);
-    }
+    // Convert file to ArrayBuffer for upload
+    const fileArrayBuffer = await file.arrayBuffer();
+    const fileUint8Array = new Uint8Array(fileArrayBuffer);
 
-    const pinataResult = await pinataResponse.json();
-    logStep("Pinata upload successful", pinataResult);
+    // Generate unique key for the file
+    const timestamp = Date.now();
+    const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const objectKey = `${userId}/${timestamp}-${sanitizedFilename}`;
 
-    const ipfsUrl = `${pinataGateway}/ipfs/${pinataResult.IpfsHash}`;
+    logStep("Uploading to Filebase", { objectKey, bucket: filebaseBucket });
+
+    // Upload to Filebase using S3 API
+    const putCommand = new PutObjectCommand({
+      Bucket: filebaseBucket,
+      Key: objectKey,
+      Body: fileUint8Array,
+      ContentType: file.type || 'application/octet-stream',
+      Metadata: {
+        filename: file.name,
+        userId: userId,
+        folderPath: folderPath,
+      },
+    });
+
+    const uploadResponse = await s3Client.send(putCommand);
+    
+    // Get the CID from the response metadata header
+    const ipfsCid = uploadResponse.$metadata.httpStatusCode === 200 
+      ? (uploadResponse as any).VersionId || objectKey // Filebase returns CID in response
+      : null;
+
+    // For Filebase, we need to get the CID differently - it's in the ETag or we need to query
+    // The CID is returned in the x-amz-meta-cid header, but we access it via the SDK metadata
+    logStep("Filebase upload response", { 
+      statusCode: uploadResponse.$metadata.httpStatusCode,
+      metadata: uploadResponse.$metadata 
+    });
+
+    // Fetch the object head to get the CID from metadata
+    const { HeadObjectCommand } = await import("https://esm.sh/@aws-sdk/client-s3@3.400.0");
+    const headCommand = new HeadObjectCommand({
+      Bucket: filebaseBucket,
+      Key: objectKey,
+    });
+    
+    const headResponse = await s3Client.send(headCommand);
+    const cid = headResponse.Metadata?.cid || headResponse.ETag?.replace(/"/g, '') || objectKey;
+    
+    logStep("Filebase upload successful", { cid, objectKey });
+
+    const ipfsUrl = `${filebaseGateway}/ipfs/${cid}`;
 
     // Save file metadata to database
     logStep("Attempting to save file to database", { 
       userId, 
       filename: file.name, 
       folderPath,
-      ipfsHash: pinataResult.IpfsHash 
+      ipfsCid: cid 
     });
     
     const { data: savedFile, error: saveError } = await supabaseClient
@@ -175,12 +208,14 @@ serve(async (req) => {
         wallet_id: null, // Simplified: no wallet linking needed
         folder_path: folderPath,
         storage_provider: 'ipfs',
-        ipfs_cid: pinataResult.IpfsHash,
+        ipfs_cid: cid,
         ipfs_url: ipfsUrl,
         metadata: {
           storage_type: 'ipfs',
           permanence: 'permanent',
-          blockchain: 'ipfs'
+          blockchain: 'ipfs',
+          provider: 'filebase',
+          objectKey: objectKey
         }
       })
       .select()

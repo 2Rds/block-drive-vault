@@ -1,18 +1,25 @@
 export class IPFSConfig {
-  static readonly PINATA_GATEWAY = 'https://gray-acceptable-grouse-462.mypinata.cloud';
+  // Filebase IPFS gateway - can be configured to use dedicated gateway
+  static readonly FILEBASE_GATEWAY = 'https://ipfs.filebase.io';
   
   static readonly FALLBACK_GATEWAYS = [
     'https://ipfs.io/ipfs',
     'https://cloudflare-ipfs.com/ipfs',
-    'https://dweb.link/ipfs'
+    'https://dweb.link/ipfs',
+    'https://gateway.pinata.cloud/ipfs'
   ];
 
   static getIPFSGatewayUrl(cid: string, gateway = 'https://ipfs.io'): string {
     return `${gateway}/ipfs/${cid}`;
   }
 
+  static getFilebaseIPFSUrl(cid: string): string {
+    return `${this.FILEBASE_GATEWAY}/ipfs/${cid}`;
+  }
+
+  // Keep legacy method for backwards compatibility
   static getPinataIPFSUrl(cid: string): string {
-    return `${this.PINATA_GATEWAY}/ipfs/${cid}`;
+    return this.getFilebaseIPFSUrl(cid);
   }
 
   static isValidCID(cid: string): boolean {

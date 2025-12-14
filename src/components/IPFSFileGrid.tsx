@@ -99,7 +99,7 @@ export const IPFSFileGrid = ({
   };
 
   const handleViewOnIPFS = (file: IPFSFile) => {
-    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${file.cid}`;
+    const ipfsUrl = `https://ipfs.filebase.io/ipfs/${file.cid}`;
     window.open(ipfsUrl, '_blank');
   };
 

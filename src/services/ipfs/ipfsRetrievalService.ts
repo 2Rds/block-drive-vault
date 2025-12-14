@@ -1,15 +1,14 @@
-
 import { toast } from 'sonner';
 import { IPFSConfig } from './ipfsConfig';
 
 export class IPFSRetrievalService {
   static async retrieveFile(cid: string): Promise<Blob | null> {
     try {
-      console.log(`Retrieving file from IPFS via your custom Pinata gateway: ${cid}`);
+      console.log(`Retrieving file from IPFS via Filebase gateway: ${cid}`);
       
-      // Try your custom Pinata gateway first, then fallback gateways
+      // Try Filebase gateway first, then fallback gateways
       const gateways = [
-        IPFSConfig.getPinataIPFSUrl(cid),
+        IPFSConfig.getFilebaseIPFSUrl(cid),
         ...IPFSConfig.FALLBACK_GATEWAYS.map(gateway => `${gateway}/${cid}`)
       ];
       
