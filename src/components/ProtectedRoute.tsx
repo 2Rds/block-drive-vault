@@ -22,8 +22,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     route: window.location.pathname
   });
 
-  // Check if Dynamic SDK has auth but local state is still syncing
-  const dynamicIsAuthenticated = !!(dynamicUser && primaryWallet);
+  // Consider user authenticated as soon as Dynamic reports a primary wallet
+  const dynamicIsAuthenticated = !!primaryWallet;
   const localAuthReady = !!(user && session);
   
   // Show loading state if auth is still syncing or initially loading
@@ -39,8 +39,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - require both Dynamic SDK auth and local state sync
-  const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user.id;
+  // Check authentication - require both Dynamic wallet and local state sync
+  const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user?.id;
   
   if (!hasValidAuth) {
     console.log('ProtectedRoute - Authentication incomplete, redirecting to home', {
@@ -53,4 +53,5 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   console.log('ProtectedRoute - Authentication valid, rendering content');
   return <>{children}</>;
+
 };
