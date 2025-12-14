@@ -19,7 +19,7 @@ const features = [
   {
     icon: Lock,
     title: "Programmed Incompleteness + ZK Encryption",
-    description: "Proprietary architecture splits AES-256-GCM encrypted files: critical bytes stored in Groth16 ZK proofs, content across multi-provider storage. Wallet-derived keys never touch our servers.",
+    description: "Proprietary architecture splits encrypted files: critical bytes stored in ZK proofs, content across multi-provider storage. Wallet-derived keys never touch our servers.",
     highlight: "Theft-Proof"
   },
   {
