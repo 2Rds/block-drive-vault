@@ -151,6 +151,39 @@ export class BlockDriveClient {
     }
   }
 
+  async getIncomingDelegations(grantee: PublicKey): Promise<ParsedDelegation[]> {
+    try {
+      // Find all delegations where this wallet is the grantee
+      // Grantee is at offset: 8 (discriminator) + 1 (bump) + 32 (fileRecord) + 32 (grantor) = 73
+      const accounts = await this.connection.getProgramAccounts(this.programId, {
+        filters: [
+          { memcmp: { offset: 73, bytes: grantee.toBase58() } },
+        ],
+      });
+      
+      return accounts
+        .map(({ pubkey, account }) => this.parseDelegationAccount(pubkey, account.data))
+        .filter((delegation): delegation is ParsedDelegation => 
+          delegation !== null && delegation.isActive
+        );
+    } catch (error) {
+      console.error('Error fetching incoming delegations:', error);
+      return [];
+    }
+  }
+
+  async getFileRecordByPubkey(fileRecordPubkey: PublicKey): Promise<ParsedFileRecord | null> {
+    try {
+      const accountInfo = await this.connection.getAccountInfo(fileRecordPubkey);
+      if (!accountInfo) return null;
+      
+      return this.parseFileRecordAccount(fileRecordPubkey, accountInfo.data);
+    } catch (error) {
+      console.error('Error fetching file record:', error);
+      return null;
+    }
+  }
+
   // ============================================
   // Transaction Builders
   // ============================================
