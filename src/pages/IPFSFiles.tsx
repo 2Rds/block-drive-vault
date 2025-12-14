@@ -155,7 +155,19 @@ const IPFSFiles = () => {
 
   const handleShareFile = (file: any) => {
     console.log('Share file:', file);
-    setFileToShare(file);
+    // Find original IPFS file to get proofCid and commitment
+    const ipfsFile = userFiles.find(f => f.id === file.id);
+    const fileToShareData = {
+      id: file.id,
+      filename: file.filename,
+      size: file.size,
+      securityLevel: file.securityLevel || 'standard',
+      contentCID: file.cid,
+      proofCid: ipfsFile?.metadata?.proofCid || file.onChain?.proofCid,
+      commitment: ipfsFile?.metadata?.commitment || file.onChain?.encryptionCommitment,
+      onChain: file.onChain
+    };
+    setFileToShare(fileToShareData);
     setShareModalOpen(true);
   };
 
