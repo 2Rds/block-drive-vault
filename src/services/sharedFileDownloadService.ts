@@ -2,8 +2,12 @@
  * Shared File Download Service
  * 
  * Handles downloading and decrypting files shared via on-chain delegation.
- * The critical bytes are encrypted in the delegation record and must be
- * decrypted using the recipient's wallet-derived key.
+ * 
+ * ZK Proof Flow:
+ * 1. The delegation's encryptedFileKey contains the ZK proof CID
+ * 2. Download the ZK proof from storage
+ * 3. Extract critical bytes using the owner's key (stored in proof)
+ * 4. Download and decrypt the file using the critical bytes
  */
 
 import { SecurityLevel } from '@/types/blockdriveCrypto';
@@ -13,7 +17,8 @@ import {
   decryptFileWithCriticalBytes,
   decryptFileMetadata 
 } from './crypto/blockDriveCryptoService';
-import { ecdhKeyExchange } from './crypto/ecdhKeyExchange';
+import { zkProofService } from './crypto/zkProofService';
+import { zkProofStorageService } from './zkProofStorageService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { base64ToBytes, bytesToBase64 } from './crypto/cryptoUtils';
 
@@ -36,11 +41,12 @@ class SharedFileDownloadService {
   /**
    * Download and decrypt a shared file using delegation data
    * 
-   * Flow:
-   * 1. Decrypt critical bytes + IV from delegation's encryptedFileKey
-   * 2. Download encrypted content from storage provider
-   * 3. Reconstruct full file with critical bytes
-   * 4. Decrypt and verify
+   * ZK Proof Flow:
+   * 1. Extract ZK proof CID from delegation's encryptedFileKey
+   * 2. Download and verify ZK proof from storage
+   * 3. Extract critical bytes + IV from proof using decryption key
+   * 4. Download encrypted content from storage provider
+   * 5. Reconstruct and decrypt file
    */
   async downloadSharedFile(
     fileRecord: ParsedFileRecord,
@@ -51,7 +57,7 @@ class SharedFileDownloadService {
     let decryptionTime = 0;
 
     try {
-      console.log('[SharedFileDownload] Starting download for file:', fileRecord.fileId);
+      console.log('[SharedFileDownload] Starting ZK proof-based download for file:', fileRecord.fileId);
       console.log('[SharedFileDownload] From:', delegation.grantor);
       console.log('[SharedFileDownload] Permission:', delegation.permissionLevel);
 
@@ -60,17 +66,37 @@ class SharedFileDownloadService {
         throw new Error('View-only permission does not allow downloads');
       }
 
-      // Step 2: Decrypt critical bytes + IV from delegation
+      // Step 2: Extract ZK proof CID from delegation
+      const proofCid = this.extractProofCidFromDelegation(delegation.encryptedFileKey);
+      console.log('[SharedFileDownload] Extracted ZK proof CID:', proofCid);
+
+      // Step 3: Download and verify ZK proof
       const decryptStart = performance.now();
       
-      const { criticalBytes, fileIv } = await this.decryptCriticalBytesFromDelegation(
-        delegation.encryptedFileKey,
-        recipientDecryptionKey
+      const proofResult = await zkProofStorageService.downloadProof(proofCid);
+      
+      if (!proofResult.success || !proofResult.proofPackage) {
+        throw new Error('Failed to download ZK proof - access may have been revoked');
+      }
+
+      console.log('[SharedFileDownload] ZK proof downloaded successfully');
+
+      // Step 4: Extract critical bytes from ZK proof
+      // Use the commitment from the proof itself (already verified during download)
+      
+      const extracted = await zkProofService.verifyAndExtract(
+        proofResult.proofPackage,
+        recipientDecryptionKey,
+        proofResult.proofPackage.commitment
       );
 
-      console.log('[SharedFileDownload] Critical bytes and IV decrypted');
+      if (!extracted.verified) {
+        throw new Error('ZK proof verification failed');
+      }
 
-      // Step 3: Download encrypted content from storage
+      console.log('[SharedFileDownload] Critical bytes extracted from ZK proof');
+
+      // Step 5: Download encrypted content from storage
       const identifiers = new Map<StorageProviderType, string>();
       identifiers.set('filebase', fileRecord.primaryCid);
       
@@ -90,18 +116,18 @@ class SharedFileDownloadService {
       const downloadTime = performance.now() - downloadStart - (performance.now() - decryptStart);
       console.log('[SharedFileDownload] Content downloaded, size:', contentResult.data.length);
 
-      // Step 4: Reconstruct and decrypt file using decrypted IV
+      // Step 6: Reconstruct and decrypt file using extracted critical bytes
       const decryptResult = await decryptFileWithCriticalBytes(
         contentResult.data,
-        criticalBytes,
-        fileIv,
+        extracted.criticalBytes,
+        extracted.fileIv,
         fileRecord.encryptionCommitment,
         recipientDecryptionKey
       );
 
       decryptionTime = performance.now() - decryptStart;
 
-      console.log('[SharedFileDownload] File decrypted successfully');
+      console.log('[SharedFileDownload] File decrypted successfully via ZK proof');
       console.log('[SharedFileDownload] Verified:', decryptResult.verified);
       console.log('[SharedFileDownload] Commitment valid:', decryptResult.commitmentValid);
 
@@ -125,7 +151,7 @@ class SharedFileDownloadService {
 
     } catch (error) {
       const totalTime = performance.now() - downloadStart;
-      console.error('[SharedFileDownload] Download failed:', error);
+      console.error('[SharedFileDownload] ZK proof download failed:', error);
 
       return {
         success: false,
@@ -145,24 +171,23 @@ class SharedFileDownloadService {
   }
 
   /**
-   * Decrypt the critical bytes + IV from the delegation's encryptedFileKey
-   * using the wallet-derived key (matches ShareFileModal encryption)
+   * Extract the ZK proof CID from the delegation's encryptedFileKey
+   * The CID is stored as UTF-8 encoded bytes
    */
-  private async decryptCriticalBytesFromDelegation(
-    encryptedFileKey: Uint8Array,
-    decryptionKey: CryptoKey
-  ): Promise<{ criticalBytes: Uint8Array; fileIv: Uint8Array }> {
+  private extractProofCidFromDelegation(encryptedFileKey: Uint8Array): string {
     try {
-      // Use the ECDH service to decrypt the payload
-      const result = await ecdhKeyExchange.decryptWithWalletKey(
-        encryptedFileKey,
-        decryptionKey
-      );
-
-      return result;
+      // The proof CID is stored as UTF-8 encoded string
+      const proofCid = new TextDecoder().decode(encryptedFileKey);
+      
+      // Validate it looks like a CID (basic check)
+      if (!proofCid || proofCid.length < 10) {
+        throw new Error('Invalid proof CID in delegation');
+      }
+      
+      return proofCid.trim();
     } catch (error) {
-      console.error('[SharedFileDownload] Failed to decrypt critical bytes:', error);
-      throw new Error('Failed to decrypt shared file key - access may have been revoked');
+      console.error('[SharedFileDownload] Failed to extract proof CID:', error);
+      throw new Error('Failed to extract ZK proof reference from delegation');
     }
   }
 
