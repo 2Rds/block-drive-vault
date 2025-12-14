@@ -17,7 +17,9 @@ import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useAuth } from '@/hooks/useAuth';
-import { useBlockDriveSolana, } from '@/hooks/useBlockDriveSolana';
+import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
+import { useSolanaWalletSigning } from '@/hooks/useSolanaWalletSigning';
+import { useSharedFileDownload } from '@/hooks/useSharedFileDownload';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
 import { toast } from 'sonner';
@@ -27,6 +29,8 @@ const IPFSFiles = () => {
   const location = useLocation();
   const { walletData } = useAuth();
   const { getUserFiles } = useBlockDriveSolana();
+  const { signTransaction } = useSolanaWalletSigning();
+  const { downloadAndSave, previewSharedFile } = useSharedFileDownload();
   const { subscriptionStatus } = useSubscriptionStatus();
   const { 
     currentPath, 
@@ -149,12 +153,7 @@ const IPFSFiles = () => {
     loadUserFiles();
   };
 
-  // Mock sign transaction function - in production this would use wallet adapter
-  const signTransaction = async (tx: any) => {
-    // This would be replaced with actual wallet signing
-    console.log('Signing transaction:', tx);
-    return tx;
-  };
+  // signTransaction is now provided by useSolanaWalletSigning hook
 
   // Wrapper component for SharedFilesPanel to fetch on-chain files
   const SharedFilesPanelWrapper = ({ 
@@ -334,12 +333,13 @@ const IPFSFiles = () => {
                   walletAddress={walletData?.address || ''}
                   signTransaction={signTransaction}
                   onDownload={(file, delegation) => {
-                    console.log('Download shared file:', file, delegation);
-                    toast.info('Download functionality coming soon');
+                    downloadAndSave(file, delegation);
                   }}
-                  onPreview={(file, delegation) => {
-                    console.log('Preview shared file:', file, delegation);
-                    toast.info('Preview functionality coming soon');
+                  onPreview={async (file, delegation) => {
+                    const result = await previewSharedFile(file, delegation);
+                    if (result) {
+                      window.open(result.url, '_blank');
+                    }
                   }}
                 />
               </TabsContent>
