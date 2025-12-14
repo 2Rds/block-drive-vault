@@ -41,7 +41,7 @@ serve(async (req) => {
     try {
       const { data: userData, error: userError } = await supabaseService.auth.getUser(token);
       if (!userError && userData.user) {
-        userEmail = userData.user.email;
+        userEmail = userData.user.email ?? null;
         userId = userData.user.id;
         logStep("Regular user authenticated", { email: userEmail, userId });
       }
@@ -269,7 +269,7 @@ serve(async (req) => {
     }
 
     const tierKey = subscriber.subscription_tier?.toLowerCase() || '';
-    const limits = tierLimits[tierKey] || defaultLimits;
+    const limits = tierLimits[tierKey as keyof typeof tierLimits] || defaultLimits;
 
     const response = {
       subscribed: subscriber.subscribed || false,

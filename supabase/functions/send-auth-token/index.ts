@@ -58,7 +58,7 @@ const handler = async (req: Request): Promise<Response> => {
       token: authToken,
       email: requestData.email,
       full_name: requestData.fullName,
-      organization: requestData.organization || null,
+      organization: requestData.organization || undefined,
       wallet_address: requestData.walletAddress,
       blockchain_type: requestData.blockchainType
     });

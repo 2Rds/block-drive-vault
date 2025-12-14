@@ -140,12 +140,13 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('NFT minting error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to mint NFT';
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to mint NFT' 
+        error: errorMessage
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
