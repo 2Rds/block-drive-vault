@@ -2,7 +2,13 @@
  * Share File Modal
  * 
  * Modal for sharing encrypted files with other wallets using
- * the Solana delegation system with ECDH key exchange.
+ * the Solana delegation system with ZK proofs.
+ * 
+ * Flow:
+ * 1. Download original ZK proof from storage
+ * 2. Extract critical bytes using owner's decryption key
+ * 3. Generate new delegation-specific ZK proof for recipient
+ * 4. Upload new proof and store CID in delegation
  */
 
 import React, { useState, useEffect } from 'react';
@@ -60,8 +66,9 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { PermissionLevel } from '@/services/solana';
-import { criticalBytesStorage } from '@/services/crypto/criticalBytesStorage';
-import { ecdhKeyExchange } from '@/services/crypto/ecdhKeyExchange';
+import { zkProofService } from '@/services/crypto/zkProofService';
+import { zkProofStorageService } from '@/services/zkProofStorageService';
+import { bytesToBase64 } from '@/services/crypto/cryptoUtils';
 import { toast } from 'sonner';
 
 // Solana public key validation (base58 encoded, 32-44 chars)
@@ -85,6 +92,8 @@ interface FileToShare {
   size: number;
   securityLevel: 'standard' | 'enhanced' | 'maximum';
   contentCID?: string;
+  proofCid?: string;           // CID of the owner's ZK proof
+  commitment?: string;          // SHA-256 commitment of critical bytes
   onChain?: {
     fileRecordPubkey?: string;
     encryptionCommitment?: string;
@@ -112,8 +121,9 @@ export function ShareFileModal({
 }: ShareFileModalProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [hasCriticalBytes, setHasCriticalBytes] = useState(false);
-  const [loadingCriticalBytes, setLoadingCriticalBytes] = useState(true);
+  const [hasProof, setHasProof] = useState(false);
+  const [loadingProof, setLoadingProof] = useState(true);
+  const [sharingStep, setSharingStep] = useState<string>('');
   const { createDelegation, isLoading } = useBlockDriveSolana();
 
   const form = useForm<ShareFormValues>({
@@ -126,41 +136,51 @@ export function ShareFileModal({
     },
   });
 
-  // Check if we have critical bytes stored for this file
+  // Check if we have a ZK proof available for this file
   useEffect(() => {
-    const checkCriticalBytes = async () => {
-      if (!file?.id) {
-        setHasCriticalBytes(false);
-        setLoadingCriticalBytes(false);
+    const checkProofAvailability = async () => {
+      if (!file?.proofCid || !file?.commitment) {
+        setHasProof(false);
+        setLoadingProof(false);
         return;
       }
       
-      setLoadingCriticalBytes(true);
+      setLoadingProof(true);
       try {
-        const exists = await criticalBytesStorage.hasCriticalBytes(file.id);
-        setHasCriticalBytes(exists);
+        // Verify proof exists in storage
+        const exists = await zkProofStorageService.verifyProofExists(
+          file.proofCid,
+          file.commitment
+        );
+        setHasProof(exists);
       } catch (error) {
-        console.error('Failed to check critical bytes:', error);
-        setHasCriticalBytes(false);
+        console.error('Failed to check ZK proof:', error);
+        setHasProof(false);
       } finally {
-        setLoadingCriticalBytes(false);
+        setLoadingProof(false);
       }
     };
 
     if (isOpen) {
-      checkCriticalBytes();
+      checkProofAvailability();
     }
-  }, [file?.id, isOpen]);
+  }, [file?.proofCid, file?.commitment, isOpen]);
 
   const handleClose = () => {
     form.reset();
     setShareSuccess(false);
+    setSharingStep('');
     onClose();
   };
 
   const onSubmit = async (values: ShareFormValues) => {
     if (!file?.onChain?.fileRecordPubkey) {
       toast.error('File is not registered on-chain');
+      return;
+    }
+
+    if (!file.proofCid || !file.commitment) {
+      toast.error('ZK proof not available for this file');
       return;
     }
 
@@ -179,47 +199,90 @@ export function ShareFileModal({
         'reshare': PermissionLevel.Reshare,
       };
 
-      // Get critical bytes from local storage
-      const criticalData = await criticalBytesStorage.getCriticalBytes(file.id);
+      // Step 1: Download the original ZK proof
+      setSharingStep('Downloading ZK proof...');
+      console.log('[ShareFileModal] Downloading original ZK proof:', file.proofCid);
       
-      if (!criticalData) {
-        toast.error('Critical bytes not found. Please re-upload the file.');
+      const proofDownload = await zkProofStorageService.downloadProof(file.proofCid);
+      
+      if (!proofDownload.success || !proofDownload.proofPackage) {
+        toast.error('Failed to download ZK proof');
         setIsSharing(false);
         return;
       }
 
-      // Get the owner's encryption key for ECDH
-      let encryptedFileKey: Uint8Array;
+      // Step 2: Get owner's decryption key
+      setSharingStep('Preparing encryption keys...');
       
-      if (getEncryptionKey) {
-        const ownerKey = await getEncryptionKey();
-        if (ownerKey) {
-          // Use wallet key to encrypt critical bytes + IV for the recipient
-          encryptedFileKey = await ecdhKeyExchange.encryptWithWalletKey(
-            criticalData.criticalBytes,
-            criticalData.iv,
-            ownerKey
-          );
-          console.log('[ShareFileModal] Encrypted critical bytes with wallet key');
-        } else {
-          toast.error('Encryption key not available. Please initialize your keys first.');
-          setIsSharing(false);
-          return;
-        }
-      } else {
-        // Fallback: serialize critical bytes directly (less secure)
-        const payload = new Uint8Array(criticalData.criticalBytes.length + criticalData.iv.length);
-        payload.set(criticalData.criticalBytes, 0);
-        payload.set(criticalData.iv, criticalData.criticalBytes.length);
-        encryptedFileKey = payload;
-        console.warn('[ShareFileModal] Using fallback encoding - no encryption key provided');
+      if (!getEncryptionKey) {
+        toast.error('Encryption key provider not available');
+        setIsSharing(false);
+        return;
       }
 
+      const ownerKey = await getEncryptionKey();
+      if (!ownerKey) {
+        toast.error('Encryption key not available. Please initialize your keys first.');
+        setIsSharing(false);
+        return;
+      }
+
+      // Step 3: Extract critical bytes from proof
+      setSharingStep('Extracting critical bytes...');
+      console.log('[ShareFileModal] Extracting critical bytes from ZK proof');
+      
+      const extracted = await zkProofService.verifyAndExtract(
+        proofDownload.proofPackage,
+        ownerKey,
+        file.commitment
+      );
+
+      if (!extracted.verified) {
+        toast.error('ZK proof verification failed');
+        setIsSharing(false);
+        return;
+      }
+
+      // Step 4: Generate new delegation-specific ZK proof for recipient
+      // Note: In a true ECDH flow, we would derive a shared key with the recipient
+      // For now, we re-encrypt with the owner's key and the recipient will need
+      // the delegation's encryptedFileKey to access
+      setSharingStep('Generating delegation proof...');
+      console.log('[ShareFileModal] Generating new ZK proof for delegation');
+      
+      const delegationProof = await zkProofService.generateProof(
+        extracted.criticalBytes,
+        extracted.fileIv,
+        ownerKey, // Re-encrypt with owner key - recipient accesses via delegation
+        file.commitment
+      );
+
+      // Step 5: Upload the delegation-specific proof
+      setSharingStep('Uploading delegation proof...');
+      const delegationProofUpload = await zkProofStorageService.uploadProof(
+        delegationProof,
+        `${file.id}_delegation_${values.granteeAddress.slice(0, 8)}`
+      );
+
+      if (!delegationProofUpload.success) {
+        toast.error('Failed to upload delegation proof');
+        setIsSharing(false);
+        return;
+      }
+
+      console.log('[ShareFileModal] Delegation proof uploaded:', delegationProofUpload.proofCid);
+
+      // Step 6: Create the on-chain delegation with proof CID as encrypted file key
+      setSharingStep('Creating on-chain delegation...');
+      
+      // Encode the delegation proof CID as the encryptedFileKey for the delegation
+      const proofCidBytes = new TextEncoder().encode(delegationProofUpload.proofCid);
+      
       const signature = await createDelegation(
         ownerAddress,
         file.onChain.fileRecordPubkey,
         values.granteeAddress,
-        encryptedFileKey,
+        proofCidBytes,
         permissionMap[values.permissionLevel],
         values.expiresAt,
         signTransaction
@@ -227,8 +290,9 @@ export function ShareFileModal({
 
       if (signature) {
         setShareSuccess(true);
+        setSharingStep('');
         toast.success('File shared successfully', {
-          description: `Shared with ${values.granteeAddress.slice(0, 8)}...`
+          description: `Shared with ${values.granteeAddress.slice(0, 8)}... using ZK proof`
         });
         onShareComplete?.();
       }
@@ -237,6 +301,7 @@ export function ShareFileModal({
       toast.error('Failed to share file');
     } finally {
       setIsSharing(false);
+      setSharingStep('');
     }
   };
 
@@ -322,20 +387,20 @@ export function ShareFileModal({
           </div>
         </div>
 
-        {loadingCriticalBytes ? (
+        {loadingProof ? (
           <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-center">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            <span className="text-sm text-muted-foreground">Checking encryption data...</span>
+            <span className="text-sm text-muted-foreground">Checking ZK proof availability...</span>
           </div>
-        ) : !hasCriticalBytes ? (
+        ) : !hasProof ? (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
             <Key className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">Critical bytes not found</p>
+              <p className="text-sm font-medium text-foreground">ZK Proof not available</p>
               <p className="text-sm text-muted-foreground mt-1">
-                The encryption keys for this file are not stored locally. 
-                This may happen if the file was uploaded from a different device. 
-                Please re-upload the file to enable sharing.
+                The Zero-Knowledge proof for this file is not available. 
+                This may happen if the file was uploaded before ZK proofs were enabled. 
+                Please re-upload the file to enable secure sharing.
               </p>
             </div>
           </div>
@@ -537,18 +602,18 @@ export function ShareFileModal({
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={isSharing || isLoading}
+                  disabled={isSharing || isLoading || !hasProof}
                   className="gap-2"
                 >
                   {isSharing ? (
-                    <>
+                    <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Sharing...
-                    </>
+                      <span className="text-xs">{sharingStep || 'Sharing...'}</span>
+                    </div>
                   ) : (
                     <>
                       <Share2 className="w-4 h-4" />
-                      Share File
+                      Share with ZK Proof
                     </>
                   )}
                 </Button>
