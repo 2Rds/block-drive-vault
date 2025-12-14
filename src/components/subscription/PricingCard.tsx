@@ -66,7 +66,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
 
   return (
     <Card 
-      className={`relative bg-gray-800/40 border-gray-700/50 ${
+      className={`relative bg-gray-800/40 border-gray-700/50 flex flex-col h-full ${
         tier.popular ? 'ring-2 ring-blue-500' : ''
       } ${tier.isEnterprise ? 'ring-2 ring-purple-500' : ''}`}
     >
@@ -88,10 +88,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
         </div>
       )}
       
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
-        <div className="text-2xl font-bold text-white mb-2">
-          {getPriceDisplay(currentOption)}
+      <CardHeader className="text-center pb-4">
+        <CardTitle className="text-2xl font-bold text-white mb-2">{tier.name}</CardTitle>
+        <div className="mb-3">
+          <span className="text-4xl font-bold text-white">{currentOption.price}</span>
+          <span className="text-gray-400 text-sm">
+            {currentOption.period === 'quarterly' ? '/quarter' : currentOption.period === 'annual' ? '/year' : '/month'}
+          </span>
           {currentOption.savings && (
             <div className="text-sm text-green-400 font-medium mt-1">
               {currentOption.savings}
@@ -99,44 +102,47 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
           )}
         </div>
         {tier.hasTrial && (
-          <div className="text-sm text-green-400 font-medium">
+          <div className="text-sm text-green-400 font-medium mb-2">
             7-day free trial
           </div>
         )}
-        <CardDescription className="text-gray-300 text-sm">
+        <CardDescription className="text-gray-300 text-sm min-h-[40px]">
           {tier.description}
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Storage:</span>
-            <span className="text-white font-medium">{tier.storage}</span>
+      <CardContent className="flex flex-col flex-1 space-y-6">
+        {/* Storage/Bandwidth/Seats grid */}
+        <div className="bg-gray-900/50 rounded-lg p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Storage</span>
+            <span className="text-white font-semibold">{tier.storage}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Bandwidth:</span>
-            <span className="text-white font-medium">{tier.bandwidth}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Bandwidth</span>
+            <span className="text-white font-semibold">{tier.bandwidth}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Team Size:</span>
-            <span className="text-white font-medium">{tier.seats}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Team Size</span>
+            <span className="text-white font-semibold">{tier.seats}</span>
           </div>
         </div>
 
-        <div className="space-y-2">
+        {/* Features list */}
+        <div className="flex-1 space-y-3">
           {displayFeatures.map((feature, index) => (
-            <div key={index} className="flex items-start gap-2">
-              <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
-              <span className="text-gray-300 text-xs">{feature}</span>
+            <div key={index} className="flex items-start gap-3">
+              <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+              <span className="text-gray-300 text-sm leading-tight">{feature}</span>
             </div>
           ))}
         </div>
 
+        {/* CTA Button */}
         <Button
           onClick={handleButtonClick}
           disabled={loading === tier.name}
-          className={`w-full text-sm ${
+          className={`w-full py-3 text-base font-medium mt-auto ${
             tier.popular 
               ? 'bg-blue-600 hover:bg-blue-700' 
               : tier.isEnterprise
