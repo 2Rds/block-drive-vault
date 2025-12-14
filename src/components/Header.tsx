@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Bell, User, Wallet, LogOut, LogIn, Users } from 'lucide-react';
+import { Search, Bell, User, Wallet, LogOut, LogIn, Users, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -91,6 +91,15 @@ export const Header = () => {
                     <div className="flex items-center">
                       <Users className="mr-3 h-4 w-4" />
                       <span>Teams</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
+                    onClick={() => navigate('/membership')}
+                  >
+                    <div className="flex items-center">
+                      <Crown className="mr-3 h-4 w-4" />
+                      <span>Membership</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem 

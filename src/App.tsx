@@ -30,6 +30,7 @@ const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
 const Teams = lazy(() => import("./pages/Teams"));
 const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
 const Agents = lazy(() => import("./pages/Agents"));
+const Membership = lazy(() => import("./pages/Membership"));
 
 // Optimize QueryClient for better TBT performance
 const queryClient = new QueryClient({
@@ -151,6 +152,11 @@ const App = () => {
                   <Route path="/agents" element={
                     <ProtectedRoute>
                       <Agents />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/membership" element={
+                    <ProtectedRoute>
+                      <Membership />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />
