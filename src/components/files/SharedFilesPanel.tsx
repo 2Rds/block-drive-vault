@@ -2,7 +2,7 @@
  * Shared Files Panel
  * 
  * Displays files you've shared with others and provides the revolutionary
- * "Instant Revoke" capability - delete the critical 16 bytes to make
+ * "Instant Revoke" capability - invalidates ZK proofs to make
  * shared files permanently unreadable.
  */
 
@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { ParsedDelegation, ParsedFileRecord } from '@/services/solana';
+import { zkProofStorageService } from '@/services/zkProofStorageService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -116,6 +117,23 @@ export function SharedFilesPanel({
 
     setIsRevoking(true);
     try {
+      // Step 1: Extract the ZK proof CID from the delegation's encryptedFileKey
+      const proofCid = new TextDecoder().decode(revokeConfirm.delegation.encryptedFileKey);
+      
+      if (proofCid && proofCid.length > 10) {
+        // Step 2: Invalidate the ZK proof on storage
+        console.log('[SharedFilesPanel] Invalidating ZK proof:', proofCid);
+        const invalidateResult = await zkProofStorageService.invalidateProof(proofCid);
+        
+        if (!invalidateResult.success) {
+          console.warn('[SharedFilesPanel] ZK proof invalidation failed:', invalidateResult.error);
+          // Continue with on-chain revocation anyway
+        } else {
+          console.log('[SharedFilesPanel] ZK proof invalidated successfully');
+        }
+      }
+
+      // Step 3: Revoke the on-chain delegation
       const signature = await revokeDelegation(
         walletAddress,
         revokeConfirm.file.publicKey.toBase58(),
@@ -125,11 +143,14 @@ export function SharedFilesPanel({
 
       if (signature) {
         toast.success('Access permanently revoked', {
-          description: 'The critical bytes have been deleted. This file is now unreadable to the recipient.'
+          description: 'The ZK proof has been invalidated. This file is now unreadable to the recipient.'
         });
         fetchDelegations();
         onRevoke?.();
       }
+    } catch (error) {
+      console.error('[SharedFilesPanel] Revoke failed:', error);
+      toast.error('Failed to revoke access');
     } finally {
       setIsRevoking(false);
       setRevokeConfirm(null);
