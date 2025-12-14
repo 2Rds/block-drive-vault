@@ -5,16 +5,18 @@ import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
 import { BlockDriveFileGrid } from "@/components/files/BlockDriveFileGrid";
 import { ShareFileModal } from "@/components/files/ShareFileModal";
+import { SharedFilesPanel } from "@/components/files/SharedFilesPanel";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe, Share2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useAuth } from '@/hooks/useAuth';
+import { useBlockDriveSolana, } from '@/hooks/useBlockDriveSolana';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
 
@@ -22,6 +24,7 @@ const IPFSFiles = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { walletData } = useAuth();
+  const { getUserFiles } = useBlockDriveSolana();
   const { subscriptionStatus } = useSubscriptionStatus();
   const { 
     currentPath, 
@@ -35,7 +38,7 @@ const IPFSFiles = () => {
   } = useFolderNavigation();
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeTab, setActiveTab] = useState<'all' | 'on-chain'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'on-chain' | 'shared'>('all');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [fileToShare, setFileToShare] = useState<any>(null);
   
@@ -151,6 +154,38 @@ const IPFSFiles = () => {
     return tx;
   };
 
+  // Wrapper component for SharedFilesPanel to fetch on-chain files
+  const SharedFilesPanelWrapper = ({ 
+    walletAddress, 
+    signTransaction: signTx, 
+    onRevoke 
+  }: { 
+    walletAddress: string; 
+    signTransaction: (tx: any) => Promise<any>; 
+    onRevoke?: () => void;
+  }) => {
+    const [onChainFiles, setOnChainFiles] = useState<any[]>([]);
+    
+    useEffect(() => {
+      const fetchFiles = async () => {
+        if (walletAddress) {
+          const files = await getUserFiles(walletAddress);
+          setOnChainFiles(files);
+        }
+      };
+      fetchFiles();
+    }, [walletAddress]);
+
+    return (
+      <SharedFilesPanel
+        walletAddress={walletAddress}
+        files={onChainFiles}
+        signTransaction={signTx}
+        onRevoke={onRevoke}
+      />
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
@@ -236,7 +271,7 @@ const IPFSFiles = () => {
             />
             
             {/* File View Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'on-chain')}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'on-chain' | 'shared')}>
               <TabsList className="mb-4">
                 <TabsTrigger value="all" className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
@@ -245,6 +280,10 @@ const IPFSFiles = () => {
                 <TabsTrigger value="on-chain" className="flex items-center gap-2">
                   <Link2 className="w-4 h-4" />
                   On-Chain Files
+                </TabsTrigger>
+                <TabsTrigger value="shared" className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4" />
+                  Files You've Shared
                 </TabsTrigger>
               </TabsList>
               
@@ -273,6 +312,14 @@ const IPFSFiles = () => {
                   onFileDelete={handleDeleteFile}
                   onFileShare={handleShareFile}
                   onRefresh={loadUserFiles}
+                />
+              </TabsContent>
+
+              <TabsContent value="shared">
+                <SharedFilesPanelWrapper 
+                  walletAddress={walletData?.address || ''}
+                  signTransaction={signTransaction}
+                  onRevoke={loadUserFiles}
                 />
               </TabsContent>
             </Tabs>

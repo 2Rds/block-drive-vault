@@ -217,6 +217,22 @@ export function ShareFileModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Revolutionary Feature Banner */}
+        <div className="bg-gradient-to-r from-primary/10 to-amber-500/10 border border-primary/20 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <Shield className="w-4 h-4 text-primary mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                You maintain complete control
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Unlike traditional sharing, you can <strong className="text-amber-400">instantly revoke access</strong> at any time. 
+                This deletes the critical 16 bytes, making the file permanently unreadable—even if already downloaded.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* File Info */}
         <div className="bg-card/60 rounded-lg p-4 border border-border">
           <div className="flex items-start gap-3">
@@ -260,6 +276,19 @@ export function ShareFileModal({
             <p className="text-sm text-muted-foreground">
               The recipient can now access this file using their wallet.
             </p>
+            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-left">
+              <div className="flex items-start gap-2">
+                <Shield className="w-4 h-4 text-amber-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">
+                    You can revoke access at any time
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Visit "Files You've Shared" to instantly revoke access and make the file permanently unreadable.
+                  </p>
+                </div>
+              </div>
+            </div>
             <Button onClick={handleClose} className="mt-4">
               Done
             </Button>
