@@ -98,10 +98,14 @@ export const DynamicProviderWrapper = ({ children }: DynamicProviderWrapperProps
         cssOverrides: `
           .dynamic-widget-modal { z-index: 10000 !important; }
           .dynamic-widget-modal-overlay { z-index: 9999 !important; }
+          .dynamic-widget-inline-controls { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+          .dynamic-widget-inline-controls > div { background: transparent !important; border: none !important; }
+          .dynamic-widget-card { background: transparent !important; border: none !important; box-shadow: none !important; }
           .dynamic-connect-button { 
-            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow))) !important;
+            background: hsl(var(--primary)) !important;
             color: hsl(var(--primary-foreground)) !important;
             border: none !important;
+            box-shadow: none !important;
           }
           .dynamic-connect-button:hover {
             opacity: 0.9 !important;
