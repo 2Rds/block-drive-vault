@@ -52,9 +52,22 @@ export interface BlockDriveUploadResult {
   metadataCID?: string;
   
   // File info
+  fileName: string;
+  mimeType: string;
   originalSize: number;
   encryptedSize: number;
   securityLevel: SecurityLevel;
+  
+  // Raw bytes for on-chain registration
+  encryptedContentBytes?: Uint8Array;
+  criticalBytesRaw?: Uint8Array;
+  
+  // Solana on-chain registration
+  onChainRegistration?: {
+    signature: string;
+    solanaFileId: string;
+    registered: boolean;
+  };
   
   // Timing
   totalTimeMs: number;
@@ -179,9 +192,13 @@ class BlockDriveUploadService {
         criticalBytesIv,
         contentCID: contentUpload.primaryResult.identifier,
         metadataCID: metadataUpload.primaryResult.identifier,
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
         originalSize: encryptedData.originalSize,
         encryptedSize: encryptedData.encryptedSize,
         securityLevel,
+        encryptedContentBytes: encryptedData.encryptedContent,
+        criticalBytesRaw: encryptedData.criticalBytes,
         totalTimeMs: Math.round(totalTime),
         encryptionTimeMs: Math.round(encryptionTime),
         uploadTimeMs: Math.round(uploadTime)
@@ -214,6 +231,8 @@ class BlockDriveUploadService {
         encryptedCriticalBytes: '',
         criticalBytesIv: '',
         contentCID: '',
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
         originalSize: 0,
         encryptedSize: 0,
         securityLevel,
@@ -273,6 +292,8 @@ class BlockDriveUploadService {
         encryptedCriticalBytes,
         criticalBytesIv,
         contentCID: contentUpload.primaryResult.identifier,
+        fileName,
+        mimeType: 'application/octet-stream',
         originalSize: encryptedContent.length + 16, // Add back critical bytes
         encryptedSize: encryptedContent.length + 16,
         securityLevel,
@@ -362,9 +383,13 @@ class BlockDriveUploadService {
       encryptedCriticalBytes,
       criticalBytesIv,
       contentCID: manifest.fileId,
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
       originalSize: encryptedData.originalSize,
       encryptedSize: encryptedData.encryptedSize,
       securityLevel,
+      encryptedContentBytes: encryptedData.encryptedContent,
+      criticalBytesRaw: encryptedData.criticalBytes,
       totalTimeMs: Math.round(totalTime),
       encryptionTimeMs: Math.round(encryptionTime),
       uploadTimeMs: Math.round(totalTime - encryptionTime),
