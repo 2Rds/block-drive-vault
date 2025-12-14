@@ -23,7 +23,7 @@ export const LandingHero = () => {
           Data Management Platform
         </h1>
 
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">From IPFS storage to blockchain authentication and multi-chain wallet integration, BlockDrive provides all the tools you need to manage your data securely with enterprise-grade security and performance.</p>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">Theft-proof architecture through Programmed Incompleteness, zero-knowledge encryption with wallet-derived keys, and instant-revoke file sharing. Your files are split across providers and can never be stolen—even by us.</p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
