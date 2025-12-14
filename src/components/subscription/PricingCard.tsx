@@ -92,9 +92,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({ tier, selectedPeriod, 
         <CardTitle className="text-2xl font-bold text-white mb-2">{tier.name}</CardTitle>
         <div className="mb-3">
           <span className="text-4xl font-bold text-white">{currentOption.price}</span>
-          <span className="text-gray-400 text-sm">
-            {currentOption.period === 'quarterly' ? '/quarter' : currentOption.period === 'annual' ? '/year' : '/month'}
-          </span>
           {currentOption.savings && (
             <div className="text-sm text-green-400 font-medium mt-1">
               {currentOption.savings}
