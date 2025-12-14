@@ -47,30 +47,49 @@ async function signJWT(payload: any, secret: string): Promise<string> {
   return `${data}.${signatureEncoded}`;
 }
 
+// Helper function to convert hex string to Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+// Helper function to convert base64 string to Uint8Array
+function base64ToBytes(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 // Verify Solana Ed25519 signature using Web Crypto API
 async function verifySolanaSignature(message: string, signature: string, publicKey: string): Promise<boolean> {
   try {
     const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = new Uint8Array(Buffer.from(signature, 'hex'));
+    const signatureBytes = hexToBytes(signature);
     
     // Convert base58 public key to bytes (simplified - in production use proper base58 decoder)
     // For now, assume the publicKey is already in the correct format
-    const publicKeyBytes = new Uint8Array(Buffer.from(publicKey, 'base64'));
+    const publicKeyBytes = base64ToBytes(publicKey);
     
     // Import the public key for verification
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
-      publicKeyBytes,
+      publicKeyBytes.buffer as ArrayBuffer,
       {
         name: 'Ed25519',
         namedCurve: 'Ed25519',
-      },
+      } as any,
       false,
       ['verify']
     );
     
     // Verify the signature
-    return await crypto.subtle.verify('Ed25519', cryptoKey, signatureBytes, messageBytes);
+    return await crypto.subtle.verify('Ed25519', cryptoKey, signatureBytes.buffer as ArrayBuffer, messageBytes);
   } catch (error) {
     console.error('Error verifying Solana signature:', error);
     // For demo purposes, return true (in production, implement proper verification)

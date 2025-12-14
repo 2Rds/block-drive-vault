@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2.50.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +69,7 @@ const generateSecureToken = (): string => {
 const verifyEthereumSignature = async (message: string, signature: string, address: string): Promise<boolean> => {
   try {
     // Import ethers dynamically
-    const { ethers } = await import('https://cdn.skypack.dev/ethers@5.8.0');
+    const { ethers } = await import('https://esm.sh/ethers@5.8.0');
     
     // Create message hash
     const messageHash = ethers.utils.hashMessage(message);
@@ -89,7 +89,8 @@ const verifyEthereumSignature = async (message: string, signature: string, addre
 const verifySolanaSignature = async (message: string, signature: string, publicKey: string): Promise<boolean> => {
   try {
     // Import Solana web3 dynamically
-    const { PublicKey, ed25519 } = await import('https://cdn.skypack.dev/@solana/web3.js@1.98.2');
+    const { PublicKey } = await import('https://esm.sh/@solana/web3.js@1.98.2');
+    const nacl = await import('https://esm.sh/tweetnacl@1.0.3');
     
     // Convert message to bytes
     const messageBytes = new TextEncoder().encode(message);
@@ -100,8 +101,8 @@ const verifySolanaSignature = async (message: string, signature: string, publicK
     // Convert public key
     const pubKey = new PublicKey(publicKey);
     
-    // Verify signature using ed25519
-    return ed25519.verify(signatureBytes, messageBytes, pubKey.toBytes());
+    // Verify signature using nacl
+    return nacl.sign.detached.verify(messageBytes, signatureBytes, pubKey.toBytes());
   } catch (error) {
     console.error('Solana signature verification error:', error);
     return false;

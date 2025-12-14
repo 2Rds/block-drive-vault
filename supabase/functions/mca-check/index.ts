@@ -40,8 +40,9 @@ async function verifyJWT(token: string, secret: string): Promise<any> {
     }
     
     return payload;
-  } catch (error) {
-    throw new Error(`JWT verification failed: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'JWT verification failed';
+    throw new Error(`JWT verification failed: ${errorMessage}`);
   }
 }
 
@@ -84,9 +85,10 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid token';
       return new Response(
-        JSON.stringify({ valid: false, error: error.message }),
+        JSON.stringify({ valid: false, error: errorMessage }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

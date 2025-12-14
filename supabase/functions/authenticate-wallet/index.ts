@@ -87,16 +87,11 @@ serve(async (req) => {
     }
 
     // Create a custom JWT token for this wallet
+    // Note: signInWithIdToken with 'custom' provider doesn't support data in options
+    // We use a workaround by storing the wallet info separately
     const { data: { user }, error: signInError } = await supabaseClient.auth.signInWithIdToken({
-      provider: 'custom',
+      provider: 'custom' as any,
       token: authToken,
-      options: {
-        data: {
-          wallet_address: walletAddress,
-          blockchain_type: blockchainType,
-          auth_token: authToken
-        }
-      }
     })
 
     if (signInError) {

@@ -102,9 +102,10 @@ serve(async (req) => {
         
         userId = user.id;
         logStep("JWT auth successful", { userId });
-      } catch (error) {
-        logStep("Auth error caught", { error: error.message });
-        throw new Error("Authentication failed: " + error.message);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        logStep("Auth error caught", { error: errorMessage });
+        throw new Error("Authentication failed: " + errorMessage);
       }
     }
 

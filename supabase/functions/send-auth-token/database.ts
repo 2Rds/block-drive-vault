@@ -1,5 +1,4 @@
-
-import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2.50.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { TokenRequest } from './types.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
