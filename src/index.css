@@ -100,3 +100,28 @@
     z-index: 5;
   }
 }
+
+/* Dynamic SDK - Remove white pill/outline around connect button */
+[data-dynamic-widget],
+[class*="dynamic-widget"],
+[class*="DynamicWidget"],
+.dynamic-widget-inline-controls,
+.dynamic-connect-button-container,
+.dynamic-inline-widget {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+}
+
+/* Target any wrapper divs that Dynamic SDK creates */
+[data-dynamic-widget] > div,
+[class*="dynamic-widget"] > div {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
