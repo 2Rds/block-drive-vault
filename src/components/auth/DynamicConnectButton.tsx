@@ -1,31 +1,18 @@
-
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
 interface DynamicConnectButtonProps {
-  onConnectClick: () => void;
+  onConnectClick?: () => void;
 }
 
 export const DynamicConnectButton = ({ onConnectClick }: DynamicConnectButtonProps) => {
-  const { setShowAuthFlow } = useDynamicContext();
-
-  const handleClick = () => {
-    console.log('🔵 Opening Dynamic auth flow');
-    if (setShowAuthFlow) {
-      setShowAuthFlow(true);
-    }
-    onConnectClick();
-  };
-
   return (
-    <div className="w-full max-w-md">
-      <Button 
-        onClick={handleClick}
-        className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
-      >
-        Connect Wallet
-      </Button>
-    </div>
+    <DynamicWidget 
+      innerButtonComponent={
+        <span className="inline-flex items-center justify-center bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200 cursor-pointer">
+          Connect Wallet
+        </span>
+      }
+    />
   );
 };
