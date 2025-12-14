@@ -4,7 +4,7 @@ import { AuthContext } from '@/contexts/AuthContext';
 import { useWalletSession } from '@/hooks/useWalletSession';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { OptimizedIntercomMessenger } from '@/components/OptimizedIntercomMessenger';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -22,12 +22,10 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
   } = useWalletSession();
 
   const { primaryWallet, user: dynamicUser, handleLogOut } = useDynamicContext();
-  const isLoggedIn = useIsLoggedIn(); // Only true after onboarding is complete
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔍 SimplifiedAuthProvider useEffect triggered:', {
-      isLoggedIn, // Use this instead of checking dynamicUser && primaryWallet
       hasDynamicUser: !!dynamicUser,
       hasPrimaryWallet: !!primaryWallet,
       dynamicUserId: dynamicUser?.userId,
@@ -36,12 +34,11 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       currentSession: !!session
     });
     
-    // CRITICAL: Only proceed when isLoggedIn is true (after onboarding completes)
-    // This hook returns true only after the user has completed all required steps
-    const isAuthenticated = isLoggedIn && !!dynamicUser && !!primaryWallet;
+    // Use Dynamic SDK's native authentication state - check if user is authenticated
+    const isAuthenticated = !!(dynamicUser && primaryWallet);
     
     if (isAuthenticated) {
-      console.log('✅ Dynamic SDK user fully authenticated (onboarding complete):', {
+      console.log('✅ Dynamic SDK authenticated user:', {
         userId: dynamicUser.userId,
         walletAddress: primaryWallet.address,
         blockchain: primaryWallet.chain === 'SOL' ? 'solana' : 'ethereum'
@@ -168,7 +165,7 @@ export const SimplifiedAuthProvider = ({ children }: { children: ReactNode }) =>
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isLoggedIn, dynamicUser, primaryWallet, navigate]);
+  }, [dynamicUser, primaryWallet, navigate]);
 
   const connectWallet = async (walletData: any) => {
     console.log('🔄 Connect wallet called - using Dynamic SDK native auth');
