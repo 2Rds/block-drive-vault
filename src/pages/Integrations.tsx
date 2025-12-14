@@ -13,6 +13,7 @@ import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
 import { GoogleDriveIntegration } from '@/components/integrations/GoogleDriveIntegration';
 import { BoxIntegration } from '@/components/integrations/BoxIntegration';
+import { OtoCoIntegration } from '@/components/integrations/OtoCoIntegration';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -28,6 +29,7 @@ const Integrations = () => {
   const [showOneDriveIntegration, setShowOneDriveIntegration] = React.useState(false);
   const [showGoogleDriveIntegration, setShowGoogleDriveIntegration] = React.useState(false);
   const [showBoxIntegration, setShowBoxIntegration] = React.useState(false);
+  const [showOtoCoIntegration, setShowOtoCoIntegration] = React.useState(false);
 
   const handleFolderSelect = (folderId: string) => {
     setSelectedFolder(folderId);
@@ -224,6 +226,14 @@ const Integrations = () => {
       color: 'text-red-400',
       description: 'Connect Gusto for automated payroll and HR document management.',
       onClick: () => {}
+    },
+    {
+      id: 'otoco',
+      name: 'OtoCo',
+      icon: Building2,
+      color: 'text-emerald-500',
+      description: 'Instantly spin up an onchain LLC or Delaware C-Corp without leaving BlockDrive.',
+      onClick: () => setShowOtoCoIntegration(true)
     }
   ];
 
@@ -351,6 +361,11 @@ const Integrations = () => {
       <BoxIntegration
         isOpen={showBoxIntegration}
         onClose={() => setShowBoxIntegration(false)}
+      />
+
+      <OtoCoIntegration
+        isOpen={showOtoCoIntegration}
+        onClose={() => setShowOtoCoIntegration(false)}
       />
     </div>
   );
