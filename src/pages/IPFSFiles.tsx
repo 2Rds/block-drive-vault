@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { IPFSFileGrid } from "@/components/IPFSFileGrid";
-import { IPFSUploadArea } from "@/components/IPFSUploadArea";
+import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { FileViewer } from "@/components/FileViewer";
 import { Button } from '@/components/ui/button';
-import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
@@ -93,8 +93,11 @@ const IPFSFiles = () => {
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">BlockDrive IPFS Storage</h1>
-                <p className="text-muted-foreground">Upload, manage, and access your files on the decentralized web</p>
+                <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
+                  <Lock className="w-7 h-7 text-primary" />
+                  BlockDrive Encrypted Storage
+                </h1>
+                <p className="text-muted-foreground">Upload, encrypt, and store your files across decentralized providers</p>
               </div>
               <div className="flex items-center space-x-4">
                 <Button
@@ -155,7 +158,7 @@ const IPFSFiles = () => {
               </div>
             </div>
             
-            <IPFSUploadArea 
+            <BlockDriveUploadArea 
               selectedFolder={selectedFolder}
               onUploadComplete={handleUploadComplete}
             />
