@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check, Wallet, BarChart3, Lock, Bot, Building2, Database, RefreshCcw, FileKey } from 'lucide-react';
+import { ArrowRight, ExternalLink, FileText, Users, Shield, Zap, Settings, Code, Globe, Copy, Check, Wallet, BarChart3, Lock, Building2, Database, RefreshCcw, FileKey } from 'lucide-react';
 import { useState } from 'react';
 
 interface DocsContentProps {
@@ -1360,93 +1360,6 @@ const isValid = await snarkjsService.verifyProof(
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (activeSection === 'agents-overview') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">AI Agents</h1>
-          <p className="text-lg text-muted-foreground">
-            Four proprietary AI agents available as premium add-ons to automate your business workflows.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-pink-500" />
-                Marketing Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Creates and manages social media campaigns</li>
-                <li>• Automated cold email outreach</li>
-                <li>• Content generation and scheduling</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-green-500" />
-                Sales Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Integrates into your sales cycle</li>
-                <li>• Assists in onboarding new users</li>
-                <li>• Lead qualification and follow-up</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-blue-500" />
-                Project Manager Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Manages daily project tasks</li>
-                <li>• Maintains team communication</li>
-                <li>• Progress tracking and reporting</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-purple-500" />
-                Executive Assistant Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Schedule management for executives</li>
-                <li>• Daily task prioritization</li>
-                <li>• Request handling and delegation</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="bg-primary/5 border-primary/30">
-          <CardContent className="p-6">
-            <p className="text-center text-muted-foreground">
-              Agents are available as premium features that can be added to any subscription plan.
-            </p>
           </CardContent>
         </Card>
       </div>

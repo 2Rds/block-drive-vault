@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe, Lock, Bot, Building2, Database } from 'lucide-react';
+import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe, Lock, Building2, Database } from 'lucide-react';
 
 interface SidebarSection {
   title: string;
@@ -77,17 +77,6 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       ]
     },
     {
-      title: "AI Agents",
-      icon: <Bot className="w-4 h-4" />,
-      items: [
-        { title: "Agent Overview", id: "agents-overview" },
-        { title: "Marketing Agent", id: "marketing-agent" },
-        { title: "Sales Agent", id: "sales-agent" },
-        { title: "Project Manager Agent", id: "pm-agent" },
-        { title: "Executive Assistant", id: "ea-agent" }
-      ]
-    },
-    {
       title: "Business Formation",
       icon: <Building2 className="w-4 h-4" />,
       items: [
@@ -119,8 +108,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       icon: <Settings className="w-4 h-4" />,
       items: [
         { title: "Pricing Tiers", id: "pricing-tiers" },
-        { title: "Billing Features", id: "billing" },
-        { title: "Agent Add-ons", id: "agent-addons" }
+        { title: "Billing Features", id: "billing" }
       ]
     }
   ];
