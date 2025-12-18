@@ -12,13 +12,12 @@ BlockDrive is a comprehensive Web3 data management platform that combines decent
 4. [Multichain Authentication (MCA)](#multichain-authentication-mca)
 5. [Storage & File Management](#storage--file-management)
 6. [Team Collaboration](#team-collaboration)
-7. [AI Agents](#ai-agents)
-8. [Integrations](#integrations)
-9. [Business Formation](#business-formation)
-10. [Subscription & Pricing](#subscription--pricing)
-11. [Solana Program Integration](#solana-program-integration)
-12. [API & Development](#api--development)
-13. [Deployment & Infrastructure](#deployment--infrastructure)
+7. [Integrations](#integrations)
+8. [Business Formation](#business-formation)
+9. [Subscription & Pricing](#subscription--pricing)
+10. [Solana Program Integration](#solana-program-integration)
+11. [API & Development](#api--development)
+12. [Deployment & Infrastructure](#deployment--infrastructure)
 
 ---
 
@@ -264,34 +263,6 @@ Unique to BlockDrive: senders retain control even after sharing
 
 ---
 
-## AI Agents
-
-BlockDrive offers four proprietary AI agents as premium add-ons:
-
-### Marketing Agent
-- Creates and manages business social media campaigns
-- Automated cold email outreach
-- Content generation and scheduling
-
-### Sales Agent
-- Integrates into your sales cycle
-- Assists in onboarding new users
-- Lead qualification and follow-up
-
-### Project Manager Agent
-- Manages daily project tasks
-- Maintains team communication
-- Progress tracking and reporting
-
-### Executive Assistant Agent
-- Schedule management for executives
-- Daily task prioritization
-- Request handling and delegation
-
-*Agents available as premium features added to any subscription*
-
----
-
 ## Integrations
 
 ### Cloud Storage Platforms
@@ -508,7 +479,6 @@ QUICKNODE_SOLANA_URL=your_quicknode_url
 
 - **Basenames Verification**: Complete Base chain domain verification
 - **Mobile Apps**: Native iOS and Android applications
-- **Advanced AI Agents**: Enhanced automation capabilities
 - **Gas Credits Top-Up**: Seamless transaction funding
 
 ### Planned Features

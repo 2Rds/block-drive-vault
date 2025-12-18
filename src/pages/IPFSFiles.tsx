@@ -12,7 +12,7 @@ import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { CryptoSetupModal } from "@/components/crypto/CryptoSetupModal";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Settings, Files, Puzzle, Bot, Users, Crown, Lock, Link2, Globe, Share2, Inbox } from 'lucide-react';
+import { BarChart3, Settings, Files, Puzzle, Users, Crown, Lock, Link2, Globe, Share2, Inbox } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
@@ -99,10 +99,6 @@ const IPFSFiles = () => {
 
   const handleTeamsClick = () => {
     navigate('/teams');
-  };
-
-  const handleAgentsClick = () => {
-    navigate('/agents');
   };
 
   // Check if user has growth or scale subscription
@@ -314,14 +310,6 @@ const IPFSFiles = () => {
                     )}
                   </Button>
                 )}
-                <Button
-                  onClick={handleAgentsClick}
-                  variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-                >
-                  <Bot className="w-4 h-4 mr-2" />
-                  Agents
-                </Button>
                 <Button
                   onClick={handleAccountClick}
                   variant="outline"

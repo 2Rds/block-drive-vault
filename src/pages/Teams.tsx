@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft, BarChart3, Puzzle, Bot } from 'lucide-react';
+import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft, BarChart3, Puzzle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
@@ -57,10 +57,6 @@ export default function Teams() {
 
   const handleIntegrationsClick = () => {
     navigate('/integrations');
-  };
-
-  const handleAgentsClick = () => {
-    navigate('/agents');
   };
 
   const handleAccountClick = () => {
@@ -107,14 +103,6 @@ export default function Teams() {
           >
             <Users className="w-4 h-4 mr-2" />
             Teams
-          </Button>
-          <Button
-            onClick={handleAgentsClick}
-            variant="outline"
-            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-          >
-            <Bot className="w-4 h-4 mr-2" />
-            Agents
           </Button>
           <Button
             onClick={handleAccountClick}

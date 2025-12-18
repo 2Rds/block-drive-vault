@@ -5,8 +5,8 @@ import {
   Shield, 
   Lock,
   CloudUpload,
-  Bot,
-  RefreshCcw
+  RefreshCcw,
+  Users
 } from 'lucide-react';
 
 const features = [
@@ -35,10 +35,10 @@ const features = [
     highlight: "Redundant"
   },
   {
-    icon: Bot,
-    title: "AI Agents",
-    description: "Premium AI assistants for marketing, sales, and project management. Automate your workflows.",
-    highlight: "4 Agents"
+    icon: Users,
+    title: "Team Collaboration",
+    description: "Invite team members, share files securely, and manage access with role-based controls.",
+    highlight: "Teams"
   },
   {
     icon: CloudUpload,

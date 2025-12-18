@@ -8,14 +8,6 @@ export const LandingHero = () => {
   return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
       <div className="absolute inset-0 bg-grid-black/[0.02] bg-[size:50px_50px]" />
       <div className="hero-container relative max-w-7xl mx-auto px-6 py-32 text-center">
-        {/* Announcement Banner */}
-        <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 mb-8">
-          <span className="text-sm font-medium text-primary">Coming Soon</span>
-          <div className="mx-2 h-4 w-px bg-primary/20" />
-          <span className="text-sm text-muted-foreground">Multi-Chain Authentication Agent</span>
-          <ArrowRight className="ml-2 h-3 w-3 text-primary" />
-        </div>
-
         {/* Main Hero - Optimized for immediate LCP render */}
         <h1 className="hero-title text-6xl font-bold tracking-tight text-foreground mb-6 leading-tight">
           The <span className="hero-gradient bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">Private</span>
