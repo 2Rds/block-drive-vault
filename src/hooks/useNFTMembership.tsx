@@ -1,18 +1,15 @@
 /**
- * NFT Membership Hook
+ * NFT Membership Hook (MVP Version)
  * 
- * React hook for managing BlockDrive NFT-based subscriptions.
- * Provides membership verification, purchase, and status tracking.
+ * Provides simulated membership data for MVP demo mode.
+ * All users get "pro" tier access in MVP mode.
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { useSolanaWalletSigning } from './useSolanaWalletSigning';
-import { nftMembershipService } from '@/services/nftMembershipService';
 import {
   SubscriptionTier,
   MembershipVerification,
-  MembershipPurchaseRequest,
   MembershipPurchaseResult,
   TIER_CONFIGS,
 } from '@/types/nftMembership';
@@ -38,27 +35,39 @@ interface UseNFTMembershipReturn {
 }
 
 export function useNFTMembership(): UseNFTMembershipReturn {
-  const { walletData } = useAuth();
-  const { signTransaction } = useSolanaWalletSigning();
+  const { user, walletData } = useAuth();
   
   const [membership, setMembership] = useState<MembershipVerification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
-  // Verify membership on wallet connect
+  // Create MVP membership when user is authenticated
   const verifyMembership = useCallback(async (): Promise<MembershipVerification | null> => {
-    if (!walletData?.address) {
+    if (!user) {
       setMembership(null);
       setIsLoading(false);
       return null;
     }
 
     setIsVerifying(true);
+    
     try {
-      const result = await nftMembershipService.verifyMembership(walletData.address);
-      setMembership(result);
-      return result;
+      // In MVP mode, give all users "pro" tier access
+      const mvpMembership: MembershipVerification = {
+        isValid: true,
+        tier: 'pro',
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+        daysRemaining: 30,
+        storageRemaining: BigInt(100 * 1024 * 1024 * 1024), // 100 GB
+        bandwidthRemaining: BigInt(100 * 1024 * 1024 * 1024), // 100 GB
+        gasCreditsRemaining: BigInt(50_000_000), // $50 in credits
+        features: TIER_CONFIGS['pro'].features,
+        nftMint: null, // No actual NFT in MVP mode
+      };
+      
+      setMembership(mvpMembership);
+      return mvpMembership;
     } catch (error) {
       console.error('[useNFTMembership] Verification failed:', error);
       setMembership(null);
@@ -67,126 +76,79 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setIsVerifying(false);
       setIsLoading(false);
     }
-  }, [walletData?.address]);
+  }, [user]);
 
-  // Auto-verify on wallet change
+  // Auto-verify when user changes
   useEffect(() => {
-    if (walletData?.connected && walletData?.address) {
+    if (user) {
       verifyMembership();
     } else {
       setMembership(null);
       setIsLoading(false);
     }
-  }, [walletData?.connected, walletData?.address, verifyMembership]);
+  }, [user, verifyMembership]);
 
-  // Purchase new membership
+  // Purchase membership - MVP stub
   const purchaseMembership = useCallback(async (
     tier: SubscriptionTier,
     billingPeriod: 'monthly' | 'quarterly' | 'annual'
   ): Promise<MembershipPurchaseResult> => {
-    if (!walletData?.address) {
-      return { success: false, error: 'Wallet not connected' };
-    }
-
     setIsPurchasing(true);
+    
     try {
-      const request: MembershipPurchaseRequest = {
-        tier,
-        billingPeriod,
-        paymentMethod: 'crypto',
-        walletAddress: walletData.address,
-        autoRenew: true,
-      };
-
-      const result = await nftMembershipService.createMembership(request, signTransaction);
-
-      if (result.success) {
-        toast.success('Membership NFT minted successfully!', {
-          description: `Your ${TIER_CONFIGS[tier].name} membership is now active.`
-        });
-        
-        // Refresh membership status
-        await verifyMembership();
-      } else {
-        toast.error('Failed to create membership', {
-          description: result.error
-        });
-      }
-
-      return result;
+      // Simulate purchase in MVP mode
+      toast.success('Membership activated!', {
+        description: `Your ${TIER_CONFIGS[tier].name} membership is now active. (Demo mode)`
+      });
+      
+      await verifyMembership();
+      return { success: true };
     } catch (error) {
-      console.error('[useNFTMembership] Purchase failed:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Purchase failed';
-      toast.error('Purchase failed', { description: errorMsg });
-      return { success: false, error: errorMsg };
+      return { success: false, error: 'Purchase simulation failed' };
     } finally {
       setIsPurchasing(false);
     }
-  }, [walletData?.address, signTransaction, verifyMembership]);
+  }, [verifyMembership]);
 
-  // Renew existing membership
+  // Renew membership - MVP stub
   const renewMembership = useCallback(async (
     billingPeriod: 'monthly' | 'quarterly' | 'annual'
   ): Promise<MembershipPurchaseResult> => {
-    if (!walletData?.address) {
-      return { success: false, error: 'Wallet not connected' };
-    }
-
     setIsPurchasing(true);
+    
     try {
-      const result = await nftMembershipService.renewMembership(
-        walletData.address,
-        billingPeriod,
-        signTransaction
-      );
-
-      if (result.success) {
-        toast.success('Membership renewed!', {
-          description: 'Your subscription has been extended.'
-        });
-        await verifyMembership();
-      }
-
-      return result;
+      toast.success('Membership renewed!', {
+        description: 'Your subscription has been extended. (Demo mode)'
+      });
+      
+      await verifyMembership();
+      return { success: true };
     } catch (error) {
-      console.error('[useNFTMembership] Renewal failed:', error);
-      return { success: false, error: 'Renewal failed' };
+      return { success: false, error: 'Renewal simulation failed' };
     } finally {
       setIsPurchasing(false);
     }
-  }, [walletData?.address, signTransaction, verifyMembership]);
+  }, [verifyMembership]);
 
-  // Upgrade to higher tier
+  // Upgrade membership - MVP stub
   const upgradeMembership = useCallback(async (
     newTier: SubscriptionTier
   ): Promise<MembershipPurchaseResult> => {
-    if (!walletData?.address) {
-      return { success: false, error: 'Wallet not connected' };
-    }
-
     setIsPurchasing(true);
+    
     try {
-      const result = await nftMembershipService.upgradeMembership(
-        walletData.address,
-        newTier,
-        signTransaction
-      );
-
-      if (result.success) {
-        toast.success('Membership upgraded!', {
-          description: `Welcome to ${TIER_CONFIGS[newTier].name}!`
-        });
-        await verifyMembership();
-      }
-
-      return result;
+      toast.success('Membership upgraded!', {
+        description: `Welcome to ${TIER_CONFIGS[newTier].name}! (Demo mode)`
+      });
+      
+      await verifyMembership();
+      return { success: true };
     } catch (error) {
-      console.error('[useNFTMembership] Upgrade failed:', error);
-      return { success: false, error: 'Upgrade failed' };
+      return { success: false, error: 'Upgrade simulation failed' };
     } finally {
       setIsPurchasing(false);
     }
-  }, [walletData?.address, signTransaction, verifyMembership]);
+  }, [verifyMembership]);
 
   // Get tier configuration
   const getTierConfig = useCallback((tier: SubscriptionTier) => {
@@ -208,7 +170,13 @@ export function useNFTMembership(): UseNFTMembershipReturn {
 
   // Get display info
   const getDisplayInfo = useCallback((tier: SubscriptionTier) => {
-    return nftMembershipService.getMembershipDisplayInfo(tier);
+    const tierDisplayMap = {
+      basic: { name: 'BlockDrive Basic', symbol: 'BDB', color: '#64748b', icon: '🛡️' },
+      pro: { name: 'BlockDrive Pro', symbol: 'BDP', color: '#3b82f6', icon: '⭐' },
+      premium: { name: 'BlockDrive Premium', symbol: 'BDPM', color: '#8b5cf6', icon: '👑' },
+      enterprise: { name: 'BlockDrive Enterprise', symbol: 'BDE', color: '#f59e0b', icon: '⚡' },
+    };
+    return tierDisplayMap[tier];
   }, []);
 
   return {
