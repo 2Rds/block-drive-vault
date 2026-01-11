@@ -9,11 +9,9 @@ import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 
-// Lazy load all auth providers to reduce initial bundle size
-// These are heavy libraries that aren't needed for landing page
-const SimplifiedAuthProvider = lazy(() => import("./components/auth/SimplifiedAuthProvider").then(m => ({ default: m.SimplifiedAuthProvider })));
-const DynamicProviderWrapper = lazy(() => import("./components/auth/DynamicProviderWrapper").then(m => ({ default: m.DynamicProviderWrapper })));
-const ProtectedRoute = lazy(() => import("./components/ProtectedRoute").then(m => ({ default: m.ProtectedRoute })));
+// MVP Auth Provider - simplified authentication for MVP demo
+const MVPAuthProvider = lazy(() => import("./components/auth/MVPAuthProvider").then(m => ({ default: m.MVPAuthProvider })));
+const MVPProtectedRoute = lazy(() => import("./components/MVPProtectedRoute").then(m => ({ default: m.MVPProtectedRoute })));
 
 // Lazy load all non-landing pages to reduce initial bundle size
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -109,54 +107,54 @@ const App = () => {
               <div className="text-foreground">Loading application...</div>
             </div>
           }>
-            {/* Wrap entire app with Dynamic providers for wallet connection from anywhere */}
-            <DynamicProviderWrapper>
-              <SimplifiedAuthProvider>
-                <Routes>
-                  {/* Landing page now has access to wallet connection */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/docs" element={<Docs />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/terms-of-service" element={<TermsOfService />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/subscription-success" element={<SubscriptionSuccess />} />
-                  <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/files" element={
-                    <ProtectedRoute>
-                      <IPFSFiles />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/integrations" element={
-                    <ProtectedRoute>
-                      <Integrations />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/index" element={
-                    <ProtectedRoute>
-                      <IPFSFiles />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/account" element={
-                    <ProtectedRoute>
-                      <Account />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/teams" element={<Teams />} />
-                  <Route path="/team-invitation" element={<TeamInvitation />} />
-                  <Route path="/membership" element={
-                    <ProtectedRoute>
-                      <Membership />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </SimplifiedAuthProvider>
-            </DynamicProviderWrapper>
+            {/* MVP Auth Provider - simplified authentication for demo */}
+            <MVPAuthProvider>
+              <Routes>
+                {/* Public pages */}
+                <Route path="/" element={<Index />} />
+                <Route path="/docs" element={<Docs />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+                <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                
+                {/* Protected pages */}
+                <Route path="/dashboard" element={
+                  <MVPProtectedRoute>
+                    <Dashboard />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="/files" element={
+                  <MVPProtectedRoute>
+                    <IPFSFiles />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="/integrations" element={
+                  <MVPProtectedRoute>
+                    <Integrations />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="/index" element={
+                  <MVPProtectedRoute>
+                    <IPFSFiles />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="/account" element={
+                  <MVPProtectedRoute>
+                    <Account />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="/teams" element={<Teams />} />
+                <Route path="/team-invitation" element={<TeamInvitation />} />
+                <Route path="/membership" element={
+                  <MVPProtectedRoute>
+                    <Membership />
+                  </MVPProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </MVPAuthProvider>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>

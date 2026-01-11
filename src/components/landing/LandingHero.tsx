@@ -1,11 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Shield, Globe, Zap } from 'lucide-react';
+import { Shield, Globe, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
+import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
+
 export const LandingHero = () => {
   const navigate = useNavigate();
-  return <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-background">
       <div className="absolute inset-0 bg-grid-black/[0.02] bg-[size:50px_50px]" />
       <div className="hero-container relative max-w-7xl mx-auto px-6 py-32 text-center">
         {/* Main Hero - Optimized for immediate LCP render */}
@@ -15,10 +17,13 @@ export const LandingHero = () => {
           Data Management Platform
         </h1>
 
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">Theft-proof architecture through Programmed Incompleteness, zero-knowledge encryption with wallet-derived keys, and instant-revoke file sharing. Your files are split across providers and can never be stolen—even by us.</p>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
+          Theft-proof architecture through Programmed Incompleteness, zero-knowledge encryption with wallet-derived keys, and instant-revoke file sharing. Your files are split across providers and can never be stolen—even by us.
+        </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <MVPConnectButton variant="hero" />
           <Button variant="outline" size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/pricing')}>
             View Pricing
           </Button>
@@ -45,5 +50,6 @@ export const LandingHero = () => {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };

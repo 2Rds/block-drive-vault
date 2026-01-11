@@ -1,8 +1,9 @@
 import React from 'react';
-import { DynamicConnectButton } from './DynamicConnectButton';
+import { MVPConnectButton } from './MVPConnectButton';
 
 export const AuthHeader = () => {
-  return <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+  return (
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="flex items-center justify-between px-8 py-4">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center">
@@ -16,9 +17,10 @@ export const AuthHeader = () => {
         
         <div className="flex items-center">
           <div className="w-48">
-            <DynamicConnectButton onConnectClick={() => {}} />
+            <MVPConnectButton />
           </div>
         </div>
       </div>
-    </header>;
+    </header>
+  );
 };

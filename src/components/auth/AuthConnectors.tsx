@@ -1,40 +1,26 @@
 import React from 'react';
-import { DynamicWalletConnector } from './DynamicWalletConnector';
-import { WalletConnector } from '@/components/WalletConnector';
+import { MVPConnectButton } from './MVPConnectButton';
+
 interface AuthConnectorsProps {
-  dynamicReady: boolean;
-  sdkError: boolean;
-  sdkHasLoaded: boolean;
-  onRetry: () => void;
+  dynamicReady?: boolean;
+  sdkError?: boolean;
+  sdkHasLoaded?: boolean;
+  onRetry?: () => void;
   onWalletConnected?: (walletInfo: any) => void;
 }
+
 export const AuthConnectors = ({
-  dynamicReady,
-  sdkError,
-  sdkHasLoaded,
-  onRetry,
   onWalletConnected
 }: AuthConnectorsProps) => {
-  const handleWalletConnected = (walletInfo: any) => {
-    console.log('Wallet connected in AuthConnectors:', walletInfo);
-    if (onWalletConnected) {
-      onWalletConnected(walletInfo);
-    }
-  };
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       <div className="flex justify-center">
-        <DynamicWalletConnector onWalletConnected={handleWalletConnected} />
+        <MVPConnectButton variant="hero" />
       </div>
       
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-gray-700" />
-        </div>
-        
+      <div className="text-center text-sm text-muted-foreground">
+        <p>Click to get instant access to BlockDrive</p>
       </div>
-      
-      <div className="flex justify-center">
-        <WalletConnector />
-      </div>
-    </div>;
+    </div>
+  );
 };
