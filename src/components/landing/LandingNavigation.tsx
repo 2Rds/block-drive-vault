@@ -1,7 +1,6 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
 import { useNavigate } from 'react-router-dom';
+import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
 
 export const LandingNavigation = () => {
   const navigate = useNavigate();
@@ -39,7 +38,7 @@ export const LandingNavigation = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-4">
-            <LazyDynamicConnectButton onConnectClick={() => {}} />
+            <MVPConnectButton />
           </div>
         </div>
       </div>

@@ -1,12 +1,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Upload, Eye, Download, Share } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { LazyDynamicConnectButton } from '@/components/auth/LazyDynamicConnectButton';
+import { Upload, Eye, Download, Share } from 'lucide-react';
+import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
 
 export const PlatformShowcase = () => {
-  const navigate = useNavigate();
   return (
     <section className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-6">
@@ -54,7 +51,7 @@ export const PlatformShowcase = () => {
             </div>
 
             <div className="flex justify-center">
-              <LazyDynamicConnectButton onConnectClick={() => {}} />
+              <MVPConnectButton />
             </div>
           </div>
 
