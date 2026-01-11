@@ -1,4 +1,5 @@
 import React from 'react';
+// MVP integrations page - connects various third-party services
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
