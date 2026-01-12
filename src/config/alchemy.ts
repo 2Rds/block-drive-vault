@@ -3,21 +3,24 @@
  * 
  * Configures embedded Solana smart wallets with Clerk OIDC authentication
  * and gas sponsorship for transaction fees.
+ * 
+ * MVP Configuration: Solana Devnet only
  */
 
 import { Connection } from '@solana/web3.js';
 
-// Environment configuration
-const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY || '';
-const ALCHEMY_POLICY_ID = import.meta.env.VITE_ALCHEMY_POLICY_ID || '';
+// Hardcoded Alchemy Solana Devnet RPC for MVP
+const ALCHEMY_DEVNET_RPC = 'https://solana-devnet.g.alchemy.com/v2/RRZ6SsTGQpak0qtwGve5F';
 
-// Solana RPC endpoints via Alchemy
-const SOLANA_MAINNET_RPC = `https://solana-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
-const SOLANA_DEVNET_RPC = `https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+// Gas sponsorship policy ID
+const ALCHEMY_POLICY_ID = 'b54fccd1-b3c0-44e8-8933-1331daa4f0a8';
 
-// Use devnet for development, mainnet for production
-const isProduction = import.meta.env.PROD;
-const SOLANA_RPC_URL = isProduction ? SOLANA_MAINNET_RPC : SOLANA_DEVNET_RPC;
+// API Key (extracted from RPC URL for SDK use)
+const ALCHEMY_API_KEY = 'RRZ6SsTGQpak0qtwGve5F';
+
+// Force devnet for MVP
+const SOLANA_RPC_URL = ALCHEMY_DEVNET_RPC;
+const isProduction = false; // MVP is devnet only
 
 // Clerk OIDC issuer URL for JWT validation
 const CLERK_ISSUER_URL = 'https://good-squirrel-87.clerk.accounts.dev/';
@@ -31,6 +34,7 @@ export interface AlchemyConfig {
   solanaRpcUrl: string;
   clerkIssuerUrl: string;
   isProduction: boolean;
+  network: 'devnet' | 'mainnet';
 }
 
 export const alchemyConfig: AlchemyConfig = {
@@ -39,6 +43,7 @@ export const alchemyConfig: AlchemyConfig = {
   solanaRpcUrl: SOLANA_RPC_URL,
   clerkIssuerUrl: CLERK_ISSUER_URL,
   isProduction,
+  network: 'devnet',
 };
 
 /**
@@ -47,9 +52,7 @@ export const alchemyConfig: AlchemyConfig = {
 export function createAlchemySolanaConnection(): Connection {
   return new Connection(SOLANA_RPC_URL, {
     commitment: 'confirmed',
-    wsEndpoint: isProduction 
-      ? 'wss://api.mainnet.solana.com' 
-      : 'wss://api.devnet.solana.com',
+    wsEndpoint: 'wss://api.devnet.solana.com',
   });
 }
 
@@ -59,12 +62,13 @@ export function createAlchemySolanaConnection(): Connection {
 export function validateAlchemyConfig(): { valid: boolean; missing: string[] } {
   const missing: string[] = [];
   
+  // For MVP, all config is hardcoded so always valid
   if (!ALCHEMY_API_KEY) {
-    missing.push('VITE_ALCHEMY_API_KEY');
+    missing.push('ALCHEMY_API_KEY');
   }
   
   if (!ALCHEMY_POLICY_ID) {
-    missing.push('VITE_ALCHEMY_POLICY_ID');
+    missing.push('ALCHEMY_POLICY_ID');
   }
   
   return {
