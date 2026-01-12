@@ -39,12 +39,12 @@ export const TeamMembersTable = ({ members, teamId, isOwner }: TeamMembersTableP
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
-    await removeTeamMember(teamId, userId);
+  const handleRemoveMember = async (clerkUserId: string) => {
+    await removeTeamMember(teamId, clerkUserId);
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    await updateTeamMemberRole(teamId, userId, newRole);
+  const handleRoleChange = async (clerkUserId: string, newRole: string) => {
+    await updateTeamMemberRole(teamId, clerkUserId, newRole);
   };
 
   if (members.length === 0) {
@@ -82,10 +82,10 @@ export const TeamMembersTable = ({ members, teamId, isOwner }: TeamMembersTableP
               </div>
             </TableCell>
             <TableCell>
-              {isOwner && member.role !== 'owner' && member.user_id !== user?.id ? (
+              {isOwner && member.role !== 'owner' && member.clerk_user_id !== user?.id ? (
                 <Select
                   value={member.role}
-                  onValueChange={(value) => handleRoleChange(member.user_id, value)}
+                  onValueChange={(value) => handleRoleChange(member.clerk_user_id, value)}
                 >
                   <SelectTrigger className="w-24">
                     <SelectValue />
@@ -100,11 +100,11 @@ export const TeamMembersTable = ({ members, teamId, isOwner }: TeamMembersTableP
               )}
             </TableCell>
             <TableCell>
-              {new Date(member.joined_at).toLocaleDateString()}
+              {new Date(member.created_at).toLocaleDateString()}
             </TableCell>
             {isOwner && (
               <TableCell>
-                {member.role !== 'owner' && member.user_id !== user?.id && (
+                {member.role !== 'owner' && member.clerk_user_id !== user?.id && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
@@ -121,7 +121,7 @@ export const TeamMembersTable = ({ members, teamId, isOwner }: TeamMembersTableP
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleRemoveMember(member.user_id)}
+                          onClick={() => handleRemoveMember(member.clerk_user_id)}
                           className="bg-red-600 hover:bg-red-700"
                         >
                           Remove
