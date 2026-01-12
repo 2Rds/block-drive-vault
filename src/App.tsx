@@ -10,8 +10,16 @@ import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 
-// Clerk publishable key
-const CLERK_PUBLISHABLE_KEY = "pk_test_bWFnaWMtYmVlLTU5LmNsZXJrLmFjY291bnRzLmRldiQ";
+// Clerk publishable key - must be a publishable key (pk_test_* or pk_live_*), NOT a secret key
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!CLERK_PUBLISHABLE_KEY) {
+  console.error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
+}
+
+if (CLERK_PUBLISHABLE_KEY && !CLERK_PUBLISHABLE_KEY.startsWith('pk_')) {
+  console.error("Invalid Clerk key format. Must be a publishable key starting with 'pk_', not a secret key.");
+}
 
 // Protected route component
 const ClerkProtectedRoute = lazy(() => 
