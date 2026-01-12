@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, Eye, Download, Share } from 'lucide-react';
-import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
+import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
 
 export const PlatformShowcase = () => {
   return (
@@ -51,7 +51,7 @@ export const PlatformShowcase = () => {
             </div>
 
             <div className="flex justify-center">
-              <MVPConnectButton />
+              <ClerkConnectButton />
             </div>
           </div>
 

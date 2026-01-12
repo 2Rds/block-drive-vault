@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
+import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
 
 export const CTASection = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export const CTASection = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <div className="flex justify-center">
-            <MVPConnectButton variant="hero" />
+            <ClerkConnectButton variant="hero" />
           </div>
           <Button 
             variant="outline" 

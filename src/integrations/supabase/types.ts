@@ -14,7 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      files: {
+        Row: {
+          clerk_user_id: string
+          content_type: string | null
+          created_at: string
+          file_path: string | null
+          file_size: number | null
+          filename: string
+          folder_path: string | null
+          id: string
+          ipfs_cid: string | null
+          ipfs_url: string | null
+          is_encrypted: boolean | null
+          metadata: Json | null
+          storage_provider: string | null
+          updated_at: string
+          visibility: string | null
+        }
+        Insert: {
+          clerk_user_id: string
+          content_type?: string | null
+          created_at?: string
+          file_path?: string | null
+          file_size?: number | null
+          filename: string
+          folder_path?: string | null
+          id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
+          is_encrypted?: boolean | null
+          metadata?: Json | null
+          storage_provider?: string | null
+          updated_at?: string
+          visibility?: string | null
+        }
+        Update: {
+          clerk_user_id?: string
+          content_type?: string | null
+          created_at?: string
+          file_path?: string | null
+          file_size?: number | null
+          filename?: string
+          folder_path?: string | null
+          id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
+          is_encrypted?: boolean | null
+          metadata?: Json | null
+          storage_provider?: string | null
+          updated_at?: string
+          visibility?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          clerk_user_id: string
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          clerk_user_id: string
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          clerk_user_id?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string | null
+          team_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by: string
+          role?: string | null
+          team_id: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string | null
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          clerk_user_id: string
+          created_at: string
+          id: string
+          role: string | null
+          team_id: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string
+          id?: string
+          role?: string | null
+          team_id: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string
+          id?: string
+          role?: string | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_clerk_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_clerk_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_clerk_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
