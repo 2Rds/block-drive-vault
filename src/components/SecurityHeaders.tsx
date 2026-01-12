@@ -8,12 +8,12 @@ export const SecurityHeaders = () => {
       meta.httpEquiv = 'Content-Security-Policy';
       meta.content = `
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.dynamic.xyz https://*.dynamicauth.com https://widget.intercom.io https://cdn.gpteng.co;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.dynamic.xyz https://*.dynamicauth.com https://widget.intercom.io https://cdn.gpteng.co https://*.clerk.accounts.dev https://*.clerk.com https://cdn.clerk.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://widget.intercom.io;
         font-src 'self' https://fonts.gstatic.com https://widget.intercom.io;
         img-src 'self' data: https: blob:;
-        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.dynamic.xyz https://*.dynamicauth.com https://dynamic-static-assets.com https://api.intercom.io https://logs.dynamicauth.com;
-        frame-src 'self' https://*.dynamic.xyz https://*.dynamicauth.com https://widget.intercom.io;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.dynamic.xyz https://*.dynamicauth.com https://dynamic-static-assets.com https://api.intercom.io https://logs.dynamicauth.com https://*.clerk.accounts.dev https://*.clerk.com;
+        frame-src 'self' https://*.dynamic.xyz https://*.dynamicauth.com https://widget.intercom.io https://*.clerk.accounts.dev https://*.clerk.com;
         object-src 'none';
         base-uri 'self';
         form-action 'self';
