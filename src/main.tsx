@@ -1,55 +1,47 @@
+import { createRoot } from 'react-dom/client';
+import React from 'react';
+import { ClerkProvider } from '@clerk/clerk-react';
+import App from './App.tsx';
+import './index.css';
 
-import { createRoot } from 'react-dom/client'
-import React from 'react'
-import App from './App.tsx'
-import './index.css'
+// Clerk publishable key (VITE_ prefix required for Vite client exposure)
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error('Missing Clerk Publishable Key');
+}
 
 // Optimize TBT by chunking React initialization and using scheduler
 const initializeApp = () => {
-  // Create root first (lightweight operation)
-  const root = createRoot(document.getElementById("root")!, {
-    // Enable concurrent features to break up long tasks
-    identifierPrefix: 'blockdrive-'
+  const root = createRoot(document.getElementById('root')!, {
+    identifierPrefix: 'blockdrive-',
   });
 
-  // Use modern scheduling APIs to break up rendering work
-  if ('scheduler' in window && (window as any).scheduler?.postTask) {
-    // Use Scheduler API for optimal task scheduling
-    (window as any).scheduler.postTask(() => {
-      root.render(
-        <React.StrictMode>
-          <App />
-        </React.StrictMode>
-      );
-    }, { priority: 'user-visible' });
-  } else if ('MessageChannel' in window) {
-    // Fallback: Use MessageChannel for yielding to browser
-    const channel = new MessageChannel();
-    channel.port2.onmessage = () => {
-      root.render(
-        <React.StrictMode>
-          <App />
-        </React.StrictMode>
-      );
-    };
-    channel.port1.postMessage(null);
-  } else {
-    // Final fallback: Use time slicing with React concurrent features
+  const renderApp = () => {
     root.render(
       <React.StrictMode>
-        <App />
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+          <App />
+        </ClerkProvider>
       </React.StrictMode>
     );
+  };
+
+  if ('scheduler' in window && (window as any).scheduler?.postTask) {
+    (window as any).scheduler.postTask(renderApp, { priority: 'user-visible' });
+  } else if ('MessageChannel' in window) {
+    const channel = new MessageChannel();
+    channel.port2.onmessage = renderApp;
+    channel.port1.postMessage(null);
+  } else {
+    renderApp();
   }
 };
 
-// More aggressive deferring to reduce TBT
 if ('requestIdleCallback' in window) {
-  // Use multiple idle callbacks to spread work across frames
   requestIdleCallback(() => {
     requestIdleCallback(initializeApp, { timeout: 200 });
   }, { timeout: 100 });
 } else {
-  // Fallback: use longer delay to ensure main thread is free
   setTimeout(initializeApp, 150);
 }
