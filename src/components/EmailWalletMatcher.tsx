@@ -1,50 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Mail, Wallet, ArrowRight, CheckCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
-
-interface EmailRegistration {
-  email: string;
-  subscription_tier: string;
-  created_at: string;
-}
+// Stub - EmailWalletMatcher deprecated with Clerk auth
+import React from 'react';
 
 interface EmailWalletMatcherProps {
   onSuccess?: () => void;
 }
 
 export const EmailWalletMatcher = ({ onSuccess }: EmailWalletMatcherProps) => {
-  const { user, walletData } = useAuth();
-  const [emailRegistrations, setEmailRegistrations] = useState<EmailRegistration[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [linking, setLinking] = useState(false);
-
-  useEffect(() => {
-    fetchAvailableEmailRegistrations();
-  }, []);
-
-  const fetchAvailableEmailRegistrations = async () => {
-    try {
-      // Get all email registrations that don't have a wallet linked yet
-      const { data, error } = await supabase
-        .from('user_signups')
-        .select('email, subscription_tier, created_at')
-        .is('wallet_address', null)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setEmailRegistrations(data || []);
-    } catch (error) {
-      console.error('Error fetching email registrations:', error);
-      toast.error('Failed to load available registrations');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // This component is deprecated with Clerk authentication
+  return null;
+};
 
   const linkWalletToEmail = async (email: string) => {
     if (!walletData?.wallet_address || !user) {

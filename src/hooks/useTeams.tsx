@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { toast } from 'sonner';
 
 export interface Team {
   id: string;
   name: string;
   description?: string;
-  owner_id: string;
-  plan_type: string;
-  max_members: number;
+  owner_clerk_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -17,9 +14,9 @@ export interface Team {
 export interface TeamMember {
   id: string;
   team_id: string;
-  user_id: string;
+  clerk_user_id: string;
   role: string;
-  joined_at: string;
+  created_at: string;
   user_email?: string;
   user_name?: string;
 }
@@ -37,7 +34,7 @@ export interface TeamInvitation {
 }
 
 export const useTeams = () => {
-  const { user } = useAuth();
+  const { userId, supabase, isSignedIn } = useClerkAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -45,7 +42,7 @@ export const useTeams = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchTeams = async () => {
-    if (!user) return;
+    if (!userId) return;
 
     try {
       const { data, error } = await supabase
@@ -65,24 +62,23 @@ export const useTeams = () => {
     try {
       const { data, error } = await supabase
         .from('team_members')
-        .select('*')
+        .select(`
+          *,
+          profiles:clerk_user_id(first_name, last_name, email)
+        `)
         .eq('team_id', teamId);
 
       if (error) throw error;
       
-      // Fetch user details separately for each member
-      const membersWithUserInfo = await Promise.all(
-        (data || []).map(async (member) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(member.user_id);
-          return {
-            ...member,
-            user_email: userData?.user?.email,
-            user_name: userData?.user?.user_metadata?.full_name || userData?.user?.email
-          };
-        })
-      );
+      const membersWithUserInfo = (data || []).map((member: any) => ({
+        ...member,
+        user_email: member.profiles?.email,
+        user_name: member.profiles?.first_name 
+          ? `${member.profiles.first_name} ${member.profiles.last_name || ''}`.trim()
+          : member.profiles?.email
+      }));
       
-      setTeamMembers(membersWithUserInfo || []);
+      setTeamMembers(membersWithUserInfo);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast.error('Failed to fetch team members');
@@ -106,8 +102,8 @@ export const useTeams = () => {
     }
   };
 
-  const createTeam = async (teamData: { name: string; description?: string; plan_type?: string }) => {
-    if (!user) return null;
+  const createTeam = async (teamData: { name: string; description?: string }) => {
+    if (!userId) return null;
 
     try {
       const { data, error } = await supabase
@@ -115,8 +111,7 @@ export const useTeams = () => {
         .insert({
           name: teamData.name,
           description: teamData.description,
-          owner_id: user.id,
-          plan_type: teamData.plan_type || 'growth',
+          owner_clerk_id: userId,
         })
         .select()
         .single();
@@ -150,10 +145,9 @@ export const useTeams = () => {
   };
 
   const acceptInvitation = async (token: string) => {
-    if (!user) return false;
+    if (!userId) return false;
 
     try {
-      // Get invitation details
       const { data: invitation, error: inviteError } = await supabase
         .from('team_invitations')
         .select('*')
@@ -164,23 +158,20 @@ export const useTeams = () => {
       if (inviteError) throw inviteError;
       if (!invitation) throw new Error('Invalid or expired invitation');
 
-      // Check if invitation is expired
       if (new Date(invitation.expires_at) < new Date()) {
         throw new Error('Invitation has expired');
       }
 
-      // Add user to team
       const { error: memberError } = await supabase
         .from('team_members')
         .insert({
           team_id: invitation.team_id,
-          user_id: user.id,
+          clerk_user_id: userId,
           role: invitation.role,
         });
 
       if (memberError) throw memberError;
 
-      // Mark invitation as accepted
       const { error: updateError } = await supabase
         .from('team_invitations')
         .update({ accepted_at: new Date().toISOString() })
@@ -198,13 +189,13 @@ export const useTeams = () => {
     }
   };
 
-  const removeTeamMember = async (teamId: string, userId: string) => {
+  const removeTeamMember = async (teamId: string, clerkUserId: string) => {
     try {
       const { error } = await supabase
         .from('team_members')
         .delete()
         .eq('team_id', teamId)
-        .eq('user_id', userId);
+        .eq('clerk_user_id', clerkUserId);
 
       if (error) throw error;
       
@@ -216,13 +207,13 @@ export const useTeams = () => {
     }
   };
 
-  const updateTeamMemberRole = async (teamId: string, userId: string, newRole: string) => {
+  const updateTeamMemberRole = async (teamId: string, clerkUserId: string, newRole: string) => {
     try {
       const { error } = await supabase
         .from('team_members')
         .update({ role: newRole })
         .eq('team_id', teamId)
-        .eq('user_id', userId);
+        .eq('clerk_user_id', clerkUserId);
 
       if (error) throw error;
       
@@ -235,12 +226,12 @@ export const useTeams = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (isSignedIn && userId) {
       fetchTeams().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [isSignedIn, userId]);
 
   useEffect(() => {
     if (currentTeam) {

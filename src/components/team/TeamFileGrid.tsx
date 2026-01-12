@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { File, Folder, Download, Archive, Database, Calendar } from 'lucide-react';
+import { File, Download, Archive, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileVisibilityToggle } from './FileVisibilityToggle';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { useTeams } from '@/hooks/useTeams';
 import { toast } from 'sonner';
 
@@ -16,12 +14,11 @@ interface TeamFile {
   content_type: string | null;
   visibility: 'private' | 'team';
   created_at: string;
-  user_id: string;
-  team_id: string | null;
+  clerk_user_id: string;
   ipfs_url: string | null;
   profiles?: {
-    id: string;
-    username: string | null;
+    first_name: string | null;
+    last_name: string | null;
     email: string | null;
   } | null;
 }
@@ -31,7 +28,7 @@ interface TeamFileGridProps {
 }
 
 export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
-  const { user } = useAuth();
+  const { userId, supabase } = useClerkAuth();
   const { currentTeam } = useTeams();
   const [files, setFiles] = useState<TeamFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,38 +37,29 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
   const teamId = selectedTeamId || currentTeam?.id;
 
   useEffect(() => {
-    if (teamId && user) {
+    if (teamId && userId) {
       fetchTeamFiles();
     } else {
       setFiles([]);
       setLoading(false);
     }
-  }, [teamId, user, visibilityFilter]);
+  }, [teamId, userId, visibilityFilter]);
 
   const fetchTeamFiles = async () => {
     if (!teamId) return;
 
     setLoading(true);
     try {
+      // Note: files table doesn't have team_id column in current schema
+      // This is a placeholder that will need schema update for team file features
       let query = supabase
         .from('files')
-        .select(`
-          id,
-          filename,
-          file_size,
-          content_type,
-          visibility,
-          created_at,
-          user_id,
-          team_id,
-          ipfs_url
-        `)
-        .eq('team_id', teamId)
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Apply visibility filter
       if (visibilityFilter === 'private') {
-        query = query.eq('user_id', user?.id);
+        query = query.eq('clerk_user_id', userId);
       } else if (visibilityFilter === 'team') {
         query = query.eq('visibility', 'team');
       }
@@ -80,18 +68,10 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
 
       if (error) throw error;
 
-      // Get user profiles for file owners
-      const userIds = [...new Set(data?.map(file => file.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, email')
-        .in('id', userIds);
-
-      // Combine files with profile data
-      const filesWithProfiles = (data || []).map(file => ({
+      const filesWithProfiles = (data || []).map((file: any) => ({
         ...file,
-        visibility: file.visibility as 'private' | 'team',
-        profiles: profiles?.find(p => p.id === file.user_id) || null
+        visibility: (file.visibility || 'private') as 'private' | 'team',
+        profiles: null
       }));
 
       setFiles(filesWithProfiles);
@@ -129,14 +109,6 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
     return date.toLocaleDateString();
   };
 
-  const getFileIcon = (contentType: string | null, filename: string) => {
-    if (filename.endsWith('.sol')) return Database;
-    if (contentType?.startsWith('image/')) return File;
-    if (contentType?.startsWith('video/')) return File;
-    if (contentType?.startsWith('audio/')) return File;
-    return File;
-  };
-
   const getFileColor = (contentType: string | null, filename: string) => {
     if (filename.endsWith('.sol')) return 'text-blue-600';
     if (contentType?.startsWith('image/')) return 'text-green-600';
@@ -148,7 +120,7 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
 
   const filteredFiles = files.filter(file => {
     if (visibilityFilter === 'all') return true;
-    if (visibilityFilter === 'private') return file.user_id === user?.id;
+    if (visibilityFilter === 'private') return file.clerk_user_id === userId;
     if (visibilityFilter === 'team') return file.visibility === 'team';
     return true;
   });
@@ -207,9 +179,8 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredFiles.map((file) => {
-          const IconComponent = getFileIcon(file.content_type, file.filename);
           const iconColor = getFileColor(file.content_type, file.filename);
-          const isOwner = file.user_id === user?.id;
+          const isOwner = file.clerk_user_id === userId;
           
           return (
             <div
@@ -217,7 +188,7 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
               className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group"
             >
               <div className="flex items-start justify-between mb-3">
-                <IconComponent className={`w-8 h-8 ${iconColor}`} />
+                <File className={`w-8 h-8 ${iconColor}`} />
                 {file.ipfs_url && (
                   <Button
                     variant="ghost"
@@ -242,7 +213,7 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
                 
                 {!isOwner && file.profiles && (
                   <p className="text-xs text-gray-500">
-                    by {file.profiles.username || file.profiles.email}
+                    by {file.profiles.first_name || file.profiles.email}
                   </p>
                 )}
               </div>

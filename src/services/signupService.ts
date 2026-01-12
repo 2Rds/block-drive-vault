@@ -1,7 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-
+// Stub - Legacy signup service deprecated with Clerk auth
 export interface SignupData {
   email: string;
   fullName: string;
@@ -10,24 +7,19 @@ export interface SignupData {
 }
 
 export class SignupService {
-  static async registerUser(signupData: SignupData) {
-    try {
-      console.log('Registering user with email:', signupData.email);
-      
-      // Use the secure signup function instead of direct table insertion
-      const { data, error } = await supabase.rpc('secure_user_signup', {
-        email_param: signupData.email,
-        full_name_param: signupData.fullName,
-        organization_param: signupData.organization || null,
-        subscription_tier_param: signupData.subscriptionTier || 'free_trial'
-      });
+  static async registerUser(_signupData: SignupData) {
+    console.warn('SignupService is deprecated. Use Clerk authentication.');
+    return { error: { message: 'Use Clerk authentication' } };
+  }
 
-      if (error) {
-        console.error('Signup error:', error);
-        return { error: { message: error.message } };
-      }
+  static async checkEmailExists(_email: string) {
+    return false;
+  }
 
-      console.log('User registered successfully:', data);
+  static async linkWalletToSignup(_email: string, _walletAddress: string) {
+    return { error: null };
+  }
+}
       return { data, error: null };
     } catch (error: any) {
       console.error('Signup service error:', error);

@@ -1,32 +1,14 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { SecureSessionManager } from '@/utils/secureSessionManager';
-import { validateWalletAddress, isRateLimited } from '@/utils/inputValidation';
-import { 
-  logSecurityEvent, 
-  standardizeError, 
-  getAuthDelay, 
-  validateWalletSecurely 
-} from '@/utils/securityUtils';
-
+// Stub - Legacy auth service deprecated with Clerk
 export class AuthService {
-  static async loadWalletData(userId: string) {
-    try {
-      // Use enhanced security validation by accessing wallet through proper channels
-      const { data: wallet, error } = await supabase
-        .from('wallets')
-        .select(`
-          id,
-          user_id,
-          wallet_address,
-          public_key,
-          blockchain_type,
-          created_at,
-          blockchain_tokens (*)
-        `)
-        .eq('user_id', userId)
-        .maybeSingle();
+  static async loadWalletData(_userId: string) {
+    console.warn('AuthService.loadWalletData is deprecated. Use Clerk authentication.');
+    return null;
+  }
+
+  static async validateSession() {
+    return true;
+  }
+}
 
       if (error) {
         console.error('Secure wallet loading failed:', error);

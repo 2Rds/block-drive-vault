@@ -1,18 +1,15 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IPFSFile } from '@/types/ipfs';
 
 export class FileDatabaseService {
   static async saveFileMetadata(
-    userId: string,
-    walletId: string,
+    clerkUserId: string,
     ipfsResult: any,
     originalFile: File,
     folderPath?: string
   ) {
     const fileData = {
-      user_id: userId,
-      wallet_id: walletId,
+      clerk_user_id: clerkUserId,
       filename: ipfsResult.filename,
       file_path: `/${ipfsResult.filename}`,
       content_type: ipfsResult.contentType,
@@ -40,33 +37,7 @@ export class FileDatabaseService {
       
       if (dbError) {
         console.error('Database error:', dbError);
-        
-        // If it's an RLS error, try with a different approach
-        if (dbError.message.includes('row-level security') || dbError.message.includes('violates foreign key')) {
-          console.log('RLS error detected, attempting alternative file save...');
-          
-          // Create a temporary file record without strict constraints
-          const tempFileData = {
-            ...fileData,
-            user_id: userId,
-            wallet_id: userId, // Use userId as wallet_id fallback
-          };
-          
-          const { data: altDbFile, error: altDbError } = await supabase
-            .from('files')
-            .insert(tempFileData)
-            .select()
-            .single();
-          
-          if (altDbError) {
-            throw new Error(`Failed to save ${originalFile.name} metadata: ${altDbError.message}`);
-          }
-          
-          console.log('File saved with alternative approach:', altDbFile);
-          return altDbFile;
-        } else {
-          throw new Error(`Failed to save ${originalFile.name} metadata: ${dbError.message}`);
-        }
+        throw new Error(`Failed to save ${originalFile.name} metadata: ${dbError.message}`);
       }
       
       console.log('File saved to database:', dbFile);
@@ -82,7 +53,7 @@ export class FileDatabaseService {
     filename: string;
     file_size: number;
     content_type: string;
-    user_id: string;
+    clerk_user_id: string;
     folder_path?: string;
     storage_provider: string;
     ipfs_cid: string;
@@ -96,7 +67,6 @@ export class FileDatabaseService {
         .from('files')
         .insert({
           ...fileData,
-          wallet_id: fileData.user_id, // Use user_id as wallet_id fallback
           file_path: `/${fileData.filename}`,
           is_encrypted: false,
           folder_path: fileData.folder_path || '/'
@@ -118,11 +88,11 @@ export class FileDatabaseService {
     }
   }
 
-  static async loadUserFiles(userId: string): Promise<IPFSFile[]> {
+  static async loadUserFiles(clerkUserId: string): Promise<IPFSFile[]> {
     const { data: files, error } = await supabase
       .from('files')
       .select('*')
-      .eq('user_id', userId)
+      .eq('clerk_user_id', clerkUserId)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -137,18 +107,18 @@ export class FileDatabaseService {
       contentType: file.content_type || 'application/octet-stream',
       ipfsUrl: file.ipfs_url || '',
       uploadedAt: file.created_at,
-      userId: file.user_id,
+      userId: file.clerk_user_id,
       folderPath: file.folder_path,
       metadata: file.metadata as IPFSFile['metadata']
     }));
   }
 
-  static async deleteFile(fileId: string, userId: string) {
+  static async deleteFile(fileId: string, clerkUserId: string) {
     const { error: dbError } = await supabase
       .from('files')
       .delete()
       .eq('id', fileId)
-      .eq('user_id', userId);
+      .eq('clerk_user_id', clerkUserId);
     
     if (dbError) {
       throw new Error('Failed to delete file record');
