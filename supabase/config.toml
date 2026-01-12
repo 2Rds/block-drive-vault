@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.upload-to-ipfs]
 verify_jwt = false
+
+[functions.get-clerk-publishable-key]
+verify_jwt = false
