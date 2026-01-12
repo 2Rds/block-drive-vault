@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useTeams } from '@/hooks/useTeams';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { toast } from 'sonner';
 
 interface TeamUploadAreaProps {
@@ -18,7 +17,7 @@ export const TeamUploadArea = ({ onFileUploaded }: TeamUploadAreaProps) => {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [visibility, setVisibility] = useState<'private' | 'team'>('private');
   const { currentTeam } = useTeams();
-  const { user } = useAuth();
+  const { userId, supabase } = useClerkAuth();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -40,7 +39,7 @@ export const TeamUploadArea = ({ onFileUploaded }: TeamUploadAreaProps) => {
   };
 
   const uploadFiles = async () => {
-    if (!selectedFiles || !currentTeam || !user) {
+    if (!selectedFiles || !currentTeam || !userId) {
       toast.error('Please select files and ensure you\'re in a team');
       return;
     }
@@ -52,8 +51,7 @@ export const TeamUploadArea = ({ onFileUploaded }: TeamUploadAreaProps) => {
         const file = selectedFiles[i];
         
         // Upload to Supabase storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${currentTeam.id}/${Date.now()}-${file.name}`;
+        const fileName = `${userId}/${currentTeam.id}/${Date.now()}-${file.name}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('ipfs-files')
@@ -70,8 +68,7 @@ export const TeamUploadArea = ({ onFileUploaded }: TeamUploadAreaProps) => {
         const { error: dbError } = await supabase
           .from('files')
           .insert({
-            user_id: user.id,
-            team_id: currentTeam.id,
+            clerk_user_id: userId,
             filename: file.name,
             file_path: uploadData.path,
             file_size: file.size,
