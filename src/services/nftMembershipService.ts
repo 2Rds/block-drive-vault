@@ -1,17 +1,24 @@
 /**
  * NFT Membership Service
  * 
- * Manages BlockDrive's NFT-based subscription system.
+ * Manages BlockDrive's NFT-based subscription system with Alchemy embedded wallets.
  * Subscriptions are SPL tokens on Solana that users truly own.
+ * Uses Alchemy's gas sponsorship for transaction fees.
  * 
  * Features:
- * - Mint membership NFTs on subscription purchase
+ * - Mint membership NFTs on subscription purchase (gas-sponsored)
  * - Verify membership validity from wallet
  * - Manage gas credits allocation
  * - Handle renewals and upgrades
  */
 
-import { PublicKey, Connection, clusterApiUrl } from '@solana/web3.js';
+import { 
+  PublicKey, 
+  Connection, 
+  Transaction, 
+  SystemProgram,
+  LAMPORTS_PER_SOL 
+} from '@solana/web3.js';
 import {
   SubscriptionTier,
   MembershipMetadata,
@@ -25,6 +32,7 @@ import {
   getDaysRemaining,
   GasCreditsAccount,
 } from '@/types/nftMembership';
+import { alchemyConfig } from '@/config/alchemy';
 
 // PDA seeds for membership accounts
 const MEMBERSHIP_SEED = 'blockdrive_membership';
@@ -33,10 +41,22 @@ const GAS_CREDITS_SEED = 'blockdrive_gas_credits';
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
 
-// Connection to Solana
-const getConnection = () => new Connection(clusterApiUrl('devnet'), 'confirmed');
+// Get Alchemy-configured Solana connection
+const getConnection = () => new Connection(alchemyConfig.solanaRpcUrl, 'confirmed');
+
+export interface AlchemyTransactionSigner {
+  signTransaction: (transaction: Transaction) => Promise<Transaction>;
+  signAndSendTransaction: (transaction: Transaction) => Promise<string>;
+  solanaAddress: string | null;
+}
 
 class NFTMembershipService {
+  private connection: Connection;
+
+  constructor() {
+    this.connection = getConnection();
+  }
+
   /**
    * Derive the membership PDA for a wallet
    */
@@ -66,15 +86,14 @@ class NFTMembershipService {
   }
 
   /**
-   * Verify membership validity for a wallet
+   * Verify membership validity for a wallet (using Alchemy embedded wallet address)
    * Checks if the wallet owns a valid BlockDrive membership NFT
    */
   async verifyMembership(walletAddress: string): Promise<MembershipVerification> {
     try {
-      console.log('[NFTMembership] Verifying membership for:', walletAddress);
+      console.log('[NFTMembership] Verifying membership for Alchemy wallet:', walletAddress);
 
-      // In production, this would query the Solana blockchain for the membership PDA
-      // For now, we'll simulate by checking local storage or returning a demo membership
+      // Check cached membership first
       const cachedMembership = this.getCachedMembership(walletAddress);
       
       if (cachedMembership) {
@@ -110,6 +129,11 @@ class NFTMembershipService {
         };
       }
 
+      // In production: Query on-chain for SPL token ownership
+      // For now, check if wallet has any membership token accounts
+      // const [membershipPDA] = await this.deriveMembershipPDA(walletAddress);
+      // const accountInfo = await this.connection.getAccountInfo(membershipPDA);
+
       // No membership found - return basic tier (free)
       return {
         isValid: true,
@@ -141,17 +165,22 @@ class NFTMembershipService {
   }
 
   /**
-   * Create a new membership NFT (called after payment confirmation)
-   * In production, this would be handled by a backend service
+   * Create a new membership NFT using Alchemy embedded wallet with gas sponsorship
+   * Transaction fees are covered by Alchemy Gas Manager
    */
   async createMembership(
     request: MembershipPurchaseRequest,
-    signTransaction: (tx: any) => Promise<any>
+    alchemySigner: AlchemyTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     try {
-      console.log('[NFTMembership] Creating membership:', request);
+      console.log('[NFTMembership] Creating membership with Alchemy gas sponsorship:', request);
+
+      if (!alchemySigner.solanaAddress) {
+        throw new Error('Alchemy wallet not initialized');
+      }
 
       const tierConfig = TIER_CONFIGS[request.tier];
+      const walletPubkey = new PublicKey(alchemySigner.solanaAddress);
       
       // Calculate expiration based on billing period
       const now = Date.now();
@@ -176,6 +205,46 @@ class NFTMembershipService {
       const gasCreditsUsd = price * 0.20;
       const gasCreditsUsdc = BigInt(Math.floor(gasCreditsUsd * 1_000_000)); // 6 decimals
 
+      // Build the membership mint transaction
+      // In production, this would call the BlockDrive Solana program to mint an SPL token
+      const transaction = new Transaction();
+      
+      // Add a minimal instruction to register on-chain (placeholder)
+      // The actual implementation would include SPL token mint instructions
+      const [membershipPDA] = await this.deriveMembershipPDA(alchemySigner.solanaAddress);
+      
+      // For demo: Add a system transfer to self (0 lamports) to create on-chain record
+      // Real implementation would mint an SPL token
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: walletPubkey,
+          toPubkey: walletPubkey,
+          lamports: 0,
+        })
+      );
+
+      // Get recent blockhash
+      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.lastValidBlockHeight = lastValidBlockHeight;
+      transaction.feePayer = walletPubkey;
+
+      // Sign and send with Alchemy gas sponsorship
+      console.log('[NFTMembership] Signing transaction with Alchemy (gas-sponsored)...');
+      const transactionSignature = await alchemySigner.signAndSendTransaction(transaction);
+      console.log('[NFTMembership] Transaction submitted:', transactionSignature);
+
+      // Wait for confirmation
+      const confirmation = await this.connection.confirmTransaction({
+        signature: transactionSignature,
+        blockhash,
+        lastValidBlockHeight,
+      });
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
       // Create membership metadata
       const metadata: MembershipMetadata = {
         tier: request.tier,
@@ -194,7 +263,7 @@ class NFTMembershipService {
 
       // Create gas credits account
       const gasCredits: GasCreditsAccount = {
-        owner: request.walletAddress,
+        owner: alchemySigner.solanaAddress,
         balanceUsdc: gasCreditsUsdc,
         balanceSol: BigInt(0),
         totalCredits: gasCreditsUsdc,
@@ -203,29 +272,30 @@ class NFTMembershipService {
         expiresAt: validUntil,
       };
 
-      // Generate a mock mint address (in production, this would be the actual SPL token mint)
-      const mockMint = this.generateMockMintAddress(request.walletAddress, request.tier);
+      // Generate mint address (in production, this comes from the SPL token mint)
+      const mockMint = this.generateMintAddress(alchemySigner.solanaAddress, request.tier, transactionSignature);
 
       // Create membership NFT structure
       const membershipNFT: MembershipNFT = {
         bump: 255,
         mint: mockMint,
-        owner: request.walletAddress,
+        owner: alchemySigner.solanaAddress,
         metadata,
         gasCredits,
         delegations: [],
       };
 
-      // Cache the membership locally (in production, this would be on-chain)
-      this.cacheMembership(request.walletAddress, membershipNFT);
+      // Cache the membership locally
+      this.cacheMembership(alchemySigner.solanaAddress, membershipNFT);
 
-      console.log('[NFTMembership] Membership created successfully');
+      console.log('[NFTMembership] Membership created successfully with gas sponsorship');
       console.log('[NFTMembership] NFT Mint:', mockMint);
       console.log('[NFTMembership] Gas Credits:', gasCreditsUsdc.toString(), 'USDC');
+      console.log('[NFTMembership] Transaction:', transactionSignature);
 
       return {
         success: true,
-        transactionSignature: `mock_tx_${Date.now()}`,
+        transactionSignature,
         nftMint: mockMint,
         gasCreditsAdded: gasCreditsUsdc,
         expiresAt: validUntil,
@@ -241,12 +311,12 @@ class NFTMembershipService {
   }
 
   /**
-   * Renew an existing membership
+   * Renew an existing membership using Alchemy gas sponsorship
    */
   async renewMembership(
     walletAddress: string,
     billingPeriod: 'monthly' | 'quarterly' | 'annual',
-    signTransaction: (tx: any) => Promise<any>
+    alchemySigner: AlchemyTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     const cachedMembership = this.getCachedMembership(walletAddress);
     
@@ -266,16 +336,16 @@ class NFTMembershipService {
       autoRenew: cachedMembership.metadata.autoRenew,
     };
 
-    return this.createMembership(request, signTransaction);
+    return this.createMembership(request, alchemySigner);
   }
 
   /**
-   * Upgrade membership to a higher tier
+   * Upgrade membership to a higher tier using Alchemy gas sponsorship
    */
   async upgradeMembership(
     walletAddress: string,
     newTier: SubscriptionTier,
-    signTransaction: (tx: any) => Promise<any>
+    alchemySigner: AlchemyTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     const cachedMembership = this.getCachedMembership(walletAddress);
     
@@ -288,7 +358,7 @@ class NFTMembershipService {
       autoRenew: cachedMembership?.metadata.autoRenew ?? false,
     };
 
-    return this.createMembership(request, signTransaction);
+    return this.createMembership(request, alchemySigner);
   }
 
   /**
@@ -305,10 +375,9 @@ class NFTMembershipService {
       return false;
     }
 
-    // Convert lamports to approximate USDC (simplified)
-    // In production, this would use real-time SOL/USDC price
-    const solPrice = 150; // USD
-    const amountSol = Number(amountLamports) / 1e9;
+    // Convert lamports to approximate USDC
+    const solPrice = 150; // USD (would use oracle in production)
+    const amountSol = Number(amountLamports) / LAMPORTS_PER_SOL;
     const amountUsdc = BigInt(Math.ceil(amountSol * solPrice * 1_000_000));
 
     if (cachedMembership.gasCredits.balanceUsdc < amountUsdc) {
@@ -380,9 +449,9 @@ class NFTMembershipService {
 
   // ============= Private Helper Methods =============
 
-  private generateMockMintAddress(walletAddress: string, tier: SubscriptionTier): string {
-    // Generate a deterministic mock mint address
-    const hash = this.simpleHash(walletAddress + tier + Date.now());
+  private generateMintAddress(walletAddress: string, tier: SubscriptionTier, txSignature: string): string {
+    // Generate a deterministic mint address based on wallet and transaction
+    const hash = this.simpleHash(walletAddress + tier + txSignature);
     return `BLKD${tier.toUpperCase()}${hash.slice(0, 32)}`;
   }
 

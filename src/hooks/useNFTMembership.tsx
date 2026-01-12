@@ -1,18 +1,21 @@
 /**
- * NFT Membership Hook (MVP Version)
+ * NFT Membership Hook
  * 
- * Provides simulated membership data for MVP demo mode.
- * All users get "pro" tier access in MVP mode.
+ * Provides NFT membership functionality using Alchemy embedded wallet.
+ * Integrates with gas-sponsored transactions for seamless UX.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Transaction } from '@solana/web3.js';
 import { useAuth } from './useAuth';
+import { useAlchemySolanaWallet } from './useAlchemySolanaWallet';
 import {
   SubscriptionTier,
   MembershipVerification,
   MembershipPurchaseResult,
   TIER_CONFIGS,
 } from '@/types/nftMembership';
+import { nftMembershipService, AlchemyTransactionSigner } from '@/services/nftMembershipService';
 import { toast } from 'sonner';
 
 interface UseNFTMembershipReturn {
@@ -21,6 +24,8 @@ interface UseNFTMembershipReturn {
   isLoading: boolean;
   isVerifying: boolean;
   isPurchasing: boolean;
+  walletAddress: string | null;
+  isWalletReady: boolean;
   
   // Actions
   verifyMembership: () => Promise<MembershipVerification | null>;
@@ -35,14 +40,24 @@ interface UseNFTMembershipReturn {
 }
 
 export function useNFTMembership(): UseNFTMembershipReturn {
-  const { user, walletData } = useAuth();
+  const { user } = useAuth();
+  const alchemyWallet = useAlchemySolanaWallet();
   
   const [membership, setMembership] = useState<MembershipVerification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
-  // Create MVP membership when user is authenticated
+  // Create Alchemy signer interface for the membership service
+  const alchemySigner = useMemo((): AlchemyTransactionSigner => ({
+    signTransaction: async (transaction: Transaction) => {
+      return alchemyWallet.signTransaction(transaction) as Promise<Transaction>;
+    },
+    signAndSendTransaction: alchemyWallet.signAndSendTransaction as (tx: Transaction) => Promise<string>,
+    solanaAddress: alchemyWallet.solanaAddress,
+  }), [alchemyWallet]);
+
+  // Verify membership using Alchemy wallet address
   const verifyMembership = useCallback(async (): Promise<MembershipVerification | null> => {
     if (!user) {
       setMembership(null);
@@ -50,24 +65,38 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       return null;
     }
 
-    setIsVerifying(true);
-    
-    try {
-      // In MVP mode, give all users "pro" tier access
+    // If wallet is still initializing, provide MVP fallback
+    if (!alchemyWallet.isReady || !alchemyWallet.solanaAddress) {
+      console.log('[useNFTMembership] Wallet not ready, using MVP fallback');
+      
+      // Provide pro tier access while wallet initializes
       const mvpMembership: MembershipVerification = {
         isValid: true,
         tier: 'pro',
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         daysRemaining: 30,
-        storageRemaining: BigInt(100 * 1024 * 1024 * 1024), // 100 GB
-        bandwidthRemaining: BigInt(100 * 1024 * 1024 * 1024), // 100 GB
-        gasCreditsRemaining: BigInt(50_000_000), // $50 in credits
+        storageRemaining: BigInt(100 * 1024 * 1024 * 1024),
+        bandwidthRemaining: BigInt(100 * 1024 * 1024 * 1024),
+        gasCreditsRemaining: BigInt(50_000_000),
         features: TIER_CONFIGS['pro'].features,
-        nftMint: null, // No actual NFT in MVP mode
+        nftMint: null,
       };
       
       setMembership(mvpMembership);
+      setIsLoading(false);
       return mvpMembership;
+    }
+
+    setIsVerifying(true);
+    
+    try {
+      console.log('[useNFTMembership] Verifying with Alchemy wallet:', alchemyWallet.solanaAddress);
+      
+      // Use the membership service with the Alchemy wallet address
+      const verification = await nftMembershipService.verifyMembership(alchemyWallet.solanaAddress);
+      
+      setMembership(verification);
+      return verification;
     } catch (error) {
       console.error('[useNFTMembership] Verification failed:', error);
       setMembership(null);
@@ -76,9 +105,9 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setIsVerifying(false);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, alchemyWallet.isReady, alchemyWallet.solanaAddress]);
 
-  // Auto-verify when user changes
+  // Auto-verify when user or wallet changes
   useEffect(() => {
     if (user) {
       verifyMembership();
@@ -86,69 +115,156 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setMembership(null);
       setIsLoading(false);
     }
-  }, [user, verifyMembership]);
+  }, [user, alchemyWallet.isReady, verifyMembership]);
 
-  // Purchase membership - MVP stub
+  // Purchase membership using Alchemy gas-sponsored transaction
   const purchaseMembership = useCallback(async (
     tier: SubscriptionTier,
     billingPeriod: 'monthly' | 'quarterly' | 'annual'
   ): Promise<MembershipPurchaseResult> => {
+    if (!alchemyWallet.isReady || !alchemyWallet.solanaAddress) {
+      toast.error('Wallet not ready', {
+        description: 'Please wait for your wallet to initialize'
+      });
+      return { success: false, error: 'Wallet not initialized' };
+    }
+
     setIsPurchasing(true);
     
     try {
-      // Simulate purchase in MVP mode
-      toast.success('Membership activated!', {
-        description: `Your ${TIER_CONFIGS[tier].name} membership is now active. (Demo mode)`
-      });
+      toast.loading('Processing membership purchase...', { id: 'membership-purchase' });
       
-      await verifyMembership();
-      return { success: true };
+      const result = await nftMembershipService.createMembership(
+        {
+          tier,
+          billingPeriod,
+          paymentMethod: 'crypto',
+          walletAddress: alchemyWallet.solanaAddress,
+          autoRenew: false,
+        },
+        alchemySigner
+      );
+
+      if (result.success) {
+        toast.success('Membership activated!', {
+          id: 'membership-purchase',
+          description: `Your ${TIER_CONFIGS[tier].name} membership is now active. Transaction: ${result.transactionSignature?.slice(0, 8)}...`
+        });
+        
+        await verifyMembership();
+      } else {
+        toast.error('Purchase failed', {
+          id: 'membership-purchase',
+          description: result.error || 'Please try again'
+        });
+      }
+      
+      return result;
     } catch (error) {
-      return { success: false, error: 'Purchase simulation failed' };
+      const errorMsg = error instanceof Error ? error.message : 'Purchase failed';
+      toast.error('Purchase failed', {
+        id: 'membership-purchase',
+        description: errorMsg
+      });
+      return { success: false, error: errorMsg };
     } finally {
       setIsPurchasing(false);
     }
-  }, [verifyMembership]);
+  }, [alchemyWallet.isReady, alchemyWallet.solanaAddress, alchemySigner, verifyMembership]);
 
-  // Renew membership - MVP stub
+  // Renew membership using Alchemy gas-sponsored transaction
   const renewMembership = useCallback(async (
     billingPeriod: 'monthly' | 'quarterly' | 'annual'
   ): Promise<MembershipPurchaseResult> => {
+    if (!alchemyWallet.isReady || !alchemyWallet.solanaAddress) {
+      toast.error('Wallet not ready');
+      return { success: false, error: 'Wallet not initialized' };
+    }
+
     setIsPurchasing(true);
     
     try {
-      toast.success('Membership renewed!', {
-        description: 'Your subscription has been extended. (Demo mode)'
-      });
+      toast.loading('Processing renewal...', { id: 'membership-renewal' });
       
-      await verifyMembership();
-      return { success: true };
+      const result = await nftMembershipService.renewMembership(
+        alchemyWallet.solanaAddress,
+        billingPeriod,
+        alchemySigner
+      );
+
+      if (result.success) {
+        toast.success('Membership renewed!', {
+          id: 'membership-renewal',
+          description: 'Your subscription has been extended.'
+        });
+        
+        await verifyMembership();
+      } else {
+        toast.error('Renewal failed', {
+          id: 'membership-renewal',
+          description: result.error
+        });
+      }
+      
+      return result;
     } catch (error) {
-      return { success: false, error: 'Renewal simulation failed' };
+      const errorMsg = error instanceof Error ? error.message : 'Renewal failed';
+      toast.error('Renewal failed', {
+        id: 'membership-renewal',
+        description: errorMsg
+      });
+      return { success: false, error: errorMsg };
     } finally {
       setIsPurchasing(false);
     }
-  }, [verifyMembership]);
+  }, [alchemyWallet.isReady, alchemyWallet.solanaAddress, alchemySigner, verifyMembership]);
 
-  // Upgrade membership - MVP stub
+  // Upgrade membership using Alchemy gas-sponsored transaction
   const upgradeMembership = useCallback(async (
     newTier: SubscriptionTier
   ): Promise<MembershipPurchaseResult> => {
+    if (!alchemyWallet.isReady || !alchemyWallet.solanaAddress) {
+      toast.error('Wallet not ready');
+      return { success: false, error: 'Wallet not initialized' };
+    }
+
     setIsPurchasing(true);
     
     try {
-      toast.success('Membership upgraded!', {
-        description: `Welcome to ${TIER_CONFIGS[newTier].name}! (Demo mode)`
-      });
+      toast.loading('Processing upgrade...', { id: 'membership-upgrade' });
       
-      await verifyMembership();
-      return { success: true };
+      const result = await nftMembershipService.upgradeMembership(
+        alchemyWallet.solanaAddress,
+        newTier,
+        alchemySigner
+      );
+
+      if (result.success) {
+        toast.success('Membership upgraded!', {
+          id: 'membership-upgrade',
+          description: `Welcome to ${TIER_CONFIGS[newTier].name}!`
+        });
+        
+        await verifyMembership();
+      } else {
+        toast.error('Upgrade failed', {
+          id: 'membership-upgrade',
+          description: result.error
+        });
+      }
+      
+      return result;
     } catch (error) {
-      return { success: false, error: 'Upgrade simulation failed' };
+      const errorMsg = error instanceof Error ? error.message : 'Upgrade failed';
+      toast.error('Upgrade failed', {
+        id: 'membership-upgrade',
+        description: errorMsg
+      });
+      return { success: false, error: errorMsg };
     } finally {
       setIsPurchasing(false);
     }
-  }, [verifyMembership]);
+  }, [alchemyWallet.isReady, alchemyWallet.solanaAddress, alchemySigner, verifyMembership]);
 
   // Get tier configuration
   const getTierConfig = useCallback((tier: SubscriptionTier) => {
@@ -184,6 +300,8 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     isLoading,
     isVerifying,
     isPurchasing,
+    walletAddress: alchemyWallet.solanaAddress,
+    isWalletReady: alchemyWallet.isReady,
     verifyMembership,
     purchaseMembership,
     renewMembership,
