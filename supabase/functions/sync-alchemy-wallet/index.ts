@@ -54,9 +54,14 @@ Deno.serve(async (req) => {
     }
 
     // Create Supabase client with service role for database operations
+    // Explicitly specify 'public' schema since PostgREST may have different default
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      db: {
+        schema: 'public'
+      }
+    });
 
     // Extract Clerk user ID from JWT
     // The JWT 'sub' claim contains the Clerk user ID
