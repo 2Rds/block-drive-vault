@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
+import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
 
 export const LandingNavigation = () => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export const LandingNavigation = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-4">
-            <MVPConnectButton />
+            <ClerkConnectButton />
           </div>
         </div>
       </div>

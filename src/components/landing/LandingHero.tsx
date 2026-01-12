@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Shield, Globe, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MVPConnectButton } from '@/components/auth/MVPConnectButton';
+import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
 
 export const LandingHero = () => {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export const LandingHero = () => {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <MVPConnectButton variant="hero" />
+          <ClerkConnectButton variant="hero" />
           <Button variant="outline" size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/pricing')}>
             View Pricing
           </Button>
