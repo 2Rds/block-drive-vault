@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.59.3",
     "@dynamic-labs/ethereum": "^4.20.9",
     "@dynamic-labs/sdk-react-core": "^4.20.9",
     "@dynamic-labs/solana": "^4.20.9",
