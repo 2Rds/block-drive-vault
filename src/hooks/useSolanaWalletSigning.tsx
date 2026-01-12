@@ -1,82 +1,74 @@
 /**
- * Solana Wallet Signing Hook (MVP Version)
+ * Solana Wallet Signing Hook
  * 
- * Provides stub implementations for wallet signing in MVP mode.
- * Real wallet signing functionality is disabled in MVP mode.
+ * Provides wallet signing capabilities using Alchemy embedded wallets.
+ * Integrates with the AlchemyProvider for seamless transaction signing.
  */
 
 import { useCallback } from 'react';
-import { useAuth } from './useAuth';
+import { useAlchemySolanaWallet } from './useAlchemySolanaWallet';
 import { toast } from 'sonner';
 
 interface UseSolanaWalletSigningReturn {
-  // Whether we have a connected Solana wallet
   hasSolanaWallet: boolean;
-  // The connected Solana wallet address
   solanaAddress: string | null;
-  // Sign a transaction (returns signed transaction for manual broadcast)
   signTransaction: (transaction: any) => Promise<any>;
-  // Sign and send a transaction in one step
   signAndSendTransaction: (transaction: any) => Promise<string>;
-  // Sign a message
   signMessage: (message: string) => Promise<string>;
-  // Check if wallet is ready for signing
   isReady: boolean;
 }
 
 export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
-  const { walletData } = useAuth();
+  const alchemyWallet = useAlchemySolanaWallet();
 
-  // In MVP mode, we simulate wallet connection based on auth state
-  const hasSolanaWallet = !!walletData?.address;
-  const solanaAddress = walletData?.address || null;
-  const isReady = hasSolanaWallet;
+  const hasSolanaWallet = alchemyWallet.isInitialized && !!alchemyWallet.solanaAddress;
+  const solanaAddress = alchemyWallet.solanaAddress;
+  const isReady = alchemyWallet.isReady;
 
-  /**
-   * Sign a transaction - MVP stub
-   */
   const signTransaction = useCallback(async (transaction: any): Promise<any> => {
     if (!hasSolanaWallet) {
       throw new Error('No wallet connected');
     }
 
-    // In MVP mode, we can't actually sign transactions
-    toast.info('Transaction signing is not available in demo mode', {
-      description: 'This feature requires a connected wallet.'
-    });
-    
-    console.log('[MVP] Transaction signing requested but not available');
-    throw new Error('Transaction signing not available in MVP mode');
-  }, [hasSolanaWallet]);
+    try {
+      return await alchemyWallet.signTransaction(transaction);
+    } catch (err) {
+      toast.error('Transaction signing failed', {
+        description: err instanceof Error ? err.message : 'Unknown error'
+      });
+      throw err;
+    }
+  }, [hasSolanaWallet, alchemyWallet]);
 
-  /**
-   * Sign and send a transaction - MVP stub
-   */
   const signAndSendTransaction = useCallback(async (transaction: any): Promise<string> => {
     if (!hasSolanaWallet) {
       throw new Error('No wallet connected');
     }
 
-    toast.info('Transaction sending is not available in demo mode', {
-      description: 'This feature requires a connected wallet.'
-    });
-    
-    console.log('[MVP] Transaction sending requested but not available');
-    throw new Error('Transaction sending not available in MVP mode');
-  }, [hasSolanaWallet]);
+    try {
+      return await alchemyWallet.signAndSendTransaction(transaction);
+    } catch (err) {
+      toast.error('Transaction failed', {
+        description: err instanceof Error ? err.message : 'Unknown error'
+      });
+      throw err;
+    }
+  }, [hasSolanaWallet, alchemyWallet]);
 
-  /**
-   * Sign a message - MVP stub
-   */
   const signMessage = useCallback(async (message: string): Promise<string> => {
     if (!hasSolanaWallet) {
       throw new Error('No wallet connected');
     }
 
-    // Return a mock signature for MVP
-    console.log('[MVP] Message signing requested - returning mock signature');
-    return `mvp-signature-${Date.now()}`;
-  }, [hasSolanaWallet]);
+    try {
+      return await alchemyWallet.signMessage(message);
+    } catch (err) {
+      toast.error('Message signing failed', {
+        description: err instanceof Error ? err.message : 'Unknown error'
+      });
+      throw err;
+    }
+  }, [hasSolanaWallet, alchemyWallet]);
 
   return {
     hasSolanaWallet,

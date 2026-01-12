@@ -104,8 +104,8 @@ class ECDHKeyExchangeService {
       {
         name: 'HKDF',
         hash: 'SHA-256',
-        salt: actualSalt.buffer as ArrayBuffer,
-        info: new TextEncoder().encode('blockdrive-delegation-key')
+        salt: new Uint8Array(actualSalt).buffer as ArrayBuffer,
+        info: new Uint8Array(new TextEncoder().encode('blockdrive-delegation-key')).buffer as ArrayBuffer
       },
       baseKey,
       {

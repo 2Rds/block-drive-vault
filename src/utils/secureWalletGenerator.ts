@@ -5,6 +5,15 @@ export interface SecureWalletData {
   blockchain: 'solana';
 }
 
+// Helper to convert Uint8Array to ArrayBuffer for crypto operations
+const toArrayBuffer = (arr: Uint8Array): ArrayBuffer => {
+  // Create a new ArrayBuffer and copy the data
+  const buffer = new ArrayBuffer(arr.length);
+  const view = new Uint8Array(buffer);
+  view.set(arr);
+  return buffer;
+};
+
 // Secure random number generation
 const getSecureRandomBytes = (length: number): Uint8Array => {
   const array = new Uint8Array(length);
@@ -51,6 +60,7 @@ export const generateSecureWallet = (blockchainType: 'solana'): SecureWalletData
 export const encryptPrivateKey = async (privateKey: string, password: string): Promise<string> => {
   const encoder = new TextEncoder();
   const data = encoder.encode(privateKey);
+  const passwordBytes = encoder.encode(password);
   
   // Generate a random salt
   const salt = getSecureRandomBytes(16);
@@ -58,7 +68,7 @@ export const encryptPrivateKey = async (privateKey: string, password: string): P
   // Derive key from password using PBKDF2
   const passwordKey = await crypto.subtle.importKey(
     'raw',
-    encoder.encode(password),
+    toArrayBuffer(passwordBytes),
     'PBKDF2',
     false,
     ['deriveKey']
@@ -67,7 +77,7 @@ export const encryptPrivateKey = async (privateKey: string, password: string): P
   const derivedKey = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt as BufferSource,
+      salt: toArrayBuffer(salt),
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -82,9 +92,9 @@ export const encryptPrivateKey = async (privateKey: string, password: string): P
   
   // Encrypt the data
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as BufferSource },
+    { name: 'AES-GCM', iv: toArrayBuffer(iv) },
     derivedKey,
-    data
+    toArrayBuffer(data)
   );
   
   // Combine salt, iv, and encrypted data
