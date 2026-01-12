@@ -7,7 +7,7 @@ import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { User, Session } from '@supabase/supabase-js';
 import { WalletData, AuthContextType } from '@/types/authTypes';
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = (): AuthContextType & { isSignedIn: boolean } => {
   const clerkAuth = useClerkAuth();
 
   // Convert Clerk user to Supabase-like User format for backwards compatibility
@@ -50,6 +50,7 @@ export const useAuth = (): AuthContextType => {
     user,
     session,
     loading: !clerkAuth.isLoaded,
+    isSignedIn: clerkAuth.isSignedIn,
     walletData,
     setWalletData: () => {
       console.warn('setWalletData is deprecated with Clerk auth. Wallet connection should be handled separately.');

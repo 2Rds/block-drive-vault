@@ -23,19 +23,17 @@ export class IPFSUploadService {
       console.log(`Processing file ${i + 1}/${totalFiles} for IPFS via Filebase: ${file.name}`);
       
       try {
-        // Upload to IPFS via Filebase
         const uploadResult = await IPFSService.uploadFile(file);
 
         if (!uploadResult) {
           throw new Error('No upload result returned');
         }
 
-        // Save to database with correct field mapping
         const fileData = {
           filename: uploadResult.filename,
           file_size: uploadResult.size,
           content_type: uploadResult.contentType,
-          user_id: user.id,
+          clerk_user_id: user.id,
           folder_path: folderPath,
           storage_provider: 'ipfs',
           ipfs_cid: uploadResult.cid,
@@ -50,7 +48,6 @@ export class IPFSUploadService {
 
         const savedFile = await FileDatabaseService.saveFile(fileData);
         if (savedFile) {
-          // Convert database file to IPFSFile format
           const ipfsFile: IPFSFile = {
             id: savedFile.id,
             filename: savedFile.filename,
@@ -59,7 +56,7 @@ export class IPFSUploadService {
             contentType: savedFile.content_type || 'application/octet-stream',
             ipfsUrl: savedFile.ipfs_url || '',
             uploadedAt: savedFile.created_at,
-            userId: savedFile.user_id,
+            userId: savedFile.clerk_user_id,
             folderPath: savedFile.folder_path,
             metadata: savedFile.metadata as IPFSFile['metadata']
           };
@@ -68,7 +65,6 @@ export class IPFSUploadService {
           console.log(`File ${i + 1}/${totalFiles} uploaded successfully:`, ipfsFile);
         }
 
-        // Update progress
         const progress = ((i + 1) / totalFiles) * 100;
         onProgress?.(progress);
 
@@ -83,7 +79,6 @@ export class IPFSUploadService {
 
   static async downloadFile(cid: string, filename: string): Promise<void> {
     try {
-      // Try Filebase gateway first, then fallbacks
       const gateways = [
         `https://ipfs.filebase.io/ipfs/${cid}`,
         `https://ipfs.io/ipfs/${cid}`,
@@ -110,14 +105,12 @@ export class IPFSUploadService {
       }
       
       const downloadUrl = URL.createObjectURL(blob);
-      
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
       URL.revokeObjectURL(downloadUrl);
       toast.success(`Downloaded ${filename} successfully!`);
       

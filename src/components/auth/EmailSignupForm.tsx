@@ -1,170 +1,53 @@
-
-import React, { useState } from 'react';
+// Stub - EmailSignupForm deprecated with Clerk auth
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Mail, User, Building } from 'lucide-react';
-import { UseFormReturn } from 'react-hook-form';
-import { SignupService } from '@/services/signupService';
-import { toast } from 'sonner';
-import { validateEmail, sanitizeText, isRateLimited } from '@/utils/inputValidation';
+import { Mail } from 'lucide-react';
 
 interface EmailSignupFormProps {
   onSuccess: (data: any) => void;
   onCancel?: () => void;
 }
 
-interface FormData {
-  email: string;
-  fullName: string;
-  organization: string;
-}
-
 export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) => {
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    fullName: '',
-    organization: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Rate limiting check
-    const rateLimitKey = `email_signup_${formData.email}`;
-    if (isRateLimited(rateLimitKey, 3, 15 * 60 * 1000)) {
-      toast.error('Too many signup attempts. Please wait 15 minutes before trying again.');
-      return;
-    }
-    
-    // Input validation
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      toast.error(emailValidation.error || 'Invalid email address');
-      return;
-    }
-    
-    if (!formData.fullName.trim()) {
-      toast.error('Please enter your full name');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const result = await SignupService.registerUser({
-        email: formData.email.trim().toLowerCase(),
-        fullName: sanitizeText(formData.fullName.trim()),
-        organization: sanitizeText(formData.organization.trim()),
-        subscriptionTier: 'free_trial'
-      });
-
-      if (result.error) {
-        toast.error(result.error.message);
-        setIsSubmitting(false);
-        return;
-      }
-
-      toast.success('Registration successful! Please choose your subscription tier.');
-      onSuccess(result.data);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error('Registration failed. Please try again.');
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    // Basic input sanitization
-    const sanitizedValue = field === 'email' ? value.trim().toLowerCase() : sanitizeText(value);
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
-  };
+  // This form is deprecated - Clerk handles all signup flows
+  React.useEffect(() => {
+    console.warn('EmailSignupForm is deprecated. Use Clerk authentication.');
+  }, []);
 
   return (
     <Card className="w-full max-w-md mx-auto bg-gray-900/60 backdrop-blur-sm border-gray-800">
       <CardHeader>
         <CardTitle className="text-white flex items-center">
           <Mail className="w-5 h-5 mr-2" />
-          Complete Your Registration
+          Sign Up
         </CardTitle>
         <CardDescription className="text-gray-300">
-          Provide your details to access BlockDrive's decentralized storage
+          Please use the Clerk sign-up flow instead.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-gray-300 text-sm font-medium">
-              Email Address *
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-gray-300 text-sm font-medium">
-              Full Name *
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-gray-300 text-sm font-medium">
-              Organization (Optional)
-            </label>
-            <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Company or organization"
-                value={formData.organization}
-                onChange={(e) => handleInputChange('organization', e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
-          </div>
-
-          <div className="flex space-x-3 pt-4">
+        <p className="text-gray-400 mb-4">
+          This signup form has been deprecated. Please use the new authentication system.
+        </p>
+        <div className="flex space-x-3">
+          <Button
+            onClick={() => window.location.href = '/sign-up'}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
+          >
+            Go to Sign Up
+          </Button>
+          {onCancel && (
             <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
             >
-              {isSubmitting ? 'Registering...' : 'Continue'}
+              Cancel
             </Button>
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                Cancel
-              </Button>
-            )}
-          </div>
-        </form>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

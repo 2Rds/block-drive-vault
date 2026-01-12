@@ -1,7 +1,6 @@
-
+// Simplified user data hook for Clerk auth
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
 interface UserStats {
   totalFiles: number;
@@ -17,7 +16,7 @@ interface UserStats {
 }
 
 export const useUserData = () => {
-  const { user, walletData } = useAuth();
+  const { user, supabase } = useClerkAuth();
   const [userStats, setUserStats] = useState<UserStats>({
     totalFiles: 0,
     totalStorage: 0,
@@ -36,106 +35,20 @@ export const useUserData = () => {
     const type = contentType?.toLowerCase() || '';
     const extension = filename?.toLowerCase().split('.').pop() || '';
     
-    // Images
     if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
       return 'Images';
     }
-    
-    // Videos
     if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)) {
       return 'Videos';
     }
-    
-    // Audio
     if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension)) {
       return 'Audio';
     }
-    
-    // Documents
-    if (type.includes('pdf') || 
-        type.includes('document') || 
-        type.includes('text') ||
-        type.includes('application/') ||
+    if (type.includes('pdf') || type.includes('document') || type.includes('text') ||
         ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
       return 'Documents';
     }
-    
     return 'Other';
-  };
-
-  const generateChartData = (totalFiles: number, totalStorage: number, totalTokens: number, files: any[]) => {
-    // Generate file types distribution based on real files
-    const typeCounts = {
-      Documents: 0,
-      Images: 0,
-      Videos: 0,
-      Audio: 0,
-      Other: 0
-    };
-
-    // Count actual files by type
-    files?.forEach(file => {
-      const category = categorizeFileType(file.content_type, file.filename);
-      if (category in typeCounts) {
-        typeCounts[category as keyof typeof typeCounts]++;
-      }
-    });
-
-    // Convert to chart data format
-    const fileTypes = Object.entries(typeCounts)
-      .filter(([_, count]) => count > 0)
-      .map(([name, count]) => ({
-        name,
-        value: count,
-        color: {
-          Documents: '#8B5CF6',
-          Images: '#06B6D4', 
-          Videos: '#10B981',
-          Audio: '#F59E0B',
-          Other: '#EF4444'
-        }[name] || '#6B7280'
-      }));
-
-    // Generate recent activity based on real files data
-    const recentActivity = files && files.length > 0 ? files
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 4)
-      .map((file, index) => {
-        const timeAgo = getTimeAgo(new Date(file.created_at));
-        return {
-          action: 'File Upload',
-          file: file.filename || 'Uploaded to IPFS',
-          time: timeAgo,
-          status: 'Success'
-        };
-      }) : [];
-
-    // Generate storage usage data with real values (convert bytes to GB)
-    const storageInGB = totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024 * 1024)) * 100) / 100 : 0;
-    const storageData = [
-      { month: 'Jan', storage: Math.max(0, storageInGB * 0.7), uploads: Math.max(0, Math.round(totalFiles * 0.7)), downloads: Math.max(0, Math.round(totalFiles * 0.5)) },
-      { month: 'Feb', storage: Math.max(0, storageInGB * 0.8), uploads: Math.max(0, Math.round(totalFiles * 0.8)), downloads: Math.max(0, Math.round(totalFiles * 0.6)) },
-      { month: 'Mar', storage: Math.max(0, storageInGB * 0.9), uploads: Math.max(0, Math.round(totalFiles * 0.9)), downloads: Math.max(0, Math.round(totalFiles * 0.7)) },
-      { month: 'Apr', storage: storageInGB, uploads: totalFiles, downloads: Math.round(totalFiles * 0.8) }
-    ];
-
-    // Generate blockchain activity data
-    const blockchainData = [
-      { day: 'Mon', transactions: Math.round(totalTokens * 0.1), confirmations: Math.round(totalTokens * 0.1), failed: 0 },
-      { day: 'Tue', transactions: Math.round(totalTokens * 0.15), confirmations: Math.round(totalTokens * 0.14), failed: Math.round(totalTokens * 0.01) },
-      { day: 'Wed', transactions: Math.round(totalTokens * 0.2), confirmations: Math.round(totalTokens * 0.2), failed: 0 },
-      { day: 'Thu', transactions: Math.round(totalTokens * 0.1), confirmations: Math.round(totalTokens * 0.1), failed: 0 },
-      { day: 'Fri', transactions: Math.round(totalTokens * 0.18), confirmations: Math.round(totalTokens * 0.17), failed: Math.round(totalTokens * 0.01) },
-      { day: 'Sat', transactions: Math.round(totalTokens * 0.08), confirmations: Math.round(totalTokens * 0.08), failed: 0 },
-      { day: 'Sun', transactions: Math.round(totalTokens * 0.12), confirmations: Math.round(totalTokens * 0.12), failed: 0 }
-    ];
-
-    return {
-      filesByType: fileTypes,
-      recentActivity,
-      storageUsageData: storageData,
-      blockchainActivityData: blockchainData
-    };
   };
 
   const getTimeAgo = (date: Date) => {
@@ -144,85 +57,75 @@ export const useUserData = () => {
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInHours / 24);
 
-    if (diffInDays > 0) {
-      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    } else if (diffInHours > 0) {
-      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    } else {
-      return 'Just now';
-    }
+    if (diffInDays > 0) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    if (diffInHours > 0) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
+
+  const generateChartData = (totalFiles: number, totalStorage: number, files: any[]) => {
+    const typeCounts: Record<string, number> = { Documents: 0, Images: 0, Videos: 0, Audio: 0, Other: 0 };
+
+    files?.forEach(file => {
+      const category = categorizeFileType(file.content_type, file.filename);
+      if (category in typeCounts) typeCounts[category]++;
+    });
+
+    const fileTypes = Object.entries(typeCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([name, count]) => ({
+        name,
+        value: count,
+        color: { Documents: '#8B5CF6', Images: '#06B6D4', Videos: '#10B981', Audio: '#F59E0B', Other: '#EF4444' }[name] || '#6B7280'
+      }));
+
+    const recentActivity = files?.length > 0 ? files
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 4)
+      .map((file) => ({
+        action: 'File Upload',
+        file: file.filename || 'Uploaded to IPFS',
+        time: getTimeAgo(new Date(file.created_at)),
+        status: 'Success'
+      })) : [];
+
+    const storageInGB = totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024 * 1024)) * 100) / 100 : 0;
+    const storageData = [
+      { month: 'Jan', storage: storageInGB * 0.7, uploads: Math.round(totalFiles * 0.7), downloads: Math.round(totalFiles * 0.5) },
+      { month: 'Feb', storage: storageInGB * 0.8, uploads: Math.round(totalFiles * 0.8), downloads: Math.round(totalFiles * 0.6) },
+      { month: 'Mar', storage: storageInGB * 0.9, uploads: Math.round(totalFiles * 0.9), downloads: Math.round(totalFiles * 0.7) },
+      { month: 'Apr', storage: storageInGB, uploads: totalFiles, downloads: Math.round(totalFiles * 0.8) }
+    ];
+
+    return { filesByType: fileTypes, recentActivity, storageUsageData: storageData, blockchainActivityData: [] };
   };
 
   const fetchUserData = async () => {
-    if (!user?.id) {
-      console.log('No user ID available for data fetching');
-      return;
-    }
+    if (!user?.id || !supabase) return;
 
     setLoading(true);
     
     try {
-      console.log('Fetching real user data for user ID:', user.id);
-
       const { data: files, error: filesError } = await supabase
         .from('files')
         .select('file_size, filename, created_at, content_type')
-        .eq('user_id', user.id);
+        .eq('clerk_user_id', user.id);
 
       if (filesError) {
         console.error('Error fetching files:', filesError);
       }
 
-      const { data: userWallets, error: walletsError } = await supabase
-        .from('wallets')
-        .select('id')
-        .eq('user_id', user.id);
-
-      if (walletsError) {
-        console.error('Error fetching wallets:', walletsError);
-      }
-
-      let totalTokens = 0;
-      
-      if (userWallets && userWallets.length > 0) {
-        const walletIds = userWallets.map(w => w.id);
-        
-        const { data: tokens, error: tokensError } = await supabase
-          .from('blockchain_tokens')
-          .select('*')
-          .in('wallet_id', walletIds);
-
-        if (tokensError) {
-          console.error('Error fetching tokens:', tokensError);
-        } else {
-          totalTokens = tokens?.length || 0;
-        }
-      }
-
       const totalFiles = files?.length || 0;
       const totalStorage = files?.reduce((sum, file) => sum + (file.file_size || 0), 0) || 0;
-      const totalTransactions = totalTokens * 2;
-      const networkHealth = 100;
-
-      // Generate chart data based on real values
-      const chartData = generateChartData(totalFiles, totalStorage, totalTokens, files || []);
+      const chartData = generateChartData(totalFiles, totalStorage, files || []);
 
       setUserStats({
         totalFiles,
         totalStorage,
-        totalTokens,
-        totalTransactions,
-        networkHealth,
+        totalTokens: 0,
+        totalTransactions: 0,
+        networkHealth: 100,
         actualFiles: files || [],
         ...chartData
-      });
-
-      console.log('Real user stats updated:', { 
-        totalFiles, 
-        totalStorage: totalStorage > 0 ? Math.round((totalStorage / (1024 * 1024)) * 100) / 100 + ' MB' : '0 MB', 
-        totalTokens, 
-        totalTransactions,
-        filesByType: chartData.filesByType
       });
 
     } catch (error) {
@@ -234,11 +137,7 @@ export const useUserData = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, [user?.id]);
+  }, [user?.id, supabase]);
 
-  return {
-    userStats,
-    loading,
-    refetch: fetchUserData
-  };
+  return { userStats, loading, refetch: fetchUserData };
 };

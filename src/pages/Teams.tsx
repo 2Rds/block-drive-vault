@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Clock, Settings, Crown, Star, Info, Files, Upload, ArrowLeft, BarChart3, Puzzle } from 'lucide-react';
+import { Users, Clock, Settings, Crown, Info, Files, Upload, BarChart3, Puzzle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Teams() {
@@ -21,12 +21,6 @@ export default function Teams() {
   const { user } = useAuth();
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
-
-  // Debug logging
-  console.log('Teams page - User:', user?.id, user?.email);
-  console.log('Teams page - Subscription status:', subscriptionStatus);
-  console.log('Teams page - Teams:', teams.length);
-  console.log('Teams page - Current team:', currentTeam?.id);
 
   if (loading) {
     return (
@@ -43,25 +37,9 @@ export default function Teams() {
     );
   }
 
-  const isCurrentTeamOwner = currentTeam && user && currentTeam.owner_id === user.id;
+  const isCurrentTeamOwner = currentTeam && user && currentTeam.owner_clerk_id === user.id;
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
-
-  const handleDashboardClick = () => {
-    navigate('/dashboard');
-  };
-
-  const handleFilesClick = () => {
-    navigate('/files');
-  };
-
-  const handleIntegrationsClick = () => {
-    navigate('/integrations');
-  };
-
-  const handleAccountClick = () => {
-    navigate('/account');
-  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -73,44 +51,20 @@ export default function Teams() {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Button
-            onClick={handleDashboardClick}
-            variant="outline"
-            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Dashboard
+          <Button onClick={() => navigate('/dashboard')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+            <BarChart3 className="w-4 h-4 mr-2" />Dashboard
           </Button>
-          <Button
-            onClick={handleFilesClick}
-            variant="outline"
-            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-          >
-            <Files className="w-4 h-4 mr-2" />
-            IPFS Files
+          <Button onClick={() => navigate('/files')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+            <Files className="w-4 h-4 mr-2" />IPFS Files
           </Button>
-          <Button
-            onClick={handleIntegrationsClick}
-            variant="outline"
-            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-          >
-            <Puzzle className="w-4 h-4 mr-2" />
-            Integrations
+          <Button onClick={() => navigate('/integrations')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+            <Puzzle className="w-4 h-4 mr-2" />Integrations
           </Button>
-          <Button
-            variant="default"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Teams
+          <Button variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Users className="w-4 h-4 mr-2" />Teams
           </Button>
-          <Button
-            onClick={handleAccountClick}
-            variant="outline"
-            className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Account
+          <Button onClick={() => navigate('/account')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+            <Settings className="w-4 h-4 mr-2" />Account
           </Button>
         </div>
       </div>
@@ -122,13 +76,11 @@ export default function Teams() {
         </div>
       </div>
 
-      {/* Subscription Status Alert */}
       {!isSubscribed && (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Upgrade your subscription to create teams and collaborate with colleagues. 
-            Growth plan allows 1 team with up to 3 members, Scale plan offers unlimited teams and members.
+            Upgrade your subscription to create teams and collaborate with colleagues.
           </AlertDescription>
         </Alert>
       )}
@@ -137,8 +89,7 @@ export default function Teams() {
         <Alert>
           <Crown className="h-4 w-4 text-yellow-500" />
           <AlertDescription>
-            <strong>Growth Plan:</strong> You can create 1 team with up to 3 members total. 
-            Upgrade to Scale for unlimited teams and members.
+            <strong>Growth Plan:</strong> You can create 1 team with up to 3 members total.
           </AlertDescription>
         </Alert>
       )}
@@ -161,9 +112,7 @@ export default function Teams() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{team.name}</CardTitle>
-                  <Badge variant={team.plan_type === 'growth' ? 'default' : 'secondary'}>
-                    {team.plan_type}
-                  </Badge>
+                  <Badge variant="secondary">Team</Badge>
                 </div>
                 {team.description && (
                   <p className="text-sm text-muted-foreground">{team.description}</p>
@@ -243,15 +192,9 @@ export default function Teams() {
                       {teamInvitations.map((invitation) => (
                         <TableRow key={invitation.id}>
                           <TableCell>{invitation.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{invitation.role}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(invitation.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(invitation.expires_at).toLocaleDateString()}
-                          </TableCell>
+                          <TableCell><Badge variant="outline">{invitation.role}</Badge></TableCell>
+                          <TableCell>{new Date(invitation.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(invitation.expires_at).toLocaleDateString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
