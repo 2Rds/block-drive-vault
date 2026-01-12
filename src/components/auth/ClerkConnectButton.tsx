@@ -1,7 +1,8 @@
-import { SignedIn, SignedOut, UserButton, SignInButton, useClerk } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, UserButton, useClerk } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2, LogIn, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 interface ClerkConnectButtonProps {
   variant?: 'default' | 'hero';
@@ -10,6 +11,55 @@ interface ClerkConnectButtonProps {
 export const ClerkConnectButton = ({ variant = 'default' }: ClerkConnectButtonProps) => {
   const navigate = useNavigate();
   const { loaded } = useClerk();
+  const [loadError, setLoadError] = useState(false);
+  const [loadTimeout, setLoadTimeout] = useState(false);
+
+  // Detect if Clerk SDK fails to load within reasonable time
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!loaded) {
+        setLoadTimeout(true);
+      }
+    }, 10000); // 10 second timeout
+
+    if (loaded) {
+      setLoadTimeout(false);
+      setLoadError(false);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [loaded]);
+
+  // Check for missing/invalid publishable key
+  useEffect(() => {
+    const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+    if (!key || !key.startsWith('pk_')) {
+      setLoadError(true);
+    }
+  }, []);
+
+  if (loadError) {
+    return (
+      <div className="flex items-center gap-2 text-destructive">
+        <AlertCircle className="w-4 h-4" />
+        <span className="text-sm">Auth config error</span>
+      </div>
+    );
+  }
+
+  if (loadTimeout) {
+    return (
+      <Button 
+        variant="outline" 
+        size="lg"
+        onClick={() => window.location.reload()}
+        className="gap-2"
+      >
+        <RefreshCw className="w-4 h-4" />
+        Retry Connection
+      </Button>
+    );
+  }
 
   if (!loaded) {
     return (
