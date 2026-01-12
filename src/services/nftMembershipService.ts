@@ -2,11 +2,11 @@
  * NFT Membership Service
  * 
  * Manages BlockDrive's NFT-based subscription system with Alchemy embedded wallets.
- * Subscriptions are SPL tokens on Solana that users truly own.
+ * Subscriptions are SPL Token-2022 tokens on Solana that users truly own.
  * Uses Alchemy's gas sponsorship for transaction fees.
  * 
  * Features:
- * - Mint membership NFTs on subscription purchase (gas-sponsored)
+ * - Mint membership NFTs using Token-2022 program (gas-sponsored)
  * - Verify membership validity from wallet
  * - Manage gas credits allocation
  * - Handle renewals and upgrades
@@ -17,8 +17,27 @@ import {
   Connection, 
   Transaction, 
   SystemProgram,
-  LAMPORTS_PER_SOL 
+  LAMPORTS_PER_SOL,
+  Keypair,
 } from '@solana/web3.js';
+import {
+  TOKEN_2022_PROGRAM_ID,
+  createInitializeMintInstruction,
+  createInitializeMetadataPointerInstruction,
+  createAssociatedTokenAccountInstruction,
+  createMintToInstruction,
+  getAssociatedTokenAddressSync,
+  getMintLen,
+  ExtensionType,
+  TYPE_SIZE,
+  LENGTH_SIZE,
+} from '@solana/spl-token';
+import {
+  createInitializeInstruction,
+  createUpdateFieldInstruction,
+  pack,
+  TokenMetadata,
+} from '@solana/spl-token-metadata';
 import {
   SubscriptionTier,
   MembershipMetadata,
@@ -88,6 +107,29 @@ class NFTMembershipService {
   }
 
   /**
+   * Generate a deterministic mint keypair for a user's tier
+   * This ensures consistent mint addresses across sessions
+   */
+  private async generateDeterministicMintKeypair(
+    walletAddress: string,
+    tier: SubscriptionTier
+  ): Promise<Keypair> {
+    const seed = `blockdrive-membership-mint-${walletAddress}-${tier}-v1`;
+    const encoder = new TextEncoder();
+    const seedBytes = encoder.encode(seed);
+    
+    // Create ArrayBuffer for crypto.subtle
+    const seedBuffer = new ArrayBuffer(seedBytes.length);
+    const view = new Uint8Array(seedBuffer);
+    view.set(seedBytes);
+    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', seedBuffer);
+    const hashBytes = new Uint8Array(hashBuffer);
+    
+    return Keypair.fromSeed(hashBytes);
+  }
+
+  /**
    * Verify membership validity for a wallet (using Alchemy embedded wallet address)
    * Checks if the wallet owns a valid BlockDrive membership NFT
    */
@@ -131,10 +173,45 @@ class NFTMembershipService {
         };
       }
 
-      // In production: Query on-chain for SPL token ownership
-      // For now, check if wallet has any membership token accounts
-      // const [membershipPDA] = await this.deriveMembershipPDA(walletAddress);
-      // const accountInfo = await this.connection.getAccountInfo(membershipPDA);
+      // Try to verify on-chain Token-2022 ownership
+      try {
+        const walletPubkey = new PublicKey(walletAddress);
+        
+        // Check for each tier's token
+        for (const tier of ['enterprise', 'premium', 'pro', 'basic'] as SubscriptionTier[]) {
+          const mintKeypair = await this.generateDeterministicMintKeypair(walletAddress, tier);
+          const ata = getAssociatedTokenAddressSync(
+            mintKeypair.publicKey,
+            walletPubkey,
+            false,
+            TOKEN_2022_PROGRAM_ID
+          );
+          
+          try {
+            const tokenAccount = await this.connection.getTokenAccountBalance(ata);
+            if (tokenAccount.value.uiAmount && tokenAccount.value.uiAmount > 0) {
+              console.log('[NFTMembership] Found on-chain Token-2022 membership:', tier);
+              // Found a membership token - return basic verification
+              const tierConfig = TIER_CONFIGS[tier];
+              return {
+                isValid: true,
+                tier,
+                expiresAt: null, // Would need to read from metadata
+                daysRemaining: -1,
+                storageRemaining: gbToBytes(tierConfig.storageGB),
+                bandwidthRemaining: gbToBytes(tierConfig.bandwidthGB),
+                gasCreditsRemaining: BigInt(0),
+                features: tierConfig.features,
+                nftMint: mintKeypair.publicKey.toBase58(),
+              };
+            }
+          } catch {
+            // Token account doesn't exist, continue checking
+          }
+        }
+      } catch (onChainError) {
+        console.warn('[NFTMembership] On-chain verification failed:', onChainError);
+      }
 
       // No membership found - return basic tier (free)
       return {
@@ -167,15 +244,17 @@ class NFTMembershipService {
   }
 
   /**
-   * Create a new membership NFT using Alchemy embedded wallet with gas sponsorship
-   * Transaction fees are covered by Alchemy Gas Manager
+   * Create a new membership NFT using Token-2022 with metadata extension
+   * Transaction fees are covered by Alchemy Gas Manager on Devnet
    */
   async createMembership(
     request: MembershipPurchaseRequest,
     alchemySigner: AlchemyTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     try {
-      console.log('[NFTMembership] Creating membership with Alchemy gas sponsorship:', request);
+      console.log('[NFTMembership] Creating Token-2022 membership NFT:', request);
+      console.log('[NFTMembership] Network:', alchemyConfig.network);
+      console.log('[NFTMembership] RPC:', alchemyConfig.solanaRpcUrl);
 
       if (!alchemySigner.solanaAddress) {
         throw new Error('Alchemy wallet not initialized');
@@ -207,22 +286,130 @@ class NFTMembershipService {
       const gasCreditsUsd = price * 0.20;
       const gasCreditsUsdc = BigInt(Math.floor(gasCreditsUsd * 1_000_000)); // 6 decimals
 
-      // Build the membership mint transaction
-      // In production, this would call the BlockDrive Solana program to mint an SPL token
+      // Generate deterministic mint keypair for this user/tier
+      const mintKeypair = await this.generateDeterministicMintKeypair(
+        alchemySigner.solanaAddress,
+        request.tier
+      );
+      
+      console.log('[NFTMembership] Mint address:', mintKeypair.publicKey.toBase58());
+
+      // Create the Token-2022 metadata
+      const tokenMetadata: TokenMetadata = {
+        mint: mintKeypair.publicKey,
+        name: `BlockDrive ${tierConfig.name} Membership`,
+        symbol: tierConfig.nftSymbol,
+        uri: tierConfig.nftUri,
+        additionalMetadata: [
+          ['tier', request.tier],
+          ['validUntil', validUntil.toString()],
+          ['storageGB', tierConfig.storageGB.toString()],
+          ['bandwidthGB', tierConfig.bandwidthGB.toString()],
+          ['createdAt', now.toString()],
+        ],
+      };
+
+      // Calculate space needed for mint with metadata extension
+      const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
+      const metadataLen = pack(tokenMetadata).length;
+      const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+      const lamports = await this.connection.getMinimumBalanceForRentExemption(
+        mintLen + metadataExtension + metadataLen
+      );
+
+      console.log('[NFTMembership] Rent-exempt lamports:', lamports);
+      console.log('[NFTMembership] Mint account size:', mintLen + metadataExtension + metadataLen);
+
+      // Build the transaction with Token-2022 instructions
       const transaction = new Transaction();
-      
-      // Add a minimal instruction to register on-chain (placeholder)
-      // The actual implementation would include SPL token mint instructions
-      const [membershipPDA] = await this.deriveMembershipPDA(alchemySigner.solanaAddress);
-      
-      // For demo: Add a system transfer to self (0 lamports) to create on-chain record
-      // Real implementation would mint an SPL token
+
+      // 1. Create the mint account
       transaction.add(
-        SystemProgram.transfer({
+        SystemProgram.createAccount({
           fromPubkey: walletPubkey,
-          toPubkey: walletPubkey,
-          lamports: 0,
+          newAccountPubkey: mintKeypair.publicKey,
+          space: mintLen,
+          lamports,
+          programId: TOKEN_2022_PROGRAM_ID,
         })
+      );
+
+      // 2. Initialize metadata pointer extension
+      transaction.add(
+        createInitializeMetadataPointerInstruction(
+          mintKeypair.publicKey,
+          walletPubkey,
+          mintKeypair.publicKey,
+          TOKEN_2022_PROGRAM_ID
+        )
+      );
+
+      // 3. Initialize the mint (0 decimals for NFT, supply of 1)
+      transaction.add(
+        createInitializeMintInstruction(
+          mintKeypair.publicKey,
+          0, // decimals (0 for NFT)
+          walletPubkey, // mint authority
+          walletPubkey, // freeze authority
+          TOKEN_2022_PROGRAM_ID
+        )
+      );
+
+      // 4. Initialize token metadata
+      transaction.add(
+        createInitializeInstruction({
+          programId: TOKEN_2022_PROGRAM_ID,
+          mint: mintKeypair.publicKey,
+          metadata: mintKeypair.publicKey,
+          name: tokenMetadata.name,
+          symbol: tokenMetadata.symbol,
+          uri: tokenMetadata.uri,
+          mintAuthority: walletPubkey,
+          updateAuthority: walletPubkey,
+        })
+      );
+
+      // 5. Add custom metadata fields
+      for (const [key, value] of tokenMetadata.additionalMetadata) {
+        transaction.add(
+          createUpdateFieldInstruction({
+            programId: TOKEN_2022_PROGRAM_ID,
+            metadata: mintKeypair.publicKey,
+            updateAuthority: walletPubkey,
+            field: key,
+            value: value,
+          })
+        );
+      }
+
+      // 6. Create associated token account for the user
+      const ata = getAssociatedTokenAddressSync(
+        mintKeypair.publicKey,
+        walletPubkey,
+        false,
+        TOKEN_2022_PROGRAM_ID
+      );
+
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          walletPubkey,
+          ata,
+          walletPubkey,
+          mintKeypair.publicKey,
+          TOKEN_2022_PROGRAM_ID
+        )
+      );
+
+      // 7. Mint 1 token to the user's ATA
+      transaction.add(
+        createMintToInstruction(
+          mintKeypair.publicKey,
+          ata,
+          walletPubkey,
+          1, // amount (1 NFT)
+          [],
+          TOKEN_2022_PROGRAM_ID
+        )
       );
 
       // Get recent blockhash
@@ -231,11 +418,15 @@ class NFTMembershipService {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
       transaction.feePayer = walletPubkey;
 
+      // Partially sign with the mint keypair (new account needs to sign)
+      transaction.partialSign(mintKeypair);
+
       // Sign and send with Alchemy gas sponsorship
-      console.log('[NFTMembership] Signing transaction with Alchemy (gas-sponsored on Devnet)...');
-      console.log('[NFTMembership] Network:', alchemyConfig.network);
-      console.log('[NFTMembership] Policy ID:', alchemyConfig.policyId);
+      console.log('[NFTMembership] Signing Token-2022 mint transaction...');
+      console.log('[NFTMembership] Gas Sponsorship Policy:', alchemyConfig.policyId);
+      
       const transactionSignature = await alchemySigner.signAndSendTransaction(transaction);
+      
       console.log('[NFTMembership] Transaction submitted:', transactionSignature);
       console.log('[NFTMembership] Explorer: https://explorer.solana.com/tx/' + transactionSignature + '?cluster=devnet');
 
@@ -249,6 +440,10 @@ class NFTMembershipService {
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
       }
+
+      console.log('[NFTMembership] Token-2022 NFT minted successfully!');
+      console.log('[NFTMembership] Mint:', mintKeypair.publicKey.toBase58());
+      console.log('[NFTMembership] ATA:', ata.toBase58());
 
       // Create membership metadata
       const metadata: MembershipMetadata = {
@@ -277,13 +472,10 @@ class NFTMembershipService {
         expiresAt: validUntil,
       };
 
-      // Generate mint address (in production, this comes from the SPL token mint)
-      const mockMint = this.generateMintAddress(alchemySigner.solanaAddress, request.tier, transactionSignature);
-
-      // Create membership NFT structure
+      // Create membership NFT structure with real mint address
       const membershipNFT: MembershipNFT = {
         bump: 255,
-        mint: mockMint,
+        mint: mintKeypair.publicKey.toBase58(),
         owner: alchemySigner.solanaAddress,
         metadata,
         gasCredits,
@@ -293,21 +485,21 @@ class NFTMembershipService {
       // Cache the membership locally
       this.cacheMembership(alchemySigner.solanaAddress, membershipNFT);
 
-      console.log('[NFTMembership] Membership created successfully with gas sponsorship');
-      console.log('[NFTMembership] NFT Mint:', mockMint);
+      console.log('[NFTMembership] Membership created successfully with Token-2022');
+      console.log('[NFTMembership] NFT Mint:', mintKeypair.publicKey.toBase58());
+      console.log('[NFTMembership] Token Account:', ata.toBase58());
       console.log('[NFTMembership] Gas Credits:', gasCreditsUsdc.toString(), 'USDC');
-      console.log('[NFTMembership] Transaction:', transactionSignature);
 
       return {
         success: true,
         transactionSignature,
-        nftMint: mockMint,
+        nftMint: mintKeypair.publicKey.toBase58(),
         gasCreditsAdded: gasCreditsUsdc,
         expiresAt: validUntil,
       };
 
     } catch (error) {
-      console.error('[NFTMembership] Creation failed:', error);
+      console.error('[NFTMembership] Token-2022 minting failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create membership',
@@ -332,7 +524,8 @@ class NFTMembershipService {
       };
     }
 
-    // Create renewal request
+    // For renewal, we update the metadata on-chain
+    // For MVP, we'll mint a new token (in production, we'd update existing)
     const request: MembershipPurchaseRequest = {
       tier: cachedMembership.metadata.tier,
       billingPeriod,
@@ -354,7 +547,7 @@ class NFTMembershipService {
   ): Promise<MembershipPurchaseResult> {
     const cachedMembership = this.getCachedMembership(walletAddress);
     
-    // Create upgrade request
+    // Create upgrade request (mints new tier token)
     const request: MembershipPurchaseRequest = {
       tier: newTier,
       billingPeriod: 'monthly',
@@ -454,22 +647,6 @@ class NFTMembershipService {
 
   // ============= Private Helper Methods =============
 
-  private generateMintAddress(walletAddress: string, tier: SubscriptionTier, txSignature: string): string {
-    // Generate a deterministic mint address based on wallet and transaction
-    const hash = this.simpleHash(walletAddress + tier + txSignature);
-    return `BLKD${tier.toUpperCase()}${hash.slice(0, 32)}`;
-  }
-
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(16, '0');
-  }
-
   private getCachedMembership(walletAddress: string): MembershipNFT | null {
     try {
       const key = `blockdrive_membership_${walletAddress}`;
@@ -518,11 +695,11 @@ class NFTMembershipService {
       };
       
       localStorage.setItem(key, JSON.stringify(serializable));
-    } catch (error) {
-      console.error('[NFTMembership] Failed to cache membership:', error);
+    } catch (err) {
+      console.warn('[NFTMembership] Failed to cache membership:', err);
     }
   }
 }
 
-// Export singleton
+// Export singleton instance
 export const nftMembershipService = new NFTMembershipService();
