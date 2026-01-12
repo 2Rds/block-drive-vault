@@ -77,7 +77,10 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          solana_wallet_address: string | null
           updated_at: string
+          wallet_created_at: string | null
+          wallet_provider: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -87,7 +90,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          solana_wallet_address?: string | null
           updated_at?: string
+          wallet_created_at?: string | null
+          wallet_provider?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -97,7 +103,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          solana_wallet_address?: string | null
           updated_at?: string
+          wallet_created_at?: string | null
+          wallet_provider?: string | null
         }
         Relationships: []
       }

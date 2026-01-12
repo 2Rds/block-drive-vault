@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { AlchemyProvider } from './components/auth/AlchemyProvider';
 import App from './App.tsx';
 import './index.css';
 
@@ -77,7 +78,9 @@ const initializeApp = async () => {
     root.render(
       <React.StrictMode>
         <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
-          <App />
+          <AlchemyProvider>
+            <App />
+          </AlchemyProvider>
         </ClerkProvider>
       </React.StrictMode>
     );

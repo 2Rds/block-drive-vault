@@ -90,7 +90,7 @@ export function bytesToCid(bytes: Uint8Array): string {
 export async function sha256Hash(data: string): Promise<Uint8Array> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', new Uint8Array(dataBuffer).buffer as ArrayBuffer);
   return new Uint8Array(hashBuffer);
 }
 

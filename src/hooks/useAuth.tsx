@@ -1,14 +1,16 @@
 /**
  * Bridge hook that provides backwards compatibility with the legacy auth interface
- * while using Clerk as the actual authentication provider.
+ * while using Clerk as the actual authentication provider and Alchemy for wallets.
  */
 
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useAlchemyWallet } from '@/components/auth/AlchemyProvider';
 import { User, Session } from '@supabase/supabase-js';
 import { WalletData, AuthContextType } from '@/types/authTypes';
 
-export const useAuth = (): AuthContextType & { isSignedIn: boolean } => {
+export const useAuth = (): AuthContextType & { isSignedIn: boolean; solanaWalletAddress: string | null; isWalletReady: boolean } => {
   const clerkAuth = useClerkAuth();
+  const alchemyWallet = useAlchemyWallet();
 
   // Convert Clerk user to Supabase-like User format for backwards compatibility
   const user: User | null = clerkAuth.user ? {
@@ -26,6 +28,7 @@ export const useAuth = (): AuthContextType & { isSignedIn: boolean } => {
       last_name: clerkAuth.user.lastName,
       full_name: clerkAuth.user.fullName,
       avatar_url: clerkAuth.user.imageUrl,
+      wallet_address: alchemyWallet.solanaAddress,
     },
     identities: [],
     created_at: clerkAuth.user.createdAt?.toISOString() || new Date().toISOString(),
@@ -43,24 +46,30 @@ export const useAuth = (): AuthContextType & { isSignedIn: boolean } => {
     token_type: 'bearer',
   } : null;
 
-  // Create wallet data placeholder (Clerk doesn't manage wallets directly)
-  const walletData: WalletData | null = null;
+  // Create wallet data from Alchemy embedded wallet
+  const walletData: WalletData | null = alchemyWallet.solanaAddress ? {
+    address: alchemyWallet.solanaAddress,
+    wallet_address: alchemyWallet.solanaAddress,
+    blockchain_type: 'solana',
+  } as WalletData : null;
 
   return {
     user,
     session,
-    loading: !clerkAuth.isLoaded,
+    loading: !clerkAuth.isLoaded || alchemyWallet.isLoading,
     isSignedIn: clerkAuth.isSignedIn,
+    solanaWalletAddress: alchemyWallet.solanaAddress,
+    isWalletReady: alchemyWallet.isInitialized,
     walletData,
     setWalletData: () => {
-      console.warn('setWalletData is deprecated with Clerk auth. Wallet connection should be handled separately.');
+      console.warn('setWalletData is deprecated. Wallet is managed by Alchemy.');
     },
     connectWallet: async () => {
-      console.warn('connectWallet is deprecated with Clerk auth. Use Clerk authentication instead.');
-      return { error: { message: 'Wallet connection not supported with Clerk auth' } };
+      console.warn('connectWallet is deprecated. Wallet is auto-provisioned via Alchemy.');
+      return { error: { message: 'Use Clerk authentication - wallet is auto-provisioned' } };
     },
     disconnectWallet: async () => {
-      console.warn('disconnectWallet is deprecated with Clerk auth. Use signOut instead.');
+      console.warn('disconnectWallet is deprecated. Use signOut instead.');
       return { error: null };
     },
     signOut: async () => {
