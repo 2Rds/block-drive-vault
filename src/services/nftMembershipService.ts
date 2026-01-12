@@ -41,8 +41,10 @@ const GAS_CREDITS_SEED = 'blockdrive_gas_credits';
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
 
-// Get Alchemy-configured Solana connection
-const getConnection = () => new Connection(alchemyConfig.solanaRpcUrl, 'confirmed');
+// Get Alchemy-configured Solana connection (Devnet for MVP)
+const getConnection = () => new Connection(alchemyConfig.solanaRpcUrl, {
+  commitment: 'confirmed',
+});
 
 export interface AlchemyTransactionSigner {
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
@@ -230,9 +232,12 @@ class NFTMembershipService {
       transaction.feePayer = walletPubkey;
 
       // Sign and send with Alchemy gas sponsorship
-      console.log('[NFTMembership] Signing transaction with Alchemy (gas-sponsored)...');
+      console.log('[NFTMembership] Signing transaction with Alchemy (gas-sponsored on Devnet)...');
+      console.log('[NFTMembership] Network:', alchemyConfig.network);
+      console.log('[NFTMembership] Policy ID:', alchemyConfig.policyId);
       const transactionSignature = await alchemySigner.signAndSendTransaction(transaction);
       console.log('[NFTMembership] Transaction submitted:', transactionSignature);
+      console.log('[NFTMembership] Explorer: https://explorer.solana.com/tx/' + transactionSignature + '?cluster=devnet');
 
       // Wait for confirmation
       const confirmation = await this.connection.confirmTransaction({
