@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { DataDashboard } from "@/components/DataDashboard";
+import { MembershipCard } from "@/components/dashboard/MembershipCard";
 import { Button } from '@/components/ui/button';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { BarChart3, Files, Settings, Users, Crown, Puzzle } from 'lucide-react';
@@ -120,7 +121,10 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
-            
+
+            {/* Clean Membership Card - Always visible for all users */}
+            <MembershipCard />
+
             <DataDashboard />
           </div>
         </main>

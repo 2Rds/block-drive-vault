@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "clerk": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.clerk.com/mcp"],
+      "env": {}
+    }
+  }
+}

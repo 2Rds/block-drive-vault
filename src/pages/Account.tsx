@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
+import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import { Button } from '@/components/ui/button';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { BarChart3, Files, Settings, Users, Crown, Puzzle } from 'lucide-react';
@@ -122,6 +123,9 @@ const Account = () => {
             </div>
             
             <SubscriptionManager />
+
+            {/* Advanced Settings - Hidden wallet address for troubleshooting */}
+            <AdvancedSettings />
           </div>
         </main>
       </div>
