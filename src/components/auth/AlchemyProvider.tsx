@@ -1,18 +1,20 @@
 /**
  * Alchemy Provider Component
- * 
+ *
  * Wraps the application with Alchemy embedded wallet context,
  * integrating with Clerk authentication for OIDC-based wallet creation.
- * 
- * This provider uses Alchemy Account Kit for real embedded Solana wallets
- * with gas sponsorship on Devnet.
+ *
+ * This provider uses Alchemy Account Kit with Web Signer for real MPC-based
+ * Solana embedded wallets with gas sponsorship on Devnet.
+ *
+ * Updated to use @account-kit/signer SDK instead of local keypair derivation.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession, useAuth as useClerkAuth } from '@clerk/clerk-react';
-import { Connection, Transaction, VersionedTransaction, PublicKey, Keypair } from '@solana/web3.js';
+import { Connection, Transaction, VersionedTransaction, PublicKey } from '@solana/web3.js';
+import { AlchemySignerWebClient, SolanaSigner } from '@account-kit/signer';
 import { alchemyConfig, createAlchemySolanaConnection } from '@/config/alchemy';
-import nacl from 'tweetnacl';
 
 interface AlchemyWalletContextType {
   // Wallet state
@@ -20,15 +22,15 @@ interface AlchemyWalletContextType {
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Connection
   connection: Connection | null;
-  
+
   // Wallet operations
   signTransaction: (transaction: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>;
   signAndSendTransaction: (transaction: Transaction | VersionedTransaction) => Promise<string>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
-  
+
   // Initialize wallet manually if needed
   initializeWallet: () => Promise<void>;
 }
@@ -47,51 +49,26 @@ interface AlchemyProviderProps {
   children: React.ReactNode;
 }
 
-/**
- * Derive a deterministic keypair from user ID using HKDF-like approach
- * This creates a consistent embedded wallet per user
- */
-async function deriveKeypairFromUserId(userId: string): Promise<Keypair> {
-  const encoder = new TextEncoder();
-  const masterSeed = encoder.encode(`blockdrive-alchemy-solana-devnet-${userId}-v1`);
-  
-  // Convert to ArrayBuffer for crypto.subtle compatibility
-  const masterBuffer = new ArrayBuffer(masterSeed.length);
-  const view = new Uint8Array(masterBuffer);
-  view.set(masterSeed);
-  
-  // Use Web Crypto to derive a 32-byte seed
-  const hashBuffer = await crypto.subtle.digest('SHA-256', masterBuffer);
-  const seed = new Uint8Array(hashBuffer);
-  
-  // Create keypair from seed using nacl
-  const keypair = nacl.sign.keyPair.fromSeed(seed);
-  
-  // Convert to proper Uint8Array for Keypair constructor
-  const secretKey = new Uint8Array(keypair.secretKey);
-  return Keypair.fromSecretKey(secretKey);
-}
-
 export function AlchemyProvider({ children }: AlchemyProviderProps) {
   const { session } = useSession();
   const { isSignedIn, getToken } = useClerkAuth();
-  
+
   const [solanaAddress, setSolanaAddress] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Store the derived keypair for signing operations
-  const keypairRef = useRef<Keypair | null>(null);
-  
+
+  // Store the Alchemy signer instances
+  const signerClientRef = useRef<AlchemySignerWebClient | null>(null);
+  const solanaSignerRef = useRef<SolanaSigner | null>(null);
+
   // Create connection once
   const connection = useMemo(() => {
     return createAlchemySolanaConnection();
   }, []);
 
   /**
-   * Initialize the embedded wallet using Clerk session token
-   * Creates a deterministic Solana keypair based on user ID
+   * Initialize the embedded wallet using Alchemy Web Signer with Clerk JWT
    */
   const initializeWallet = useCallback(async () => {
     if (!isSignedIn || !session) {
@@ -110,39 +87,73 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
     try {
       // Get the Clerk session token for OIDC auth
       const token = await getToken();
-      
+
       if (!token) {
         throw new Error('Failed to get Clerk session token');
       }
 
-      console.log('[AlchemyProvider] Initializing embedded wallet for Devnet...');
+      console.log('[AlchemyProvider] Initializing Alchemy Web Signer for Solana Devnet...');
       console.log('[AlchemyProvider] RPC:', alchemyConfig.solanaRpcUrl);
       console.log('[AlchemyProvider] Policy ID:', alchemyConfig.policyId);
-      
+
       const userId = session.user?.id;
       if (!userId) {
         throw new Error('No user ID found in session');
       }
 
-      // Derive a deterministic keypair from user ID
-      // This ensures the same wallet address for the same user across sessions
-      const keypair = await deriveKeypairFromUserId(userId);
-      keypairRef.current = keypair;
-      
-      const walletAddress = keypair.publicKey.toBase58();
+      // Initialize Alchemy Signer Web Client with Clerk JWT
+      // The iframe stamper is required for MPC wallet operations
+      const signerClient = new AlchemySignerWebClient({
+        connection: {
+          jwt: token,
+        },
+        iframeConfig: {
+          iframeContainerId: 'alchemy-signer-iframe-container',
+        },
+      });
+
+      signerClientRef.current = signerClient;
+
+      console.log('[AlchemyProvider] Authenticating with Clerk JWT...');
+
+      // Authenticate using the Clerk JWT (custom JWT authentication)
+      const authResponse = await signerClient.submitJwt({
+        jwt: token,
+        authProvider: 'clerk', // Specify Clerk as the auth provider
+      });
+
+      console.log('[AlchemyProvider] JWT authentication successful');
+
+      // Complete authentication to get user info
+      const user = await signerClient.completeAuthWithBundle({
+        bundle: authResponse.bundle,
+        orgId: authResponse.orgId,
+        connectedEventName: 'connected',
+        authenticatingType: 'jwt',
+      });
+
+      console.log('[AlchemyProvider] User authenticated:', user);
+
+      // Create Solana signer from the authenticated client
+      const solanaSigner = new SolanaSigner(signerClient);
+      solanaSignerRef.current = solanaSigner;
+
+      // Get the Solana wallet address
+      const walletAddress = solanaSigner.address;
       setSolanaAddress(walletAddress);
       setIsInitialized(true);
-      
-      console.log('[AlchemyProvider] Wallet initialized:', walletAddress);
+
+      console.log('[AlchemyProvider] Alchemy MPC Wallet initialized:', walletAddress);
       console.log('[AlchemyProvider] Network: Solana Devnet');
       console.log('[AlchemyProvider] Gas Sponsorship: Enabled (Policy:', alchemyConfig.policyId, ')');
-      
+
       // Sync wallet to database
       await syncWalletToDatabase(walletAddress, token);
 
       // Check wallet balance on devnet
       try {
-        const balance = await connection.getBalance(keypair.publicKey);
+        const publicKey = new PublicKey(walletAddress);
+        const balance = await connection.getBalance(publicKey);
         console.log('[AlchemyProvider] Wallet balance:', balance / 1e9, 'SOL');
       } catch (balanceErr) {
         console.warn('[AlchemyProvider] Could not fetch balance:', balanceErr);
@@ -171,7 +182,7 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
           },
           body: JSON.stringify({
             solanaAddress: address,
-            walletProvider: 'alchemy_embedded',
+            walletProvider: 'alchemy_embedded_mpc',
             network: 'devnet',
           }),
         }
@@ -188,84 +199,74 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
   };
 
   /**
-   * Sign a transaction using the embedded wallet keypair
+   * Sign a transaction using the Alchemy MPC signer
    */
   const signTransaction = useCallback(async (
     transaction: Transaction | VersionedTransaction
   ): Promise<Transaction | VersionedTransaction> => {
-    if (!isInitialized || !solanaAddress || !keypairRef.current) {
+    if (!isInitialized || !solanaAddress || !solanaSignerRef.current) {
       throw new Error('Wallet not initialized');
     }
 
-    console.log('[AlchemyProvider] Signing transaction...');
-    
-    if (transaction instanceof Transaction) {
-      // For legacy transactions
-      transaction.sign(keypairRef.current);
-      console.log('[AlchemyProvider] Transaction signed');
-      return transaction;
-    } else {
-      // For versioned transactions, we need to sign differently
-      transaction.sign([keypairRef.current]);
-      console.log('[AlchemyProvider] Versioned transaction signed');
-      return transaction;
-    }
+    console.log('[AlchemyProvider] Signing transaction with Alchemy MPC...');
+
+    // Use Alchemy's addSignature method which handles MPC signing
+    const signedTx = await solanaSignerRef.current.addSignature(transaction);
+
+    console.log('[AlchemyProvider] Transaction signed via MPC');
+    return signedTx;
   }, [isInitialized, solanaAddress]);
 
   /**
-   * Sign and send a transaction with gas sponsorship
-   * For MVP on devnet, transactions are sent directly
-   * In production, Alchemy's Gas Manager would sponsor the fees
+   * Sign and send a transaction with Alchemy gas sponsorship
+   * Uses Alchemy's addSponsorship method for gas-sponsored transactions
    */
   const signAndSendTransaction = useCallback(async (
     transaction: Transaction | VersionedTransaction
   ): Promise<string> => {
-    if (!isInitialized || !solanaAddress || !keypairRef.current || !connection) {
+    if (!isInitialized || !solanaAddress || !solanaSignerRef.current || !connection) {
       throw new Error('Wallet not initialized');
     }
 
-    console.log('[AlchemyProvider] Signing and sending transaction...');
+    console.log('[AlchemyProvider] Signing and sending transaction with gas sponsorship...');
     console.log('[AlchemyProvider] Gas Sponsorship Policy:', alchemyConfig.policyId);
 
     try {
-      if (transaction instanceof Transaction) {
-        // Get fresh blockhash if not set
-        if (!transaction.recentBlockhash) {
-          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-          transaction.recentBlockhash = blockhash;
-          transaction.lastValidBlockHeight = lastValidBlockHeight;
-        }
-        
-        // Set fee payer if not set
-        if (!transaction.feePayer) {
-          transaction.feePayer = keypairRef.current.publicKey;
-        }
+      // For sponsored transactions, we need to use Alchemy's addSponsorship method
+      // This only works with VersionedTransaction
 
-        // Sign the transaction
-        transaction.sign(keypairRef.current);
-        
-        // Send to network
-        const signature = await connection.sendRawTransaction(transaction.serialize(), {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-        
-        console.log('[AlchemyProvider] Transaction sent:', signature);
-        console.log('[AlchemyProvider] Explorer: https://explorer.solana.com/tx/' + signature + '?cluster=devnet');
-        
-        return signature;
+      let sponsoredTx: VersionedTransaction;
+
+      if (transaction instanceof Transaction) {
+        // Convert legacy transaction to instructions and use addSponsorship
+        console.log('[AlchemyProvider] Converting legacy transaction to sponsored versioned transaction...');
+
+        // Extract instructions from legacy transaction
+        const instructions = transaction.instructions;
+
+        // Use Alchemy's addSponsorship to create a sponsored transaction
+        sponsoredTx = await solanaSignerRef.current.addSponsorship(
+          instructions,
+          connection,
+          alchemyConfig.policyId
+        );
       } else {
-        // Versioned transaction
-        transaction.sign([keypairRef.current]);
-        
-        const signature = await connection.sendRawTransaction(transaction.serialize(), {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-        
-        console.log('[AlchemyProvider] Versioned transaction sent:', signature);
-        return signature;
+        // For versioned transactions, sign and send directly
+        // Note: Sponsorship needs to be added before signing
+        console.log('[AlchemyProvider] Signing versioned transaction...');
+        sponsoredTx = await solanaSignerRef.current.addSignature(transaction) as VersionedTransaction;
       }
+
+      // Send the sponsored transaction to the network
+      const signature = await connection.sendRawTransaction(sponsoredTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      console.log('[AlchemyProvider] Gas-sponsored transaction sent:', signature);
+      console.log('[AlchemyProvider] Explorer: https://explorer.solana.com/tx/' + signature + '?cluster=devnet');
+
+      return signature;
     } catch (err) {
       console.error('[AlchemyProvider] Transaction failed:', err);
       throw err;
@@ -273,20 +274,22 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
   }, [isInitialized, solanaAddress, connection]);
 
   /**
-   * Sign an arbitrary message
+   * Sign an arbitrary message using Alchemy MPC signer
    */
   const signMessage = useCallback(async (message: Uint8Array): Promise<Uint8Array> => {
-    if (!isInitialized || !solanaAddress || !keypairRef.current) {
+    if (!isInitialized || !solanaAddress || !solanaSignerRef.current) {
       throw new Error('Wallet not initialized');
     }
 
-    console.log('[AlchemyProvider] Signing message...');
-    
-    // Sign using nacl
-    const signature = nacl.sign.detached(message, keypairRef.current.secretKey);
-    
-    console.log('[AlchemyProvider] Message signed');
-    return signature;
+    console.log('[AlchemyProvider] Signing message with Alchemy MPC...');
+
+    // Use Alchemy's signMessage method
+    const signature = await solanaSignerRef.current.signMessage(message);
+
+    console.log('[AlchemyProvider] Message signed via MPC');
+
+    // Convert ByteArray to Uint8Array if needed
+    return signature as Uint8Array;
   }, [isInitialized, solanaAddress]);
 
   // Auto-initialize wallet when user signs in
@@ -295,6 +298,15 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
       initializeWallet();
     }
   }, [isSignedIn, isInitialized, isLoading, initializeWallet]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (signerClientRef.current) {
+        signerClientRef.current.disconnect().catch(console.error);
+      }
+    };
+  }, []);
 
   const value: AlchemyWalletContextType = useMemo(() => ({
     solanaAddress,
@@ -319,9 +331,24 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
   ]);
 
   return (
-    <AlchemyWalletContext.Provider value={value}>
-      {children}
-    </AlchemyWalletContext.Provider>
+    <>
+      {/* Hidden iframe container for Alchemy MPC stamper */}
+      <div
+        id="alchemy-signer-iframe-container"
+        style={{
+          position: 'fixed',
+          top: '-9999px',
+          left: '-9999px',
+          width: '1px',
+          height: '1px',
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      />
+      <AlchemyWalletContext.Provider value={value}>
+        {children}
+      </AlchemyWalletContext.Provider>
+    </>
   );
 }
 

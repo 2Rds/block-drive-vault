@@ -6,19 +6,20 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { 
-  SecurityLevel, 
-  WalletDerivedKeys, 
+import {
+  SecurityLevel,
+  WalletDerivedKeys,
   DerivedEncryptionKey,
-  KeyDerivationSession 
+  KeyDerivationSession
 } from '@/types/blockdriveCrypto';
-import { 
-  deriveKeyFromSignature, 
+import {
+  deriveKeyFromSignature,
   getSignatureMessage,
-  getAllSignatureMessages 
+  getAllSignatureMessages
 } from '@/services/crypto/keyDerivationService';
 import { stringToBytes } from '@/services/crypto/cryptoUtils';
 import { useAuth } from './useAuth';
+import { useAlchemyWallet } from '@/components/auth/AlchemyProvider';
 import { toast } from 'sonner';
 
 // Session expiry time (4 hours)
@@ -49,7 +50,8 @@ interface UseWalletCryptoReturn {
 
 export function useWalletCrypto(): UseWalletCryptoReturn {
   const { walletData } = useAuth();
-  
+  const alchemyWallet = useAlchemyWallet();
+
   const [state, setState] = useState<WalletCryptoState>({
     isInitialized: false,
     isInitializing: false,
@@ -79,12 +81,12 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     });
   }, []);
 
-  // Clear keys when wallet disconnects
+  // Clear keys when wallet disconnects or Alchemy wallet is not initialized
   useEffect(() => {
-    if (!walletData?.connected) {
+    if (!walletData?.connected && !alchemyWallet.isInitialized) {
       clearKeys();
     }
-  }, [walletData?.connected, clearKeys]);
+  }, [walletData?.connected, alchemyWallet.isInitialized, clearKeys]);
 
   // Check if we have a key for a specific level
   const hasKey = useCallback((level: SecurityLevel): boolean => {
@@ -93,21 +95,38 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   // Request wallet signature for a specific level
   const requestSignature = useCallback(async (level: SecurityLevel): Promise<Uint8Array | null> => {
-    if (!walletData?.adapter?.signMessage) {
-      throw new Error('Wallet does not support message signing');
+    // Prefer Alchemy embedded wallet for signing
+    if (alchemyWallet.isInitialized && alchemyWallet.signMessage) {
+      const message = getSignatureMessage(level);
+      const messageBytes = stringToBytes(message);
+
+      try {
+        console.log(`[useWalletCrypto] Requesting signature from Alchemy MPC wallet for level ${level}`);
+        const signature = await alchemyWallet.signMessage(messageBytes);
+        return signature;
+      } catch (error) {
+        console.error(`Failed to get signature from Alchemy wallet for level ${level}:`, error);
+        throw error;
+      }
     }
 
-    const message = getSignatureMessage(level);
-    const messageBytes = stringToBytes(message);
+    // Fallback to external wallet adapter if available
+    if (walletData?.adapter?.signMessage) {
+      const message = getSignatureMessage(level);
+      const messageBytes = stringToBytes(message);
 
-    try {
-      const signature = await walletData.adapter.signMessage(messageBytes);
-      return signature;
-    } catch (error) {
-      console.error(`Failed to get signature for level ${level}:`, error);
-      throw error;
+      try {
+        console.log(`[useWalletCrypto] Requesting signature from external wallet for level ${level}`);
+        const signature = await walletData.adapter.signMessage(messageBytes);
+        return signature;
+      } catch (error) {
+        console.error(`Failed to get signature from external wallet for level ${level}:`, error);
+        throw error;
+      }
     }
-  }, [walletData]);
+
+    throw new Error('No wallet available for message signing');
+  }, [alchemyWallet, walletData]);
 
   // Derive key for a specific level
   const deriveKeyForLevel = useCallback(async (level: SecurityLevel): Promise<DerivedEncryptionKey | null> => {
@@ -137,12 +156,19 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   // Initialize all 3 keys
   const initializeKeys = useCallback(async (): Promise<boolean> => {
-    if (!walletData?.connected || !walletData?.address) {
-      setState(prev => ({ ...prev, error: 'Wallet not connected' }));
+    // Check if either Alchemy wallet or external wallet is available
+    const hasAlchemyWallet = alchemyWallet.isInitialized && alchemyWallet.solanaAddress;
+    const hasExternalWallet = walletData?.connected && walletData?.address;
+
+    if (!hasAlchemyWallet && !hasExternalWallet) {
+      setState(prev => ({ ...prev, error: 'No wallet connected' }));
       return false;
     }
 
-    if (!walletData?.adapter?.signMessage) {
+    // Check if wallet supports signing (Alchemy always does, check external wallet)
+    const canSign = hasAlchemyWallet || walletData?.adapter?.signMessage;
+
+    if (!canSign) {
       setState(prev => ({ ...prev, error: 'Wallet does not support message signing' }));
       toast.error('Your wallet does not support message signing');
       return false;
@@ -150,10 +176,13 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
     setState(prev => ({ ...prev, isInitializing: true, error: null }));
 
+    // Determine which wallet address to use
+    const walletAddress = alchemyWallet.solanaAddress || walletData?.address || '';
+
     try {
       // Initialize session
       sessionRef.current = {
-        walletAddress: walletData.address,
+        walletAddress: walletAddress,
         signatures: new Map(),
         keys: new Map(),
         isComplete: false,
@@ -162,7 +191,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
       // Initialize keys storage
       keysRef.current = {
-        walletAddress: walletData.address,
+        walletAddress: walletAddress,
         keys: new Map(),
         initialized: false,
         lastRefreshed: Date.now()
@@ -211,7 +240,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       toast.error(errorMessage);
       return false;
     }
-  }, [walletData, deriveKeyForLevel]);
+  }, [alchemyWallet, walletData, deriveKeyForLevel]);
 
   // Get key for a specific level (derives if not cached)
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
