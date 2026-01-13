@@ -1,0 +1,30 @@
+{
+  "name": "blockdrive-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "BlockDrive coding agent powered by Claude Agent SDK",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node --loader ts-node/esm src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "node --loader ts-node/esm src/index.ts"
+  },
+  "keywords": [
+    "claude",
+    "agent",
+    "ai",
+    "coding"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.5",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

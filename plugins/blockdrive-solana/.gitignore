@@ -1,0 +1,16 @@
+# Local configuration (contains sensitive settings)
+*.local.md
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if any scripts use npm)
+node_modules/
+
+# Claude Code temporary files
+tmpclaude-*-cwd
+
+# OS files
+.DS_Store
+Thumbs.db
