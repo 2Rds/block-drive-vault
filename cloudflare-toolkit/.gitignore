@@ -1,0 +1,19 @@
+# User settings
+.claude/*.local.md
+
+# Node modules for scripts
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db

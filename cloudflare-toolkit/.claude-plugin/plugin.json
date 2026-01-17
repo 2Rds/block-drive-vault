@@ -1,0 +1,25 @@
+{
+  "name": "cloudflare-toolkit",
+  "version": "1.0.0",
+  "description": "Complete Cloudflare toolkit for Workers, R2, WAF, Zero Trust, Agents SDK, MCP servers, and full-spectrum infrastructure management. Designed for automation and non-technical founders.",
+  "author": {
+    "name": "Sean Weiss",
+    "email": "sean@blockdrive.co"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "r2",
+    "waf",
+    "security",
+    "zero-trust",
+    "agents-sdk",
+    "mcp",
+    "observability",
+    "performance",
+    "cost-optimization",
+    "blockdrive"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/seanweiss/block-drive-vault"
+}
