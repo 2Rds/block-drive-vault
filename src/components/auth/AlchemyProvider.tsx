@@ -126,10 +126,10 @@ export function AlchemyProvider({ children }: AlchemyProviderProps) {
 
       // Complete authentication to get user info
       const user = await signerClient.completeAuthWithBundle({
-        bundle: authResponse.bundle,
+        bundle: authResponse.credentialBundle,
         orgId: authResponse.orgId,
         connectedEventName: 'connected',
-        authenticatingType: 'jwt',
+        authenticatingType: 'custom-jwt',
       });
 
       console.log('[AlchemyProvider] User authenticated:', user);
