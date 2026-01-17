@@ -19,4 +19,16 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Polyfill for Node.js globals needed by Solana libraries
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Node.js global polyfills for browser
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
 }));

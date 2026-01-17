@@ -624,6 +624,7 @@ class NFTMembershipService {
     const config = TIER_CONFIGS[tier];
     
     const colors: Record<SubscriptionTier, string> = {
+      trial: 'emerald',
       basic: 'gray',
       pro: 'blue',
       premium: 'purple',
@@ -631,6 +632,7 @@ class NFTMembershipService {
     };
 
     const icons: Record<SubscriptionTier, string> = {
+      trial: '✨',
       basic: '🔵',
       pro: '💎',
       premium: '👑',

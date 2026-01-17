@@ -1,3 +1,7 @@
+// Buffer polyfill for Solana libraries
+import { Buffer } from 'buffer';
+if (typeof globalThis.Buffer === 'undefined') globalThis.Buffer = Buffer;
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";

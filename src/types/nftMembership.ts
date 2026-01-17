@@ -6,7 +6,7 @@
  */
 
 // Subscription tier levels
-export type SubscriptionTier = 'basic' | 'pro' | 'premium' | 'enterprise';
+export type SubscriptionTier = 'trial' | 'basic' | 'pro' | 'premium' | 'enterprise';
 
 // NFT Membership metadata structure (on-chain)
 export interface MembershipMetadata {
@@ -117,6 +117,29 @@ export interface MembershipPurchaseResult {
 
 // Default tier configurations
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
+  trial: {
+    tier: 'trial',
+    name: 'Trial',
+    description: 'Try BlockDrive free',
+    monthlyPrice: 0,
+    quarterlyPrice: 0,
+    annualPrice: 0,
+    storageGB: 10,
+    bandwidthGB: 10,
+    features: {
+      maxSecurityLevel: 1,
+      maxFileSize: 50 * 1024 * 1024, // 50MB
+      granularSharing: false,
+      instantRevoke: false,
+      teamCollaboration: false,
+      prioritySupport: false,
+      apiAccess: false,
+      customBranding: false,
+      slaGuarantee: false,
+    },
+    nftSymbol: 'BLKD-TRIAL',
+    nftUri: 'https://blockdrive.io/nft/trial.json',
+  },
   basic: {
     tier: 'basic',
     name: 'Starter',

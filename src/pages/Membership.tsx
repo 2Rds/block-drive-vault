@@ -31,14 +31,16 @@ import {
   Headphones,
   Code,
   Palette,
-  FileCheck
+  FileCheck,
+  Clock
 } from 'lucide-react';
 import { SubscriptionTier, TIER_CONFIGS } from '@/types/nftMembership';
 import { toast } from 'sonner';
 
-const tierOrder: SubscriptionTier[] = ['basic', 'pro', 'premium', 'enterprise'];
+const tierOrder: SubscriptionTier[] = ['trial', 'basic', 'pro', 'premium', 'enterprise'];
 
 const tierColors: Record<SubscriptionTier, string> = {
+  trial: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   basic: 'bg-muted text-muted-foreground',
   pro: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   premium: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
@@ -46,6 +48,7 @@ const tierColors: Record<SubscriptionTier, string> = {
 };
 
 const tierIcons: Record<SubscriptionTier, React.ReactNode> = {
+  trial: <Clock className="h-5 w-5" />,
   basic: <Shield className="h-5 w-5" />,
   pro: <Zap className="h-5 w-5" />,
   premium: <Sparkles className="h-5 w-5" />,
