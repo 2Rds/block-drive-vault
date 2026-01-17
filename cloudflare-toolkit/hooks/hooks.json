@@ -1,0 +1,44 @@
+{
+  "SessionStart": [
+    {
+      "type": "command",
+      "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-wrangler-setup.sh",
+      "timeout": 5,
+      "description": "Check if wrangler CLI is installed and configured"
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "Before writing the file, check if it's a wrangler.toml file. If so, validate that the TOML syntax is correct and all required fields (name, main, compatibility_date) are present. If the syntax is invalid or required fields are missing, BLOCK the write and explain what needs to be fixed. If valid, ALLOW the write.",
+          "description": "Validate wrangler.toml syntax before saving"
+        }
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "Before executing this bash command, check if it contains 'wrangler deploy' or 'wrangler publish'. If so:\n\n1. Read the wrangler.toml to understand Worker configuration\n2. Estimate monthly cost based on:\n   - Current request volume (if known)\n   - Configured bindings (KV, D1, R2, Durable Objects)\n   - Storage usage estimates\n3. Display cost estimate: 'This deployment will cost approximately $X/month'\n4. If cost > $0: WARN user and ask for confirmation\n5. If cost is $0 (free tier): ALLOW with informational message\n6. Always remind about free tier limits (100k requests/day)\n\nIf not a deploy command, ALLOW without checks.",
+          "description": "Show cost impact before deploying"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "After writing or editing a file, check if it's a Worker file (contains 'export default' and 'fetch' handler). If so, automatically scan for common security issues:\n\n1. Check for hardcoded secrets or API keys\n2. Check for missing input validation\n3. Check for SQL injection vulnerabilities (if using D1)\n4. Check for XSS vulnerabilities in responses\n5. Check for missing CORS validation\n6. Check for missing rate limiting\n\nIf security issues found:\n- LIST each issue with severity (HIGH/MEDIUM/LOW)\n- SUGGEST fixes for each issue\n- RECOMMEND using the waf-security-engineer agent for comprehensive review\n\nThis is informational only - do not block the write.",
+          "description": "Security scan after writing Worker code"
+        }
+      ]
+    }
+  ]
+}

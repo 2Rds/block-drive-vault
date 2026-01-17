@@ -1,0 +1,23 @@
+{
+  "name": "cloudflare-toolkit-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for Cloudflare Toolkit plugin",
+  "type": "module",
+  "scripts": {
+    "validate-wrangler": "node scripts/validate-wrangler-toml.js",
+    "check-security": "node scripts/check-worker-security.js",
+    "calculate-costs": "node scripts/calculate-costs.js",
+    "check-wrangler-cli": "bash scripts/check-wrangler.sh"
+  },
+  "dependencies": {
+    "toml": "^3.0.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Sean Weiss <sean@blockdrive.co>",
+  "license": "MIT"
+}
