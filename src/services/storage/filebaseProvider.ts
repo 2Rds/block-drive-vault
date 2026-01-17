@@ -15,6 +15,13 @@ import {
 import { StorageProviderBase } from './storageProviderBase';
 import { supabase } from '@/integrations/supabase/client';
 
+// Cloudflare IPFS gateway provides cached access with ~5x lower latency
+const CLOUDFLARE_IPFS_GATEWAY = import.meta.env.VITE_CLOUDFLARE_IPFS_GATEWAY || 'https://cloudflare-ipfs.com';
+const FILEBASE_GATEWAY = 'https://ipfs.filebase.io';
+
+// Use Cloudflare gateway for downloads (better caching), Filebase for uploads (pinning)
+const USE_CLOUDFLARE_GATEWAY = import.meta.env.VITE_USE_CLOUDFLARE_IPFS === 'true';
+
 export class FilebaseProvider extends StorageProviderBase {
   readonly type: StorageProviderType = 'filebase';
   readonly name = 'Filebase IPFS';
@@ -23,18 +30,21 @@ export class FilebaseProvider extends StorageProviderBase {
     supportsPermanentStorage: true,
     supportsLargeFiles: true,
     maxFileSizeMB: 5000, // 5GB
-    averageLatencyMs: 1500,
+    averageLatencyMs: USE_CLOUDFLARE_GATEWAY ? 300 : 1500, // CF gateway is faster
     costPerGBCents: 0.6 // ~$0.006/GB/month
   };
 
-  private gateway = 'https://ipfs.filebase.io';
+  // Primary gateway for uploads (ensures pinning)
+  private uploadGateway = FILEBASE_GATEWAY;
+  // Download gateway (Cloudflare for caching, fallback to Filebase)
+  private downloadGateway = USE_CLOUDFLARE_GATEWAY ? CLOUDFLARE_IPFS_GATEWAY : FILEBASE_GATEWAY;
 
   async checkHealth(): Promise<ProviderHealthCheck> {
     const start = performance.now();
-    
+
     try {
-      // Check gateway availability
-      const response = await fetch(`${this.gateway}/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG`, {
+      // Check download gateway availability (Cloudflare or Filebase)
+      const response = await fetch(`${this.downloadGateway}/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG`, {
         method: 'HEAD',
         signal: AbortSignal.timeout(5000)
       });
@@ -160,6 +170,14 @@ export class FilebaseProvider extends StorageProviderBase {
     if (identifier.startsWith('http')) {
       return identifier;
     }
-    return `${this.gateway}/ipfs/${identifier}`;
+    // Use download gateway (Cloudflare for caching, Filebase as fallback)
+    return `${this.downloadGateway}/ipfs/${identifier}`;
+  }
+
+  /**
+   * Get direct Filebase URL (bypasses Cloudflare, for pinning verification)
+   */
+  getFilebaseUrl(identifier: string): string {
+    return `${FILEBASE_GATEWAY}/ipfs/${identifier}`;
   }
 }

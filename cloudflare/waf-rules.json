@@ -1,0 +1,100 @@
+{
+  "name": "BlockDrive Custom WAF Rules",
+  "description": "Custom WAF rules for BlockDrive API protection",
+  "rules": [
+    {
+      "id": "blockdrive-rate-limit-api",
+      "description": "Rate limit API requests per IP",
+      "expression": "(http.request.uri.path contains \"/functions/\" or http.request.uri.path contains \"/api/\")",
+      "action": "challenge",
+      "ratelimit": {
+        "requests_per_period": 100,
+        "period": 60
+      },
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-block-bad-ua",
+      "description": "Block known malicious user agents",
+      "expression": "(http.user_agent contains \"curl\" and not http.request.uri.path contains \"/health\") or http.user_agent contains \"python-requests\" or http.user_agent eq \"\"",
+      "action": "block",
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-require-content-type",
+      "description": "Require Content-Type for POST/PUT requests",
+      "expression": "(http.request.method eq \"POST\" or http.request.method eq \"PUT\") and not any(http.request.headers[\"content-type\"][*] contains \"application/\")",
+      "action": "block",
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-block-sql-injection",
+      "description": "Block potential SQL injection in query params",
+      "expression": "http.request.uri.query contains \"UNION\" or http.request.uri.query contains \"SELECT\" or http.request.uri.query contains \"DROP\" or http.request.uri.query contains \"INSERT\" or http.request.uri.query contains \"--\"",
+      "action": "block",
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-block-xss",
+      "description": "Block potential XSS attacks",
+      "expression": "http.request.uri contains \"<script\" or http.request.uri contains \"javascript:\" or http.request.uri contains \"onerror=\"",
+      "action": "block",
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-protect-auth",
+      "description": "Extra protection for authentication endpoints",
+      "expression": "http.request.uri.path contains \"/auth\" or http.request.uri.path contains \"/login\" or http.request.uri.path contains \"/signup\"",
+      "action": "challenge",
+      "ratelimit": {
+        "requests_per_period": 10,
+        "period": 60
+      },
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-protect-upload",
+      "description": "Rate limit file uploads",
+      "expression": "http.request.uri.path contains \"/upload\" and http.request.method eq \"POST\"",
+      "action": "challenge",
+      "ratelimit": {
+        "requests_per_period": 50,
+        "period": 60
+      },
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-geo-block",
+      "description": "Block requests from high-risk countries (customize as needed)",
+      "expression": "ip.geoip.country in {\"KP\" \"IR\" \"SY\"}",
+      "action": "block",
+      "enabled": false,
+      "comment": "Enable this rule based on compliance requirements"
+    },
+    {
+      "id": "blockdrive-tor-challenge",
+      "description": "Challenge requests from Tor exit nodes",
+      "expression": "cf.threat_score gt 10",
+      "action": "challenge",
+      "enabled": true
+    },
+    {
+      "id": "blockdrive-hotlink-protection",
+      "description": "Prevent hotlinking of stored files",
+      "expression": "http.request.uri.path contains \"/r2/\" and not http.referer contains \"blockdrive.io\" and not http.referer eq \"\"",
+      "action": "block",
+      "enabled": true
+    }
+  ],
+  "managed_rulesets": {
+    "cloudflare_managed": {
+      "enabled": true,
+      "action": "block"
+    },
+    "cloudflare_owasp": {
+      "enabled": true,
+      "paranoia_level": 2,
+      "action": "block"
+    }
+  }
+}
