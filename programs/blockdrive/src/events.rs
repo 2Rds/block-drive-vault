@@ -95,37 +95,6 @@ pub struct DelegationUpdated {
 }
 
 // ============================================================================
-// GAS CREDITS EVENTS
-// ============================================================================
-
-#[event]
-pub struct GasCreditsInitialized {
-    pub owner: Pubkey,
-    pub gas_credits: Pubkey,
-    pub initial_balance: u64,
-    pub timestamp: i64,
-}
-
-#[event]
-pub struct GasCreditsAdded {
-    pub owner: Pubkey,
-    pub gas_credits: Pubkey,
-    pub amount: u64,
-    pub new_balance: u64,
-    pub timestamp: i64,
-}
-
-#[event]
-pub struct GasCreditsDeducted {
-    pub owner: Pubkey,
-    pub gas_credits: Pubkey,
-    pub amount: u64,
-    pub operation_type: String,
-    pub remaining_balance: u64,
-    pub timestamp: i64,
-}
-
-// ============================================================================
 // MEMBERSHIP EVENTS
 // ============================================================================
 
