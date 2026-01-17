@@ -41,15 +41,28 @@ This plan details the implementation of **9 major features** to complete the Blo
 
 This implementation plan focuses on the **core storage infrastructure** features needed for production readiness:
 
-1. **Gas Credits System** - USDC-based transaction fee management
-2. **Session Key Delegation** - Gasless operations via relayer
-3. **Relayer Service** - Backend service for fee-sponsored transactions
+1. **Multi-PDA Sharding** - Scale to 1000+ files per user
+2. **Session Key Delegation** - Gasless operations via relayer (optional future enhancement)
+3. **Relayer Service** - Backend service for non-Alchemy operations (optional)
 4. **Crypto Payments** - Radom integration alongside Stripe
-5. **Multi-PDA Sharding** - Scale to 1000+ files per user
-6. **Enhanced Metadata Privacy** - Encrypted metadata blobs
-7. **Full Key Derivation** - Complete 3-message wallet signature flow
-8. **Download Verification** - End-to-end commitment verification
-9. **Python Recovery SDK** - Open source independent file recovery
+5. **Enhanced Metadata Privacy** - Encrypted metadata blobs
+6. **Full Key Derivation** - Complete 3-message wallet signature flow
+7. **Download Verification** - End-to-end commitment verification
+8. **Python Recovery SDK** - Open source independent file recovery
+
+### Gas Management Architecture
+
+**Decision: Use Alchemy Gas Sponsorship (No Per-User Gas Credits)**
+
+BlockDrive uses Alchemy Account Kit embedded wallets with gas sponsorship for all user transactions:
+
+- **Gas Sponsorship**: Alchemy pays SOL gas fees for all user operations
+- **Billing Model**: Monthly aggregated USD billing (~$0.001-0.002 per transaction)
+- **Cost**: ~$10-30/month for typical usage (~10,000-30,000 transactions)
+- **No Per-User Accounting**: Single BlockDrive operational wallet handles edge cases
+- **Policy ID**: `b54fccd1-b3c0-44e8-8933-1331daa4f0a8` (Devnet)
+
+This eliminates the need for on-chain per-user gas credits accounting (GasCreditsAccount PDAs, USDC swaps, etc.), significantly simplifying the architecture.
 
 ---
 
@@ -57,8 +70,8 @@ This implementation plan focuses on the **core storage infrastructure** features
 
 | Phase | Focus Area | Duration | Status |
 |-------|-----------|----------|--------|
-| **Phase 1** | On-Chain Infrastructure | 3 weeks | 🔴 Not Started |
-| **Phase 2** | Relayer Service | 1 week | 🔴 Not Started |
+| **Phase 1** | On-Chain Infrastructure (Multi-PDA Sharding) | 1-2 weeks | 🔴 Not Started |
+| **Phase 2** | Relayer Service (Optional) | 1 week | 🔴 Not Started |
 | **Phase 3** | Radom Crypto Payments | 1 week | 🔴 Not Started |
 | **Phase 4** | Enhanced Metadata Privacy | 1 week | 🔴 Not Started |
 | **Phase 5** | Full 3-Message Key Derivation | 0.5 week | 🟡 Partially Complete |
@@ -66,111 +79,20 @@ This implementation plan focuses on the **core storage infrastructure** features
 | **Phase 7** | Python Recovery SDK | 1.5 weeks | 🔴 Not Started |
 | **Phase 8** | Testing & Deployment | 2 weeks | 🔴 Not Started |
 
-**Total Estimated Time**: 10-11 weeks
+**Total Estimated Time**: 8-9 weeks (reduced from 10-11 weeks by removing gas credits system)
+
+**Note**: Gas Credits System removed - Alchemy gas sponsorship with USD billing used instead.
 
 ---
 
 ## Phase 1: On-Chain Infrastructure
 
-**Duration**: Weeks 1-3
+**Duration**: Weeks 1-2
 **Status**: 🔴 Not Started
 
-### 1.1 Gas Credits System
+> **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses Alchemy gas sponsorship with USD billing instead of per-user on-chain accounting.
 
-**Current State**: The `nftMembershipService.ts` has placeholder gas credits logic using localStorage. The Solana program has no gas credits accounts.
-
-**Implementation Required**:
-
-#### A. New Solana Program State
-
-**File**: `programs/blockdrive/src/state/gas_credits.rs`
-
-```rust
-use anchor_lang::prelude::*;
-
-#[account]
-pub struct GasCreditsAccount {
-    pub bump: u8,
-    pub owner: Pubkey,
-    pub balance_usdc: u64,        // USDC balance in 6 decimals
-    pub total_credits: u64,       // Total credits ever added
-    pub credits_used: u64,        // Total credits consumed
-    pub last_top_up_at: i64,      // Timestamp of last credit addition
-    pub expires_at: i64,          // Expiration timestamp (0 = no expiry)
-    pub reserved: [u8; 32],       // Reserved for future upgrades
-}
-
-// PDA Seeds: ["gas_credits", owner_pubkey]
-impl GasCreditsAccount {
-    pub const LEN: usize = 8 + 1 + 32 + 8 + 8 + 8 + 8 + 8 + 32;
-}
-```
-
-#### B. New Instructions
-
-**File**: `programs/blockdrive/src/instructions/gas_credits.rs`
-
-```rust
-// Initialize gas credits account on subscription
-pub fn initialize_gas_credits(ctx: Context<InitializeGasCredits>, initial_balance: u64) -> Result<()>
-
-// Add credits (called by backend after payment)
-pub fn add_credits(ctx: Context<AddCredits>, amount: u64) -> Result<()>
-
-// Deduct credits for operations
-pub fn deduct_credits(ctx: Context<DeductCredits>, amount: u64, operation_type: String) -> Result<()>
-
-// Swap USDC to SOL for fees (Jupiter integration)
-pub fn swap_usdc_to_sol(ctx: Context<SwapUsdcToSol>, amount: u64) -> Result<()>
-```
-
-#### C. Jupiter Swap Integration
-
-**File**: `src/services/solana/jupiterSwapService.ts`
-
-```typescript
-class JupiterSwapService {
-  /**
-   * Get quote for USDC -> SOL swap
-   */
-  async getQuote(usdcAmount: number): Promise<JupiterQuote>
-
-  /**
-   * Execute atomic swap + deduction in single transaction
-   */
-  async swapAndDeduct(usdcAmount: number, operationType: string): Promise<string>
-}
-```
-
-#### D. Frontend Service
-
-**File**: `src/services/gasCreditService.ts`
-
-```typescript
-class GasCreditService {
-  /**
-   * Query current gas credits balance
-   */
-  async getBalance(walletAddress: string): Promise<GasCreditsBalance>
-
-  /**
-   * Estimate cost for operation
-   */
-  estimateOperationCost(operationType: 'upload' | 'update' | 'delete'): number
-
-  /**
-   * Check if user has sufficient credits
-   */
-  async hasSufficientCredits(operationType: string): Promise<boolean>
-
-  /**
-   * Get transaction history
-   */
-  async getTransactionHistory(walletAddress: string): Promise<GasCreditTransaction[]>
-}
-```
-
-### 1.2 Multi-PDA Sharding System
+### 1.1 Multi-PDA Sharding System
 
 **Current State**: Single `UserVault` PDA per user with `file_count` field. No sharding. Limited to ~100 files per account due to Solana account size limits.
 
@@ -247,7 +169,9 @@ pub fn register_file_sharded(ctx: Context<RegisterFileSharded>, file_id: [u8; 16
 pub fn rebalance_shards(ctx: Context<RebalanceShards>) -> Result<()>
 ```
 
-### 1.3 Session Key Delegation (Relayer Authority)
+### 1.2 Session Key Delegation (Relayer Authority) - OPTIONAL
+
+> **Note**: With Alchemy gas sponsorship handling all user operations, session key delegation is now an **optional future enhancement** rather than a core requirement. This would only be needed if BlockDrive wants to offer additional relayer-based features beyond what Alchemy provides.
 
 **Current State**: Delegation exists for file sharing (grantee can download). No session key delegation for gasless operations.
 
