@@ -1,12 +1,12 @@
 /**
  * Storage Provider Types
- * 
+ *
  * Defines interfaces for multi-provider storage orchestration
- * supporting Filebase (IPFS), S3, and Arweave.
+ * supporting Cloudflare R2, Filebase (IPFS), S3, and Arweave.
  */
 
 // Supported storage providers
-export type StorageProviderType = 'filebase' | 's3' | 'arweave';
+export type StorageProviderType = 'filebase' | 's3' | 'arweave' | 'r2';
 
 // Provider status
 export type ProviderStatus = 'available' | 'degraded' | 'unavailable';
@@ -84,6 +84,25 @@ export const HIGH_RELIABILITY_CONFIG: StorageConfig = {
   primaryProvider: 'filebase',
   backupProviders: ['s3', 'arweave'],
   redundancyLevel: 3,
+  preferPermanent: true,
+  encryptionRequired: true
+};
+
+// R2-primary configuration (recommended for cost savings)
+// Zero egress fees with Cloudflare R2
+export const R2_PRIMARY_CONFIG: StorageConfig = {
+  primaryProvider: 'r2',
+  backupProviders: ['filebase', 's3'],
+  redundancyLevel: 2,
+  preferPermanent: false,
+  encryptionRequired: true
+};
+
+// R2 with permanent backup on Arweave
+export const R2_PERMANENT_CONFIG: StorageConfig = {
+  primaryProvider: 'r2',
+  backupProviders: ['arweave'],
+  redundancyLevel: 2,
   preferPermanent: true,
   encryptionRequired: true
 };

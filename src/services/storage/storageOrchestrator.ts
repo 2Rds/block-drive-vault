@@ -20,6 +20,7 @@ import { IStorageProvider } from './storageProviderBase';
 import { FilebaseProvider } from './filebaseProvider';
 import { S3Provider } from './s3Provider';
 import { ArweaveProvider } from './arweaveProvider';
+import { R2Provider, isR2Configured } from './r2Provider';
 import { sha256, bytesToHex } from '../crypto/cryptoUtils';
 
 // Chunk size: 256KB as per architecture spec
@@ -41,6 +42,12 @@ class StorageOrchestratorService {
     this.providers.set('filebase', new FilebaseProvider());
     this.providers.set('s3', new S3Provider());
     this.providers.set('arweave', new ArweaveProvider());
+
+    // Initialize R2 provider if configured (primary storage for cost savings)
+    if (isR2Configured()) {
+      this.providers.set('r2', new R2Provider());
+      console.log('[StorageOrchestrator] R2 provider initialized (zero egress fees)');
+    }
   }
 
   /**

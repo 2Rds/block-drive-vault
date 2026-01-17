@@ -1,0 +1,209 @@
+{
+  "name": "BlockDrive Zero Trust Access Policies",
+  "description": "Clerk OIDC integration and access control policies for BlockDrive",
+  "identity_providers": [
+    {
+      "name": "clerk-blockdrive",
+      "type": "oidc",
+      "config": {
+        "issuer_url": "https://good-squirrel-87.clerk.accounts.dev/",
+        "client_id": "${CLERK_OIDC_CLIENT_ID}",
+        "client_secret": "${CLERK_OIDC_CLIENT_SECRET}",
+        "authorization_endpoint": "https://good-squirrel-87.clerk.accounts.dev/oauth/authorize",
+        "token_endpoint": "https://good-squirrel-87.clerk.accounts.dev/oauth/token",
+        "userinfo_endpoint": "https://good-squirrel-87.clerk.accounts.dev/oauth/userinfo",
+        "scopes": ["openid", "email", "profile"],
+        "claims": {
+          "email": "email",
+          "email_verified": "email_verified",
+          "name": "name",
+          "sub": "user_id"
+        }
+      }
+    }
+  ],
+  "access_policies": [
+    {
+      "name": "BlockDrive API - Authenticated Users",
+      "description": "Allow authenticated users to access BlockDrive API endpoints",
+      "decision": "allow",
+      "precedence": 1,
+      "applications": ["api.blockdrive.io/*"],
+      "include": [
+        {
+          "oidc": {
+            "identity_provider_id": "clerk-blockdrive",
+            "claims": {
+              "email_verified": true
+            }
+          }
+        }
+      ],
+      "require": [],
+      "exclude": []
+    },
+    {
+      "name": "BlockDrive Admin Dashboard",
+      "description": "Restrict admin access to verified team members only",
+      "decision": "allow",
+      "precedence": 1,
+      "applications": ["admin.blockdrive.io/*"],
+      "include": [
+        {
+          "oidc": {
+            "identity_provider_id": "clerk-blockdrive",
+            "claims": {
+              "email_verified": true
+            }
+          }
+        },
+        {
+          "email_domain": {
+            "domain": "blockdrive.io"
+          }
+        }
+      ],
+      "require": [
+        {
+          "device_posture": {
+            "check_id": "managed-device-check"
+          }
+        }
+      ],
+      "exclude": []
+    },
+    {
+      "name": "BlockDrive Premium Features",
+      "description": "Additional verification for premium subscription features",
+      "decision": "allow",
+      "precedence": 2,
+      "applications": ["api.blockdrive.io/premium/*"],
+      "include": [
+        {
+          "oidc": {
+            "identity_provider_id": "clerk-blockdrive",
+            "claims": {
+              "email_verified": true
+            }
+          }
+        }
+      ],
+      "require": [
+        {
+          "custom_claim": {
+            "claim_name": "subscription_tier",
+            "claim_value": ["pro", "power", "scale"]
+          }
+        }
+      ],
+      "exclude": []
+    },
+    {
+      "name": "BlockDrive Public Endpoints",
+      "description": "Allow public access to health and documentation endpoints",
+      "decision": "bypass",
+      "precedence": 0,
+      "applications": [
+        "api.blockdrive.io/health",
+        "api.blockdrive.io/docs/*",
+        "api.blockdrive.io/.well-known/*"
+      ],
+      "include": [
+        {
+          "everyone": true
+        }
+      ],
+      "require": [],
+      "exclude": []
+    },
+    {
+      "name": "Geo-Restricted Access",
+      "description": "Block access from high-risk countries (compliance requirement)",
+      "decision": "deny",
+      "precedence": 100,
+      "applications": ["*.blockdrive.io/*"],
+      "include": [
+        {
+          "geo": {
+            "country_codes": ["KP", "IR", "SY", "CU"]
+          }
+        }
+      ],
+      "require": [],
+      "exclude": [],
+      "comment": "Enable based on compliance requirements - OFAC sanctioned countries"
+    }
+  ],
+  "device_posture_checks": [
+    {
+      "id": "managed-device-check",
+      "name": "Managed Device Verification",
+      "type": "file",
+      "description": "Verify device has required security software installed",
+      "enabled": false,
+      "schedule": "1h",
+      "config": {
+        "operating_system": {
+          "windows": {
+            "path": "C:\\Program Files\\BlockDrive\\device-attestation.txt"
+          },
+          "macos": {
+            "path": "/Library/Application Support/BlockDrive/device-attestation.txt"
+          }
+        }
+      },
+      "comment": "Enable after deploying device attestation software"
+    },
+    {
+      "id": "os-version-check",
+      "name": "OS Version Check",
+      "type": "os_version",
+      "description": "Require minimum OS versions for security",
+      "enabled": true,
+      "config": {
+        "windows": {
+          "operator": ">=",
+          "version": "10.0.19041"
+        },
+        "macos": {
+          "operator": ">=",
+          "version": "12.0"
+        },
+        "linux": {
+          "operator": ">=",
+          "version": "5.4"
+        }
+      }
+    },
+    {
+      "id": "firewall-check",
+      "name": "Firewall Enabled Check",
+      "type": "firewall",
+      "description": "Verify system firewall is enabled",
+      "enabled": true,
+      "config": {
+        "require_enabled": true
+      }
+    }
+  ],
+  "session_settings": {
+    "session_duration": "24h",
+    "refresh_session_on_activity": true,
+    "cookie_attributes": {
+      "same_site": "Strict",
+      "http_only": true,
+      "secure": true
+    }
+  },
+  "audit_settings": {
+    "log_all_access_attempts": true,
+    "log_identity_provider_events": true,
+    "log_device_posture_checks": true,
+    "retention_days": 90,
+    "export_to": {
+      "enabled": false,
+      "destination": "supabase",
+      "comment": "Enable to export audit logs to Supabase for analysis"
+    }
+  }
+}

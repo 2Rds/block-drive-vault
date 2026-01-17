@@ -1,0 +1,68 @@
+# BlockDrive API Gateway Worker
+# Handles rate limiting, CORS, and request forwarding to Supabase Edge Functions
+
+name = "blockdrive-api-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables (non-sensitive)
+[vars]
+SUPABASE_URL = "https://your-project.supabase.co"
+ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173"
+RATE_LIMIT_PER_MINUTE = "100"
+RATE_LIMIT_BURST = "20"
+
+# KV Namespace for rate limiting
+[[kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# R2 bucket binding (for direct storage access)
+[[r2_buckets]]
+binding = "R2_STORAGE"
+bucket_name = "blockdrive-storage"
+preview_bucket_name = "blockdrive-storage-preview"
+
+# Durable Objects (for session management)
+[[durable_objects.bindings]]
+name = "ENCRYPTION_SESSIONS"
+class_name = "EncryptionSession"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["EncryptionSession"]
+
+# Development environment
+[env.dev]
+name = "blockdrive-api-gateway-dev"
+vars = { SUPABASE_URL = "https://your-project.supabase.co", ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000" }
+
+[[env.dev.kv_namespaces]]
+binding = "RATE_LIMITS"
+id = "your-dev-kv-namespace-id"
+
+# Staging environment
+[env.staging]
+name = "blockdrive-api-gateway-staging"
+routes = [
+  { pattern = "api-staging.blockdrive.io/*", zone_name = "blockdrive.io" }
+]
+
+# Production environment
+[env.production]
+name = "blockdrive-api-gateway"
+routes = [
+  { pattern = "api.blockdrive.io/*", zone_name = "blockdrive.io" }
+]
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+# Observability
+[observability]
+enabled = true
