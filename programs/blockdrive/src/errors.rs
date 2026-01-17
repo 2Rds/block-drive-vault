@@ -70,4 +70,17 @@ pub enum BlockDriveError {
 
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
+
+    // Gas Credits errors
+    #[msg("Insufficient gas credits balance")]
+    InsufficientGasCredits,
+
+    #[msg("Gas credits have expired")]
+    GasCreditsExpired,
+
+    #[msg("Invalid amount - must be greater than zero")]
+    InvalidAmount,
+
+    #[msg("Gas credits account not found")]
+    GasCreditsNotFound,
 }

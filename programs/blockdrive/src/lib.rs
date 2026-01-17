@@ -122,6 +122,66 @@ pub mod blockdrive {
     }
 
     // =========================================================================
+    // GAS CREDITS INSTRUCTIONS
+    // =========================================================================
+
+    /// Initialize gas credits account for a user
+    ///
+    /// Creates a GasCreditsAccount PDA to track USDC balance for gas fees.
+    ///
+    /// # Arguments
+    /// * `initial_balance` - Initial USDC balance in lamports (6 decimals)
+    pub fn initialize_gas_credits(
+        ctx: Context<InitializeGasCredits>,
+        initial_balance: u64,
+    ) -> Result<()> {
+        instructions::gas_credits::initialize_gas_credits(ctx, initial_balance)
+    }
+
+    /// Add credits to a gas credits account
+    ///
+    /// Called after a user makes a payment to add credits.
+    ///
+    /// # Arguments
+    /// * `amount` - Amount of USDC to add (in lamports, 6 decimals)
+    pub fn add_credits(ctx: Context<AddCredits>, amount: u64) -> Result<()> {
+        instructions::gas_credits::add_credits(ctx, amount)
+    }
+
+    /// Deduct credits for an operation
+    ///
+    /// Called by relayer or owner when executing gasless operations.
+    ///
+    /// # Arguments
+    /// * `amount` - Amount of USDC to deduct (in lamports)
+    /// * `operation_type` - Type of operation (e.g., "register_file", "update_file")
+    pub fn deduct_credits(
+        ctx: Context<DeductCredits>,
+        amount: u64,
+        operation_type: String,
+    ) -> Result<()> {
+        instructions::gas_credits::deduct_credits(ctx, amount, operation_type)
+    }
+
+    /// Swap USDC to SOL using Jupiter
+    ///
+    /// Converts gas credits (USDC) to SOL for transaction fees.
+    ///
+    /// # Arguments
+    /// * `amount` - Amount of USDC to swap (in lamports)
+    pub fn swap_usdc_to_sol(ctx: Context<SwapUsdcToSol>, amount: u64) -> Result<()> {
+        instructions::gas_credits::swap_usdc_to_sol(ctx, amount)
+    }
+
+    /// Set expiration date for gas credits
+    ///
+    /// # Arguments
+    /// * `expires_at` - Unix timestamp when credits expire (0 = no expiry)
+    pub fn set_gas_credits_expiration(ctx: Context<AddCredits>, expires_at: i64) -> Result<()> {
+        instructions::gas_credits::set_expiration(ctx, expires_at)
+    }
+
+    // =========================================================================
     // MEMBERSHIP INSTRUCTIONS
     // =========================================================================
 
