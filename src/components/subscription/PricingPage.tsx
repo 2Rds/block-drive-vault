@@ -19,13 +19,13 @@ export const PricingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-16">
+    <div className="min-h-screen bg-[hsl(230_15%_6%)] py-16">
       <div className="container mx-auto px-4">
         <PricingHeader />
 
         {/* Billing period selector */}
         <div className="flex justify-center mb-12">
-          <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-1">
+          <div className="bg-[hsl(230_12%_10%)] border border-[hsl(230_10%_18%)] rounded-xl p-1">
             {billingPeriods.map((period) => (
               <Button
                 key={period.value}
@@ -34,8 +34,8 @@ export const PricingPage = () => {
                 onClick={() => setSelectedPeriod(period.value)}
                 className={`${
                   selectedPeriod === period.value
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-[hsl(166_76%_46%)] to-[hsl(166_76%_42%)] text-white shadow-[0_0_16px_hsl(166_76%_46%/0.2)]'
+                    : 'text-gray-300 hover:text-white hover:bg-[hsl(230_10%_15%)]'
                 }`}
               >
                 {period.label}

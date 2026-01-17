@@ -4,8 +4,10 @@ pub mod state;
 pub mod instructions;
 pub mod errors;
 pub mod events;
+pub mod transfer_hook;
 
 use instructions::*;
+use transfer_hook::*;
 
 declare_id!("BLKDrv1111111111111111111111111111111111111");
 
@@ -117,5 +119,98 @@ pub mod blockdrive {
         expires_at: i64,
     ) -> Result<()> {
         instructions::delegation::update_delegation(ctx, permission_level, expires_at)
+    }
+
+    // =========================================================================
+    // MEMBERSHIP INSTRUCTIONS
+    // =========================================================================
+
+    /// Create a new membership link connecting wallet -> SNS domain -> NFT
+    ///
+    /// This creates the MembershipLink PDA and optionally mints a soulbound
+    /// membership NFT to the wallet.
+    ///
+    /// # Arguments
+    /// * `sns_domain` - The SNS domain to link (without .sol suffix)
+    /// * `mint_nft` - Whether to mint the soulbound NFT in this transaction
+    ///
+    /// # Security
+    /// - Only the wallet owner can create their membership link
+    /// - The NFT uses Token-2022 Transfer Hook for soulbound enforcement
+    pub fn create_membership_link(
+        ctx: Context<CreateMembershipLink>,
+        sns_domain: String,
+        mint_nft: bool,
+    ) -> Result<()> {
+        instructions::membership::create_membership_link(ctx, sns_domain, mint_nft)
+    }
+
+    /// Update an existing membership link
+    ///
+    /// Allows updating the SNS domain or NFT mint reference.
+    ///
+    /// # Arguments
+    /// * `sns_domain` - Optional new SNS domain
+    /// * `update_nft_mint` - Whether to update to new_nft_mint account
+    pub fn update_membership_link(
+        ctx: Context<UpdateMembershipLink>,
+        sns_domain: Option<String>,
+        update_nft_mint: bool,
+    ) -> Result<()> {
+        instructions::membership::update_membership_link(ctx, sns_domain, update_nft_mint)
+    }
+
+    /// Deactivate a membership link without deletion
+    ///
+    /// Preserves the record for historical purposes but marks as inactive.
+    pub fn deactivate_membership_link(ctx: Context<DeactivateMembershipLink>) -> Result<()> {
+        instructions::membership::deactivate_membership_link(ctx)
+    }
+
+    /// Reactivate a previously deactivated membership link
+    pub fn reactivate_membership_link(ctx: Context<ReactivateMembershipLink>) -> Result<()> {
+        instructions::membership::reactivate_membership_link(ctx)
+    }
+
+    /// Voluntarily burn a membership NFT
+    ///
+    /// This destroys the soulbound NFT and deactivates the membership link.
+    pub fn burn_membership_nft(ctx: Context<BurnMembershipNft>) -> Result<()> {
+        instructions::membership::burn_membership_nft(ctx)
+    }
+
+    // =========================================================================
+    // TRANSFER HOOK INSTRUCTIONS
+    // =========================================================================
+
+    /// Initialize the extra account metas for the transfer hook
+    ///
+    /// This must be called before the mint can process transfers.
+    /// It sets up the PDA that tells Token-2022 which accounts to pass
+    /// to our transfer hook.
+    pub fn initialize_transfer_hook(ctx: Context<InitializeExtraAccountMetas>) -> Result<()> {
+        transfer_hook::initialize_extra_account_metas(ctx)
+    }
+
+    /// Execute the transfer hook (called by Token-2022)
+    ///
+    /// This is the core soulbound enforcement logic:
+    /// - Allows minting (new NFTs)
+    /// - Allows burning (voluntary destruction)
+    /// - BLOCKS all other transfers
+    ///
+    /// # Security
+    /// - This function is called automatically by Token-2022
+    /// - Unauthorized transfers are blocked and logged
+    pub fn execute_transfer_hook(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
+        transfer_hook::execute_transfer_hook(ctx, amount)
+    }
+
+    /// Toggle the transfer hook on/off (admin only)
+    ///
+    /// WARNING: Disabling the hook removes soulbound enforcement!
+    /// This should only be used in emergencies.
+    pub fn toggle_transfer_hook(ctx: Context<ToggleTransferHook>, enabled: bool) -> Result<()> {
+        transfer_hook::toggle_transfer_hook(ctx, enabled)
     }
 }
