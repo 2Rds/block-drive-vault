@@ -77,7 +77,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
         daysRemaining: 30,
         storageRemaining: BigInt(100 * 1024 * 1024 * 1024),
         bandwidthRemaining: BigInt(100 * 1024 * 1024 * 1024),
-        gasCreditsRemaining: BigInt(50_000_000),
         features: TIER_CONFIGS['pro'].features,
         nftMint: null,
       };

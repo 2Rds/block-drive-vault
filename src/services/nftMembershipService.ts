@@ -8,16 +8,16 @@
  * Features:
  * - Mint membership NFTs using Token-2022 program (gas-sponsored)
  * - Verify membership validity from wallet
- * - Manage gas credits allocation
  * - Handle renewals and upgrades
+ *
+ * Note: Gas fees are handled by Alchemy Gas Manager, not per-user credits.
  */
 
-import { 
-  PublicKey, 
-  Connection, 
-  Transaction, 
+import {
+  PublicKey,
+  Connection,
+  Transaction,
   SystemProgram,
-  LAMPORTS_PER_SOL,
   Keypair,
 } from '@solana/web3.js';
 import {
@@ -49,13 +49,11 @@ import {
   gbToBytes,
   isMembershipExpired,
   getDaysRemaining,
-  GasCreditsAccount,
 } from '@/types/nftMembership';
 import { alchemyConfig } from '@/config/alchemy';
 
 // PDA seeds for membership accounts
 const MEMBERSHIP_SEED = 'blockdrive_membership';
-const GAS_CREDITS_SEED = 'blockdrive_gas_credits';
 
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
@@ -86,20 +84,6 @@ class NFTMembershipService {
     return PublicKey.findProgramAddressSync(
       [
         Buffer.from(MEMBERSHIP_SEED),
-        walletPubkey.toBuffer(),
-      ],
-      BLOCKDRIVE_PROGRAM_ID
-    );
-  }
-
-  /**
-   * Derive the gas credits PDA for a wallet
-   */
-  async deriveGasCreditsPDA(walletAddress: string): Promise<[PublicKey, number]> {
-    const walletPubkey = new PublicKey(walletAddress);
-    return PublicKey.findProgramAddressSync(
-      [
-        Buffer.from(GAS_CREDITS_SEED),
         walletPubkey.toBuffer(),
       ],
       BLOCKDRIVE_PROGRAM_ID
@@ -151,7 +135,6 @@ class NFTMembershipService {
             daysRemaining: 0,
             storageRemaining: BigInt(0),
             bandwidthRemaining: BigInt(0),
-            gasCreditsRemaining: BigInt(0),
             features: null,
             nftMint: cachedMembership.mint,
             error: 'Membership has expired',
@@ -159,7 +142,7 @@ class NFTMembershipService {
         }
 
         const tierConfig = TIER_CONFIGS[cachedMembership.metadata.tier];
-        
+
         return {
           isValid: true,
           tier: cachedMembership.metadata.tier,
@@ -167,7 +150,6 @@ class NFTMembershipService {
           daysRemaining: getDaysRemaining(cachedMembership.metadata.validUntil),
           storageRemaining: cachedMembership.metadata.storageQuota - cachedMembership.metadata.storageUsed,
           bandwidthRemaining: cachedMembership.metadata.bandwidthQuota - cachedMembership.metadata.bandwidthUsed,
-          gasCreditsRemaining: cachedMembership.gasCredits.balanceUsdc,
           features: tierConfig.features,
           nftMint: cachedMembership.mint,
         };
@@ -200,7 +182,6 @@ class NFTMembershipService {
                 daysRemaining: -1,
                 storageRemaining: gbToBytes(tierConfig.storageGB),
                 bandwidthRemaining: gbToBytes(tierConfig.bandwidthGB),
-                gasCreditsRemaining: BigInt(0),
                 features: tierConfig.features,
                 nftMint: mintKeypair.publicKey.toBase58(),
               };
@@ -221,7 +202,6 @@ class NFTMembershipService {
         daysRemaining: -1, // Unlimited for free tier
         storageRemaining: gbToBytes(TIER_CONFIGS.basic.storageGB),
         bandwidthRemaining: gbToBytes(TIER_CONFIGS.basic.bandwidthGB),
-        gasCreditsRemaining: BigInt(0),
         features: TIER_CONFIGS.basic.features,
         nftMint: null,
       };
@@ -235,7 +215,6 @@ class NFTMembershipService {
         daysRemaining: 0,
         storageRemaining: BigInt(0),
         bandwidthRemaining: BigInt(0),
-        gasCreditsRemaining: BigInt(0),
         features: null,
         nftMint: null,
         error: error instanceof Error ? error.message : 'Verification failed',
@@ -281,10 +260,6 @@ class NFTMembershipService {
           validUntil = now + (30 * 24 * 60 * 60 * 1000);
           price = tierConfig.monthlyPrice;
       }
-
-      // Calculate gas credits allocation (20% of payment)
-      const gasCreditsUsd = price * 0.20;
-      const gasCreditsUsdc = BigInt(Math.floor(gasCreditsUsd * 1_000_000)); // 6 decimals
 
       // Generate deterministic mint keypair for this user/tier
       const mintKeypair = await this.generateDeterministicMintKeypair(
@@ -461,24 +436,12 @@ class NFTMembershipService {
         lastRenewedAt: now,
       };
 
-      // Create gas credits account
-      const gasCredits: GasCreditsAccount = {
-        owner: alchemySigner.solanaAddress,
-        balanceUsdc: gasCreditsUsdc,
-        balanceSol: BigInt(0),
-        totalCredits: gasCreditsUsdc,
-        creditsUsed: BigInt(0),
-        lastTopUpAt: now,
-        expiresAt: validUntil,
-      };
-
       // Create membership NFT structure with real mint address
       const membershipNFT: MembershipNFT = {
         bump: 255,
         mint: mintKeypair.publicKey.toBase58(),
         owner: alchemySigner.solanaAddress,
         metadata,
-        gasCredits,
         delegations: [],
       };
 
@@ -488,13 +451,11 @@ class NFTMembershipService {
       console.log('[NFTMembership] Membership created successfully with Token-2022');
       console.log('[NFTMembership] NFT Mint:', mintKeypair.publicKey.toBase58());
       console.log('[NFTMembership] Token Account:', ata.toBase58());
-      console.log('[NFTMembership] Gas Credits:', gasCreditsUsdc.toString(), 'USDC');
 
       return {
         success: true,
         transactionSignature,
         nftMint: mintKeypair.publicKey.toBase58(),
-        gasCreditsAdded: gasCreditsUsdc,
         expiresAt: validUntil,
       };
 
@@ -560,40 +521,6 @@ class NFTMembershipService {
   }
 
   /**
-   * Deduct gas credits for an operation
-   */
-  async deductGasCredits(
-    walletAddress: string,
-    amountLamports: bigint
-  ): Promise<boolean> {
-    const cachedMembership = this.getCachedMembership(walletAddress);
-    
-    if (!cachedMembership) {
-      console.warn('[NFTMembership] No membership for gas deduction');
-      return false;
-    }
-
-    // Convert lamports to approximate USDC
-    const solPrice = 150; // USD (would use oracle in production)
-    const amountSol = Number(amountLamports) / LAMPORTS_PER_SOL;
-    const amountUsdc = BigInt(Math.ceil(amountSol * solPrice * 1_000_000));
-
-    if (cachedMembership.gasCredits.balanceUsdc < amountUsdc) {
-      console.warn('[NFTMembership] Insufficient gas credits');
-      return false;
-    }
-
-    // Deduct credits
-    cachedMembership.gasCredits.balanceUsdc -= amountUsdc;
-    cachedMembership.gasCredits.creditsUsed += amountUsdc;
-    
-    this.cacheMembership(walletAddress, cachedMembership);
-    
-    console.log('[NFTMembership] Deducted', amountUsdc.toString(), 'USDC in gas credits');
-    return true;
-  }
-
-  /**
    * Update storage usage
    */
   async updateStorageUsage(
@@ -654,19 +581,15 @@ class NFTMembershipService {
       const key = `blockdrive_membership_${walletAddress}`;
       const cached = localStorage.getItem(key);
       if (!cached) return null;
-      
+
       const parsed = JSON.parse(cached);
-      
+
       // Convert bigint strings back to bigints
       parsed.metadata.storageQuota = BigInt(parsed.metadata.storageQuota);
       parsed.metadata.storageUsed = BigInt(parsed.metadata.storageUsed);
       parsed.metadata.bandwidthQuota = BigInt(parsed.metadata.bandwidthQuota);
       parsed.metadata.bandwidthUsed = BigInt(parsed.metadata.bandwidthUsed);
-      parsed.gasCredits.balanceUsdc = BigInt(parsed.gasCredits.balanceUsdc);
-      parsed.gasCredits.balanceSol = BigInt(parsed.gasCredits.balanceSol);
-      parsed.gasCredits.totalCredits = BigInt(parsed.gasCredits.totalCredits);
-      parsed.gasCredits.creditsUsed = BigInt(parsed.gasCredits.creditsUsed);
-      
+
       return parsed;
     } catch {
       return null;
@@ -676,7 +599,7 @@ class NFTMembershipService {
   private cacheMembership(walletAddress: string, membership: MembershipNFT): void {
     try {
       const key = `blockdrive_membership_${walletAddress}`;
-      
+
       // Convert bigints to strings for JSON serialization
       const serializable = {
         ...membership,
@@ -687,15 +610,8 @@ class NFTMembershipService {
           bandwidthQuota: membership.metadata.bandwidthQuota.toString(),
           bandwidthUsed: membership.metadata.bandwidthUsed.toString(),
         },
-        gasCredits: {
-          ...membership.gasCredits,
-          balanceUsdc: membership.gasCredits.balanceUsdc.toString(),
-          balanceSol: membership.gasCredits.balanceSol.toString(),
-          totalCredits: membership.gasCredits.totalCredits.toString(),
-          creditsUsed: membership.gasCredits.creditsUsed.toString(),
-        },
       };
-      
+
       localStorage.setItem(key, JSON.stringify(serializable));
     } catch (err) {
       console.warn('[NFTMembership] Failed to cache membership:', err);
