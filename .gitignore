@@ -14,6 +14,12 @@ dist-ssr
 
 # Claude Code temporary files
 tmpclaude-*-cwd
+tmpclaude-*
+
+# Windows/system junk
+nul
+Thumbs.db
+desktop.ini
 
 # Editor directories and files
 .vscode/*

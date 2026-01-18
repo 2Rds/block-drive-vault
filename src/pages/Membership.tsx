@@ -201,25 +201,25 @@ export default function Membership() {
                       <span className="text-sm text-muted-foreground">Storage</span>
                     </div>
                     <p className="text-lg font-semibold">
-                      {membership?.storageRemaining 
+                      {membership?.storageRemaining
                         ? formatStorageSize(membership.storageRemaining)
                         : `${currentConfig.storageGB} GB`}
                     </p>
                     <Progress value={100 - storageUsedPercent} className="h-1 mt-2" />
                   </div>
 
-                  {/* Gas Credits */}
+                  {/* Bandwidth */}
                   <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Gas Credits</span>
+                      <span className="text-sm text-muted-foreground">Bandwidth</span>
                     </div>
                     <p className="text-lg font-semibold">
-                      {membership?.gasCreditsRemaining 
-                        ? (Number(membership.gasCreditsRemaining) / 1e6).toFixed(2)
-                        : '0.00'} USDC
+                      {membership?.bandwidthRemaining
+                        ? formatStorageSize(membership.bandwidthRemaining)
+                        : `${currentConfig.bandwidthGB} GB`}
                     </p>
-                    <p className="text-xs text-muted-foreground">For on-chain operations</p>
+                    <p className="text-xs text-muted-foreground">Monthly transfer allowance</p>
                   </div>
                 </div>
 
@@ -474,32 +474,6 @@ export default function Membership() {
                 <Button className="w-full">
                   Save Settings
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Gas Credits Card */}
-            <Card className="border-border/50 bg-card/50">
-              <CardHeader>
-                <CardTitle>Gas Credits</CardTitle>
-                <CardDescription>
-                  Credits for on-chain operations like file registration and sharing
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/50">
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {membership?.gasCreditsRemaining 
-                        ? (Number(membership.gasCreditsRemaining) / 1e6).toFixed(2)
-                        : '0.00'} USDC
-                    </p>
-                    <p className="text-sm text-muted-foreground">Available credits</p>
-                  </div>
-                  <Button variant="outline">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Top Up
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

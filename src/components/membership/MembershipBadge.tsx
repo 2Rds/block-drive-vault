@@ -1,18 +1,16 @@
 /**
  * Membership Badge Component
- * 
- * Displays the user's current NFT membership status with tier info,
- * expiration, and gas credits.
+ *
+ * Displays the user's current NFT membership status with tier info and expiration.
  */
 
 import React from 'react';
-import { 
-  Crown, 
-  Shield, 
-  Star, 
-  Zap, 
-  Clock, 
-  Fuel,
+import {
+  Crown,
+  Shield,
+  Star,
+  Zap,
+  Clock,
   AlertTriangle,
   Loader2,
   ExternalLink
@@ -40,14 +38,12 @@ import { format } from 'date-fns';
 
 interface MembershipBadgeProps {
   variant?: 'compact' | 'full' | 'card';
-  showGasCredits?: boolean;
   showStorage?: boolean;
   onUpgrade?: () => void;
 }
 
 export function MembershipBadge({
   variant = 'compact',
-  showGasCredits = true,
   showStorage = true,
   onUpgrade,
 }: MembershipBadgeProps) {
@@ -160,13 +156,6 @@ export function MembershipBadge({
           </div>
         )}
 
-        {showGasCredits && membership.gasCreditsRemaining > 0 && (
-          <div className="flex items-center gap-1 text-sm text-green-400">
-            <Fuel className="w-3 h-3" />
-            ${(Number(membership.gasCreditsRemaining) / 1_000_000).toFixed(2)} credits
-          </div>
-        )}
-
         {membership.nftMint && (
           <a 
             href={`https://explorer.solana.com/address/${membership.nftMint}?cluster=devnet`}
@@ -252,19 +241,6 @@ export function MembershipBadge({
               </span>
             </div>
             <Progress value={storageUsedPercent} className="h-2" />
-          </div>
-        )}
-
-        {/* Gas Credits */}
-        {showGasCredits && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Fuel className="w-4 h-4" />
-              Gas Credits
-            </span>
-            <span className="text-green-400 font-medium">
-              ${(Number(membership.gasCreditsRemaining) / 1_000_000).toFixed(2)} USDC
-            </span>
           </div>
         )}
 

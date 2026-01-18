@@ -61,24 +61,13 @@ export interface TierConfig {
   nftUri: string;
 }
 
-// Gas credits account structure
-export interface GasCreditsAccount {
-  owner: string;              // Wallet address
-  balanceUsdc: bigint;        // Balance in USDC (6 decimals)
-  balanceSol: bigint;         // Balance in SOL lamports
-  totalCredits: bigint;       // Total credits purchased
-  creditsUsed: bigint;        // Credits used
-  lastTopUpAt: number;
-  expiresAt: number;
-}
-
 // Membership NFT on-chain structure (Solana PDA)
+// Note: Gas sponsorship handled by Alchemy Account Kit, not per-user credits
 export interface MembershipNFT {
   bump: number;
   mint: string;               // SPL token mint address
   owner: string;              // Current owner wallet
   metadata: MembershipMetadata;
-  gasCredits: GasCreditsAccount;
   delegations: string[];      // Active session key delegations
 }
 
@@ -90,7 +79,6 @@ export interface MembershipVerification {
   daysRemaining: number;
   storageRemaining: bigint;
   bandwidthRemaining: bigint;
-  gasCreditsRemaining: bigint;
   features: MembershipFeatures | null;
   nftMint: string | null;
   error?: string;
@@ -110,7 +98,6 @@ export interface MembershipPurchaseResult {
   success: boolean;
   transactionSignature?: string;
   nftMint?: string;
-  gasCreditsAdded?: bigint;
   expiresAt?: number;
   error?: string;
 }
