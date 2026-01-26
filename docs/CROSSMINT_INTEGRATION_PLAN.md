@@ -26,7 +26,7 @@
 
 ### Integration Goal
 
-Integrate Crossmint's embedded wallet SDK alongside (or as replacement for) Alchemy Account Kit to provide BlockDrive users with:
+Integrate Crossmint's embedded wallet SDK to replace previous wallet infrastructure and provide BlockDrive users with:
 - **Multichain support from Day 1**: Solana + EVM chains (Ethereum, Base, Polygon, etc.)
 - **Unified wallet experience**: Single authentication creates wallets across all supported chains
 - **Gas sponsorship**: Users don't pay transaction fees during onboarding
@@ -37,7 +37,7 @@ Integrate Crossmint's embedded wallet SDK alongside (or as replacement for) Alch
 
 | Question | Answer | Implementation Impact |
 |----------|--------|----------------------|
-| B. Integration Approach | **Use your recommendations** | Implement alongside Alchemy initially, with option to migrate fully |
+| B. Integration Approach | **Use your recommendations** | Crossmint is the sole wallet infrastructure |
 | C7. When to start wallet features | **When crossmint/blockchain is mentioned** | Automatic, seamless integration |
 | D11. User interaction | **Interactive with smart defaults** | Preset configurations with customization options |
 | D16. Match Alchemy integration | **Match exactly unless different** | Follow existing Clerk → Wallet → Supabase pattern |
@@ -168,36 +168,6 @@ plugins/crossmint-fullstack/
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Hybrid Architecture (Both Services)
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│              HYBRID: ALCHEMY + CROSSMINT (OPTIONAL)                │
-├───────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│  ┌──────────┐     ┌────────────────────────────┐    ┌──────────┐ │
-│  │  CLERK   │────▶│    Wallet Provider Layer   │───▶│ SUPABASE │ │
-│  │ Identity │     └────────────────────────────┘    │ Database │ │
-│  └──────────┘              │         │              └──────────┘ │
-│       │                    │         │                    │      │
-│       │            ┌───────┴─┐   ┌──┴────────┐           │      │
-│       │            │ ALCHEMY │   │ CROSSMINT │           │      │
-│       │            │Solana MPC│   │Multi-chain│           │      │
-│       │            └──────────┘   └───────────┘           │      │
-│       │                    │         │                    │      │
-│  1. User signs      2. Create wallets on selected      3. Store  │
-│     in via Clerk       provider(s) based on config     all addrs │
-│                                                                    │
-│  Use Cases:                                                        │
-│  • Alchemy: Existing Solana-only users (backwards compat)         │
-│  • Crossmint: New users needing multichain                        │
-│  • Provider selection: User preference or feature flag            │
-│                                                                    │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-**Recommendation**: Start with **Crossmint-only** implementation for simplicity, with Alchemy as fallback for existing users.
-
 ---
 
 ## Comparison: Crossmint vs Alchemy
@@ -216,7 +186,7 @@ plugins/crossmint-fullstack/
 | **AML/KYC** | ❌ Not built-in | ✅ Built-in compliance | **Crossmint** |
 | **Smart Contract Wallets** | ✅ Yes (ERC-4337) | ✅ Yes (Squads on Solana) | Tie |
 | **SDK Simplicity** | Moderate | High (single-line ops) | **Crossmint** |
-| **BlockDrive Compatibility** | ✅ Currently integrated | ⚠️ Needs integration | Alchemy |
+| **BlockDrive Compatibility** | ❌ Deprecated | ✅ Active integration | **Crossmint** |
 | **Enterprise Features** | Limited | ✅ Remittances, treasury | **Crossmint** |
 | **Cost** | Pay per gas sponsored | Tiered pricing | Depends on usage |
 
@@ -229,16 +199,16 @@ plugins/crossmint-fullstack/
 5. **Stablecoin Focus**: Optimized for USDC/USDT operations (key for BlockDrive payments)
 6. **Jupiter Integration**: Direct token swaps on Solana
 
-### When to Use Each
+### Why Crossmint for BlockDrive
 
-| Scenario | Recommended Provider |
-|----------|---------------------|
-| New BlockDrive users | **Crossmint** (multichain, simpler) |
-| Existing Solana-only users | Alchemy (backwards compatibility) |
-| Enterprise customers | **Crossmint** (compliance features) |
-| NFT minting features | **Crossmint** (built-in minting) |
-| Simple Solana-only app | Alchemy (lighter weight) |
-| Cross-chain file storage | **Crossmint** (multichain support) |
+| Feature | Why It Matters |
+|---------|---------------|
+| Multichain from Day 1 | BlockDrive future-proofs for cross-chain expansion |
+| Built-in NFT minting | Membership NFTs without external services |
+| Compliance built-in | Enterprise-ready with AML/KYC |
+| Stablecoin focus | Perfect for USDC/USDT payment processing |
+| Smart Contract Wallets | Advanced features for power users |
+| Single SDK | Simpler codebase, faster development |
 
 ---
 
@@ -1168,29 +1138,18 @@ describe('Crossmint Authentication Flow', () => {
 
 ## Migration Considerations
 
-### For Existing Alchemy Users
+### Migrating from Previous Wallet Infrastructure
 
-**Option 1: Maintain Both Providers (Hybrid)**
+**Migration Strategy: Complete Replacement**
 
-```typescript
-// Allow users to choose provider
-const walletProvider = user.preferred_wallet_provider;
+1. **Immediate**: All new users get Crossmint wallets automatically
+2. **Notify**: Existing users receive migration notification
+3. **Create**: Crossmint wallets created for all existing users
+4. **Assist**: Provide migration tool to help users transition
+5. **Support**: 30-day support period for migration questions
+6. **Complete**: Previous wallet infrastructure fully deprecated
 
-if (walletProvider === 'alchemy') {
-  return <AlchemyProvider>{children}</AlchemyProvider>;
-} else {
-  return <CrossmintProvider>{children}</CrossmintProvider>;
-}
-```
-
-**Option 2: Migrate All Users to Crossmint**
-
-1. Notify users of upcoming change
-2. Create Crossmint wallets for existing users
-3. Provide migration tool to transfer assets
-4. Deprecate Alchemy integration after 90 days
-
-**Recommendation**: Start with **Crossmint-only** for new users. Existing Alchemy users continue unchanged. Offer migration tool later.
+**Migration Tool**: Use `/crossmint:migrate-from-alchemy` command
 
 ### Data Migration
 

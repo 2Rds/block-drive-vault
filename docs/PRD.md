@@ -37,9 +37,9 @@ This unique architecture enables **"Instant Revoke"** capabilities where senders
 ### Current Status
 
 - **Development Stage**: Active development, 75% complete
-- **Branch**: `feature/clerk-alchemy-integration`
-- **Last Major Milestone**: Alchemy Account Kit integration complete, Crossmint multichain plugin available
-- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions, Solana Anchor, AES-256-GCM, Groth16 ZK Proofs
+- **Branch**: `feature/clerk-crossmint-integration`
+- **Last Major Milestone**: Crossmint multichain wallet integration complete
+- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions, Solana Anchor, Crossmint Embedded Wallets, AES-256-GCM, Groth16 ZK Proofs
 
 ### Unique Value Proposition
 
@@ -92,26 +92,12 @@ BlockDrive occupies a unique position between:
 - ✅ Programmed Incompleteness (proprietary, patentable)
 - ✅ Instant revoke capability (unique in market)
 - ✅ Zero-knowledge proofs on-chain
-- ✅ Multi-chain authentication (Solana + Base + Ethereum)
-  - **Current**: Alchemy Account Kit (Solana MPC wallets)
-  - **Available**: Crossmint (automatic multichain support from Day 1)
+- ✅ Multi-chain authentication (Solana + Ethereum + Base + Polygon + Arbitrum)
+  - **Powered by**: Crossmint Embedded Wallets (automatic multichain from Day 1)
+  - **Chains**: Solana devnet/mainnet + 50+ EVM chains
 - ✅ Soulbound NFT membership
 - ✅ Crypto + fiat payment options
-
-### Wallet Infrastructure Options
-
-BlockDrive supports two embedded wallet providers:
-
-| Feature | Alchemy Account Kit | Crossmint Fullstack |
-|---------|---------------------|---------------------|
-| **Status** | ✅ Currently Integrated | ✅ Available via Plugin |
-| **Multichain** | Solana only (current setup) | Solana + Ethereum + Base + Polygon (Day 1) |
-| **NFT Minting** | External tools required | Built-in API |
-| **Setup** | Manual configuration | `/crossmint:setup` command |
-| **Migration** | N/A | `/crossmint:migrate-from-alchemy` |
-| **Documentation** | `plugins/blockdrive-solana/` | `plugins/crossmint-fullstack/` |
-
-**See**: `docs/CROSSMINT_INTEGRATION_PLAN.md` for technical comparison and migration guide
+- ✅ Built-in compliance (AML/KYC) for enterprise users
 
 ---
 
@@ -449,7 +435,7 @@ interface ZKProofPackage {
 
 **Backend Services (70% Complete)**:
 - ✅ Clerk authentication integration
-- ✅ Alchemy embedded wallet setup
+- ✅ Crossmint embedded wallet setup (multichain)
 - ✅ SNS domain verification (Solana)
 - ✅ File upload service (multi-provider orchestration)
 - ✅ File download service (verified retrieval)
@@ -471,7 +457,7 @@ interface ZKProofPackage {
 - ✅ Instruction definitions (15+ instructions)
 - ✅ Comprehensive error handling (BlockDriveError enum)
 - ✅ Event definitions for audit trail
-- ✅ Gas sponsorship setup (Alchemy Account Kit)
+- ✅ Gas sponsorship setup (Crossmint)
 - 🔴 Phase 1: Multi-PDA Sharding (not started - 1-2 weeks)
 - 🔴 Phase 2: Session Key Delegation (optional - 1 week)
 - 🔴 Deployment to devnet/mainnet
@@ -500,8 +486,8 @@ interface ZKProofPackage {
 
 ### Current Status
 - **Week**: 0 of 8-9 week roadmap
-- **Branch**: `feature/clerk-alchemy-integration`
-- **Last Milestone**: Alchemy Account Kit integration complete
+- **Branch**: `feature/clerk-crossmint-integration`
+- **Last Milestone**: Crossmint multichain wallet integration complete
 
 ### Q1 2026 Implementation Plan (8-9 weeks)
 
@@ -703,7 +689,7 @@ interface ZKProofPackage {
 ### Appendix C: External References
 - **Solana Anchor Framework**: https://www.anchor-lang.com/
 - **snarkjs Library**: https://github.com/iden3/snarkjs
-- **Alchemy Account Kit**: https://www.alchemy.com/account-kit
+- **Crossmint Documentation**: https://docs.crossmint.com/
 - **Clerk Authentication**: https://clerk.com/docs
 - **Supabase Documentation**: https://supabase.com/docs
 - **Solana Name Service**: https://docs.bonfida.org/collection/an-introduction-to-the-solana-name-service

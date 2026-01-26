@@ -1,18 +1,19 @@
 {
   "name": "blockdrive-solana",
-  "version": "0.1.0",
-  "description": "Solana blockchain development toolkit for BlockDrive with Alchemy embedded wallets, Clerk authentication, and Supabase integration",
+  "version": "0.2.0",
+  "description": "Solana blockchain development toolkit for BlockDrive with Crossmint embedded wallets, Clerk authentication, and Supabase integration",
   "author": {
     "name": "BlockDrive",
     "email": "dev@blockdrive.io"
   },
   "keywords": [
     "solana",
-    "alchemy",
+    "crossmint",
     "clerk",
     "embedded-wallets",
     "blockchain",
     "nft",
-    "blockdrive"
+    "blockdrive",
+    "multichain"
   ]
 }

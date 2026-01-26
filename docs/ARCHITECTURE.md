@@ -38,7 +38,7 @@
 │         │                    │                          │                       │
 │         ▼                    ▼                          ▼                       │
 │  ┌─────────────┐    ┌──────────────────┐    ┌──────────────────────────────┐   │
-│  │   Alchemy   │    │   Cloudflare R2  │    │      Solana Blockchain       │   │
+│  │ Crossmint   │    │   Cloudflare R2  │    │      Solana Blockchain       │   │
 │  │ Embedded    │    │  + IPFS Gateway  │    │    (Anchor Programs)         │   │
 │  │  Wallet     │    │  + Arweave       │    │                              │   │
 │  └─────────────┘    └──────────────────┘    └──────────────────────────────┘   │
@@ -52,7 +52,7 @@
 |-------|------------|---------|
 | **Frontend** | React 18.3.1 + TypeScript + Vite | Single-page application |
 | **Styling** | Tailwind CSS + shadcn/ui | Component library |
-| **Auth** | Clerk + Alchemy/Crossmint | OAuth + embedded wallets (multichain) |
+| **Auth** | Clerk + Crossmint | OAuth + embedded wallets (multichain) |
 | **Backend** | Supabase Edge Functions (Deno) | Serverless API |
 | **Edge** | Cloudflare Workers + R2 + WAF | CDN, storage, security |
 | **Database** | Supabase PostgreSQL + RLS | User data, metadata |
@@ -70,7 +70,7 @@
 ```
 src/
 ├── components/
-│   ├── auth/               # Clerk + Alchemy/Crossmint providers
+│   ├── auth/               # Clerk + Crossmint providers
 │   ├── dashboard/          # Main dashboard components
 │   ├── files/              # File management UI
 │   ├── sharing/            # Sharing & collaboration
@@ -87,12 +87,12 @@ src/
 │   ├── solana/             # Anchor client SDK
 │   └── api/                # Backend API clients
 ├── hooks/
-│   ├── useAlchemySolanaWallet.tsx    # Embedded wallet hook
+│   ├── useCrossmintWallet.tsx        # Embedded wallet hook
 │   ├── useWalletCrypto.tsx           # Key derivation
 │   ├── useFiles.tsx                  # File operations
 │   └── useSubscription.tsx           # Subscription state
 ├── config/
-│   ├── alchemy.ts          # Alchemy SDK config
+│   ├── crossmint.ts        # Crossmint SDK config
 │   ├── storage.ts          # Storage provider config
 │   └── cloudflare.ts       # Cloudflare integration config
 └── pages/                  # Route components
@@ -105,7 +105,7 @@ supabase/functions/
 ├── auth/
 │   ├── clerk-webhook/              # Clerk event handling
 │   ├── secure-wallet-auth/         # Wallet signature verification
-│   └── sync-alchemy-wallet/        # Wallet DB sync
+│   └── sync-crossmint-wallet/      # Wallet DB sync
 ├── files/
 │   ├── upload-file/                # File upload orchestration
 │   ├── download-file/              # File retrieval
@@ -653,21 +653,21 @@ pub mod blockdrive {
 │                         AUTHENTICATION ARCHITECTURE                             │
 │                                                                                 │
 │  ┌───────────────┐    ┌──────────────────┐    ┌────────────────────────────┐   │
-│  │    User       │────│     Clerk        │────│   Alchemy Account Kit      │   │
-│  │  (Email/      │    │  (OAuth/JWT)     │    │  (OIDC verification)       │   │
+│  │    User       │────│     Clerk        │────│   Crossmint Embedded       │   │
+│  │  (Email/      │    │  (OAuth/JWT)     │    │   Wallet SDK               │   │
 │  │   Social)     │    │                  │    │                            │   │
 │  └───────────────┘    └──────────────────┘    └────────────────────────────┘   │
 │                              │                            │                     │
 │                              ▼                            ▼                     │
 │                    ┌──────────────────┐        ┌────────────────────────────┐  │
-│                    │    Supabase      │        │  Deterministic Solana      │  │
-│                    │  (user profile)  │◄───────│  Keypair (MPC wallet)      │  │
+│                    │    Supabase      │        │  Multichain MPC Wallets    │  │
+│                    │  (user profile)  │◄───────│  (Solana + EVM chains)     │  │
 │                    └──────────────────┘        └────────────────────────────┘  │
 │                                                           │                     │
 │                                                           ▼                     │
 │                                                 ┌────────────────────────────┐ │
-│                                                 │   Gas Sponsored Wallet     │ │
-│                                                 │  (Alchemy Policy)          │ │
+│                                                 │   Gas Sponsored Wallets    │ │
+│                                                 │  (Crossmint)               │ │
 │                                                 │                            │ │
 │                                                 │  - Sign transactions       │ │
 │                                                 │  - Hold membership NFT     │ │
@@ -692,43 +692,12 @@ const CLERK_CONFIG = {
 };
 ```
 
-### Alchemy Embedded Wallet
+### Crossmint Embedded Wallet
 
-```typescript
-// src/components/auth/AlchemyProvider.tsx
-
-import { AlchemySigner } from '@account-kit/signer';
-
-const alchemySigner = new AlchemySigner({
-  client: {
-    connection: {
-      jwt: clerkSessionToken,  // Clerk OIDC token
-    },
-    iframeConfig: {
-      iframeContainerId: 'alchemy-signer-container',
-    },
-  },
-});
-
-// Get wallet address
-const address = await alchemySigner.getAddress();
-
-// Sign message for encryption key derivation
-const signature = await alchemySigner.signMessage(message);
-
-// Sign and send transaction (gas sponsored)
-const txHash = await alchemySigner.sendTransaction({
-  to: programAddress,
-  data: instructionData,
-});
-```
-
-### Crossmint Embedded Wallet (Alternative)
-
-**Status**: Available via `crossmint-fullstack` plugin
+**Status**: ✅ **ACTIVE - Production Wallet Infrastructure**
 **Location**: `plugins/crossmint-fullstack/`
 
-Crossmint provides an alternative to Alchemy with **multichain support from Day 1**:
+Crossmint is BlockDrive's embedded wallet solution with **multichain support from Day 1**:
 
 ```typescript
 // src/components/auth/CrossmintProvider.tsx
@@ -751,15 +720,17 @@ import { CrossmintWalletProvider } from '@crossmint/client-sdk-react-ui';
 // - Ethereum, Base, Polygon, Arbitrum, Optimism
 ```
 
-**Key Differences from Alchemy**:
+**Key Features**:
 
-| Feature | Alchemy | Crossmint |
-|---------|---------|-----------|
-| Multichain Day 1 | ❌ Per-chain setup | ✅ Automatic |
-| NFT Minting | ❌ External tools | ✅ Built-in API |
-| AML/KYC | ❌ Not included | ✅ Built-in compliance |
-| Payment Rails | ❌ N/A | ✅ Stablecoin orchestration |
-| Smart Wallets | ✅ ERC-4337 (EVM) | ✅ Squads (Solana) + ERC-4337 |
+| Feature | Crossmint |
+|---------|-----------|
+| Multichain Support | ✅ Automatic - Solana + 50+ EVM chains |
+| NFT Minting | ✅ Built-in API |
+| AML/KYC | ✅ Built-in compliance |
+| Payment Rails | ✅ Stablecoin orchestration (USDC/USDT) |
+| Smart Wallets | ✅ Squads Protocol (Solana) + ERC-4337 (EVM) |
+| Gas Sponsorship | ✅ Built-in gasless transactions |
+| MPC Security | ✅ Non-custodial multi-party computation |
 
 **Plugin Resources**:
 - **Setup**: `/crossmint:setup` - Interactive configuration wizard
@@ -989,13 +960,15 @@ identity_providers:
 VITE_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 
-# Alchemy
-ALCHEMY_API_KEY=...
-ALCHEMY_POLICY_ID=...
+# Crossmint
+VITE_CROSSMINT_CLIENT_API_KEY=...
+CROSSMINT_SERVER_API_KEY=...
+VITE_CROSSMINT_ENVIRONMENT=staging
+CROSSMINT_WEBHOOK_SECRET=...
 
 # Solana
-SOLANA_RPC_DEVNET=https://solana-devnet.g.alchemy.com/v2/...
-SOLANA_RPC_MAINNET=https://solana-mainnet.g.alchemy.com/v2/...
+SOLANA_RPC_DEVNET=https://api.devnet.solana.com
+SOLANA_RPC_MAINNET=https://api.mainnet-beta.solana.com
 
 # Cloudflare
 CLOUDFLARE_ACCOUNT_ID=...
@@ -1077,7 +1050,9 @@ jobs:
 | Dependency | Version | Purpose |
 |------------|---------|---------|
 | @clerk/clerk-react | ^5.x | Authentication |
-| @account-kit/signer | ^1.x | Embedded wallets |
+| @crossmint/client-sdk-react-ui | latest | Embedded wallets |
+| @crossmint/client-sdk-auth | latest | Wallet authentication |
+| @crossmint/wallets-sdk | latest | Wallet operations |
 | @solana/web3.js | ^1.95 | Solana SDK |
 | @coral-xyz/anchor | ^0.30 | Anchor framework |
 | snarkjs | ^0.7 | ZK proof generation |
