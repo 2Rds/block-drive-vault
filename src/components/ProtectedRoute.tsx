@@ -1,6 +1,4 @@
-
 import { useAuth } from '@/hooks/useAuth';
-import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { Navigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -8,27 +6,20 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, session, loading } = useAuth();
-  const { user: dynamicUser, primaryWallet } = useDynamicContext();
+  const { user, session, loading, isSignedIn, isWalletReady } = useAuth();
 
-  console.log('🛡️ ProtectedRoute - Auth state check:', { 
-    loading, 
-    userId: user?.id, 
+  console.log('🛡️ ProtectedRoute - Auth state check:', {
+    loading,
+    userId: user?.id,
     hasSession: !!session,
-    dynamicUser: !!dynamicUser,
-    primaryWallet: !!primaryWallet,
-    dynamicUserId: dynamicUser?.userId,
-    walletAddress: primaryWallet?.address,
+    isSignedIn,
+    isWalletReady,
     route: window.location.pathname
   });
 
-  // Consider user authenticated as soon as Dynamic reports a primary wallet
-  const dynamicIsAuthenticated = !!primaryWallet;
-  const localAuthReady = !!(user && session);
-  
-  // Show loading state if auth is still syncing or initially loading
-  if (loading || (dynamicIsAuthenticated && !localAuthReady)) {
-    console.log('ProtectedRoute - Auth syncing, showing loading state');
+  // Show loading state if auth is still syncing
+  if (loading) {
+    console.log('ProtectedRoute - Auth loading, showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -39,19 +30,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Check authentication - require both Dynamic wallet and local state sync
-  const hasValidAuth = dynamicIsAuthenticated && localAuthReady && user?.id;
-  
-  if (!hasValidAuth) {
-    console.log('ProtectedRoute - Authentication incomplete, redirecting to home', {
-      dynamicIsAuthenticated,
-      localAuthReady,
-      hasUserId: !!(user?.id)
+  // Check authentication - user must be signed in via Clerk
+  if (!isSignedIn || !user) {
+    console.log('ProtectedRoute - Not authenticated, redirecting to home', {
+      isSignedIn,
+      hasUser: !!user
     });
     return <Navigate to="/" replace />;
   }
 
   console.log('ProtectedRoute - Authentication valid, rendering content');
   return <>{children}</>;
-
 };

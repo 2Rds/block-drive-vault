@@ -1,12 +1,12 @@
 /**
  * Solana Wallet Signing Hook
- * 
- * Provides wallet signing capabilities using Alchemy embedded wallets.
- * Integrates with the AlchemyProvider for seamless transaction signing.
+ *
+ * Provides wallet signing capabilities using Crossmint embedded wallets.
+ * Integrates with the CrossmintProvider for seamless transaction signing.
  */
 
 import { useCallback } from 'react';
-import { useAlchemySolanaWallet } from './useAlchemySolanaWallet';
+import { useCrossmintWallet } from './useCrossmintWallet';
 import { toast } from 'sonner';
 
 interface UseSolanaWalletSigningReturn {
@@ -19,11 +19,11 @@ interface UseSolanaWalletSigningReturn {
 }
 
 export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
-  const alchemyWallet = useAlchemySolanaWallet();
+  const crossmintWallet = useCrossmintWallet();
 
-  const hasSolanaWallet = alchemyWallet.isInitialized && !!alchemyWallet.solanaAddress;
-  const solanaAddress = alchemyWallet.solanaAddress;
-  const isReady = alchemyWallet.isReady;
+  const hasSolanaWallet = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
+  const solanaAddress = crossmintWallet.walletAddress;
+  const isReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
 
   const signTransaction = useCallback(async (transaction: any): Promise<any> => {
     if (!hasSolanaWallet) {
@@ -31,14 +31,14 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      return await alchemyWallet.signTransaction(transaction);
+      return await crossmintWallet.signTransaction(transaction);
     } catch (err) {
       toast.error('Transaction signing failed', {
         description: err instanceof Error ? err.message : 'Unknown error'
       });
       throw err;
     }
-  }, [hasSolanaWallet, alchemyWallet]);
+  }, [hasSolanaWallet, crossmintWallet]);
 
   const signAndSendTransaction = useCallback(async (transaction: any): Promise<string> => {
     if (!hasSolanaWallet) {
@@ -46,14 +46,14 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      return await alchemyWallet.signAndSendTransaction(transaction);
+      return await crossmintWallet.signAndSendTransaction(transaction);
     } catch (err) {
       toast.error('Transaction failed', {
         description: err instanceof Error ? err.message : 'Unknown error'
       });
       throw err;
     }
-  }, [hasSolanaWallet, alchemyWallet]);
+  }, [hasSolanaWallet, crossmintWallet]);
 
   const signMessage = useCallback(async (message: string): Promise<string> => {
     if (!hasSolanaWallet) {
@@ -61,14 +61,17 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      return await alchemyWallet.signMessage(message);
+      const messageBytes = new TextEncoder().encode(message);
+      const signature = await crossmintWallet.signMessage(messageBytes);
+      // Convert signature to base64 string
+      return btoa(String.fromCharCode(...signature));
     } catch (err) {
       toast.error('Message signing failed', {
         description: err instanceof Error ? err.message : 'Unknown error'
       });
       throw err;
     }
-  }, [hasSolanaWallet, alchemyWallet]);
+  }, [hasSolanaWallet, crossmintWallet]);
 
   return {
     hasSolanaWallet,

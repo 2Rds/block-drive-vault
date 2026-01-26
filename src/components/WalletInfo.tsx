@@ -4,17 +4,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Wallet, Shield, Activity, Copy, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useAlchemySolanaWallet } from '@/hooks/useAlchemySolanaWallet';
+import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { toast } from 'sonner';
 
 export const WalletInfo = () => {
   const { user, solanaWalletAddress, isWalletReady } = useAuth();
-  const alchemyWallet = useAlchemySolanaWallet();
+  const crossmintWallet = useCrossmintWallet();
 
-  // Use Alchemy wallet address preferentially
-  const walletAddress = alchemyWallet.solanaAddress || solanaWalletAddress;
-  const isLoading = alchemyWallet.isLoading;
-  const isInitialized = alchemyWallet.isInitialized;
+  // Use Crossmint wallet address preferentially
+  const walletAddress = crossmintWallet.walletAddress || solanaWalletAddress;
+  const isLoading = crossmintWallet.isLoading;
+  const isInitialized = crossmintWallet.isInitialized;
 
   const copyToClipboard = async () => {
     if (walletAddress) {
@@ -44,7 +44,7 @@ export const WalletInfo = () => {
             </div>
             <div>
               <p className="text-foreground font-medium">Initializing Wallet</p>
-              <p className="text-muted-foreground text-sm">Setting up your Alchemy embedded wallet...</p>
+              <p className="text-muted-foreground text-sm">Setting up your Crossmint embedded wallet...</p>
             </div>
           </div>
         </CardContent>
@@ -83,13 +83,13 @@ export const WalletInfo = () => {
                 <Wallet className="w-5 h-5 text-green-500" />
               </div>
               <div>
-                <p className="text-green-500 font-medium">Alchemy Embedded Wallet</p>
+                <p className="text-green-500 font-medium">Crossmint Embedded Wallet</p>
                 <p className="text-green-400/80 text-sm font-mono">
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </p>
               </div>
             </div>
-            
+
             {/* Status indicators */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
@@ -111,7 +111,7 @@ export const WalletInfo = () => {
             </div>
             <div className="bg-background/50 rounded-lg p-3">
               <p className="text-muted-foreground text-xs mb-1">Provider</p>
-              <p className="text-foreground font-medium">Alchemy</p>
+              <p className="text-foreground font-medium">Crossmint</p>
             </div>
           </div>
 
@@ -127,6 +127,9 @@ export const WalletInfo = () => {
               </span>
               <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
                 Embedded
+              </span>
+              <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                Multichain
               </span>
             </div>
           </div>

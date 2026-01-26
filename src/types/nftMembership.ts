@@ -1,6 +1,6 @@
 /**
  * NFT Membership Types
- * 
+ *
  * Defines types for the BlockDrive NFT-based subscription system.
  * Subscriptions are SPL tokens on Solana with programmable metadata.
  */
@@ -14,20 +14,20 @@ export interface MembershipMetadata {
   tier: SubscriptionTier;
   validUntil: number;        // Unix timestamp
   isActive: boolean;
-  
+
   // Storage quotas (in bytes)
   storageQuota: bigint;
   storageUsed: bigint;
   bandwidthQuota: bigint;
   bandwidthUsed: bigint;
-  
+
   // Features enabled
   features: MembershipFeatures;
-  
+
   // Renewal info
   autoRenew: boolean;
   renewalPrice: number;      // In USDC cents
-  
+
   // Timestamps
   createdAt: number;
   lastRenewedAt: number;
@@ -62,7 +62,7 @@ export interface TierConfig {
 }
 
 // Membership NFT on-chain structure (Solana PDA)
-// Note: Gas sponsorship handled by Alchemy Account Kit, not per-user credits
+// Note: Gas sponsorship handled by Crossmint, not per-user credits
 export interface MembershipNFT {
   bump: number;
   mint: string;               // SPL token mint address

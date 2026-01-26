@@ -10,11 +10,11 @@
  * 6. Update database with membership info
  *
  * All steps are coordinated to ensure atomicity where possible.
- * Uses Alchemy gas sponsorship for all transactions.
+ * Uses Crossmint gas sponsorship for all transactions.
  */
 
 import { PublicKey, Transaction } from '@solana/web3.js';
-import { nftMembershipService, AlchemyTransactionSigner } from './nftMembershipService';
+import { nftMembershipService, CrossmintTransactionSigner } from './nftMembershipService';
 import { snsSubdomainService } from './snsSubdomainService';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -195,7 +195,7 @@ class MembershipOnboardingService {
    */
   async onboardMember(
     request: OnboardingRequest,
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<OnboardingResult> {
     const completedSteps: OnboardingStep[] = [];
     const transactionSignatures: string[] = [];
@@ -250,7 +250,7 @@ class MembershipOnboardingService {
           walletAddress: request.walletAddress,
           autoRenew: true,
         },
-        alchemySigner
+        crossmintSigner
       );
 
       if (!nftResult.success) {
@@ -277,7 +277,7 @@ class MembershipOnboardingService {
       const snsResult = await snsSubdomainService.registerSubdomain(
         request.snsUsername,
         request.walletAddress,
-        alchemySigner,
+        crossmintSigner,
         false // NFT already verified by minting
       );
 
@@ -355,7 +355,7 @@ class MembershipOnboardingService {
    */
   async startTrial(
     request: Omit<OnboardingRequest, 'billingInterval' | 'paymentMethod'>,
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<OnboardingResult> {
     return this.onboardMember(
       {
@@ -364,7 +364,7 @@ class MembershipOnboardingService {
         billingInterval: 'monthly', // Trial is 7 days
         paymentMethod: 'stripe', // No payment needed
       },
-      alchemySigner
+      crossmintSigner
     );
   }
 
@@ -455,10 +455,10 @@ class MembershipOnboardingService {
   async retrySubdomainRegistration(
     userId: string,
     snsUsername: string,
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<OnboardingResult> {
     try {
-      if (!alchemySigner.solanaAddress) {
+      if (!crossmintSigner.walletAddress) {
         return {
           success: false,
           step: 'validation',
@@ -468,8 +468,8 @@ class MembershipOnboardingService {
 
       const snsResult = await snsSubdomainService.registerSubdomain(
         snsUsername,
-        alchemySigner.solanaAddress,
-        alchemySigner,
+        crossmintSigner.walletAddress,
+        crossmintSigner,
         true
       );
 

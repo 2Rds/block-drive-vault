@@ -12,5 +12,5 @@ verify_jwt = false
 [functions.get-clerk-publishable-key]
 verify_jwt = false
 
-[functions.sync-alchemy-wallet]
+[functions.sync-crossmint-wallet]
 verify_jwt = false

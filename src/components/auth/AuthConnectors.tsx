@@ -2,10 +2,6 @@ import React from 'react';
 import { ClerkConnectButton } from './ClerkConnectButton';
 
 interface AuthConnectorsProps {
-  dynamicReady?: boolean;
-  sdkError?: boolean;
-  sdkHasLoaded?: boolean;
-  onRetry?: () => void;
   onWalletConnected?: (walletInfo: any) => void;
 }
 
@@ -17,7 +13,7 @@ export const AuthConnectors = ({
       <div className="flex justify-center">
         <ClerkConnectButton variant="hero" />
       </div>
-      
+
       <div className="text-center text-sm text-muted-foreground">
         <p>Sign up or sign in to access BlockDrive</p>
       </div>
