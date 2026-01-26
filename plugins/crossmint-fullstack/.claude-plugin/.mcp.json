@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "crossmint-docs": {
+      "type": "http",
+      "url": "https://docs.crossmint.com/mcp",
+      "description": "Crossmint documentation MCP server for live docs access"
+    }
+  }
+}

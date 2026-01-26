@@ -52,7 +52,7 @@
 |-------|------------|---------|
 | **Frontend** | React 18.3.1 + TypeScript + Vite | Single-page application |
 | **Styling** | Tailwind CSS + shadcn/ui | Component library |
-| **Auth** | Clerk + Alchemy Account Kit | OAuth + embedded wallets |
+| **Auth** | Clerk + Alchemy/Crossmint | OAuth + embedded wallets (multichain) |
 | **Backend** | Supabase Edge Functions (Deno) | Serverless API |
 | **Edge** | Cloudflare Workers + R2 + WAF | CDN, storage, security |
 | **Database** | Supabase PostgreSQL + RLS | User data, metadata |
@@ -70,7 +70,7 @@
 ```
 src/
 ├── components/
-│   ├── auth/               # Clerk + Alchemy providers
+│   ├── auth/               # Clerk + Alchemy/Crossmint providers
 │   ├── dashboard/          # Main dashboard components
 │   ├── files/              # File management UI
 │   ├── sharing/            # Sharing & collaboration
@@ -722,6 +722,53 @@ const txHash = await alchemySigner.sendTransaction({
   data: instructionData,
 });
 ```
+
+### Crossmint Embedded Wallet (Alternative)
+
+**Status**: Available via `crossmint-fullstack` plugin
+**Location**: `plugins/crossmint-fullstack/`
+
+Crossmint provides an alternative to Alchemy with **multichain support from Day 1**:
+
+```typescript
+// src/components/auth/CrossmintProvider.tsx
+
+import { CrossmintWalletProvider } from '@crossmint/client-sdk-react-ui';
+
+<CrossmintProvider apiKey={CROSSMINT_API_KEY}>
+  <CrossmintAuthProvider>
+    <CrossmintWalletProvider createOnLogin={{
+      chain: 'solana:devnet',
+      signer: { type: 'email', email: user.email },
+    }}>
+      {children}
+    </CrossmintWalletProvider>
+  </CrossmintAuthProvider>
+</CrossmintProvider>
+
+// Automatic wallet creation on ALL chains:
+// - Solana (devnet/mainnet)
+// - Ethereum, Base, Polygon, Arbitrum, Optimism
+```
+
+**Key Differences from Alchemy**:
+
+| Feature | Alchemy | Crossmint |
+|---------|---------|-----------|
+| Multichain Day 1 | ❌ Per-chain setup | ✅ Automatic |
+| NFT Minting | ❌ External tools | ✅ Built-in API |
+| AML/KYC | ❌ Not included | ✅ Built-in compliance |
+| Payment Rails | ❌ N/A | ✅ Stablecoin orchestration |
+| Smart Wallets | ✅ ERC-4337 (EVM) | ✅ Squads (Solana) + ERC-4337 |
+
+**Plugin Resources**:
+- **Setup**: `/crossmint:setup` - Interactive configuration wizard
+- **Skills**: 5 comprehensive skills (wallets, NFTs, payments, smart wallets, Supabase)
+- **Agents**: Autonomous agents for wallet, NFT, and integration tasks
+- **Commands**: 4 commands including Alchemy migration tool
+- **Documentation**: `plugins/crossmint-fullstack/README.md`
+
+**See**: `docs/CROSSMINT_INTEGRATION_PLAN.md` for complete technical specification
 
 ---
 

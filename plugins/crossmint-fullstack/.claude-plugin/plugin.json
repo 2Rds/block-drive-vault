@@ -1,0 +1,127 @@
+{
+  "name": "crossmint-fullstack",
+  "version": "1.0.0",
+  "description": "Complete Crossmint integration for BlockDrive - embedded wallets, NFT collections, smart wallets, payment subscriptions, and Supabase integration. Multichain support from Day 1.",
+  "author": "Sean Weiss/BlockDrive <sean@blockdrive.co>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2rds/block-drive-vault"
+  },
+  "keywords": [
+    "crossmint",
+    "embedded-wallets",
+    "nft-collections",
+    "smart-wallets",
+    "payment-subscriptions",
+    "multichain",
+    "solana",
+    "ethereum",
+    "base",
+    "clerk",
+    "supabase",
+    "blockdrive"
+  ],
+  "skills": {
+    "embedded-wallets": {
+      "name": "Crossmint Embedded Wallets",
+      "description": "Create and manage embedded wallets with Crossmint MPC infrastructure, Clerk integration, and automatic multichain support",
+      "path": "skills/embedded-wallets"
+    },
+    "nft-collections": {
+      "name": "NFT Collections & Minting",
+      "description": "Mint and manage NFT collections using Crossmint's built-in NFT infrastructure for membership tokens",
+      "path": "skills/nft-collections"
+    },
+    "smart-wallets": {
+      "name": "Smart Contract Wallets",
+      "description": "Implement Solana Smart Wallets with programmable security, multi-sig, and gas sponsorship",
+      "path": "skills/smart-wallets"
+    },
+    "payment-subscriptions": {
+      "name": "Payment & Subscriptions",
+      "description": "Handle stablecoin payments, subscriptions, and payment orchestration for BlockDrive membership tiers",
+      "path": "skills/payment-subscriptions"
+    },
+    "supabase-integration": {
+      "name": "Supabase Integration",
+      "description": "Sync Crossmint wallets to Supabase database with edge functions and RLS policies",
+      "path": "skills/supabase-integration"
+    }
+  },
+  "agents": {
+    "crossmint-architect": {
+      "name": "Crossmint Architect",
+      "description": "Main agent for Crossmint integration architecture, coordinates specialist agents",
+      "path": "agents/crossmint-architect.md",
+      "color": "blue"
+    },
+    "wallet-specialist": {
+      "name": "Wallet Specialist",
+      "description": "Specialist for embedded wallet creation, management, and multichain operations",
+      "path": "agents/wallet-specialist.md",
+      "color": "green"
+    },
+    "nft-specialist": {
+      "name": "NFT Specialist",
+      "description": "Specialist for NFT minting, collections, and membership token management",
+      "path": "agents/nft-specialist.md",
+      "color": "purple"
+    },
+    "integration-specialist": {
+      "name": "Integration Specialist",
+      "description": "Specialist for Clerk, Supabase, and database integration patterns",
+      "path": "agents/integration-specialist.md",
+      "color": "orange"
+    }
+  },
+  "commands": {
+    "setup": {
+      "name": "Crossmint Setup",
+      "description": "Interactive setup wizard for Crossmint integration - API keys, environment config, and initial setup",
+      "path": "commands/setup.md"
+    },
+    "create-wallet-flow": {
+      "name": "Create Wallet Flow",
+      "description": "Generate complete wallet creation flow with Clerk auth and Supabase sync",
+      "path": "commands/create-wallet-flow.md"
+    },
+    "create-collection": {
+      "name": "Create NFT Collection",
+      "description": "Create a new NFT collection for membership tokens or other use cases",
+      "path": "commands/create-collection.md"
+    },
+    "migrate-from-alchemy": {
+      "name": "Migrate from Alchemy",
+      "description": "Migrate existing Alchemy integration to Crossmint with preservation of user data",
+      "path": "commands/migrate-from-alchemy.md"
+    }
+  },
+  "dependencies": {
+    "@crossmint/client-sdk-react-ui": "latest",
+    "@crossmint/client-sdk-auth": "latest",
+    "@crossmint/wallets-sdk": "latest",
+    "@clerk/clerk-react": "^5.x",
+    "@supabase/supabase-js": "^2.x",
+    "@solana/web3.js": "^1.95.0",
+    "ethers": "^6.0.0"
+  },
+  "configuration": {
+    "required": [
+      "VITE_CROSSMINT_CLIENT_API_KEY",
+      "CROSSMINT_SERVER_API_KEY",
+      "VITE_CLERK_PUBLISHABLE_KEY",
+      "VITE_SUPABASE_URL",
+      "VITE_SUPABASE_ANON_KEY"
+    ],
+    "optional": [
+      "VITE_CROSSMINT_ENVIRONMENT",
+      "CROSSMINT_WEBHOOK_SECRET",
+      "CROSSMINT_COLLECTION_ID"
+    ]
+  },
+  "integrations": {
+    "mcp_servers": ["crossmint-docs"],
+    "related_plugins": ["blockdrive-solana", "cloudflare-toolkit"]
+  }
+}

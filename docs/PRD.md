@@ -38,7 +38,7 @@ This unique architecture enables **"Instant Revoke"** capabilities where senders
 
 - **Development Stage**: Active development, 75% complete
 - **Branch**: `feature/clerk-alchemy-integration`
-- **Last Major Milestone**: Alchemy Account Kit integration complete
+- **Last Major Milestone**: Alchemy Account Kit integration complete, Crossmint multichain plugin available
 - **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions, Solana Anchor, AES-256-GCM, Groth16 ZK Proofs
 
 ### Unique Value Proposition
@@ -92,9 +92,26 @@ BlockDrive occupies a unique position between:
 - ✅ Programmed Incompleteness (proprietary, patentable)
 - ✅ Instant revoke capability (unique in market)
 - ✅ Zero-knowledge proofs on-chain
-- ✅ Multi-chain authentication (Solana + Base)
+- ✅ Multi-chain authentication (Solana + Base + Ethereum)
+  - **Current**: Alchemy Account Kit (Solana MPC wallets)
+  - **Available**: Crossmint (automatic multichain support from Day 1)
 - ✅ Soulbound NFT membership
 - ✅ Crypto + fiat payment options
+
+### Wallet Infrastructure Options
+
+BlockDrive supports two embedded wallet providers:
+
+| Feature | Alchemy Account Kit | Crossmint Fullstack |
+|---------|---------------------|---------------------|
+| **Status** | ✅ Currently Integrated | ✅ Available via Plugin |
+| **Multichain** | Solana only (current setup) | Solana + Ethereum + Base + Polygon (Day 1) |
+| **NFT Minting** | External tools required | Built-in API |
+| **Setup** | Manual configuration | `/crossmint:setup` command |
+| **Migration** | N/A | `/crossmint:migrate-from-alchemy` |
+| **Documentation** | `plugins/blockdrive-solana/` | `plugins/crossmint-fullstack/` |
+
+**See**: `docs/CROSSMINT_INTEGRATION_PLAN.md` for technical comparison and migration guide
 
 ---
 
