@@ -1,16 +1,16 @@
 /**
  * Bridge hook that provides backwards compatibility with the legacy auth interface
- * while using Clerk as the actual authentication provider and Alchemy for wallets.
+ * while using Clerk as the actual authentication provider and Crossmint for wallets.
  */
 
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
-import { useAlchemyWallet } from '@/components/auth/AlchemyProvider';
+import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { User, Session } from '@supabase/supabase-js';
 import { WalletData, AuthContextType } from '@/types/authTypes';
 
 export const useAuth = (): AuthContextType & { isSignedIn: boolean; solanaWalletAddress: string | null; isWalletReady: boolean } => {
   const clerkAuth = useClerkAuth();
-  const alchemyWallet = useAlchemyWallet();
+  const crossmintWallet = useCrossmintWallet();
 
   // Convert Clerk user to Supabase-like User format for backwards compatibility
   const user: User | null = clerkAuth.user ? {
@@ -28,7 +28,7 @@ export const useAuth = (): AuthContextType & { isSignedIn: boolean; solanaWallet
       last_name: clerkAuth.user.lastName,
       full_name: clerkAuth.user.fullName,
       avatar_url: clerkAuth.user.imageUrl,
-      wallet_address: alchemyWallet.solanaAddress,
+      wallet_address: crossmintWallet.walletAddress,
     },
     identities: [],
     created_at: clerkAuth.user.createdAt?.toISOString() || new Date().toISOString(),
@@ -46,26 +46,26 @@ export const useAuth = (): AuthContextType & { isSignedIn: boolean; solanaWallet
     token_type: 'bearer',
   } : null;
 
-  // Create wallet data from Alchemy embedded wallet
-  const walletData: WalletData | null = alchemyWallet.solanaAddress ? {
-    address: alchemyWallet.solanaAddress,
-    wallet_address: alchemyWallet.solanaAddress,
+  // Create wallet data from Crossmint embedded wallet
+  const walletData: WalletData | null = crossmintWallet.walletAddress ? {
+    address: crossmintWallet.walletAddress,
+    wallet_address: crossmintWallet.walletAddress,
     blockchain_type: 'solana',
   } as WalletData : null;
 
   return {
     user,
     session,
-    loading: !clerkAuth.isLoaded || alchemyWallet.isLoading,
+    loading: !clerkAuth.isLoaded || crossmintWallet.isLoading,
     isSignedIn: clerkAuth.isSignedIn,
-    solanaWalletAddress: alchemyWallet.solanaAddress,
-    isWalletReady: alchemyWallet.isInitialized,
+    solanaWalletAddress: crossmintWallet.walletAddress,
+    isWalletReady: crossmintWallet.isInitialized,
     walletData,
     setWalletData: () => {
-      console.warn('setWalletData is deprecated. Wallet is managed by Alchemy.');
+      console.warn('setWalletData is deprecated. Wallet is managed by Crossmint.');
     },
     connectWallet: async () => {
-      console.warn('connectWallet is deprecated. Wallet is auto-provisioned via Alchemy.');
+      console.warn('connectWallet is deprecated. Wallet is auto-provisioned via Crossmint.');
       return { error: { message: 'Use Clerk authentication - wallet is auto-provisioned' } };
     },
     disconnectWallet: async () => {

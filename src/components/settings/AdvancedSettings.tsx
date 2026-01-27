@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { useAlchemyWallet } from '@/components/auth/AlchemyProvider';
+import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import {
   ChevronDown,
   ChevronUp,
@@ -25,15 +25,15 @@ import {
 } from 'lucide-react';
 
 export const AdvancedSettings: React.FC = () => {
-  const { solanaAddress, isInitialized } = useAlchemyWallet();
+  const { walletAddress, isInitialized } = useCrossmintWallet();
   const [isExpanded, setIsExpanded] = useState(false);
 
   /**
    * Copy wallet address to clipboard
    */
   const handleCopyAddress = () => {
-    if (solanaAddress) {
-      navigator.clipboard.writeText(solanaAddress);
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
       toast.success('Wallet address copied to clipboard');
     }
   };
@@ -42,9 +42,9 @@ export const AdvancedSettings: React.FC = () => {
    * Open wallet in Solana Explorer
    */
   const handleOpenExplorer = () => {
-    if (solanaAddress) {
+    if (walletAddress) {
       window.open(
-        `https://explorer.solana.com/address/${solanaAddress}?cluster=devnet`,
+        `https://explorer.solana.com/address/${walletAddress}?cluster=devnet`,
         '_blank'
       );
     }
@@ -127,7 +127,7 @@ export const AdvancedSettings: React.FC = () => {
                   <p className="text-xs text-gray-400 mb-2">Solana Address (Devnet)</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 px-3 py-2 bg-gray-800/50 text-gray-300 font-mono text-sm rounded border border-gray-700/50">
-                      {isInitialized ? truncateAddress(solanaAddress) : 'Initializing...'}
+                      {isInitialized ? truncateAddress(walletAddress) : 'Initializing...'}
                     </code>
                     <Button
                       variant="outline"
@@ -151,11 +151,11 @@ export const AdvancedSettings: React.FC = () => {
                 </div>
 
                 {/* Full address (for copying) */}
-                {isInitialized && solanaAddress && (
+                {isInitialized && walletAddress && (
                   <div>
                     <p className="text-xs text-gray-400 mb-2">Full Address</p>
                     <code className="block px-3 py-2 bg-gray-800/50 text-gray-300 font-mono text-xs rounded border border-gray-700/50 break-all">
-                      {solanaAddress}
+                      {walletAddress}
                     </code>
                   </div>
                 )}

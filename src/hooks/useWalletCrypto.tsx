@@ -1,6 +1,6 @@
 /**
  * Wallet Crypto Hook
- * 
+ *
  * React hook for managing wallet-derived encryption keys.
  * Handles the 3-signature setup flow and key caching.
  */
@@ -19,7 +19,7 @@ import {
 } from '@/services/crypto/keyDerivationService';
 import { stringToBytes } from '@/services/crypto/cryptoUtils';
 import { useAuth } from './useAuth';
-import { useAlchemyWallet } from '@/components/auth/AlchemyProvider';
+import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { toast } from 'sonner';
 
 // Session expiry time (4 hours)
@@ -36,13 +36,13 @@ interface UseWalletCryptoReturn {
   // State
   state: WalletCryptoState;
   hasKey: (level: SecurityLevel) => boolean;
-  
+
   // Actions
   initializeKeys: () => Promise<boolean>;
   getKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   refreshKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   clearKeys: () => void;
-  
+
   // Session info
   sessionExpiresAt: number | null;
   isSessionValid: boolean;
@@ -50,7 +50,7 @@ interface UseWalletCryptoReturn {
 
 export function useWalletCrypto(): UseWalletCryptoReturn {
   const { walletData } = useAuth();
-  const alchemyWallet = useAlchemyWallet();
+  const crossmintWallet = useCrossmintWallet();
 
   const [state, setState] = useState<WalletCryptoState>({
     isInitialized: false,
@@ -81,12 +81,12 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     });
   }, []);
 
-  // Clear keys when wallet disconnects or Alchemy wallet is not initialized
+  // Clear keys when wallet disconnects or Crossmint wallet is not initialized
   useEffect(() => {
-    if (!walletData?.connected && !alchemyWallet.isInitialized) {
+    if (!walletData?.connected && !crossmintWallet.isInitialized) {
       clearKeys();
     }
-  }, [walletData?.connected, alchemyWallet.isInitialized, clearKeys]);
+  }, [walletData?.connected, crossmintWallet.isInitialized, clearKeys]);
 
   // Check if we have a key for a specific level
   const hasKey = useCallback((level: SecurityLevel): boolean => {
@@ -95,17 +95,17 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   // Request wallet signature for a specific level
   const requestSignature = useCallback(async (level: SecurityLevel): Promise<Uint8Array | null> => {
-    // Prefer Alchemy embedded wallet for signing
-    if (alchemyWallet.isInitialized && alchemyWallet.signMessage) {
+    // Prefer Crossmint embedded wallet for signing
+    if (crossmintWallet.isInitialized && crossmintWallet.signMessage) {
       const message = getSignatureMessage(level);
       const messageBytes = stringToBytes(message);
 
       try {
-        console.log(`[useWalletCrypto] Requesting signature from Alchemy MPC wallet for level ${level}`);
-        const signature = await alchemyWallet.signMessage(messageBytes);
+        console.log(`[useWalletCrypto] Requesting signature from Crossmint wallet for level ${level}`);
+        const signature = await crossmintWallet.signMessage(messageBytes);
         return signature;
       } catch (error) {
-        console.error(`Failed to get signature from Alchemy wallet for level ${level}:`, error);
+        console.error(`Failed to get signature from Crossmint wallet for level ${level}:`, error);
         throw error;
       }
     }
@@ -126,7 +126,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     }
 
     throw new Error('No wallet available for message signing');
-  }, [alchemyWallet, walletData]);
+  }, [crossmintWallet, walletData]);
 
   // Derive key for a specific level
   const deriveKeyForLevel = useCallback(async (level: SecurityLevel): Promise<DerivedEncryptionKey | null> => {
@@ -135,7 +135,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       if (!signature) return null;
 
       const key = await deriveKeyFromSignature(signature, level);
-      
+
       // Store in session
       if (sessionRef.current) {
         sessionRef.current.signatures.set(level, signature);
@@ -156,17 +156,17 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   // Initialize all 3 keys
   const initializeKeys = useCallback(async (): Promise<boolean> => {
-    // Check if either Alchemy wallet or external wallet is available
-    const hasAlchemyWallet = alchemyWallet.isInitialized && alchemyWallet.solanaAddress;
+    // Check if either Crossmint wallet or external wallet is available
+    const hasCrossmintWallet = crossmintWallet.isInitialized && crossmintWallet.walletAddress;
     const hasExternalWallet = walletData?.connected && walletData?.address;
 
-    if (!hasAlchemyWallet && !hasExternalWallet) {
+    if (!hasCrossmintWallet && !hasExternalWallet) {
       setState(prev => ({ ...prev, error: 'No wallet connected' }));
       return false;
     }
 
-    // Check if wallet supports signing (Alchemy always does, check external wallet)
-    const canSign = hasAlchemyWallet || walletData?.adapter?.signMessage;
+    // Check if wallet supports signing (Crossmint always does, check external wallet)
+    const canSign = hasCrossmintWallet || walletData?.adapter?.signMessage;
 
     if (!canSign) {
       setState(prev => ({ ...prev, error: 'Wallet does not support message signing' }));
@@ -177,7 +177,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     setState(prev => ({ ...prev, isInitializing: true, error: null }));
 
     // Determine which wallet address to use
-    const walletAddress = alchemyWallet.solanaAddress || walletData?.address || '';
+    const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
 
     try {
       // Initialize session
@@ -201,10 +201,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
       // Request signatures for all 3 levels
       const levels = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM];
-      
+
       for (const level of levels) {
         setState(prev => ({ ...prev, currentLevel: level }));
-        
+
         const key = await deriveKeyForLevel(level);
         if (!key) {
           throw new Error(`Failed to derive key for security level ${level}`);
@@ -240,7 +240,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       toast.error(errorMessage);
       return false;
     }
-  }, [alchemyWallet, walletData, deriveKeyForLevel]);
+  }, [crossmintWallet, walletData, deriveKeyForLevel]);
 
   // Get key for a specific level (derives if not cached)
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {

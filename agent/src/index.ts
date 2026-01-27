@@ -21,12 +21,6 @@ async function main() {
     process.exit(1);
   }
 
-  if (!process.env.ALCHEMY_API_KEY) {
-    console.warn("⚠️  Warning: ALCHEMY_API_KEY environment variable is not set");
-    console.log("Blockchain features via Alchemy MCP will be unavailable.");
-    console.log("Get your API key from: https://dashboard.alchemy.com/\n");
-  }
-
   // Get the prompt from command line args or use a default
   const userPrompt = process.argv.slice(2).join(" ") ||
     "List all TypeScript files in the current directory and provide a brief overview of the project structure.";
@@ -56,17 +50,6 @@ async function main() {
           "TodoWrite", // Track tasks
         ],
 
-        // Configure MCP servers for blockchain data access
-        mcpServers: {
-          alchemy: {
-            command: "npx",
-            args: ["-y", "@alchemy/mcp-server"],
-            env: {
-              ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY || "",
-            },
-          },
-        },
-
         // Use Claude Code's default system prompt for coding tasks
         systemPrompt: {
           type: "preset",
@@ -78,15 +61,9 @@ You are a coding assistant for the BlockDrive project, a blockchain-based storag
 Project Context:
 - This is a React + TypeScript + Vite application
 - Uses Web3 technologies for blockchain integration
-- Has multiple wallet integrations (Ethereum, Solana)
+- Uses Crossmint embedded wallets for multichain support (Solana + EVM)
 - Uses Supabase for backend services
-- Has access to blockchain data through Alchemy MCP server
-
-Available Capabilities:
-- Query blockchain data (balances, transactions, NFTs, etc.)
-- Access smart contract information
-- Retrieve token data and prices
-- Monitor blockchain events
+- Uses Clerk for authentication
 
 When working on code:
 - Follow existing code patterns and conventions

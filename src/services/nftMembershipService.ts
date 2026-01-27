@@ -1,16 +1,16 @@
 /**
  * NFT Membership Service
- * 
- * Manages BlockDrive's NFT-based subscription system with Alchemy embedded wallets.
+ *
+ * Manages BlockDrive's NFT-based subscription system with Crossmint embedded wallets.
  * Subscriptions are SPL Token-2022 tokens on Solana that users truly own.
- * Uses Alchemy's gas sponsorship for transaction fees.
- * 
+ * Uses Crossmint's gas sponsorship for transaction fees.
+ *
  * Features:
  * - Mint membership NFTs using Token-2022 program (gas-sponsored)
  * - Verify membership validity from wallet
  * - Handle renewals and upgrades
  *
- * Note: Gas fees are handled by Alchemy Gas Manager, not per-user credits.
+ * Note: Gas fees are handled by Crossmint, not per-user credits.
  */
 
 import {
@@ -50,7 +50,7 @@ import {
   isMembershipExpired,
   getDaysRemaining,
 } from '@/types/nftMembership';
-import { alchemyConfig } from '@/config/alchemy';
+import { crossmintConfig, createSolanaConnection } from '@/config/crossmint';
 
 // PDA seeds for membership accounts
 const MEMBERSHIP_SEED = 'blockdrive_membership';
@@ -58,15 +58,13 @@ const MEMBERSHIP_SEED = 'blockdrive_membership';
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
 
-// Get Alchemy-configured Solana connection (Devnet for MVP)
-const getConnection = () => new Connection(alchemyConfig.solanaRpcUrl, {
-  commitment: 'confirmed',
-});
+// Get Crossmint-configured Solana connection (Devnet for MVP)
+const getConnection = () => createSolanaConnection();
 
-export interface AlchemyTransactionSigner {
+export interface CrossmintTransactionSigner {
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
   signAndSendTransaction: (transaction: Transaction) => Promise<string>;
-  solanaAddress: string | null;
+  walletAddress: string | null;
 }
 
 class NFTMembershipService {
@@ -101,32 +99,32 @@ class NFTMembershipService {
     const seed = `blockdrive-membership-mint-${walletAddress}-${tier}-v1`;
     const encoder = new TextEncoder();
     const seedBytes = encoder.encode(seed);
-    
+
     // Create ArrayBuffer for crypto.subtle
     const seedBuffer = new ArrayBuffer(seedBytes.length);
     const view = new Uint8Array(seedBuffer);
     view.set(seedBytes);
-    
+
     const hashBuffer = await crypto.subtle.digest('SHA-256', seedBuffer);
     const hashBytes = new Uint8Array(hashBuffer);
-    
+
     return Keypair.fromSeed(hashBytes);
   }
 
   /**
-   * Verify membership validity for a wallet (using Alchemy embedded wallet address)
+   * Verify membership validity for a wallet (using Crossmint embedded wallet address)
    * Checks if the wallet owns a valid BlockDrive membership NFT
    */
   async verifyMembership(walletAddress: string): Promise<MembershipVerification> {
     try {
-      console.log('[NFTMembership] Verifying membership for Alchemy wallet:', walletAddress);
+      console.log('[NFTMembership] Verifying membership for Crossmint wallet:', walletAddress);
 
       // Check cached membership first
       const cachedMembership = this.getCachedMembership(walletAddress);
-      
+
       if (cachedMembership) {
         const expired = isMembershipExpired(cachedMembership.metadata.validUntil);
-        
+
         if (expired) {
           return {
             isValid: false,
@@ -158,7 +156,7 @@ class NFTMembershipService {
       // Try to verify on-chain Token-2022 ownership
       try {
         const walletPubkey = new PublicKey(walletAddress);
-        
+
         // Check for each tier's token
         for (const tier of ['enterprise', 'premium', 'pro', 'basic'] as SubscriptionTier[]) {
           const mintKeypair = await this.generateDeterministicMintKeypair(walletAddress, tier);
@@ -168,7 +166,7 @@ class NFTMembershipService {
             false,
             TOKEN_2022_PROGRAM_ID
           );
-          
+
           try {
             const tokenAccount = await this.connection.getTokenAccountBalance(ata);
             if (tokenAccount.value.uiAmount && tokenAccount.value.uiAmount > 0) {
@@ -224,29 +222,28 @@ class NFTMembershipService {
 
   /**
    * Create a new membership NFT using Token-2022 with metadata extension
-   * Transaction fees are covered by Alchemy Gas Manager on Devnet
+   * Transaction fees are covered by Crossmint gas sponsorship
    */
   async createMembership(
     request: MembershipPurchaseRequest,
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     try {
       console.log('[NFTMembership] Creating Token-2022 membership NFT:', request);
-      console.log('[NFTMembership] Network:', alchemyConfig.network);
-      console.log('[NFTMembership] RPC:', alchemyConfig.solanaRpcUrl);
+      console.log('[NFTMembership] Environment:', crossmintConfig.environment);
 
-      if (!alchemySigner.solanaAddress) {
-        throw new Error('Alchemy wallet not initialized');
+      if (!crossmintSigner.walletAddress) {
+        throw new Error('Crossmint wallet not initialized');
       }
 
       const tierConfig = TIER_CONFIGS[request.tier];
-      const walletPubkey = new PublicKey(alchemySigner.solanaAddress);
-      
+      const walletPubkey = new PublicKey(crossmintSigner.walletAddress);
+
       // Calculate expiration based on billing period
       const now = Date.now();
       let validUntil: number;
       let price: number;
-      
+
       switch (request.billingPeriod) {
         case 'quarterly':
           validUntil = now + (90 * 24 * 60 * 60 * 1000);
@@ -263,10 +260,10 @@ class NFTMembershipService {
 
       // Generate deterministic mint keypair for this user/tier
       const mintKeypair = await this.generateDeterministicMintKeypair(
-        alchemySigner.solanaAddress,
+        crossmintSigner.walletAddress,
         request.tier
       );
-      
+
       console.log('[NFTMembership] Mint address:', mintKeypair.publicKey.toBase58());
 
       // Create the Token-2022 metadata
@@ -396,12 +393,11 @@ class NFTMembershipService {
       // Partially sign with the mint keypair (new account needs to sign)
       transaction.partialSign(mintKeypair);
 
-      // Sign and send with Alchemy gas sponsorship
-      console.log('[NFTMembership] Signing Token-2022 mint transaction...');
-      console.log('[NFTMembership] Gas Sponsorship Policy:', alchemyConfig.policyId);
-      
-      const transactionSignature = await alchemySigner.signAndSendTransaction(transaction);
-      
+      // Sign and send with Crossmint gas sponsorship
+      console.log('[NFTMembership] Signing Token-2022 mint transaction with Crossmint...');
+
+      const transactionSignature = await crossmintSigner.signAndSendTransaction(transaction);
+
       console.log('[NFTMembership] Transaction submitted:', transactionSignature);
       console.log('[NFTMembership] Explorer: https://explorer.solana.com/tx/' + transactionSignature + '?cluster=devnet');
 
@@ -440,13 +436,13 @@ class NFTMembershipService {
       const membershipNFT: MembershipNFT = {
         bump: 255,
         mint: mintKeypair.publicKey.toBase58(),
-        owner: alchemySigner.solanaAddress,
+        owner: crossmintSigner.walletAddress,
         metadata,
         delegations: [],
       };
 
       // Cache the membership locally
-      this.cacheMembership(alchemySigner.solanaAddress, membershipNFT);
+      this.cacheMembership(crossmintSigner.walletAddress, membershipNFT);
 
       console.log('[NFTMembership] Membership created successfully with Token-2022');
       console.log('[NFTMembership] NFT Mint:', mintKeypair.publicKey.toBase58());
@@ -469,15 +465,15 @@ class NFTMembershipService {
   }
 
   /**
-   * Renew an existing membership using Alchemy gas sponsorship
+   * Renew an existing membership using Crossmint gas sponsorship
    */
   async renewMembership(
     walletAddress: string,
     billingPeriod: 'monthly' | 'quarterly' | 'annual',
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     const cachedMembership = this.getCachedMembership(walletAddress);
-    
+
     if (!cachedMembership) {
       return {
         success: false,
@@ -495,19 +491,19 @@ class NFTMembershipService {
       autoRenew: cachedMembership.metadata.autoRenew,
     };
 
-    return this.createMembership(request, alchemySigner);
+    return this.createMembership(request, crossmintSigner);
   }
 
   /**
-   * Upgrade membership to a higher tier using Alchemy gas sponsorship
+   * Upgrade membership to a higher tier using Crossmint gas sponsorship
    */
   async upgradeMembership(
     walletAddress: string,
     newTier: SubscriptionTier,
-    alchemySigner: AlchemyTransactionSigner
+    crossmintSigner: CrossmintTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     const cachedMembership = this.getCachedMembership(walletAddress);
-    
+
     // Create upgrade request (mints new tier token)
     const request: MembershipPurchaseRequest = {
       tier: newTier,
@@ -517,7 +513,7 @@ class NFTMembershipService {
       autoRenew: cachedMembership?.metadata.autoRenew ?? false,
     };
 
-    return this.createMembership(request, alchemySigner);
+    return this.createMembership(request, crossmintSigner);
   }
 
   /**
@@ -528,14 +524,14 @@ class NFTMembershipService {
     bytesUsed: bigint
   ): Promise<boolean> {
     const cachedMembership = this.getCachedMembership(walletAddress);
-    
+
     if (!cachedMembership) {
       return false;
     }
 
     cachedMembership.metadata.storageUsed = bytesUsed;
     this.cacheMembership(walletAddress, cachedMembership);
-    
+
     return true;
   }
 
@@ -549,7 +545,7 @@ class NFTMembershipService {
     icon: string;
   } {
     const config = TIER_CONFIGS[tier];
-    
+
     const colors: Record<SubscriptionTier, string> = {
       trial: 'emerald',
       basic: 'gray',

@@ -194,12 +194,12 @@ export const DocsContent = ({ activeSection }: DocsContentProps) => {
                 Start by connecting your preferred wallet. We support 50+ wallets across multiple blockchains.
               </p>
               <CodeBlock id="connect-wallet">
-{`// Connect wallet using Dynamic SDK
-import { DynamicConnectButton } from '@dynamic-labs/sdk-react-core';
+{`// Connect wallet using Clerk + Crossmint
+import { SignInButton } from '@clerk/clerk-react';
 
-<DynamicConnectButton>
+<SignInButton mode="modal">
   Connect Wallet
-</DynamicConnectButton>`}
+</SignInButton>`}
               </CodeBlock>
               <div className="flex gap-2">
                 <Badge variant="secondary">Ethereum</Badge>
@@ -518,12 +518,12 @@ const uploadFile = async (file: File) => {
               </div>
             </div>
             <CodeBlock id="wallet-connect">
-{`// Connect wallet using Dynamic SDK
-import { DynamicConnectButton } from '@dynamic-labs/sdk-react-core';
+{`// Connect wallet using Clerk + Crossmint
+import { SignInButton } from '@clerk/clerk-react';
 
-<DynamicConnectButton>
+<SignInButton mode="modal">
   Connect Wallet
-</DynamicConnectButton>`}
+</SignInButton>`}
             </CodeBlock>
           </CardContent>
         </Card>
@@ -531,13 +531,13 @@ import { DynamicConnectButton } from '@dynamic-labs/sdk-react-core';
     );
   }
 
-  if (activeSection === 'dynamic-integration') {
+  if (activeSection === 'clerk-crossmint-integration') {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Dynamic Labs Integration</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Clerk + Crossmint Integration</h1>
           <p className="text-lg text-muted-foreground">
-            Enterprise-grade wallet infrastructure powering BlockDrive authentication.
+            Enterprise-grade authentication and embedded wallet infrastructure powering BlockDrive.
           </p>
         </div>
 
@@ -546,32 +546,55 @@ import { DynamicConnectButton } from '@dynamic-labs/sdk-react-core';
             <CardTitle>Key Components</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <CodeBlock id="dynamic-components">
-{`// Core Dynamic components in BlockDrive
-import { DynamicProviderWrapper } from '@/components/auth/DynamicProviderWrapper';
-import { SimplifiedAuthProvider } from '@/components/auth/SimplifiedAuthProvider';
-import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
+            <CodeBlock id="clerk-crossmint-components">
+{`// Core authentication setup in BlockDrive
+import { ClerkProvider, SignInButton, useUser } from '@clerk/clerk-react';
+import { CrossmintProvider, useCrossmintWallet } from '@crossmint/client-sdk-react-ui';
 
-// Wrapper setup
-<DynamicProviderWrapper>
-  <SimplifiedAuthProvider>
+// Provider hierarchy in main.tsx
+<ClerkProvider publishableKey={CLERK_KEY}>
+  <CrossmintProvider apiKey={CROSSMINT_KEY}>
     <App />
-  </SimplifiedAuthProvider>
-</DynamicProviderWrapper>`}
+  </CrossmintProvider>
+</ClerkProvider>
+
+// Using the auth hook
+const { user, isSignedIn, wallet } = useAuth();`}
             </CodeBlock>
-            
+
             <div className="grid gap-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">🔗 DynamicProviderWrapper</h4>
-                <p className="text-sm text-muted-foreground">Main authentication provider that handles wallet communication</p>
+                <h4 className="font-medium mb-2">🔐 ClerkProvider</h4>
+                <p className="text-sm text-muted-foreground">User authentication, session management, and social login support</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">🔐 SimplifiedAuthProvider</h4>
-                <p className="text-sm text-muted-foreground">Supabase integration layer for session management</p>
+                <h4 className="font-medium mb-2">💼 CrossmintProvider</h4>
+                <p className="text-sm text-muted-foreground">MPC-based embedded wallets with automatic creation on signup</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">🎯 DynamicConnectButton</h4>
-                <p className="text-sm text-muted-foreground">User-facing wallet connection interface</p>
+                <h4 className="font-medium mb-2">🎯 useAuth Hook</h4>
+                <p className="text-sm text-muted-foreground">Unified hook providing user info, session state, and wallet access</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Multichain Wallet Support</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Crossmint provides MPC-based embedded wallets supporting multiple chains out of the box.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                <h4 className="font-medium mb-2">Solana</h4>
+                <p className="text-sm text-muted-foreground">Native Solana support with devnet and mainnet</p>
+              </div>
+              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <h4 className="font-medium mb-2">EVM Chains</h4>
+                <p className="text-sm text-muted-foreground">Ethereum, Base, Polygon, Arbitrum, Optimism</p>
               </div>
             </div>
           </CardContent>
@@ -598,7 +621,7 @@ import { DynamicConnectButton } from '@/components/auth/DynamicConnectButton';
             {[
               { step: 1, title: "User Initiation", desc: "User clicks 'Connect Wallet' button" },
               { step: 2, title: "Wallet Selection", desc: "Choose from 50+ supported wallets" },
-              { step: 3, title: "Connection", desc: "Dynamic SDK handles wallet communication" },
+              { step: 3, title: "Connection", desc: "Clerk + Crossmint handle wallet authentication" },
               { step: 4, title: "Verification", desc: "Cryptographic signature verification" },
               { step: 5, title: "Session Creation", desc: "Generate secure session tokens" },
               { step: 6, title: "Redirection", desc: "Automatic redirect to dashboard" }

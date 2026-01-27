@@ -43,7 +43,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
         { title: "SNS Domain Verification", id: "sns-verification" },
         { title: "Basenames Verification", id: "basenames-verification" },
         { title: "Wallet Connection", id: "wallet-auth" },
-        { title: "Dynamic Labs Integration", id: "dynamic-integration" }
+        { title: "Clerk + Crossmint Integration", id: "clerk-crossmint-integration" }
       ]
     },
     {
