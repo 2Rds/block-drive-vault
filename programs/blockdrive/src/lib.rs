@@ -180,6 +180,123 @@ pub mod blockdrive {
     }
 
     // =========================================================================
+    // SHARDING INSTRUCTIONS (Phase 1.1 - Multi-PDA Sharding)
+    // =========================================================================
+
+    /// Initialize a new Vault Master with accompanying index
+    /// This is the root account for sharded storage supporting 1000+ files
+    ///
+    /// # Seeds
+    /// - vault_master: ["vault_master", owner_pubkey]
+    /// - vault_index: ["vault_index", vault_master_pubkey]
+    pub fn initialize_vault_master(ctx: Context<InitializeVaultMaster>) -> Result<()> {
+        instructions::sharding::initialize_vault_master(ctx)
+    }
+
+    /// Create a new shard for storing files
+    /// Shards hold up to 100 files each, and are created incrementally
+    ///
+    /// # Arguments
+    /// * `shard_index` - Must equal vault_master.total_shards (sequential creation)
+    ///
+    /// # Seeds
+    /// - vault_shard: ["vault_shard", vault_master_pubkey, shard_index]
+    pub fn create_shard(ctx: Context<CreateShard>, shard_index: u8) -> Result<()> {
+        instructions::sharding::create_shard(ctx, shard_index)
+    }
+
+    /// Register a new file to a specific shard
+    /// This is the sharded version of register_file for multi-PDA storage
+    ///
+    /// # Arguments
+    /// * `file_id` - Unique 16-byte file identifier
+    /// * `shard_index` - Target shard (must have capacity)
+    /// * Other params same as register_file
+    ///
+    /// # Seeds
+    /// - file_record: ["file", vault_master_pubkey, file_id]
+    pub fn register_file_sharded(
+        ctx: Context<RegisterFileSharded>,
+        file_id: [u8; 16],
+        shard_index: u8,
+        filename_hash: [u8; 32],
+        file_size: u64,
+        encrypted_size: u64,
+        mime_type_hash: [u8; 32],
+        security_level: u8,
+        encryption_commitment: [u8; 32],
+        critical_bytes_commitment: [u8; 32],
+        primary_cid: [u8; 64],
+    ) -> Result<()> {
+        instructions::sharding::register_file_sharded(
+            ctx,
+            file_id,
+            shard_index,
+            filename_hash,
+            file_size,
+            encrypted_size,
+            mime_type_hash,
+            security_level,
+            encryption_commitment,
+            critical_bytes_commitment,
+            primary_cid,
+        )
+    }
+
+    // =========================================================================
+    // SESSION DELEGATION INSTRUCTIONS (Phase 1.2 - Relayer Authority)
+    // =========================================================================
+
+    /// Create a new session delegation to authorize a relayer
+    /// This enables gasless operations where the relayer pays transaction fees
+    ///
+    /// # Arguments
+    /// * `allowed_operations` - Bitmap of permitted operations (UPLOAD=1, UPDATE=2, etc.)
+    /// * `duration` - Session duration in seconds (0 = default 24 hours)
+    /// * `max_operations` - Maximum operations allowed (0 = unlimited)
+    ///
+    /// # Seeds
+    /// - session: ["session", owner_pubkey, relayer_pubkey]
+    pub fn create_session_delegation(
+        ctx: Context<CreateSessionDelegation>,
+        allowed_operations: u8,
+        duration: i64,
+        max_operations: u32,
+    ) -> Result<()> {
+        instructions::session::create_session_delegation(ctx, allowed_operations, duration, max_operations)
+    }
+
+    /// Revoke a session delegation immediately
+    /// The session becomes inactive but the account remains for audit purposes
+    pub fn revoke_session(ctx: Context<RevokeSession>) -> Result<()> {
+        instructions::session::revoke_session(ctx)
+    }
+
+    /// Extend the duration of an existing session
+    ///
+    /// # Arguments
+    /// * `additional_duration` - Additional time in seconds to add
+    pub fn extend_session(ctx: Context<ExtendSession>, additional_duration: i64) -> Result<()> {
+        instructions::session::extend_session(ctx, additional_duration)
+    }
+
+    /// Close a session delegation and recover rent
+    /// Can only be done by the owner
+    pub fn close_session(ctx: Context<CloseSession>) -> Result<()> {
+        instructions::session::close_session(ctx)
+    }
+
+    /// Validate that a session is active and can perform an operation
+    /// Used by relayers to check session status before submitting transactions
+    pub fn validate_session(
+        ctx: Context<ValidateSession>,
+        operation: u8,
+        expected_nonce: u64,
+    ) -> Result<()> {
+        instructions::session::validate_session(ctx, operation, expected_nonce)
+    }
+
+    // =========================================================================
     // TRANSFER HOOK INSTRUCTIONS
     // =========================================================================
 

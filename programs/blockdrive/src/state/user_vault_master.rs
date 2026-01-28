@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::errors::BlockDriveError;
 
 /// Maximum number of shards per user (100 files each = 1000 files max)
 pub const MAX_SHARDS: usize = 10;
@@ -96,7 +97,7 @@ impl UserVaultMaster {
     pub fn register_shard(&mut self, shard_pubkey: Pubkey, timestamp: i64) -> Result<u8> {
         require!(
             self.can_create_shard(),
-            ErrorCode::MaxShardsReached
+            BlockDriveError::MaxShardsReached
         );
 
         let shard_index = self.total_shards;
@@ -126,7 +127,7 @@ impl UserVaultMaster {
     pub fn advance_active_shard(&mut self, timestamp: i64) -> Result<()> {
         require!(
             self.active_shard_index + 1 < self.total_shards,
-            ErrorCode::NoAvailableShard
+            BlockDriveError::NoAvailableShard
         );
         self.active_shard_index = self.active_shard_index.saturating_add(1);
         self.updated_at = timestamp;
@@ -175,13 +176,4 @@ impl Default for UserVaultMaster {
             reserved: [0u8; 64],
         }
     }
-}
-
-/// Custom error codes for vault master operations
-#[error_code]
-pub enum ErrorCode {
-    #[msg("Maximum number of shards (10) reached")]
-    MaxShardsReached,
-    #[msg("No available shard to advance to")]
-    NoAvailableShard,
 }

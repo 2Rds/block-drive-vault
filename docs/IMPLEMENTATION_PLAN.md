@@ -29,7 +29,7 @@
 
 This plan details the implementation of **9 major features** to complete the BlockDrive platform. The existing codebase has solid foundations including:
 
-- ✅ Wallet authentication (Clerk + Alchemy Account Kit)
+- ✅ Wallet authentication (Clerk + Crossmint Embedded Wallets)
 - ✅ Soulbound NFT membership with SNS integration
 - ✅ Client-side encryption (AES-256-GCM with 3 security levels)
 - ✅ 16-byte critical data separation for ZK proofs
@@ -43,7 +43,7 @@ This implementation plan focuses on the **core storage infrastructure** features
 
 1. **Multi-PDA Sharding** - Scale to 1000+ files per user
 2. **Session Key Delegation** - Gasless operations via relayer (optional future enhancement)
-3. **Relayer Service** - Backend service for non-Alchemy operations (optional)
+3. **Relayer Service** - Backend service for advanced operations (optional)
 4. **Crypto Payments** - Radom integration alongside Stripe
 5. **Enhanced Metadata Privacy** - Encrypted metadata blobs
 6. **Full Key Derivation** - Complete 3-message wallet signature flow
@@ -52,15 +52,14 @@ This implementation plan focuses on the **core storage infrastructure** features
 
 ### Gas Management Architecture
 
-**Decision: Use Alchemy Gas Sponsorship (No Per-User Gas Credits)**
+**Decision: Use Crossmint Gas Sponsorship (No Per-User Gas Credits)**
 
-BlockDrive uses Alchemy Account Kit embedded wallets with gas sponsorship for all user transactions:
+BlockDrive uses Crossmint Embedded Wallets with gas sponsorship for all user transactions:
 
-- **Gas Sponsorship**: Alchemy pays SOL gas fees for all user operations
+- **Gas Sponsorship**: Crossmint pays SOL gas fees for all user operations
 - **Billing Model**: Monthly aggregated USD billing (~$0.001-0.002 per transaction)
 - **Cost**: ~$10-30/month for typical usage (~10,000-30,000 transactions)
 - **No Per-User Accounting**: Single BlockDrive operational wallet handles edge cases
-- **Policy ID**: `b54fccd1-b3c0-44e8-8933-1331daa4f0a8` (Devnet)
 
 This eliminates the need for on-chain per-user gas credits accounting (GasCreditsAccount PDAs, USDC swaps, etc.), significantly simplifying the architecture.
 
@@ -81,7 +80,7 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 
 **Total Estimated Time**: 8-9 weeks (reduced from 10-11 weeks by removing gas credits system)
 
-**Note**: Gas Credits System removed - Alchemy gas sponsorship with USD billing used instead.
+**Note**: Gas Credits System removed - Crossmint gas sponsorship with USD billing used instead.
 
 ---
 
@@ -90,7 +89,7 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 **Duration**: Weeks 1-2
 **Status**: 🔴 Not Started
 
-> **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses Alchemy gas sponsorship with USD billing instead of per-user on-chain accounting.
+> **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses Crossmint gas sponsorship with USD billing instead of per-user on-chain accounting.
 
 ### 1.1 Multi-PDA Sharding System
 
@@ -171,7 +170,7 @@ pub fn rebalance_shards(ctx: Context<RebalanceShards>) -> Result<()>
 
 ### 1.2 Session Key Delegation (Relayer Authority) - OPTIONAL
 
-> **Note**: With Alchemy gas sponsorship handling all user operations, session key delegation is now an **optional future enhancement** rather than a core requirement. This would only be needed if BlockDrive wants to offer additional relayer-based features beyond what Alchemy provides.
+> **Note**: With Crossmint gas sponsorship handling all user operations, session key delegation is now an **optional future enhancement** rather than a core requirement. This would only be needed if BlockDrive wants to offer additional relayer-based features beyond what Crossmint provides.
 
 **Current State**: Delegation exists for file sharing (grantee can download). No session key delegation for gasless operations.
 

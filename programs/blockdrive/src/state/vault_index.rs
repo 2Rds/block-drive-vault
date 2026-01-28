@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::errors::BlockDriveError;
 
 /// Maximum entries in the index (supports 1000 files)
 /// Each entry is 17 bytes (16 byte file_id + 1 byte shard_index)
@@ -109,13 +110,13 @@ impl UserVaultIndex {
     ) -> Result<()> {
         require!(
             (self.entry_count as usize) < MAX_INDEX_ENTRIES,
-            IndexError::IndexFull
+            BlockDriveError::IndexFull
         );
 
         // Check for duplicate file_id
         require!(
             self.find_entry(&file_id).is_none(),
-            IndexError::DuplicateFileId
+            BlockDriveError::DuplicateFileId
         );
 
         let entry = IndexEntry::new(file_id, shard_index, slot_index);
@@ -137,7 +138,7 @@ impl UserVaultIndex {
                 self.updated_at = timestamp;
                 Ok(())
             }
-            None => Err(IndexError::FileNotFound.into()),
+            None => Err(BlockDriveError::FileNotFound.into()),
         }
     }
 
@@ -169,7 +170,7 @@ impl UserVaultIndex {
             .entries
             .iter_mut()
             .find(|e| &e.file_id == file_id)
-            .ok_or(IndexError::FileNotFound)?;
+            .ok_or(BlockDriveError::FileNotFound)?;
 
         entry.shard_index = new_shard_index;
         entry.slot_index = new_slot_index;
@@ -205,15 +206,4 @@ impl Default for UserVaultIndex {
             reserved: [0u8; 32],
         }
     }
-}
-
-/// Custom error codes for index operations
-#[error_code]
-pub enum IndexError {
-    #[msg("Index is full, maximum 1000 files supported")]
-    IndexFull,
-    #[msg("File ID already exists in index")]
-    DuplicateFileId,
-    #[msg("File not found in index")]
-    FileNotFound,
 }

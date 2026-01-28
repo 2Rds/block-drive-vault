@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::errors::BlockDriveError;
 
 /// Maximum files per shard
 pub const MAX_FILES_PER_SHARD: usize = 100;
@@ -108,7 +109,7 @@ impl UserVaultShard {
     pub fn add_file(&mut self, file_record_pubkey: Pubkey, timestamp: i64) -> Result<u8> {
         require!(
             self.has_capacity(),
-            ShardError::ShardFull
+            BlockDriveError::ShardFull
         );
 
         let slot = self.file_count;
@@ -129,11 +130,11 @@ impl UserVaultShard {
     pub fn remove_file(&mut self, slot_index: u8, timestamp: i64) -> Result<()> {
         require!(
             (slot_index as usize) < MAX_FILES_PER_SHARD,
-            ShardError::InvalidSlotIndex
+            BlockDriveError::InvalidSlotIndex
         );
         require!(
             self.file_records[slot_index as usize] != Pubkey::default(),
-            ShardError::SlotAlreadyEmpty
+            BlockDriveError::FileNotFound
         );
 
         self.file_records[slot_index as usize] = Pubkey::default();
@@ -202,17 +203,4 @@ impl Default for UserVaultShard {
             reserved: [0u8; 32],
         }
     }
-}
-
-/// Custom error codes for shard operations
-#[error_code]
-pub enum ShardError {
-    #[msg("Shard is full, cannot add more files")]
-    ShardFull,
-    #[msg("Invalid slot index")]
-    InvalidSlotIndex,
-    #[msg("Slot is already empty")]
-    SlotAlreadyEmpty,
-    #[msg("Shard is archived and read-only")]
-    ShardArchived,
 }
