@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PricingTier, PricingOption } from '@/types/pricing';
-import { paymentService, PaymentProvider, BillingPeriod, SubscriptionTier } from '@/services/paymentService';
+import { paymentService, PaymentProvider, BillingPeriod, SubscriptionTier, CryptoCheckoutResult } from '@/services/paymentService';
 
 export const usePricingSubscription = () => {
   const { user } = useAuth();
@@ -14,10 +14,10 @@ export const usePricingSubscription = () => {
   /**
    * Handle fiat subscription (Stripe)
    */
-  const handleSubscribe = async (tier: PricingTier, option: PricingOption) => {
+  const handleSubscribe = useCallback(async (tier: PricingTier, option: PricingOption) => {
     console.log('handleSubscribe called with tier:', tier.name, 'period:', option.period);
-    console.log('Current auth state:', { 
-      hasUser: !!user, 
+    console.log('Current auth state:', {
+      hasUser: !!user,
       userId: user?.id
     });
 
@@ -31,7 +31,7 @@ export const usePricingSubscription = () => {
 
     try {
       console.log('Creating checkout session for tier:', tier.name);
-      
+
       const result = await paymentService.subscribeFiat({
         tier: tier.name as SubscriptionTier,
         billingPeriod: mapPeriodToBillingPeriod(option.period),
@@ -43,79 +43,98 @@ export const usePricingSubscription = () => {
       }
 
       console.log('Checkout session created, redirecting to:', result.url);
-      
+
       // Show success message
       toast.success('Redirecting to checkout...');
-      
+
       // Redirect to Stripe checkout
       window.location.href = result.url;
-      
-    } catch (error: any) {
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Subscription error:', error);
-      toast.error(`Failed to start subscription: ${error.message}`);
+      toast.error(`Failed to start subscription: ${errorMessage}`);
       setLoading(null);
     }
-  };
+  }, [user]);
 
   /**
-   * Handle crypto subscription (MoonPay/Helio)
+   * Handle crypto subscription (Crossmint)
+   * Returns the result so the UI can handle insufficient balance vs success
    */
-  const handleSubscribeCrypto = async (tier: PricingTier, option: PricingOption) => {
+  const handleSubscribeCrypto = useCallback(async (
+    tier: PricingTier,
+    option: PricingOption
+  ): Promise<CryptoCheckoutResult | null> => {
     console.log('handleSubscribeCrypto called with tier:', tier.name, 'period:', option.period);
 
     if (!user) {
       toast.error('Please log in to subscribe with crypto');
       navigate('/login');
-      return;
+      return null;
     }
 
     if (tier.isEnterprise) {
       window.open('mailto:sales@blockdrive.com?subject=Enterprise Plan Inquiry', '_blank');
-      return;
+      return null;
     }
 
     setLoading(`${tier.name}-crypto`);
 
     try {
       console.log('Creating crypto checkout for tier:', tier.name);
-      
+
       const result = await paymentService.subscribeCrypto({
         tier: tier.name as SubscriptionTier,
         billingPeriod: mapPeriodToBillingPeriod(option.period),
       });
 
-      if (!result.success || !result.url) {
-        throw new Error(result.error || 'Failed to create crypto checkout');
+      console.log('Crypto checkout result:', result);
+
+      // Handle successful payment
+      if (result.success) {
+        toast.success('Payment successful! Your subscription is now active.');
+        // Navigate to success page
+        navigate(`/subscription-success?crypto=true&subscription_id=${result.subscriptionId}`);
+      }
+      // Handle insufficient balance - don't show toast, let UI handle it
+      else if (result.errorType === 'insufficient_balance') {
+        console.log('Insufficient balance, returning result for UI handling');
+      }
+      // Handle other errors
+      else {
+        toast.error(result.error || 'Failed to process crypto payment');
       }
 
-      console.log('Crypto checkout created, redirecting to:', result.url);
-      
-      // Show success message
-      toast.success('Redirecting to crypto payment...');
-      
-      // Redirect to Helio checkout
-      window.location.href = result.url;
-      
-    } catch (error: any) {
+      return result;
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Crypto subscription error:', error);
-      toast.error(`Failed to start crypto subscription: ${error.message}`);
+      toast.error(`Failed to start crypto subscription: ${errorMessage}`);
+      return {
+        success: false,
+        error: errorMessage,
+        provider: 'crossmint',
+      };
+    } finally {
       setLoading(null);
     }
-  };
+  }, [user, navigate]);
 
   /**
    * Unified subscribe function - routes based on payment method
    */
-  const subscribe = async (
-    tier: PricingTier, 
-    option: PricingOption, 
+  const subscribe = useCallback(async (
+    tier: PricingTier,
+    option: PricingOption,
     provider: PaymentProvider = 'stripe'
-  ) => {
-    if (provider === 'crypto') {
+  ): Promise<CryptoCheckoutResult | void> => {
+    if (provider === 'crossmint') {
       return handleSubscribeCrypto(tier, option);
     }
     return handleSubscribe(tier, option);
-  };
+  }, [handleSubscribe, handleSubscribeCrypto]);
 
   // Function to check subscription status after payment
   const checkSubscriptionStatus = async () => {
@@ -157,7 +176,7 @@ export const usePricingSubscription = () => {
 /**
  * Helper to map option.period to BillingPeriod type
  */
-function mapPeriodToBillingPeriod(period: string): BillingPeriod {
+export function mapPeriodToBillingPeriod(period: string): BillingPeriod {
   switch (period) {
     case 'monthly':
       return 'monthly';
@@ -169,4 +188,16 @@ function mapPeriodToBillingPeriod(period: string): BillingPeriod {
     default:
       return 'monthly';
   }
+}
+
+/**
+ * Get price amount for a tier and billing period in USD
+ */
+export function getTierPrice(tier: string, period: string): number {
+  const pricing: Record<string, Record<string, number>> = {
+    Pro: { monthly: 9, quarterly: 24, yearly: 89, annual: 89 },
+    Power: { monthly: 49, quarterly: 134, yearly: 499, annual: 499 },
+    Scale: { monthly: 29, quarterly: 79, yearly: 299, annual: 299 },
+  };
+  return pricing[tier]?.[period] || 0;
 }

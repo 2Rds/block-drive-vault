@@ -9,7 +9,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useWallet } from '@crossmint/client-sdk-react-ui';
 import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from '@solana/spl-token';
 import { createSolanaConnection } from '@/config/crossmint';
+
+// USDC Token Mint addresses
+const USDC_MINT_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'); // Devnet USDC
+const USDC_MINT_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // Mainnet USDC
 
 interface CrossmintWalletState {
   // Wallet info
@@ -32,6 +37,7 @@ interface CrossmintWalletState {
   signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   getBalance: () => Promise<number>;
+  getUsdcBalance: () => Promise<number>;
 
   // Multichain operations
   switchChain: (chain: string) => Promise<void>;
@@ -158,6 +164,48 @@ export function useCrossmintWallet(): CrossmintWalletState {
     }
   }, [walletAddress, connection]);
 
+  // Get USDC balance
+  const getUsdcBalance = useCallback(async (): Promise<number> => {
+    if (!walletAddress || !connection) {
+      return 0;
+    }
+
+    try {
+      const ownerPubkey = new PublicKey(walletAddress);
+
+      // Determine if we're on devnet or mainnet
+      const endpoint = connection.rpcEndpoint;
+      const isMainnet = endpoint.includes('mainnet');
+      const usdcMint = isMainnet ? USDC_MINT_MAINNET : USDC_MINT_DEVNET;
+
+      // Get the associated token address for USDC
+      const tokenAccountAddress = await getAssociatedTokenAddress(
+        usdcMint,
+        ownerPubkey
+      );
+
+      try {
+        // Fetch the token account
+        const tokenAccount = await getAccount(connection, tokenAccountAddress);
+
+        // USDC has 6 decimals
+        const balance = Number(tokenAccount.amount) / 1e6;
+        console.log('[useCrossmintWallet] USDC balance:', balance);
+        return balance;
+      } catch (err) {
+        if (err instanceof TokenAccountNotFoundError) {
+          // No token account means 0 balance
+          console.log('[useCrossmintWallet] No USDC token account, balance: 0');
+          return 0;
+        }
+        throw err;
+      }
+    } catch (err) {
+      console.error('[useCrossmintWallet] Get USDC balance error:', err);
+      return 0;
+    }
+  }, [walletAddress, connection]);
+
   // Switch active chain
   const switchChain = useCallback(async (chain: string) => {
     if (!wallet) {
@@ -192,6 +240,7 @@ export function useCrossmintWallet(): CrossmintWalletState {
     signAndSendTransaction,
     signMessage,
     getBalance,
+    getUsdcBalance,
     switchChain,
     getCurrentChain,
   };

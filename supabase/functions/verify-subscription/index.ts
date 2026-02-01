@@ -7,10 +7,81 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[VERIFY-SUBSCRIPTION] ${step}${detailsStr}`);
 };
+
+/**
+ * Helper to get subscription from synced stripe.subscriptions table
+ * Falls back to Stripe API if sync hasn't caught up yet
+ */
+async function getSubscriptionFromSync(
+  supabase: ReturnType<typeof createClient>,
+  subscriptionId: string,
+  stripe: Stripe
+): Promise<{ subscription: Stripe.Subscription | null; fromSync: boolean }> {
+  try {
+    // Try synced table first (faster, no API quota)
+    const { data: syncedSub, error } = await supabase
+      .rpc('get_stripe_subscription', { subscription_id: subscriptionId });
+
+    if (!error && syncedSub && syncedSub.length > 0) {
+      logStep("Subscription loaded from sync table", { subscriptionId });
+      // Transform synced data to match Stripe format
+      const sub = syncedSub[0];
+      return {
+        subscription: {
+          id: sub.id,
+          customer: sub.customer,
+          status: sub.status,
+          metadata: sub.metadata || {},
+          current_period_end: new Date(sub.current_period_end).getTime() / 1000,
+          current_period_start: new Date(sub.current_period_start).getTime() / 1000,
+          cancel_at_period_end: sub.cancel_at_period_end,
+          items: { data: sub.items || [] }
+        } as unknown as Stripe.Subscription,
+        fromSync: true
+      };
+    }
+  } catch (err) {
+    logStep("Sync table query failed, falling back to API", { error: err });
+  }
+
+  // Fall back to Stripe API (for new subscriptions that haven't synced yet)
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  return { subscription, fromSync: false };
+}
+
+/**
+ * Helper to get price from synced stripe.prices table
+ * Falls back to Stripe API if sync hasn't caught up yet
+ */
+async function getPriceFromSync(
+  supabase: ReturnType<typeof createClient>,
+  priceId: string,
+  stripe: Stripe
+): Promise<{ price: { unit_amount: number | null }; fromSync: boolean }> {
+  try {
+    // Try synced table first
+    const { data: syncedPrice, error } = await supabase
+      .rpc('get_stripe_price', { price_id: priceId });
+
+    if (!error && syncedPrice && syncedPrice.length > 0) {
+      logStep("Price loaded from sync table", { priceId });
+      return {
+        price: { unit_amount: syncedPrice[0].unit_amount },
+        fromSync: true
+      };
+    }
+  } catch (err) {
+    logStep("Price sync table query failed, falling back to API", { error: err });
+  }
+
+  // Fall back to Stripe API
+  const price = await stripe.prices.retrieve(priceId);
+  return { price: { unit_amount: price.unit_amount }, fromSync: false };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,7 +98,7 @@ serve(async (req) => {
       throw new Error("Session ID is required");
     }
 
-    // Initialize Stripe
+    // Initialize Stripe (still needed for checkout sessions - not synced)
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
       throw new Error("STRIPE_SECRET_KEY is not set");
@@ -36,21 +107,6 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     logStep("Stripe initialized");
 
-    // Retrieve the checkout session
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'customer']
-    });
-
-    logStep("Checkout session retrieved", { 
-      sessionId: session.id, 
-      paymentStatus: session.payment_status,
-      customerEmail: session.customer_details?.email 
-    });
-
-    if (session.payment_status !== 'paid') {
-      throw new Error(`Payment not completed. Status: ${session.payment_status}`);
-    }
-
     // Use service role client for database operations
     const supabaseService = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -58,9 +114,25 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Retrieve the checkout session (not synced, must use API)
+    // Note: Checkout sessions are transient and not part of stripe-sync-engine
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['customer']
+    });
+
+    logStep("Checkout session retrieved", {
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+      customerEmail: session.customer_details?.email
+    });
+
+    if (session.payment_status !== 'paid') {
+      throw new Error(`Payment not completed. Status: ${session.payment_status}`);
+    }
+
     const customerEmail = session.customer_details?.email;
     const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
-    
+
     if (!customerEmail) {
       throw new Error("No customer email found in session");
     }
@@ -68,42 +140,66 @@ serve(async (req) => {
     logStep("Customer details", { email: customerEmail, stripeCustomerId });
 
     // Determine subscription tier from the subscription
-    let subscriptionTier = "Starter";
+    let subscriptionTier = "Pro"; // Default tier
     let subscriptionEnd = null;
 
     if (session.subscription) {
-      const subscription = typeof session.subscription === 'string' 
-        ? await stripe.subscriptions.retrieve(session.subscription)
-        : session.subscription;
-      
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      
-      // Determine tier from price
-      const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const amount = price.unit_amount || 0;
-      
-      // Match actual pricing tiers (amounts in cents)
-      // Starter: $9/mo (900), $24/qtr (2400), $89/yr (8900)
-      // Pro: $49/mo (4900), $134/qtr (13400), $499/yr (49900)
-      // Growth: $99/mo (9900), $269/qtr (26900), $999/yr (99900)
-      // Scale: $199/mo (19900), $549/qtr (54900), $1999/yr (199900)
-      if (amount <= 8900) {
-        subscriptionTier = "Starter";
-      } else if (amount <= 49900) {
-        subscriptionTier = "Pro";
-      } else if (amount <= 99900) {
-        subscriptionTier = "Growth";
-      } else {
-        subscriptionTier = "Scale";
+      const subscriptionId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription.id;
+
+      // Use synced table if available, fall back to API
+      const { subscription, fromSync: subFromSync } = await getSubscriptionFromSync(
+        supabaseService,
+        subscriptionId,
+        stripe
+      );
+
+      if (subscription) {
+        subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
+        // Check metadata for tier first (set during checkout)
+        if (subscription.metadata?.tier) {
+          subscriptionTier = subscription.metadata.tier;
+          logStep("Tier from subscription metadata", { tier: subscriptionTier });
+        } else {
+          // Fall back to price-based tier detection
+          const priceId = subscription.items.data[0]?.price?.id;
+          if (priceId) {
+            const { price, fromSync: priceFromSync } = await getPriceFromSync(
+              supabaseService,
+              priceId,
+              stripe
+            );
+            const amount = price.unit_amount || 0;
+
+            // Match pricing tiers (amounts in cents)
+            // Pro: $9/mo (900), $24/qtr (2400), $89/yr (8900)
+            // Power: $49/mo (4900), $134/qtr (13400), $499/yr (49900)
+            // Scale: $29/seat/mo (2900), $79/seat/qtr (7900), $299/seat/yr (29900)
+            if (amount <= 8900) {
+              subscriptionTier = "Pro";
+            } else if (amount <= 29900) {
+              subscriptionTier = "Scale";
+            } else {
+              subscriptionTier = "Power";
+            }
+
+            logStep("Tier from price amount", {
+              tier: subscriptionTier,
+              amount,
+              priceFromSync
+            });
+          }
+        }
+
+        logStep("Subscription details", {
+          subscriptionId: subscription.id,
+          tier: subscriptionTier,
+          endDate: subscriptionEnd,
+          fromSync: subFromSync
+        });
       }
-      
-      logStep("Subscription details", { 
-        subscriptionId: subscription.id, 
-        tier: subscriptionTier, 
-        endDate: subscriptionEnd,
-        amount: amount 
-      });
     }
 
     // Check if this is a wallet user
