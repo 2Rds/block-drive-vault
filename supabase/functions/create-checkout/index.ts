@@ -7,10 +7,59 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
+
+/**
+ * Helper to get customer from synced stripe.customers table
+ * Falls back to Stripe API if customer not found in sync
+ */
+async function getCustomerFromSync(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  stripeKey: string
+): Promise<{ customerId: string | null; fromSync: boolean }> {
+  try {
+    // Try synced table first (faster, no API quota)
+    const { data: syncedCustomer, error } = await supabase
+      .rpc('get_stripe_customer_by_email', { customer_email: email });
+
+    if (!error && syncedCustomer && syncedCustomer.length > 0) {
+      logStep("Customer loaded from sync table", { email, customerId: syncedCustomer[0].id });
+      return { customerId: syncedCustomer[0].id, fromSync: true };
+    }
+
+    logStep("Customer not in sync table, checking Stripe API", { email });
+  } catch (err) {
+    logStep("Sync table query failed, falling back to API", { error: err });
+  }
+
+  // Fall back to Stripe API
+  const customersResponse = await fetch(
+    `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=1`,
+    {
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  if (!customersResponse.ok) {
+    logStep("Stripe API error during customer lookup", { status: customersResponse.status });
+    return { customerId: null, fromSync: false };
+  }
+
+  const customersData = await customersResponse.json();
+  if (customersData.data.length > 0) {
+    logStep("Customer found via Stripe API", { customerId: customersData.data[0].id });
+    return { customerId: customersData.data[0].id, fromSync: false };
+  }
+
+  return { customerId: null, fromSync: false };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -114,23 +163,24 @@ serve(async (req) => {
     let realUserEmail = userEmail;
     let customerId;
 
+    // Use service role client for synced table access
+    const supabaseService = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
     if (!isWalletUser) {
-      // Check if customer exists using Stripe REST API for regular users
-      const customersResponse = await fetch(`https://api.stripe.com/v1/customers?email=${encodeURIComponent(userEmail)}&limit=1`, {
-        headers: {
-          'Authorization': `Bearer ${stripeKey}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+      // Check if customer exists - try synced table first, fall back to API
+      const { customerId: foundCustomerId, fromSync } = await getCustomerFromSync(
+        supabaseService,
+        userEmail,
+        stripeKey
+      );
 
-      if (!customersResponse.ok) {
-        throw new Error(`Stripe API error: ${customersResponse.status}`);
-      }
-
-      const customersData = await customersResponse.json();
-      if (customersData.data.length > 0) {
-        customerId = customersData.data[0].id;
-        logStep("Existing customer found", { customerId });
+      if (foundCustomerId) {
+        customerId = foundCustomerId;
+        logStep("Existing customer found", { customerId, fromSync });
       } else {
         logStep("No existing customer, will create during checkout");
       }

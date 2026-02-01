@@ -45,16 +45,37 @@ export interface CryptoCheckoutResult extends CheckoutResult {
   };
   payment?: {
     amountUsd: string;
+    required?: number;
+    available?: number;
+    shortfall?: number;
     currency: CryptoCurrency;
     tier: SubscriptionTier;
     billingPeriod: BillingPeriod;
+    transactionHash?: string;
   };
+  subscription?: {
+    status: 'active' | 'pending_payment' | 'past_due';
+    tier: SubscriptionTier;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    nextChargeDate: string;
+  };
+  fundingInstructions?: {
+    message: string;
+    walletAddress: string;
+    onrampUrl: string;
+  };
+  // Legacy fields for compatibility
   instructions?: {
     step1: string;
     step2: string;
     walletAddress: string;
     onrampUrl: string;
   };
+  // Transaction hash for successful payments
+  transactionHash?: string;
+  // Error type for handling specific errors
+  errorType?: 'insufficient_balance' | 'transfer_failed' | 'unknown';
 }
 
 export interface SubscriptionStatus {
@@ -180,23 +201,40 @@ class PaymentService {
         };
       }
 
-      if (!data?.success) {
+      // Handle insufficient balance (402 Payment Required)
+      if (data?.error === 'insufficient_balance') {
+        console.log('[PaymentService] Insufficient balance:', data);
         return {
           success: false,
-          error: data?.error || 'Failed to create crypto subscription',
+          error: data.message || 'Insufficient USDC balance',
+          errorType: 'insufficient_balance',
+          wallet: data.wallet,
+          walletAddress: data.wallet?.address,
+          payment: data.payment,
+          fundingInstructions: data.fundingInstructions,
           provider: 'crossmint',
         };
       }
 
-      console.log('[PaymentService] Crypto checkout created:', data);
+      if (!data?.success) {
+        return {
+          success: false,
+          error: data?.error || data?.message || 'Failed to create crypto subscription',
+          errorType: 'unknown',
+          provider: 'crossmint',
+        };
+      }
+
+      console.log('[PaymentService] Crypto checkout successful:', data);
       return {
         success: true,
         subscriptionId: data.subscriptionId,
+        transactionHash: data.transactionHash,
         walletAddress: data.wallet?.address,
         wallet: data.wallet,
         payment: data.payment,
-        instructions: data.instructions,
-        url: data.instructions?.onrampUrl, // For compatibility
+        subscription: data.subscription,
+        url: data.fundingInstructions?.onrampUrl, // For compatibility
         provider: 'crossmint',
       };
     } catch (error: unknown) {

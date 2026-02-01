@@ -1,57 +1,100 @@
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Crown, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle, Crown, ArrowRight, Home, Wallet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SubscriptionDetails {
+  tier: string;
+  provider: 'stripe' | 'crossmint';
+  status: string;
+}
+
 const SubscriptionSuccess = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Determine if this is a crypto payment
+  const isCrypto = searchParams.get('crypto') === 'true';
+  const subscriptionId = searchParams.get('subscription_id');
+  const sessionId = searchParams.get('session_id');
 
   // Process subscription verification when user lands on success page
   useEffect(() => {
     const processSubscriptionSuccess = async () => {
       if (!user) return;
-      
-      // Get session ID from URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session_id');
-      
-      if (!sessionId) {
-        console.log('No session ID found in URL');
-        return;
-      }
-      
+
+      setIsLoading(true);
+
       try {
-        console.log('Processing subscription verification for session:', sessionId);
-        
-        // Call our verify-subscription function to link wallet to email and update records
-        const { data, error } = await supabase.functions.invoke('verify-subscription', {
-          body: { sessionId, userId: user.id }
-        });
-        
-        if (error) {
-          console.error('Error verifying subscription:', error);
-          toast.error('Failed to verify subscription. Please contact support.');
-        } else {
-          console.log('Subscription verified:', data);
-          if (data?.subscribed) {
-            toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
+        if (isCrypto && subscriptionId) {
+          // Handle crypto subscription verification
+          console.log('Processing crypto subscription:', subscriptionId);
+
+          // Query the crypto_subscriptions table for details
+          const { data: cryptoSub, error: cryptoError } = await supabase
+            .from('crypto_subscriptions')
+            .select('tier, status, current_period_start, current_period_end')
+            .eq('id', subscriptionId)
+            .single();
+
+          if (cryptoError) {
+            console.error('Error fetching crypto subscription:', cryptoError);
+            toast.error('Failed to verify subscription. Please contact support.');
+          } else if (cryptoSub) {
+            console.log('Crypto subscription verified:', cryptoSub);
+            setSubscriptionDetails({
+              tier: cryptoSub.tier,
+              provider: 'crossmint',
+              status: cryptoSub.status
+            });
+
+            if (cryptoSub.status === 'active') {
+              toast.success(`Welcome to ${cryptoSub.tier}! Your crypto subscription is now active.`);
+            }
           }
+        } else if (sessionId) {
+          // Handle Stripe subscription verification
+          console.log('Processing Stripe subscription verification for session:', sessionId);
+
+          const { data, error } = await supabase.functions.invoke('verify-subscription', {
+            body: { sessionId, userId: user.id }
+          });
+
+          if (error) {
+            console.error('Error verifying subscription:', error);
+            toast.error('Failed to verify subscription. Please contact support.');
+          } else {
+            console.log('Stripe subscription verified:', data);
+            if (data?.subscribed) {
+              setSubscriptionDetails({
+                tier: data.subscription_tier,
+                provider: 'stripe',
+                status: 'active'
+              });
+              toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
+            }
+          }
+        } else {
+          console.log('No session ID or subscription ID found in URL');
         }
-        
       } catch (error) {
         console.error('Failed to process subscription:', error);
         toast.error('Failed to process subscription. Please contact support.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     processSubscriptionSuccess();
-  }, [user]);
+  }, [user, isCrypto, subscriptionId, sessionId]);
 
   const handleGoToAccount = () => {
     navigate('/account');
@@ -61,23 +104,48 @@ const SubscriptionSuccess = () => {
     navigate('/dashboard');
   };
 
+  // Show loading state while verifying
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+        <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
+          <CardContent className="py-12 text-center">
+            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+            <p className="text-gray-300">Verifying your subscription...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
       <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-8 h-8 text-green-400" />
+          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+            isCrypto ? 'bg-purple-600/20' : 'bg-green-600/20'
+          }`}>
+            {isCrypto ? (
+              <Wallet className="w-8 h-8 text-purple-400" />
+            ) : (
+              <CheckCircle className="w-8 h-8 text-green-400" />
+            )}
           </div>
           <CardTitle className="text-2xl text-white flex items-center justify-center gap-2">
             <Crown className="w-6 h-6 text-yellow-400" />
             Subscription Activated!
           </CardTitle>
+          {subscriptionDetails && (
+            <p className="text-sm text-gray-400 mt-2">
+              {subscriptionDetails.tier} Plan • Paid with {isCrypto ? 'USDC' : 'Card'}
+            </p>
+          )}
         </CardHeader>
 
         <CardContent className="space-y-6 text-center">
           <div className="space-y-2">
             <p className="text-gray-300">
-              Thank you for subscribing to BlockDrive! Your payment has been processed successfully.
+              Thank you for subscribing to BlockDrive! Your {isCrypto ? 'crypto ' : ''}payment has been processed successfully.
             </p>
             <p className="text-sm text-gray-400">
               Your subscription is now active and you have access to all premium features.
@@ -90,20 +158,31 @@ const SubscriptionSuccess = () => {
               <li>• Access your enhanced storage limits</li>
               <li>• Explore advanced blockchain features</li>
               <li>• Manage your subscription in Account settings</li>
+              {isCrypto && <li>• Your USDC will be automatically charged for renewals</li>}
               <li>• Contact support if you need assistance</li>
             </ul>
           </div>
 
+          {isCrypto && (
+            <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-4">
+              <h4 className="text-purple-400 font-medium mb-2">Crypto Subscription Info</h4>
+              <p className="text-sm text-purple-300 text-left">
+                Your subscription is paid with USDC from your Crossmint wallet.
+                Make sure to keep sufficient USDC balance for automatic renewals.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <Button
               onClick={handleGoToAccount}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className={`w-full ${isCrypto ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               <Crown className="w-4 h-4 mr-2" />
               View Subscription Details
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-            
+
             <Button
               onClick={handleGoToDashboard}
               variant="outline"
@@ -115,7 +194,10 @@ const SubscriptionSuccess = () => {
           </div>
 
           <p className="text-xs text-gray-500">
-            You will receive an email confirmation from Stripe shortly.
+            {isCrypto
+              ? 'Your payment has been recorded on the Solana blockchain.'
+              : 'You will receive an email confirmation from Stripe shortly.'
+            }
           </p>
         </CardContent>
       </Card>

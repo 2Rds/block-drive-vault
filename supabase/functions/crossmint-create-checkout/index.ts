@@ -4,16 +4,17 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Crossmint Create Checkout
- * 
+ *
  * Purpose: Create a crypto subscription checkout using Crossmint embedded wallets.
  * This replaces Helio/MoonPay with Crossmint's compliant infrastructure.
- * 
- * Flow:
+ *
+ * Flow (Immediate Payment Required):
  * 1. Validate user and tier
  * 2. Get/create user's Crossmint embedded wallet
- * 3. Create crypto_subscription record
- * 4. Return wallet info for funding
- * 
+ * 3. Check wallet USDC balance
+ * 4. If sufficient: Execute transfer to treasury and create subscription
+ * 5. If insufficient: Return error with funding instructions (no subscription created)
+ *
  * Note: Crossmint handles gas sponsorship - users don't need SOL for fees.
  */
 
@@ -32,6 +33,10 @@ const TIER_PRICING: Record<string, Record<string, number>> = {
   Scale: { monthly: 2900, quarterly: 7900, yearly: 29900 }, // per seat
   Enterprise: { monthly: 0, quarterly: 0, yearly: 0 }, // Custom pricing
 };
+
+// BlockDrive Treasury Wallet (receives subscription payments)
+const TREASURY_WALLET = Deno.env.get("CROSSMINT_TREASURY_WALLET") ||
+  "GABYjW8LgkLBTFzkJSzTFZGnuZbZaw36xcDv6cVFRg2y";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -144,7 +149,106 @@ serve(async (req) => {
       }
     }
 
-    // Step 3: Calculate billing dates
+    // Step 3: Check wallet balance
+    const walletIdentifier = walletId || `solana:${walletAddress}`;
+    logStep("Checking wallet balance", { walletIdentifier });
+
+    const balanceResponse = await fetch(
+      `${crossmintBaseUrl}/v1-alpha2/wallets/${walletIdentifier}/balances`,
+      {
+        headers: {
+          "X-API-KEY": crossmintApiKey,
+        },
+      }
+    );
+
+    let availableBalance = 0;
+    const requiredAmountUsd = amountUsdCents / 100;
+
+    if (balanceResponse.ok) {
+      const balances = await balanceResponse.json();
+      logStep("Wallet balances retrieved", balances);
+
+      // Find USDC balance
+      const usdcBalance = balances.find((b: { token: string }) =>
+        b.token === 'usdc' || b.token === 'USDC' || b.token.includes('usdc')
+      );
+      availableBalance = parseFloat(usdcBalance?.amount || '0');
+    } else {
+      logStep("Could not fetch balance, assuming 0", { status: balanceResponse.status });
+    }
+
+    logStep("Balance check", { required: requiredAmountUsd, available: availableBalance });
+
+    // Step 4: Check if balance is sufficient
+    if (availableBalance < requiredAmountUsd) {
+      // Insufficient balance - return error with funding instructions
+      logStep("Insufficient balance", { required: requiredAmountUsd, available: availableBalance });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "insufficient_balance",
+          message: `Insufficient USDC balance. You have $${availableBalance.toFixed(2)}, but need $${requiredAmountUsd.toFixed(2)}.`,
+          wallet: {
+            address: walletAddress,
+            chain: 'solana',
+            provider: 'crossmint',
+          },
+          payment: {
+            required: requiredAmountUsd,
+            available: availableBalance,
+            shortfall: requiredAmountUsd - availableBalance,
+            currency: paymentCurrency,
+            tier,
+            billingPeriod,
+          },
+          fundingInstructions: {
+            message: `Please fund your wallet with at least $${(requiredAmountUsd - availableBalance).toFixed(2)} more in USDC`,
+            walletAddress,
+            onrampUrl: `https://www.crossmint.com/user/collection?wallet=${walletAddress}`,
+          },
+        }),
+        {
+          status: 402, // Payment Required
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Step 5: Execute transfer to treasury
+    logStep("Sufficient balance, executing transfer to treasury");
+
+    const transferResponse = await fetch(
+      `${crossmintBaseUrl}/v1-alpha2/wallets/${walletIdentifier}/transactions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": crossmintApiKey,
+        },
+        body: JSON.stringify({
+          type: "transfer",
+          params: {
+            to: TREASURY_WALLET,
+            token: "usdc",
+            amount: requiredAmountUsd.toString(),
+          },
+        }),
+      }
+    );
+
+    if (!transferResponse.ok) {
+      const errorText = await transferResponse.text();
+      logStep("Transfer failed", { error: errorText });
+      throw new Error(`Payment transfer failed: ${errorText}`);
+    }
+
+    const transferResult = await transferResponse.json();
+    const txHash = transferResult.transactionHash || transferResult.id;
+    logStep("Transfer successful", { txHash });
+
+    // Step 6: Calculate billing dates
     const now = new Date();
     const periodEnd = new Date(now);
     switch (billingPeriod) {
@@ -159,7 +263,7 @@ serve(async (req) => {
         break;
     }
 
-    // Step 4: Create crypto subscription record
+    // Step 7: Create crypto subscription record (now with status='active' after payment)
     const { data: subscription, error: subError } = await supabaseService
       .from('crypto_subscriptions')
       .insert({
@@ -171,9 +275,12 @@ serve(async (req) => {
         billing_period: billingPeriod,
         amount_usd_cents: amountUsdCents,
         payment_currency: paymentCurrency,
+        last_payment_amount: requiredAmountUsd,
+        last_payment_currency: paymentCurrency,
+        last_payment_tx_hash: txHash,
         current_period_start: now.toISOString(),
         current_period_end: periodEnd.toISOString(),
-        next_charge_date: now.toISOString(), // First charge is immediate
+        next_charge_date: periodEnd.toISOString(), // Next charge at period end
         status: 'active',
       })
       .select()
@@ -181,40 +288,57 @@ serve(async (req) => {
 
     if (subError) {
       logStep("Failed to create subscription record", subError);
-      throw new Error(`Failed to create subscription: ${subError.message}`);
+      // Payment succeeded but DB insert failed - log for manual reconciliation
+      throw new Error(`Subscription record failed after payment. TX: ${txHash}. Error: ${subError.message}`);
     }
 
-    logStep("Subscription record created", { subscriptionId: subscription.id });
+    logStep("Subscription created successfully", { subscriptionId: subscription.id, txHash });
 
-    // Step 5: Generate funding instructions
-    // For crypto, user needs to fund their wallet, then we'll process the payment
-    const amountUsd = (amountUsdCents / 100).toFixed(2);
+    // Step 8: Record payment in history
+    await supabaseService
+      .from('crypto_payment_history')
+      .insert({
+        crypto_subscription_id: subscription.id,
+        user_id: profile?.id,
+        amount_usd_cents: amountUsdCents,
+        amount_crypto: requiredAmountUsd,
+        crypto_currency: paymentCurrency,
+        tx_hash: txHash,
+        from_wallet: walletAddress,
+        to_wallet: TREASURY_WALLET,
+        chain: 'solana',
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      });
 
-    // Return checkout info
+    logStep("Payment history recorded");
+
+    // Return success response
     return new Response(
       JSON.stringify({
         success: true,
         subscriptionId: subscription.id,
+        transactionHash: txHash,
         wallet: {
           address: walletAddress,
           chain: 'solana',
           provider: 'crossmint',
         },
         payment: {
-          amountUsd,
+          amountUsd: requiredAmountUsd.toFixed(2),
           amountUsdCents,
           currency: paymentCurrency,
           tier,
           billingPeriod,
+          transactionHash: txHash,
         },
-        instructions: {
-          step1: `Fund your wallet with at least $${amountUsd} in ${paymentCurrency}`,
-          step2: "Once funded, your subscription will be activated automatically",
-          walletAddress,
-          // If using onramp, this URL would open Crossmint's onramp
-          onrampUrl: `https://www.crossmint.com/user/collection?wallet=${walletAddress}`,
+        subscription: {
+          status: 'active',
+          tier,
+          currentPeriodStart: now.toISOString(),
+          currentPeriodEnd: periodEnd.toISOString(),
+          nextChargeDate: periodEnd.toISOString(),
         },
-        nextChargeDate: periodEnd.toISOString(),
       }),
       {
         status: 200,
