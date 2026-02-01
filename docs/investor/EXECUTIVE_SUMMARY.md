@@ -1,51 +1,74 @@
 # BlockDrive
 
-## The Document Infrastructure Layer for Institutional Tokenization
+## Enterprise Cloud Storage for the New Internet
 
 ---
 
 ## One-Liner
 
-Encrypted document management with embedded finance—stablecoin payments, yield, and enterprise compliance—for the tokenization of traditional finance.
+The first breach-proof cloud storage platform where files never exist in complete form—anywhere. Bridging Web2 reliability with Web3 sovereignty.
 
 ---
 
 ## The Problem
 
-The global financial system is migrating to blockchain rails. Tokenized securities, on-chain funds, and digital assets are proliferating. Every one of these products requires:
+Current cloud storage forces an impossible choice:
 
-- Legal documents (prospectuses, agreements, disclosures)
-- Compliance records (KYC/AML verification, accreditation)
-- Audit trails (regulatory reporting, immutable records)
-- Settlement infrastructure (payments, distributions)
+**Centralized (Dropbox, Google Drive, Box)**
+- Provider can access your files
+- Vulnerable to breaches (they have complete files)
+- Government subpoenas, data mining, service termination
+- No true deletion (backups persist indefinitely)
 
-**Current solutions are fragmented.** Cloud storage lacks financial integration. Crypto infrastructure lacks document management. Enterprises are forced to stitch together 5-10 vendors for basic workflows.
+**Decentralized (Storj, Sia, Filecoin)**
+- Files are distributed but still reconstructible
+- Nodes can attempt reassembly
+- Provider maintains file maps
+- Privacy is architectural theater, not mathematical guarantee
 
----
-
-## The Solution
-
-BlockDrive unifies what others separate:
-
-| Layer | Capability |
-|-------|------------|
-| **Documents** | Military-grade encryption, blockchain-verified integrity, scalable storage |
-| **Finance** | Stablecoin payments, 3-4% yield on deposits, on/off ramps |
-| **Compliance** | Pre-licensed AML/KYC, travel-rule compliance, full audit trails |
-
-One platform. One integration. Enterprise-ready.
+**Neither offers true privacy.** Both store complete files somewhere.
 
 ---
 
-## Why Now
+## The Solution: Programmed Incompleteness
 
-**Regulatory Clarity:** SEC approving crypto ETFs, stablecoin legislation advancing, tokenization frameworks maturing.
+BlockDrive introduces a fundamentally new architecture where **files never exist in complete, usable form on any system**—public or private.
 
-**Institutional Adoption:** Major asset managers actively building on-chain. The market validators are already moving.
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Encrypted file chunks (minus 16 bytes) | Filebase/IPFS | Bulk storage, completely unusable alone |
+| Critical 16 bytes + ZK proof | Cloudflare R2 | Cryptographically protected, verifiable |
+| Commitment hash | Solana blockchain | On-chain verification, immutable |
+| Decryption keys | User's wallet only | Never transmitted, never stored |
 
-**Infrastructure Readiness:** Enterprise-grade tools (Crossmint, Circle, Solana) have reached maturity. The technical foundation exists.
+**Result:** Even if every storage provider is breached simultaneously, attackers get cryptographic garbage. Only the wallet holder can reconstruct files.
 
-**Gap in Market:** No one is building document infrastructure for tokenized finance. We're creating the category.
+---
+
+## Why This Matters
+
+**True Deletion:** Invalidate the on-chain commitment → file becomes permanently irreconstructible.
+
+**Breach-Proof by Design:** No complete file exists anywhere to breach.
+
+**Zero Trust on Storage:** Use enterprise-grade centralized storage (R2's 99.99% uptime) without trusting it with data.
+
+**Regulatory Compliance:** Immutable audit trails on blockchain, true data sovereignty.
+
+---
+
+## The Hybrid Multi-Cloud Architecture
+
+BlockDrive bridges Web2 and Web3 infrastructure:
+
+| Layer | Web2 Component | Web3 Component | Why Both |
+|-------|---------------|----------------|----------|
+| **Storage** | Cloudflare R2 (reliability) | IPFS/Filebase (distribution) | Enterprise SLAs + decentralization |
+| **Verification** | — | Solana blockchain | Immutable commitments |
+| **Proofs** | R2 (primary) | IPFS (backup) | Resilience + accessibility |
+| **Payments** | Stripe (fiat) | Stablecoin (crypto) | Universal accessibility |
+
+This is **enterprise cloud storage for the new internet**—the best of both worlds.
 
 ---
 
@@ -53,10 +76,11 @@ One platform. One integration. Enterprise-ready.
 
 | Milestone | Status |
 |-----------|--------|
-| Core encryption architecture | Complete |
-| Blockchain scalability (1000+ files/user) | Complete |
+| Core encryption architecture (Programmed Incompleteness) | Complete |
+| Multi-PDA sharding (25,500 files/user) | Complete |
 | Gasless transaction infrastructure | Complete |
-| Embedded finance integration | In progress |
+| Open-source recovery SDK | Complete |
+| Unified payment infrastructure | In progress |
 | Enterprise pilot | Target Q2 2026 |
 
 ---
@@ -65,18 +89,18 @@ One platform. One integration. Enterprise-ready.
 
 | Revenue Stream | Description |
 |----------------|-------------|
-| SaaS Subscriptions | Tiered pricing (Free → Enterprise) |
-| Transaction Fees | % of stablecoin settlements |
-| Yield Spread | Margin on DeFi yield |
-| Enterprise Licensing | White-label deployments |
+| SaaS Subscriptions | Tiered: Basic ($10), Pro ($20), Premium ($50) |
+| Enterprise Licensing | White-label, multi-tenant deployments |
+| Storage Fees | Per-GB on premium tiers |
+| Future: Financial Services | Embedded finance layer (Phase 2) |
 
 ---
 
 ## Competitive Position
 
-**No direct competitor** combines encrypted document management with embedded finance and enterprise compliance.
+**No direct competitor** has solved the "complete file problem." 
 
-Adjacent players (Dropbox, Box, Google Drive) lack financial integration. Crypto infrastructure (Fireblocks, Crossmint) lacks document focus. We occupy a unique intersection.
+Every other storage solution—centralized or decentralized—stores complete files somewhere. BlockDrive is the first architecture where complete files never exist.
 
 ---
 
@@ -89,20 +113,20 @@ Adjacent players (Dropbox, Box, Google Drive) lack financial integration. Crypto
 ## The Ask
 
 Raising seed round to:
-1. Complete embedded finance integration
-2. Achieve SOC-2 certification
-3. Launch enterprise pilot program
+1. Complete enterprise features
+2. Launch pilot program with institutional customers
+3. Achieve SOC-2 certification
 4. Expand engineering team
 
 ---
 
 ## Why BlockDrive Wins
 
-Every tokenized security needs compliant document infrastructure.  
-Every on-chain fund needs encrypted, auditable storage.  
-Every institutional crypto product needs integrated settlements.
+Every enterprise needs cloud storage.  
+Every enterprise fears data breaches.  
+We're the first solution where breaches are architecturally impossible.
 
-**We're building the document layer for the next financial system.**
+**Enterprise cloud storage for the new internet.**
 
 ---
 

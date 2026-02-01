@@ -1,467 +1,570 @@
 # BlockDrive Technical Architecture
 
-**Enterprise-Grade Document Infrastructure for the Tokenization Era**
+**Programmed Incompleteness: A New Paradigm in Data Security**
 
 ---
 
 ## Architecture Philosophy
 
-BlockDrive is built on three core principles:
+BlockDrive is built on a single, radical premise:
 
-1. **Security by Design** — Encryption and access control at every layer
-2. **Composability** — Modular architecture that integrates with existing enterprise systems
-3. **Compliance-First** — Audit trails, regulatory compliance, and institutional-grade controls
+**Files should never exist in complete, usable form on any system—public or private.**
 
----
-
-## System Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐ │
-│  │ Web App      │  │ Mobile Apps  │  │ Desktop App  │  │ Enterprise SDK   │ │
-│  │ (React/Next) │  │ (React Nat.) │  │ (Electron)   │  │ (TypeScript)     │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           API GATEWAY LAYER                                  │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ Supabase Edge Functions (Deno Runtime)                                │   │
-│  │ • Authentication & Authorization                                       │   │
-│  │ • Rate Limiting & DDoS Protection                                     │   │
-│  │ • Request Routing & Load Balancing                                    │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-│   DOCUMENT LAYER      │ │   FINANCIAL LAYER     │ │   IDENTITY LAYER      │
-│                       │ │                       │ │                       │
-│ • Encryption Engine   │ │ • Crossmint Wallets   │ │ • Clerk Auth          │
-│ • Storage Orchestr.   │ │ • Payment Processing  │ │ • Session Management  │
-│ • Access Control      │ │ • Yield Integration   │ │ • MFA/Passkeys        │
-│ • Audit Logging       │ │ • Treasury Ops        │ │ • Enterprise SSO      │
-└───────────────────────┘ └───────────────────────┘ └───────────────────────┘
-          │                         │                         │
-          ▼                         ▼                         ▼
-┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-│   STORAGE LAYER       │ │   BLOCKCHAIN LAYER    │ │   DATA LAYER          │
-│                       │ │                       │ │                       │
-│ • Cloudflare R2       │ │ • Solana (Metadata)   │ │ • Supabase PostgreSQL │
-│   (Primary Storage)   │ │ • Arweave (Permanent) │ │   (User Data)         │
-│ • Arweave             │ │ • Multi-Chain Support │ │ • Stripe Sync Engine  │
-│   (Permanence)        │ │   (EVM via Crossmint) │ │   (Billing Data)      │
-└───────────────────────┘ └───────────────────────┘ └───────────────────────┘
-```
+This is not encryption. Encryption protects files that exist. Programmed Incompleteness ensures complete files **never exist**.
 
 ---
 
-## 1. Document Layer: "Programmed Incompleteness"
+## 1. The Core Innovation: Programmed Incompleteness
 
-### Encryption Architecture
+### The Fundamental Problem
 
-BlockDrive implements a proprietary encryption scheme called **"Programmed Incompleteness"** — a defense-in-depth approach where no single system holds enough information to decrypt user data.
+Every existing storage solution has the same vulnerability:
+
+```
+TRADITIONAL ARCHITECTURE:
+┌─────────────┐     ┌─────────────────────┐
+│  User File  │ ──▶ │  Complete File      │ ◀── ATTACK SURFACE
+│             │     │  (Encrypted or not) │
+└─────────────┘     │  STORED SOMEWHERE   │
+                    └─────────────────────┘
+```
+
+Whether centralized (Dropbox) or decentralized (Storj), whether encrypted or not—**complete files exist somewhere**. This creates an irreducible attack surface.
+
+### The BlockDrive Solution
+
+```
+PROGRAMMED INCOMPLETENESS:
+┌─────────────┐     ┌─────────────────────┐     ┌──────────────────┐
+│  User File  │ ──▶ │  Encrypted File     │ ──▶ │  INCOMPLETE      │
+│             │     │  (AES-256-GCM)      │     │  Encrypted File  │
+└─────────────┘     └─────────────────────┘     │  (Missing 16B)   │
+                              │                  └──────────────────┘
+                              │                           │
+                              ▼                           ▼
+                    ┌─────────────────┐         ┌─────────────────┐
+                    │  16 Critical    │         │   FILEBASE/IPFS │
+                    │  Bytes Extracted│         │                 │
+                    └─────────────────┘         │   CRYPTOGRAPHIC │
+                              │                 │   GARBAGE       │
+                              ▼                 └─────────────────┘
+                    ┌─────────────────┐
+                    │  ZK Proof +     │
+                    │  Encrypted 16B  │ ──▶ CLOUDFLARE R2
+                    │  + Commitment   │
+                    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │  SOLANA         │
+                    │  Commitment Hash│ ──▶ IMMUTABLE VERIFICATION
+                    │  + Metadata CID │
+                    └─────────────────┘
+```
+
+**Result:** No single system—or even all systems combined—contains enough information to reconstruct the file.
+
+---
+
+## 2. Cryptographic Architecture
+
+### Key Derivation
+
+BlockDrive exploits wallet-based authentication as a cryptographic identity:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      ENCRYPTION FLOW                                         │
+│                        KEY DERIVATION SYSTEM                                 │
 │                                                                              │
-│   ┌──────────┐    ┌─────────────────┐    ┌──────────────────────────────┐  │
-│   │  File    │───▶│  AES-256-GCM    │───▶│  Encrypted File               │  │
-│   │          │    │  Encryption     │    │  (Stored in R2)               │  │
-│   └──────────┘    └─────────────────┘    └──────────────────────────────┘  │
-│                           │                                                  │
-│                           ▼                                                  │
-│                   ┌───────────────┐                                         │
-│                   │  32-Byte Key  │                                         │
-│                   └───────────────┘                                         │
-│                           │                                                  │
-│              ┌────────────┴────────────┐                                    │
-│              ▼                         ▼                                    │
-│   ┌──────────────────┐     ┌──────────────────┐                            │
-│   │  First 16 Bytes  │     │  Last 16 Bytes   │                            │
-│   │  (Solana PDA)    │     │  (User Device)   │                            │
-│   └──────────────────┘     └──────────────────┘                            │
+│   USER WALLET                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  Private Key (never leaves device)                                   │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                         │
+│                    Signs three specific messages                            │
+│                                    │                                         │
+│              ┌─────────────────────┼─────────────────────┐                  │
+│              ▼                     ▼                     ▼                  │
+│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
+│   │ "BlockDrive      │  │ "BlockDrive      │  │ "BlockDrive      │        │
+│   │  Security L1"    │  │  Security L2"    │  │  Security L3"    │        │
+│   └──────────────────┘  └──────────────────┘  └──────────────────┘        │
+│              │                     │                     │                  │
+│              ▼                     ▼                     ▼                  │
+│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
+│   │  Signature 1     │  │  Signature 2     │  │  Signature 3     │        │
+│   └──────────────────┘  └──────────────────┘  └──────────────────┘        │
+│              │                     │                     │                  │
+│              └─────────────────────┼─────────────────────┘                  │
+│                                    │                                         │
+│                         Key Derivation Function (KDF)                       │
+│                                    │                                         │
+│              ┌─────────────────────┼─────────────────────┐                  │
+│              ▼                     ▼                     ▼                  │
+│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
+│   │  AES-256 Key L1  │  │  AES-256 Key L2  │  │  AES-256 Key L3  │        │
+│   │  (Standard)      │  │  (Sensitive)     │  │  (Critical)      │        │
+│   └──────────────────┘  └──────────────────┘  └──────────────────┘        │
 │                                                                              │
-│   KEY RECONSTRUCTION: Both halves required for decryption                   │
+│   PROPERTIES:                                                                │
+│   • Deterministic: Same wallet + same message = same key, always           │
+│   • Never transmitted: Keys derived client-side only                        │
+│   • Never stored: Regenerated on-demand from wallet signatures              │
+│   • Three security levels: User chooses per-file sensitivity               │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Properties
-
-| Property | Implementation |
-|----------|----------------|
-| **Algorithm** | AES-256-GCM (authenticated encryption) |
-| **Key Size** | 256 bits (32 bytes) |
-| **IV/Nonce** | Unique per file, stored with metadata |
-| **Key Split** | 50/50 split between blockchain and client |
-| **Key Storage** | On-chain (16 bytes) + Client device (16 bytes) |
-
-### Security Guarantees
-
-1. **BlockDrive Compromise** → Attacker gets encrypted blobs, no keys
-2. **Blockchain Compromise** → Attacker gets half-keys, useless without client portion
-3. **Client Device Compromise** → Attacker gets half-keys, useless without on-chain portion
-4. **Coordinated Compromise** → All three systems must be breached simultaneously
-
----
-
-## 2. Blockchain Layer: Multi-PDA Sharding
-
-### Scalability Challenge
-
-Solana PDAs have account size limits. Storing 1000+ files per user requires architectural innovation.
-
-### Solution: Sharded Vault Architecture
+### The 16-Byte Extraction Process
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        USER VAULT HIERARCHY                                  │
+│                       16-BYTE EXTRACTION                                     │
+│                                                                              │
+│   ENCRYPTED FILE (after AES-256-GCM encryption)                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │ [16 BYTES] [REST OF ENCRYPTED FILE................................] │   │
+│   │     ▲                          ▲                                     │   │
+│   │     │                          │                                     │   │
+│   │  CRITICAL                   INCOMPLETE                               │   │
+│   │  EXTRACTED                  UPLOADED TO STORAGE                      │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   THE CRITICAL 16 BYTES:                                                    │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  1. Hash generated (SHA-256) → COMMITMENT                           │   │
+│   │  2. ZK proof generated → Proves possession without revealing        │   │
+│   │  3. Encrypted with wallet-derived key                               │   │
+│   │  4. Embedded in ZK proof structure                                  │   │
+│   │  5. Stored on Cloudflare R2 (reliability)                          │   │
+│   │  6. Commitment hash stored on Solana (verification)                 │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   WITHOUT THE 16 BYTES:                                                     │
+│   • File cannot be decrypted (AES-256 requires complete ciphertext)        │
+│   • No mathematical attack can recover them from incomplete file           │
+│   • Even with decryption key, incomplete file = garbage                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Zero-Knowledge Proof Integration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      ZERO-KNOWLEDGE PROOF SYSTEM                             │
+│                                                                              │
+│   THE PROOF DEMONSTRATES:                                                    │
+│   "I possess 16 bytes that, hashed, produce this commitment—                │
+│    without revealing what those bytes are."                                  │
 │                                                                              │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                      USER VAULT MASTER                               │   │
-│   │  PDA Seeds: ["vault_master", user_pubkey]                           │   │
+│   │                         ZK PROOF STRUCTURE                           │   │
 │   │                                                                      │   │
-│   │  • total_file_count: u64                                            │   │
-│   │  • active_shard_index: u8                                           │   │
-│   │  • shard_pointers: [Pubkey; MAX_SHARDS]                            │   │
+│   │  • Mathematical proof of 16-byte possession                         │   │
+│   │  • Encrypted 16 bytes (only wallet holder can decrypt)              │   │
+│   │  • Commitment verification data                                      │   │
+│   │  • Timestamp and file metadata references                           │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   VERIFICATION FLOW:                                                         │
+│   1. Anyone can verify proof is mathematically valid ✓                      │
+│   2. Anyone can confirm proof matches on-chain commitment ✓                 │
+│   3. NO ONE can extract 16 bytes without wallet key ✗                       │
+│                                                                              │
+│   STORAGE:                                                                   │
+│   • Primary: Cloudflare R2 (enterprise reliability)                         │
+│   • Backup: IPFS (decentralized resilience)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Multi-Provider Storage Architecture
+
+### The Hybrid Multi-Cloud Design
+
+BlockDrive strategically distributes data across providers based on criticality:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MULTI-PROVIDER STORAGE STRATEGY                           │
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  TIER 1: BULK ENCRYPTED DATA                                         │   │
+│   │  Location: Filebase / IPFS                                           │   │
+│   │                                                                      │   │
+│   │  • Encrypted file chunks (MINUS 16 bytes)                           │   │
+│   │  • Distributed across decentralized network                         │   │
+│   │  • Content-addressed (CID)                                           │   │
+│   │  • Censorship-resistant                                              │   │
+│   │                                                                      │   │
+│   │  Security: COMPLETELY USELESS without the 16 bytes                  │   │
+│   │  Even on centralized storage, privacy is maintained                 │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  TIER 2: CRITICAL RECOVERY DATA                                      │   │
+│   │  Location: Cloudflare R2 (Primary) + IPFS (Backup)                  │   │
+│   │                                                                      │   │
+│   │  • Zero-knowledge proofs                                             │   │
+│   │  • Encrypted 16 bytes (embedded in proofs)                          │   │
+│   │  • 99.99% SLA (R2)                                                   │   │
+│   │                                                                      │   │
+│   │  Security: Encrypted with wallet-derived key                        │   │
+│   │  Useless without wallet signature                                   │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  TIER 3: VERIFICATION LAYER                                          │   │
+│   │  Location: Solana Blockchain                                         │   │
+│   │                                                                      │   │
+│   │  • Commitment hashes (SHA-256 of 16 bytes)                          │   │
+│   │  • Encrypted metadata CIDs                                           │   │
+│   │  • File status (active/deleted)                                      │   │
+│   │  • Immutable audit trail                                             │   │
+│   │                                                                      │   │
+│   │  Security: One-way hash, cannot reverse to obtain 16 bytes          │   │
+│   │  Immutable, publicly verifiable                                      │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   TIER 4: PERMANENT ARCHIVAL (Optional)                                     │
+│   Location: Arweave                                                          │
+│   • 200+ year data persistence guarantee                                    │
+│   • One-time payment model                                                   │
+│   • For critical/legal documents requiring permanence                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Hybrid Approach Works
+
+| Concern | How BlockDrive Addresses It |
+|---------|----------------------------|
+| **"R2 is centralized, Cloudflare could access data"** | They only have encrypted 16 bytes + proofs. Useless without wallet. |
+| **"IPFS nodes could collude"** | They only have incomplete files. Missing 16 bytes = garbage. |
+| **"Solana could be compromised"** | Only commitment hashes exist on-chain. One-way, irreversible. |
+| **"What if all three are breached?"** | Still useless. Wallet key never leaves user device. |
+
+---
+
+## 4. Blockchain Architecture (Solana)
+
+### Why Solana
+
+| Requirement | Solana Capability |
+|-------------|-------------------|
+| Speed | ~400ms finality (user expects instant) |
+| Cost | ~$0.001 per transaction (economically sustainable) |
+| Scalability | 65,000 TPS theoretical (no bottleneck) |
+| Ecosystem | Mature wallets, DEXs, institutional adoption |
+
+### Program Derived Addresses (PDAs)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PDA ARCHITECTURE                                      │
+│                                                                              │
+│   USER WALLET ADDRESS                                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  E.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU                 │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                         │
+│                    Deterministic derivation                                  │
+│                    (always same result for same input)                      │
+│                                    │                                         │
+│                                    ▼                                         │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                      USER VAULT MASTER PDA                           │   │
+│   │  Seeds: ["vault_master", user_pubkey]                               │   │
+│   │                                                                      │   │
+│   │  Contains:                                                           │   │
+│   │  • Authority (owner wallet)                                          │   │
+│   │  • Total file count                                                  │   │
+│   │  • Storage used (bytes)                                              │   │
+│   │  • Pointers to shard PDAs                                           │   │
+│   │  • Creation timestamp                                                │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                         │
 │              ┌─────────────────────┼─────────────────────┐                  │
 │              ▼                     ▼                     ▼                  │
 │   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
-│   │ SHARD 0          │  │ SHARD 1          │  │ SHARD N          │        │
+│   │ SHARD 0 PDA      │  │ SHARD 1 PDA      │  │ SHARD N PDA      │        │
 │   │ (100 files max)  │  │ (100 files max)  │  │ (100 files max)  │        │
 │   │                  │  │                  │  │                  │        │
-│   │ file_records:    │  │ file_records:    │  │ file_records:    │        │
-│   │ [Pubkey; 100]    │  │ [Pubkey; 100]    │  │ [Pubkey; 100]    │        │
+│   │ FileRecord[]     │  │ FileRecord[]     │  │ FileRecord[]     │        │
 │   └──────────────────┘  └──────────────────┘  └──────────────────┘        │
-│              │                     │                     │                  │
-│              ▼                     ▼                     ▼                  │
-│   ┌──────────────────────────────────────────────────────────────────────┐ │
-│   │                         FILE RECORD PDAs                              │ │
-│   │  • file_id, owner, filename, size, encrypted_key_half, timestamps   │ │
-│   └──────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                      USER VAULT INDEX                                │   │
-│   │  PDA Seeds: ["vault_index", user_pubkey]                            │   │
+│   │                      USER VAULT INDEX PDA                            │   │
+│   │  Seeds: ["vault_index", user_pubkey]                                │   │
 │   │                                                                      │   │
-│   │  • entries: HashMap<file_id → (shard_index, slot_index)>            │   │
-│   │  • O(1) file lookup across all shards                               │   │
+│   │  • O(1) lookup: file_id → (shard_index, slot_index)                 │   │
+│   │  • Enables efficient queries without scanning all shards            │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   CAPACITY: 255 shards × 100 files = 25,500 files per user                 │
+│   RECOVERY: Given wallet, PDA is always mathematically derivable           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Capacity Calculation
+### FileRecord Structure
 
-| Configuration | Capacity |
-|---------------|----------|
-| Files per shard | 100 |
-| Max shards | 255 |
-| **Max files per user** | **25,500** |
-| Average file metadata | ~200 bytes |
-| Master account size | ~8.5 KB |
+Each file is represented on-chain as:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `file_id` | bytes32 | Hash of content + timestamp |
+| `ipfs_cid` | string | Location of incomplete encrypted file |
+| `commitment` | bytes32 | SHA-256 of critical 16 bytes |
+| `proof_hash` | bytes32 | Hash of ZK proof |
+| `metadata_cid` | string | Encrypted filename, size, type |
+| `security_level` | u8 | 1, 2, or 3 |
+| `status` | enum | Active, Deleted, Archived |
+| `created_at` | i64 | Unix timestamp |
+| `updated_at` | i64 | Unix timestamp |
 
 ---
 
-## 3. Financial Layer: Crossmint Neobank Integration
+## 5. Gasless Operations
 
-### Wallet Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    EMBEDDED WALLET SYSTEM                                    │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                    CROSSMINT SMART CONTRACT WALLET                   │   │
-│   │                                                                      │   │
-│   │  Type: Non-custodial Smart Contract Wallet                          │   │
-│   │  Chains: Solana, Base, Polygon, Ethereum, 40+ supported             │   │
-│   │                                                                      │   │
-│   │  Signer Options:                                                     │   │
-│   │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────────┐   │   │
-│   │  │ Email/     │ │ Passkey    │ │ External   │ │ AWS KMS        │   │   │
-│   │  │ Social     │ │ (Biometric)│ │ Wallet     │ │ (Enterprise)   │   │   │
-│   │  └────────────┘ └────────────┘ └────────────┘ └────────────────┘   │   │
-│   │                                                                      │   │
-│   │  Properties:                                                         │   │
-│   │  • No vendor lock-in (update signers without changing address)      │   │
-│   │  • Multi-signer support (MFA, recovery, delegation)                 │   │
-│   │  • Onchain permissions (auditable, enforceable)                     │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                    TREASURY WALLET (Enterprise)                      │   │
-│   │                                                                      │   │
-│   │  • Multi-signature controls                                          │   │
-│   │  • Spending limits                                                   │   │
-│   │  • Role-based access                                                 │   │
-│   │  • Automated workflows                                               │   │
-│   │  • Cross-chain liquidity management                                  │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Payment Flow
+### Session Delegation System
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         PAYMENT PROCESSING                                   │
+│                      GASLESS OPERATION FLOW                                  │
 │                                                                              │
-│   FIAT PATH:                                                                 │
-│   ┌────────┐    ┌─────────┐    ┌──────────────┐    ┌─────────────────────┐ │
-│   │ User   │───▶│ Stripe  │───▶│ Stripe Sync  │───▶│ public.subscribers  │ │
-│   │ (Card) │    │ Checkout│    │ Engine       │    │ (Entitlements)      │ │
-│   └────────┘    └─────────┘    └──────────────┘    └─────────────────────┘ │
+│   USER                           RELAYER                        SOLANA      │
+│     │                               │                              │         │
+│     │  1. Sign delegation message   │                              │         │
+│     │  "Delegate to relayer X       │                              │         │
+│     │   for operations Y            │                              │         │
+│     │   until time Z"               │                              │         │
+│     │ ─────────────────────────────▶│                              │         │
+│     │                               │                              │         │
+│     │                               │  2. Register delegation      │         │
+│     │                               │ ─────────────────────────────▶│         │
+│     │                               │     (relayer pays gas)       │         │
+│     │                               │                              │         │
+│     │  3. Sign operation message    │                              │         │
+│     │  "Upload file X with params"  │                              │         │
+│     │ ─────────────────────────────▶│                              │         │
+│     │                               │                              │         │
+│     │                               │  4. Execute on behalf of user│         │
+│     │                               │ ─────────────────────────────▶│         │
+│     │                               │     (relayer pays gas)       │         │
+│     │                               │                              │         │
+│     │                               │  5. Operation recorded       │         │
+│     │◀──────────────────────────────│◀──────────────────────────────│         │
+│     │       Confirmation            │                              │         │
 │                                                                              │
-│   CRYPTO PATH:                                                               │
-│   ┌────────┐    ┌───────────┐    ┌──────────────┐    ┌─────────────────┐   │
-│   │ User   │───▶│ Crossmint │───▶│ User Wallet  │───▶│ Treasury Wallet │   │
-│   │ (USDC) │    │ Onramp    │    │ (Smart Cont.)│    │ (BlockDrive)    │   │
-│   └────────┘    └───────────┘    └──────────────┘    └─────────────────┘   │
-│                                                                              │
-│   RECURRING CRYPTO (Automated):                                              │
-│   ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────────┐  │
-│   │ pg_cron hourly  │───▶│ Edge Function    │───▶│ Crossmint Transfer   │  │
-│   │ scheduler       │    │ (check balances) │    │ API (auto-debit)     │  │
-│   └─────────────────┘    └──────────────────┘    └──────────────────────┘  │
+│   USER PAYS: $0 gas                                                          │
+│   USER SIGNS: Messages only (not transactions)                              │
+│   RELAYER PAYS: ~$0.001 per operation (from subscription revenue)           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Yield Infrastructure
+### Delegation Security
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         YIELD INTEGRATION                                    │
-│                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                      USER STABLECOIN BALANCE                         │   │
-│   │                              USDC                                    │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                    │                                         │
-│                    ┌───────────────┴───────────────┐                        │
-│                    ▼                               ▼                        │
-│   ┌──────────────────────────┐    ┌──────────────────────────────────┐     │
-│   │      Yield.xyz API       │    │        Direct Protocol           │     │
-│   │  (Unified interface)     │    │        Integration               │     │
-│   └──────────────────────────┘    └──────────────────────────────────┘     │
-│                    │                               │                        │
-│          ┌─────────┼─────────┐          ┌─────────┼─────────┐              │
-│          ▼         ▼         ▼          ▼         ▼         ▼              │
-│   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│   │  Aave    │ │  Morpho  │ │ Compound │ │  Other   │ │  Future  │        │
-│   │  ~3-4%   │ │  ~3-5%   │ │  ~2-3%   │ │ Protocols│ │ Protocols│        │
-│   └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-│                                                                              │
-│   Revenue Model: BlockDrive retains spread between protocol yield           │
-│                  and user-facing yield                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Protection | Implementation |
+|------------|----------------|
+| **Time-bounded** | Delegations expire (default 24 hours) |
+| **Permission-scoped** | Relayer can only perform specified operations |
+| **Anti-replay** | Nonce prevents message reuse |
+| **Revocable** | User can revoke delegation at any time |
+| **Least privilege** | Delete/transfer operations not delegatable |
 
 ---
 
-## 4. Compliance Architecture
+## 6. True Deletion
 
-### Regulated Transfers
+### Why True Deletion Matters
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    COMPLIANCE FLOW                                           │
-│                                                                              │
-│   ┌──────────┐                                                              │
-│   │ Transfer │                                                              │
-│   │ Request  │                                                              │
-│   └────┬─────┘                                                              │
-│        │                                                                     │
-│        ▼                                                                     │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                    CROSSMINT COMPLIANCE ENGINE                       │   │
-│   │                                                                      │   │
-│   │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────────┐│   │
-│   │  │ KYC/KYB    │  │ AML        │  │ Sanctions  │  │ Risk           ││   │
-│   │  │ Verify     │  │ Screening  │  │ Check      │  │ Assessment     ││   │
-│   │  └────────────┘  └────────────┘  └────────────┘  └────────────────┘│   │
-│   │                                                                      │   │
-│   │  ┌────────────────────────────────────────────────────────────────┐ │   │
-│   │  │                    TRAVEL RULE COMPLIANCE                       │ │   │
-│   │  │  • IVMS101 data exchange with counterparty VASPs               │ │   │
-│   │  │  • Automatic for transfers > threshold                          │ │   │
-│   │  └────────────────────────────────────────────────────────────────┘ │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│        │                                                                     │
-│        ▼                                                                     │
-│   ┌──────────────────┐    ┌──────────────────┐                             │
-│   │ APPROVED         │    │ REJECTED         │                             │
-│   │ Execute Transfer │    │ Log + Alert      │                             │
-│   └──────────────────┘    └──────────────────┘                             │
-│        │                                                                     │
-│        ▼                                                                     │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                         AUDIT TRAIL                                  │   │
-│   │  • Immutable transaction records                                     │   │
-│   │  • Compliance decision logs                                          │   │
-│   │  • Regulatory reporting exports                                      │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+Traditional storage cannot guarantee deletion:
+- Backups persist
+- Caches exist
+- Distributed copies linger
+- "Deleted" often means "marked as deleted"
 
-### Enterprise Compliance Features
-
-| Feature | Implementation |
-|---------|----------------|
-| **SOC-2 Type II** | In progress (target Q2 2026) |
-| **AML/KYC** | Crossmint pre-licensed infrastructure |
-| **Sanctions Screening** | Real-time global watchlist checks |
-| **Travel Rule** | Automated IVMS101 compliance |
-| **Audit Logs** | Immutable, exportable, retention policies |
-| **Data Residency** | Configurable per jurisdiction |
-
----
-
-## 5. Storage Layer
-
-### Multi-Tier Architecture
+### BlockDrive's True Deletion
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         STORAGE TIERS                                        │
+│                         TRUE DELETION FLOW                                   │
 │                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  TIER 1: HOT STORAGE (Cloudflare R2)                                 │   │
-│   │                                                                      │   │
-│   │  • Primary document storage                                          │   │
-│   │  • Global edge distribution (200+ PoPs)                             │   │
-│   │  • Sub-100ms retrieval latency                                       │   │
-│   │  • S3-compatible API                                                 │   │
-│   │  • Zero egress fees                                                  │   │
-│   │                                                                      │   │
-│   │  Cost: ~$0.015/GB/month                                             │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
+│   BEFORE DELETION:                                                           │
+│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐    │
+│   │ Incomplete file │  │ ZK Proof +      │  │ Solana: Valid           │    │
+│   │ on IPFS/Filebase│  │ 16 bytes on R2  │  │ commitment hash         │    │
+│   └─────────────────┘  └─────────────────┘  └─────────────────────────┘    │
+│          ▲                    ▲                        ▲                    │
+│          │                    │                        │                    │
+│          └────────────────────┴────────────────────────┘                    │
+│                    All three required for reconstruction                    │
 │                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  TIER 2: PERMANENT STORAGE (Arweave)                                 │   │
-│   │                                                                      │   │
-│   │  • Immutable document archival                                       │   │
-│   │  • 200+ year data persistence guarantee                             │   │
-│   │  • One-time payment model                                            │   │
-│   │  • Proof-of-access consensus                                         │   │
-│   │                                                                      │   │
-│   │  Cost: ~$5/GB (one-time, permanent)                                 │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
+│   DELETION PROCESS:                                                          │
+│   1. User signs delete request                                               │
+│   2. On-chain commitment OVERWRITTEN with random bytes                      │
+│   3. FileRecord status changed to "Deleted"                                  │
 │                                                                              │
-│   Storage Strategy:                                                          │
-│   • All files → R2 (hot access)                                             │
-│   • Critical/legal files → R2 + Arweave (permanence)                        │
-│   • Metadata → Solana (blockchain-verified)                                 │
+│   AFTER DELETION:                                                            │
+│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐    │
+│   │ Incomplete file │  │ ZK Proof +      │  │ Solana: INVALID         │    │
+│   │ STILL EXISTS    │  │ 16 bytes        │  │ commitment (random)     │    │
+│   │ but USELESS     │  │ STILL EXISTS    │  │                         │    │
+│   └─────────────────┘  └─────────────────┘  └─────────────────────────┘    │
+│          ▲                    ▲                        ▲                    │
+│          │                    │                        │                    │
+│          └────────────────────┴──────────── X ─────────┘                    │
+│                    Verification chain BROKEN                                │
+│                    File is PERMANENTLY IRRECONSTRUCTIBLE                    │
+│                                                                              │
+│   KEY INSIGHT:                                                               │
+│   We don't need to delete the distributed file chunks.                      │
+│   By invalidating the commitment, reconstruction becomes impossible.        │
+│   This is TRUE deletion—not hiding, not marking, but mathematical           │
+│   impossibility of reconstruction.                                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6. Infrastructure & DevOps
+## 7. Open Source Recovery SDK
 
-### Technology Stack
+### Eliminating Vendor Lock-in
 
-| Layer | Technology | Rationale |
-|-------|------------|-----------|
-| **Frontend** | Next.js 14, React, TypeScript | SSR, performance, type safety |
-| **Backend** | Supabase Edge Functions (Deno) | Serverless, edge-deployed |
-| **Database** | Supabase PostgreSQL | Managed, RLS, real-time |
-| **Blockchain** | Solana (Anchor framework) | Speed, cost, developer experience |
-| **Storage** | Cloudflare R2 + Arweave | Performance + permanence |
-| **Auth** | Clerk | Enterprise SSO, MFA |
-| **Payments** | Stripe + Crossmint | Fiat + crypto unified |
-| **Monitoring** | Sentry, Vercel Analytics | Error tracking, performance |
+BlockDrive provides a fully open-source Python SDK:
 
-### Deployment Architecture
+```python
+# recovery_sdk.py (simplified)
+
+class BlockDriveRecovery:
+    def __init__(self, wallet_private_key):
+        self.wallet = Wallet(wallet_private_key)
+    
+    def derive_keys(self):
+        """Regenerate encryption keys from wallet signatures"""
+        sig1 = self.wallet.sign("BlockDrive Security Level One")
+        sig2 = self.wallet.sign("BlockDrive Security Level Two")
+        sig3 = self.wallet.sign("BlockDrive Security Level Three")
+        return [kdf(sig) for sig in [sig1, sig2, sig3]]
+    
+    def recover_file(self, file_id):
+        """Recover file using only wallet and public blockchain"""
+        # 1. Read UserVault PDA from Solana
+        vault = self.read_pda(self.wallet.pubkey)
+        file_record = vault.find_file(file_id)
+        
+        # 2. Download incomplete file from IPFS
+        incomplete_file = ipfs.get(file_record.ipfs_cid)
+        
+        # 3. Download ZK proof from R2/IPFS
+        proof = storage.get(file_record.proof_cid)
+        
+        # 4. Verify proof against on-chain commitment
+        assert verify_zk_proof(proof, file_record.commitment)
+        
+        # 5. Extract 16 bytes from proof using wallet key
+        key = self.derive_keys()[file_record.security_level]
+        critical_bytes = decrypt(proof.encrypted_bytes, key)
+        
+        # 6. Verify extracted bytes match commitment
+        assert sha256(critical_bytes) == file_record.commitment
+        
+        # 7. Reconstruct complete encrypted file
+        complete_encrypted = critical_bytes + incomplete_file
+        
+        # 8. Decrypt with wallet-derived key
+        return decrypt(complete_encrypted, key)
+```
+
+**Guarantee:** Even if BlockDrive ceases to exist, users can recover all files using only their wallet and this open-source script.
+
+---
+
+## 8. Payment Infrastructure
+
+### Unified Payment System
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         DEPLOYMENT                                           │
+│                       PAYMENT ARCHITECTURE                                   │
 │                                                                              │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  FRONTEND (Vercel)                                                   │   │
-│   │  • Edge-deployed globally                                            │   │
-│   │  • Automatic preview deployments                                     │   │
-│   │  • Zero-config CI/CD from GitHub                                    │   │
+│   │                         FIAT PATH                                    │   │
+│   │  User → Stripe Checkout → Webhook → Mint NFT Membership             │   │
+│   │         (Visa/MC/Amex)     ↓         + Allocate Gas Credits         │   │
+│   │                       Supabase                                       │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  BACKEND (Supabase)                                                  │   │
-│   │  • Edge Functions (Deno, global deployment)                         │   │
-│   │  • PostgreSQL (managed, replicated)                                  │   │
-│   │  • Realtime subscriptions                                            │   │
-│   │  • Row Level Security                                                │   │
+│   │                        CRYPTO PATH                                   │   │
+│   │  User → Crossmint/Radom → Confirmation → Mint NFT Membership        │   │
+│   │         (SOL/USDC/etc)       ↓            + Allocate Gas Credits    │   │
+│   │                          Supabase                                    │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │  BLOCKCHAIN (Solana)                                                 │   │
-│   │  • Program deployed to mainnet-beta                                  │   │
-│   │  • Anchor framework for safety                                       │   │
-│   │  • Helius RPC for reliability                                        │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
+│   NFT MEMBERSHIP:                                                            │
+│   • SPL token on Solana                                                     │
+│   • Contains: tier, expiry, features, storage quota                         │
+│   • Immutable proof of subscription                                          │
+│   • Transferable (optional)                                                  │
+│   • User truly owns their membership                                        │
+│                                                                              │
+│   GAS CREDITS:                                                               │
+│   • Held in USDC (stable)                                                   │
+│   • Swapped to SOL at time of use                                           │
+│   • Covers user's blockchain operations                                     │
+│   • User never sees or pays gas                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 7. Security Measures
+## 9. Security Summary
 
-### Defense in Depth
+### Attack Scenarios
 
-| Layer | Protection |
-|-------|------------|
-| **Network** | Cloudflare WAF, DDoS protection |
-| **Application** | Input validation, CSRF, XSS prevention |
-| **Authentication** | MFA, passkeys, session management |
-| **Authorization** | Row Level Security, role-based access |
-| **Encryption** | AES-256-GCM, TLS 1.3, split-key architecture |
-| **Blockchain** | PDA ownership verification, signature validation |
-| **Audit** | Immutable logs, anomaly detection |
+| Attack Vector | Outcome |
+|---------------|---------|
+| **Filebase/IPFS node compromise** | Attacker gets incomplete encrypted chunks (garbage) |
+| **Cloudflare R2 breach** | Attacker gets encrypted proofs (useless without wallet) |
+| **Solana chain compromise** | Attacker gets commitment hashes (one-way, irreversible) |
+| **All storage providers simultaneously** | Still garbage—wallet key never transmitted |
+| **BlockDrive company compromise** | Cannot access user files—keys are wallet-derived |
+| **Government subpoena to BlockDrive** | Cannot comply—we don't have keys or complete files |
+| **Rogue employee** | Cannot access files—no centralized key store |
 
-### Incident Response
+### What Makes This Different
 
-- 24/7 monitoring via Sentry
-- Automated alerting for anomalies
-- Documented runbooks for common scenarios
-- Regular security audits planned
+| Traditional "Zero-Knowledge" | BlockDrive Programmed Incompleteness |
+|-----------------------------|--------------------------------------|
+| Complete encrypted files exist | Complete files NEVER exist |
+| Key compromise = total exposure | Key compromise = still need 3 systems |
+| Trust the provider's claims | Trust mathematics |
+| "We can't read your files" (promise) | "No one CAN read your files" (architecture) |
 
 ---
 
-## 8. Scalability Path
+## 10. Technology Stack
 
-### Current Capacity
-
-| Metric | Capacity |
-|--------|----------|
-| Users | Thousands |
-| Files per user | 25,500 |
-| Concurrent uploads | 100+ |
-| Storage | Unlimited (R2) |
-
-### Scaling Roadmap
-
-| Phase | Enhancement |
-|-------|-------------|
-| **Phase 1** | Current architecture (sufficient for seed stage) |
-| **Phase 2** | Database sharding, read replicas |
-| **Phase 3** | Multi-region deployment |
-| **Phase 4** | Enterprise-dedicated infrastructure |
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | Next.js 14, React, TypeScript | Web application |
+| **Backend** | Supabase Edge Functions | Serverless API |
+| **Database** | Supabase PostgreSQL | User data, sync |
+| **Blockchain** | Solana (Anchor) | Commitments, PDAs |
+| **Primary Storage** | Filebase/IPFS | Encrypted chunks |
+| **Reliability Storage** | Cloudflare R2 | Proofs, critical data |
+| **Permanence** | Arweave | Optional archival |
+| **Auth** | Clerk + Wallet | Hybrid identity |
+| **Payments** | Stripe + Crossmint | Fiat + crypto |
 
 ---
 
 ## Conclusion
 
-BlockDrive's technical architecture is designed for:
+BlockDrive's Programmed Incompleteness is not an incremental improvement to encryption. It's a fundamental reimagining of data security architecture.
 
-1. **Security** — Split-key encryption, no single point of compromise
-2. **Scale** — Sharded PDAs, unlimited storage, global CDN
-3. **Compliance** — Pre-licensed infrastructure, full audit trails
-4. **Integration** — Embedded finance, enterprise-ready APIs
+**The key insight:** Instead of protecting complete files, ensure complete files never exist.
 
-The architecture is production-ready for seed-stage traction and designed to scale with minimal re-architecture through Series A and beyond.
+This creates the first truly breach-proof storage platform—not through better locks, but by ensuring there's nothing complete to steal.
+
+**Enterprise cloud storage for the new internet.**
