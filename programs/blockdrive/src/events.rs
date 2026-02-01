@@ -2,6 +2,127 @@ use anchor_lang::prelude::*;
 use crate::instructions::membership::BurnReason;
 use crate::transfer_hook::TransferAction;
 
+// ============================================================================
+// SHARDING EVENTS
+// ============================================================================
+
+/// Emitted when a new Vault Master is created
+#[event]
+pub struct VaultMasterCreated {
+    /// The wallet owner
+    pub owner: Pubkey,
+    /// The VaultMaster PDA address
+    pub vault_master: Pubkey,
+    /// The VaultIndex PDA address
+    pub vault_index: Pubkey,
+    /// Creation timestamp
+    pub timestamp: i64,
+}
+
+/// Emitted when a new Shard is created
+#[event]
+pub struct ShardCreated {
+    /// The parent VaultMaster
+    pub vault_master: Pubkey,
+    /// The new VaultShard PDA address
+    pub vault_shard: Pubkey,
+    /// The shard index (0-9)
+    pub shard_index: u8,
+    /// The wallet owner
+    pub owner: Pubkey,
+    /// Creation timestamp
+    pub timestamp: i64,
+}
+
+/// Emitted when a file is registered to a shard
+#[event]
+pub struct FileRegisteredSharded {
+    /// The VaultMaster
+    pub vault_master: Pubkey,
+    /// The VaultShard where file was stored
+    pub vault_shard: Pubkey,
+    /// The FileRecord PDA
+    pub file_record: Pubkey,
+    /// The unique file ID
+    pub file_id: [u8; 16],
+    /// Shard index where file is stored
+    pub shard_index: u8,
+    /// Slot index within the shard
+    pub slot_index: u8,
+    /// Original file size
+    pub file_size: u64,
+    /// Encrypted file size
+    pub encrypted_size: u64,
+    /// Security level used
+    pub security_level: u8,
+    /// Registration timestamp
+    pub timestamp: i64,
+}
+
+/// Emitted when a Vault Index is created
+#[event]
+pub struct VaultIndexCreated {
+    /// The parent VaultMaster
+    pub vault_master: Pubkey,
+    /// The VaultIndex PDA address
+    pub vault_index: Pubkey,
+    /// The wallet owner
+    pub owner: Pubkey,
+    /// Creation timestamp
+    pub timestamp: i64,
+}
+
+// ============================================================================
+// SESSION DELEGATION EVENTS
+// ============================================================================
+
+/// Emitted when a new session delegation is created
+#[event]
+pub struct SessionDelegationCreated {
+    /// The wallet owner (delegator)
+    pub owner: Pubkey,
+    /// The relayer (delegate)
+    pub relayer: Pubkey,
+    /// The SessionDelegation PDA address
+    pub session: Pubkey,
+    /// Bitmap of allowed operations
+    pub allowed_operations: u8,
+    /// Expiration timestamp
+    pub expires_at: i64,
+    /// Maximum operations allowed (0 = unlimited)
+    pub max_operations: u32,
+    /// Creation timestamp
+    pub timestamp: i64,
+}
+
+/// Emitted when a session delegation is revoked
+#[event]
+pub struct SessionDelegationRevoked {
+    /// The wallet owner
+    pub owner: Pubkey,
+    /// The relayer
+    pub relayer: Pubkey,
+    /// The SessionDelegation PDA address
+    pub session: Pubkey,
+    /// Total operations used before revocation
+    pub operations_used: u32,
+    /// Revocation timestamp
+    pub timestamp: i64,
+}
+
+/// Emitted when a session duration is extended
+#[event]
+pub struct SessionDelegationExtended {
+    /// The SessionDelegation PDA address
+    pub session: Pubkey,
+    /// Previous expiration timestamp
+    pub old_expires_at: i64,
+    /// New expiration timestamp
+    pub new_expires_at: i64,
+    /// Extension timestamp
+    pub timestamp: i64,
+}
+
 #[event]
 pub struct VaultCreated {
     pub owner: Pubkey,

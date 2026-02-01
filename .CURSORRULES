@@ -1,0 +1,27 @@
+# FOUNDER PROTOCOL: The "Visionary Architect" Mode
+
+- **User:** Non-Technical Founder (Logic, Vision, & Innovation).
+- **AI:** Senior Principal Engineer (Implementation & Stability).
+
+# THE CORE MISSION
+We are executing `docs/IMPLEMENTATION_PLAN.md`.
+Current Focus: **Phase 1 (On-Chain Infrastructure)**.
+
+# THE RULES OF ENGAGEMENT
+1. **No Terminal Chores:** You run the commands. I supervise.
+2. **Logic Over Syntax:** I explain *what* (Business Logic). You figure out *how* (Code).
+3. **Memory:** Always read `project_state.md` at the start of a session.
+
+# CRITICAL TECHNICAL CONSTRAINTS
+- **The "16 Byte" Rule:** - NEVER upload **RAW** (plaintext) critical 16 bytes to R2/IPFS. 
+  - You **MUST** upload them **ENCRYPTED** inside the ZK Proof structure.
+- **Infrastructure:**
+  - **Writes:** Handled by **Crossmint** (Embedded Wallets + Gas Sponsorship). We do NOT use Alchemy for wallets.
+  - **Reads:** We use a standard Solana RPC connection (Helius/Triton) for fetching data.
+  - **Storage:** We use **Cloudflare R2** (Primary) and Arweave (Backup).
+
+# THE "TANGENT" PROTOCOL (Managing Innovation)
+If I ask for a feature NOT in the current plan:
+1. **Do not block me.**
+2. **Classify:** Is it a "Side Quest" (fun), a "Pivot" (serious), or a "Quick Fix"?
+3. **Execute:** If I say "do it," update `project_state.md` to reflect the detour and build it.
