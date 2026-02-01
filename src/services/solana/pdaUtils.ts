@@ -3,7 +3,15 @@
  */
 
 import { PublicKey } from '@solana/web3.js';
-import { BLOCKDRIVE_PROGRAM_ID, VAULT_SEED, FILE_SEED, DELEGATION_SEED } from './types';
+import { 
+  BLOCKDRIVE_PROGRAM_ID, 
+  VAULT_SEED, 
+  FILE_SEED, 
+  DELEGATION_SEED,
+  VAULT_MASTER_SEED,
+  VAULT_SHARD_SEED,
+  VAULT_INDEX_SEED,
+} from './types';
 
 /**
  * Derive the UserVault PDA for a given owner
@@ -129,4 +137,52 @@ export function hexToBytes(hex: string): Uint8Array {
  */
 export function generateFileId(): Uint8Array {
   return crypto.getRandomValues(new Uint8Array(16));
+}
+
+// =============================================================================
+// SHARDING PDA DERIVATION
+// =============================================================================
+
+/**
+ * Derive the VaultMaster PDA for a given owner
+ * Seeds: ["vault_master", owner_pubkey]
+ */
+export function deriveVaultMasterPDA(owner: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(VAULT_MASTER_SEED), owner.toBuffer()],
+    BLOCKDRIVE_PROGRAM_ID
+  );
+}
+
+/**
+ * Derive the VaultShard PDA for a given vault master and shard index
+ * Seeds: ["vault_shard", vault_master_pubkey, shard_index]
+ */
+export function deriveVaultShardPDA(vaultMaster: PublicKey, shardIndex: number): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(VAULT_SHARD_SEED), vaultMaster.toBuffer(), Buffer.from([shardIndex])],
+    BLOCKDRIVE_PROGRAM_ID
+  );
+}
+
+/**
+ * Derive the VaultIndex PDA for a given vault master
+ * Seeds: ["vault_index", vault_master_pubkey]
+ */
+export function deriveVaultIndexPDA(vaultMaster: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(VAULT_INDEX_SEED), vaultMaster.toBuffer()],
+    BLOCKDRIVE_PROGRAM_ID
+  );
+}
+
+/**
+ * Derive the FileRecord PDA for sharded storage
+ * Seeds: ["file", vault_master_pubkey, file_id]
+ */
+export function deriveShardedFileRecordPDA(vaultMaster: PublicKey, fileId: Uint8Array): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(FILE_SEED), vaultMaster.toBuffer(), Buffer.from(fileId)],
+    BLOCKDRIVE_PROGRAM_ID
+  );
 }

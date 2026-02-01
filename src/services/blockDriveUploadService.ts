@@ -2,17 +2,19 @@
  * BlockDrive Upload Service
  * 
  * Unified service that integrates wallet-derived encryption with
- * multi-provider storage and ZK proof generation. Implements the full BlockDrive architecture:
+ * multi-provider storage, ZK proof generation, and Solana on-chain registration.
+ * 
+ * Implements the full BlockDrive "Programmed Incompleteness" architecture:
  * 
  * 1. Encrypt file with wallet-derived AES-256-GCM key
  * 2. Extract critical 16 bytes from encrypted content
  * 3. Generate commitment (SHA-256 of critical bytes)
  * 4. Generate ZK proof with encrypted critical bytes
- * 5. Upload encrypted content (without critical bytes) to providers
- * 6. Upload ZK proof to providers
- * 7. Return proof CID + commitment for on-chain storage
+ * 5. Upload encrypted content (without critical bytes) to Filebase/IPFS
+ * 6. Upload ZK proof to Cloudflare R2
+ * 7. Register on Solana using Multi-PDA Sharding (supports 1000+ files)
  * 
- * Critical bytes are NEVER stored locally - they exist only in the ZK proof on S3.
+ * Critical bytes are NEVER stored locally - they exist only in the ZK proof on R2.
  */
 
 import { 
@@ -37,6 +39,9 @@ import { zkProofService, ZKProofPackage } from './crypto/zkProofService';
 import { zkProofStorageService } from './zkProofStorageService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { sha256, bytesToBase64 } from './crypto/cryptoUtils';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { ShardingClient, SecurityLevel as SolanaSecurityLevel } from './solana';
+import { sha256HashBytes } from './solana/pdaUtils';
 
 // Upload result with all data needed for on-chain storage
 export interface BlockDriveUploadResult {
@@ -487,6 +492,169 @@ class BlockDriveUploadService {
       uploadTimeMs: Math.round(totalTime - encryptionTime),
       manifest
     };
+  }
+
+  // ============================================
+  // SOLANA ON-CHAIN REGISTRATION (Sharded)
+  // ============================================
+
+  /**
+   * Prepare Solana transactions for on-chain file registration.
+   * Uses Multi-PDA Sharding for scalable storage (supports 1000+ files).
+   * 
+   * This method is called AFTER storage upload completes. It returns
+   * transactions that need to be signed and sent by the user's wallet.
+   * 
+   * @returns Array of transactions to execute (may include vault/shard creation)
+   */
+  async prepareOnChainRegistration(
+    connection: Connection,
+    ownerPubkey: PublicKey,
+    uploadResult: BlockDriveUploadResult
+  ): Promise<{
+    transactions: Transaction[];
+    fileId: string;
+    shardIndex: number;
+    slotIndex: number;
+  }> {
+    const shardingClient = new ShardingClient({ connection });
+    const transactions: Transaction[] = [];
+
+    // Step 1: Ensure VaultMaster exists (creates if not)
+    const initTx = await shardingClient.ensureVaultMasterExists(ownerPubkey);
+    if (initTx) {
+      transactions.push(initTx);
+      console.log('[OnChain] VaultMaster initialization transaction prepared');
+    }
+
+    // Step 2: Ensure shard has capacity (creates new shard if needed)
+    const { needsNewShard, transaction: shardTx, shardIndex } = 
+      await shardingClient.ensureShardCapacity(ownerPubkey);
+    
+    if (needsNewShard && shardTx) {
+      transactions.push(shardTx);
+      console.log(`[OnChain] Shard ${shardIndex} creation transaction prepared`);
+    }
+
+    // Step 3: Prepare file registration transaction
+    // Convert commitments to bytes
+    const encryptionCommitment = await this.hexToBytes(uploadResult.commitment);
+    const criticalBytesCommitment = await sha256HashBytes(
+      uploadResult.criticalBytesRaw || new Uint8Array(16)
+    );
+
+    // Map SecurityLevel enum
+    const solanaSecurityLevel = this.mapSecurityLevel(uploadResult.securityLevel);
+
+    const registrationResult = await shardingClient.registerFileSharded(
+      ownerPubkey,
+      {
+        filename: uploadResult.fileName,
+        mimeType: uploadResult.mimeType,
+        fileSize: uploadResult.originalSize,
+        encryptedSize: uploadResult.encryptedSize,
+        securityLevel: solanaSecurityLevel,
+        encryptionCommitment,
+        criticalBytesCommitment,
+        primaryCid: uploadResult.contentCID,
+      }
+    );
+
+    transactions.push(registrationResult.transaction);
+    console.log(`[OnChain] File registration transaction prepared (shard ${shardIndex}, slot ${registrationResult.slotIndex})`);
+
+    return {
+      transactions,
+      fileId: registrationResult.fileId,
+      shardIndex: registrationResult.shardIndex,
+      slotIndex: registrationResult.slotIndex,
+    };
+  }
+
+  /**
+   * Complete upload with on-chain registration.
+   * This is the recommended method for full BlockDrive flow.
+   * 
+   * Handles everything seamlessly:
+   * 1. Encrypts file with Programmed Incompleteness
+   * 2. Uploads to Filebase/IPFS + R2
+   * 3. Prepares Solana transactions for sharded registration
+   * 
+   * @param signAndSend - Function to sign and send transactions (from wallet adapter)
+   */
+  async uploadFileWithOnChainRegistration(
+    file: File,
+    encryptionKey: CryptoKey,
+    securityLevel: SecurityLevel,
+    walletAddress: string,
+    connection: Connection,
+    signAndSend: (transactions: Transaction[]) => Promise<string[]>,
+    storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
+    folderPath: string = '/'
+  ): Promise<BlockDriveUploadResult> {
+    // Step 1: Upload to storage providers
+    console.log('[BlockDrive] Starting encrypted upload...');
+    const uploadResult = await this.uploadFile(
+      file,
+      encryptionKey,
+      securityLevel,
+      walletAddress,
+      storageConfig,
+      folderPath
+    );
+
+    if (!uploadResult.success) {
+      console.error('[BlockDrive] Storage upload failed');
+      return uploadResult;
+    }
+
+    console.log('[BlockDrive] Storage upload complete, preparing on-chain registration...');
+
+    // Step 2: Prepare on-chain transactions
+    const ownerPubkey = new PublicKey(walletAddress);
+    const { transactions, fileId, shardIndex, slotIndex } = 
+      await this.prepareOnChainRegistration(connection, ownerPubkey, uploadResult);
+
+    // Step 3: Sign and send transactions
+    console.log(`[BlockDrive] Signing ${transactions.length} transaction(s)...`);
+    const signatures = await signAndSend(transactions);
+
+    // Return enriched result
+    return {
+      ...uploadResult,
+      fileId, // Use the Solana file ID
+      onChainRegistration: {
+        signature: signatures[signatures.length - 1], // Last signature is file registration
+        solanaFileId: fileId,
+        registered: true,
+      },
+    };
+  }
+
+  // ============================================
+  // Utility Methods
+  // ============================================
+
+  private async hexToBytes(hex: string): Promise<Uint8Array> {
+    const cleanHex = hex.replace('0x', '');
+    const bytes = new Uint8Array(cleanHex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(cleanHex.substr(i * 2, 2), 16);
+    }
+    return bytes;
+  }
+
+  private mapSecurityLevel(level: SecurityLevel): SolanaSecurityLevel {
+    switch (level) {
+      case SecurityLevel.STANDARD:
+        return SolanaSecurityLevel.Standard;
+      case SecurityLevel.ENHANCED:
+        return SolanaSecurityLevel.Enhanced;
+      case SecurityLevel.MAXIMUM:
+        return SolanaSecurityLevel.Maximum;
+      default:
+        return SolanaSecurityLevel.Standard;
+    }
   }
 }
 
