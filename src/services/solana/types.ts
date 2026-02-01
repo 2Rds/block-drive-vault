@@ -119,8 +119,109 @@ export const VAULT_SEED = 'vault';
 export const FILE_SEED = 'file';
 export const DELEGATION_SEED = 'delegation';
 
+// Sharding PDA Seeds
+export const VAULT_MASTER_SEED = 'vault_master';
+export const VAULT_SHARD_SEED = 'vault_shard';
+export const VAULT_INDEX_SEED = 'vault_index';
+
+// Sharding Constants
+export const MAX_SHARDS = 10;
+export const FILES_PER_SHARD = 100;
+export const MAX_FILES_TOTAL = MAX_SHARDS * FILES_PER_SHARD; // 1000 files
+
 // Program ID (placeholder - replace with actual deployed ID)
 export const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDrv1111111111111111111111111111111111111');
+
+// Sharding Enums
+export enum ShardStatus {
+  Active = 0,
+  Full = 1,
+  Archived = 2,
+}
+
+// Sharding Account Types
+export interface UserVaultMaster {
+  bump: number;
+  owner: PublicKey;
+  totalFileCount: bigint;
+  totalShards: number;
+  activeShardIndex: number;
+  totalStorage: bigint;
+  shardPointers: PublicKey[];
+  createdAt: bigint;
+  updatedAt: bigint;
+  reserved: Uint8Array;
+}
+
+export interface UserVaultShard {
+  bump: number;
+  vaultMaster: PublicKey;
+  owner: PublicKey;
+  shardIndex: number;
+  fileCount: number;
+  status: ShardStatus;
+  fileRecords: PublicKey[];
+  createdAt: bigint;
+  updatedAt: bigint;
+  reserved: Uint8Array;
+}
+
+export interface IndexEntry {
+  fileId: Uint8Array;
+  shardIndex: number;
+  slotIndex: number;
+}
+
+export interface UserVaultIndex {
+  bump: number;
+  vaultMaster: PublicKey;
+  owner: PublicKey;
+  entryCount: number;
+  createdAt: bigint;
+  updatedAt: bigint;
+  entries: IndexEntry[];
+  reserved: Uint8Array;
+}
+
+// Parsed Sharding Types for Frontend
+export interface ParsedVaultMaster {
+  publicKey: PublicKey;
+  owner: string;
+  totalFileCount: number;
+  totalShards: number;
+  activeShardIndex: number;
+  totalStorage: number;
+  shardPointers: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ParsedVaultShard {
+  publicKey: PublicKey;
+  vaultMaster: string;
+  owner: string;
+  shardIndex: number;
+  fileCount: number;
+  status: 'active' | 'full' | 'archived';
+  fileRecords: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ParsedVaultIndex {
+  publicKey: PublicKey;
+  vaultMaster: string;
+  owner: string;
+  entryCount: number;
+  entries: { fileId: string; shardIndex: number; slotIndex: number }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FileLocation {
+  shardIndex: number;
+  slotIndex: number;
+}
 
 // Parsed account types for frontend
 export interface ParsedUserVault {
