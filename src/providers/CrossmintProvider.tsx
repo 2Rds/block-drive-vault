@@ -12,8 +12,17 @@ import {
   CrossmintAuthProvider,
   CrossmintWalletProvider,
 } from '@crossmint/client-sdk-react-ui';
-import { crossmintConfig, getWalletCreationConfig } from '@/config/crossmint';
+import { crossmintConfig, getWalletCreationConfig, validateCrossmintConfig } from '@/config/crossmint';
 import { syncCrossmintWallet } from '@/services/crossmint/walletSync';
+
+// Check if Crossmint is properly configured at module load
+const crossmintValidation = validateCrossmintConfig();
+const isCrossmintConfigured = crossmintValidation.valid;
+
+if (!isCrossmintConfigured) {
+  console.warn('[Crossmint] Not configured. Missing:', crossmintValidation.missing.join(', '));
+  console.warn('[Crossmint] Wallet features will be disabled until VITE_CROSSMINT_CLIENT_API_KEY is set.');
+}
 
 interface CrossmintProviderProps {
   children: React.ReactNode;
@@ -68,8 +77,8 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
     }
   }, [getToken, user]);
 
-  if (!isSignedIn) {
-    // User not signed in, don't initialize Crossmint
+  // Skip Crossmint if not configured or user not signed in
+  if (!isCrossmintConfigured || !isSignedIn) {
     return <>{children}</>;
   }
 

@@ -12,14 +12,16 @@ import {
   TransactionInstruction,
   SystemProgram,
 } from '@solana/web3.js';
-import { 
+import {
   BLOCKDRIVE_PROGRAM_ID,
   SecurityLevel,
   ParsedVaultMaster,
   ParsedVaultShard,
   ParsedVaultIndex,
+  ParsedFileRecord,
   FileLocation,
   ShardStatus,
+  FileStatus,
   FILES_PER_SHARD,
   MAX_SHARDS,
 } from './types';
@@ -31,6 +33,7 @@ import {
   uuidToBytes,
   bytesToUuid,
   cidToBytes,
+  bytesToCid,
   sha256Hash,
   generateFileId,
   bytesToHex,
@@ -140,6 +143,56 @@ export class ShardingClient {
     } catch (error) {
       console.error('Error fetching vault index:', error);
       return null;
+    }
+  }
+
+  /**
+   * Fetch a FileRecord by owner and file ID.
+   * Returns the parsed FileRecord including criticalBytesCommitment for verification.
+   */
+  async getFileRecord(owner: PublicKey, fileId: string): Promise<ParsedFileRecord | null> {
+    const [vaultMasterPDA] = this.getVaultMasterPDA(owner);
+    const fileIdBytes = uuidToBytes(fileId);
+    const [fileRecordPDA] = this.getFileRecordPDA(vaultMasterPDA, fileIdBytes);
+
+    try {
+      const accountInfo = await this.connection.getAccountInfo(fileRecordPDA);
+      if (!accountInfo) return null;
+      return this.parseFileRecord(fileRecordPDA, accountInfo.data);
+    } catch (error) {
+      console.error('Error fetching file record:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Verify a file's commitment against on-chain data.
+   * Returns true if the commitment matches, false otherwise.
+   */
+  async verifyCommitment(
+    owner: PublicKey,
+    fileId: string,
+    expectedCommitment: string
+  ): Promise<{ verified: boolean; onChainCommitment?: string; error?: string }> {
+    try {
+      const fileRecord = await this.getFileRecord(owner, fileId);
+      if (!fileRecord) {
+        return { verified: false, error: 'File record not found on-chain' };
+      }
+
+      const onChainCommitment = fileRecord.criticalBytesCommitment;
+      const verified = onChainCommitment === expectedCommitment;
+
+      return {
+        verified,
+        onChainCommitment,
+        error: verified ? undefined : 'Commitment mismatch - data may be tampered'
+      };
+    } catch (error) {
+      return {
+        verified: false,
+        error: error instanceof Error ? error.message : 'Verification failed'
+      };
     }
   }
 
@@ -611,6 +664,97 @@ export class ShardingClient {
       };
     } catch (error) {
       console.error('Error parsing vault index:', error);
+      return null;
+    }
+  }
+
+  private parseFileRecord(pubkey: PublicKey, data: Buffer): ParsedFileRecord | null {
+    try {
+      let offset = 8; // discriminator
+
+      const bump = data.readUInt8(offset);
+      offset += 1;
+
+      const vault = new PublicKey(data.slice(offset, offset + 32));
+      offset += 32;
+
+      const owner = new PublicKey(data.slice(offset, offset + 32));
+      offset += 32;
+
+      const fileId = data.slice(offset, offset + 16);
+      offset += 16;
+
+      const filenameHash = data.slice(offset, offset + 32);
+      offset += 32;
+
+      const fileSize = data.readBigUInt64LE(offset);
+      offset += 8;
+
+      const encryptedSize = data.readBigUInt64LE(offset);
+      offset += 8;
+
+      const mimeTypeHash = data.slice(offset, offset + 32);
+      offset += 32;
+
+      const securityLevel = data.readUInt8(offset);
+      offset += 1;
+
+      const encryptionCommitment = data.slice(offset, offset + 32);
+      offset += 32;
+
+      const criticalBytesCommitment = data.slice(offset, offset + 32);
+      offset += 32;
+
+      const primaryCid = data.slice(offset, offset + 64);
+      offset += 64;
+
+      const redundancyCid = data.slice(offset, offset + 64);
+      offset += 64;
+
+      const providerCount = data.readUInt8(offset);
+      offset += 1;
+
+      const createdAt = data.readBigInt64LE(offset);
+      offset += 8;
+
+      const accessedAt = data.readBigInt64LE(offset);
+      offset += 8;
+
+      const status = data.readUInt8(offset);
+      offset += 1;
+
+      const isShared = data.readUInt8(offset) === 1;
+      offset += 1;
+
+      const delegationCount = data.readUInt8(offset);
+
+      const redundancyCidStr = bytesToCid(redundancyCid);
+
+      return {
+        publicKey: pubkey,
+        vault: vault.toBase58(),
+        owner: owner.toBase58(),
+        fileId: bytesToUuid(fileId),
+        filenameHash: bytesToHex(filenameHash),
+        fileSize: Number(fileSize),
+        encryptedSize: Number(encryptedSize),
+        mimeTypeHash: bytesToHex(mimeTypeHash),
+        securityLevel: securityLevel === SecurityLevel.Standard ? 'standard' :
+                       securityLevel === SecurityLevel.Enhanced ? 'enhanced' : 'maximum',
+        encryptionCommitment: bytesToHex(encryptionCommitment),
+        criticalBytesCommitment: bytesToHex(criticalBytesCommitment),
+        primaryCid: bytesToCid(primaryCid),
+        redundancyCid: redundancyCidStr || null,
+        providerCount,
+        createdAt: new Date(Number(createdAt) * 1000),
+        accessedAt: new Date(Number(accessedAt) * 1000),
+        status: status === FileStatus.Active ? 'active' :
+                status === FileStatus.Archived ? 'archived' : 'deleted',
+        isShared,
+        delegationCount,
+      };
+    } catch (error) {
+      console.error('Error parsing file record:', error);
       return null;
     }
   }
