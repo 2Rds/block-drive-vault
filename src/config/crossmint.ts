@@ -90,18 +90,28 @@ export function validateCrossmintConfig(): { valid: boolean; missing: string[] }
 }
 
 /**
- * Create wallet configuration for automatic creation on login
+ * Crossmint SDK v1.9.x wallet configuration
+ * @see https://docs.crossmint.com/wallets/embedded/react
  */
-export function getWalletCreationConfig(userEmail: string) {
+export interface CrossmintWalletConfig {
+  createOnLogin: {
+    type: 'email' | 'passkey';
+    linkedUser: string;
+  };
+  defaultChain: string;
+}
+
+/**
+ * Create wallet configuration for automatic creation on login
+ * Uses Crossmint SDK v1.9.x format
+ */
+export function getWalletCreationConfig(userEmail: string): CrossmintWalletConfig {
   return {
     createOnLogin: {
-      chain: getCurrentChain(),
-      signer: {
-        type: 'email',
-        email: userEmail,
-      },
-      alias: `blockdrive_${userEmail.split('@')[0]}`,
+      type: 'email',
+      linkedUser: userEmail,
     },
+    defaultChain: getCurrentChain(),
   };
 }
 

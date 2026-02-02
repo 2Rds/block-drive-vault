@@ -8,6 +8,7 @@ import { ShareFileModal } from "@/components/files/ShareFileModal";
 import { SharedFilesPanel } from "@/components/files/SharedFilesPanel";
 import { SharedWithMePanel } from "@/components/files/SharedWithMePanel";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
+import { BlockDriveDownloadModal } from "@/components/files/BlockDriveDownloadModal";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { CryptoSetupModal } from "@/components/crypto/CryptoSetupModal";
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,8 @@ const IPFSFiles = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'on-chain' | 'shared' | 'inbox'>('all');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [cryptoSetupOpen, setCryptoSetupOpen] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [fileForDownload, setFileForDownload] = useState<FileRecordData | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     type: 'download' | 'preview';
     file: ParsedFileRecord;
@@ -139,7 +142,35 @@ const IPFSFiles = () => {
   };
 
   const handleDownloadFile = async (file: any) => {
-    await downloadFromIPFS(file.cid, file.filename);
+    // Check if file is encrypted (BlockDrive file)
+    const ipfsFile = userFiles.find(f => f.id === file.id);
+    const isEncrypted = file.encrypted ||
+      ipfsFile?.metadata?.blockdrive === 'true' ||
+      ipfsFile?.metadata?.encrypted === 'true';
+
+    if (isEncrypted && ipfsFile?.metadata) {
+      // Open download modal for encrypted files
+      const fileRecord: FileRecordData = {
+        contentCID: file.cid,
+        metadataCID: ipfsFile.metadata.metadataCID,
+        commitment: ipfsFile.metadata.commitment || file.onChain?.encryptionCommitment || '',
+        encryptedCriticalBytes: ipfsFile.metadata.encryptedCriticalBytes || '',
+        criticalBytesIv: ipfsFile.metadata.criticalBytesIv || '',
+        fileIv: ipfsFile.metadata.fileIv || '',
+        securityLevel: ipfsFile.metadata.securityLevel || SecurityLevel.STANDARD,
+        storageProvider: ipfsFile.metadata.storageProvider || 'filebase',
+        // Extended fields for display in modal
+        fileName: file.filename,
+        fileSize: file.size,
+        mimeType: file.mimeType,
+      } as FileRecordData & { fileName?: string; fileSize?: number; mimeType?: string };
+
+      setFileForDownload(fileRecord);
+      setDownloadModalOpen(true);
+    } else {
+      // Direct IPFS download for non-encrypted files
+      await downloadFromIPFS(file.cid, file.filename);
+    }
   };
 
   const handleDeleteFile = async (file: any) => {
@@ -434,6 +465,16 @@ const IPFSFiles = () => {
           setPendingAction(null);
         }}
         onComplete={handleCryptoSetupComplete}
+      />
+
+      {/* BlockDrive Download Modal - for encrypted file downloads */}
+      <BlockDriveDownloadModal
+        isOpen={downloadModalOpen}
+        onClose={() => {
+          setDownloadModalOpen(false);
+          setFileForDownload(null);
+        }}
+        fileRecord={fileForDownload}
       />
     </div>
   );

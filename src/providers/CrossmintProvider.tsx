@@ -12,7 +12,7 @@ import {
   CrossmintAuthProvider,
   CrossmintWalletProvider,
 } from '@crossmint/client-sdk-react-ui';
-import { crossmintConfig, getWalletCreationConfig, validateCrossmintConfig } from '@/config/crossmint';
+import { crossmintConfig, getWalletCreationConfig, validateCrossmintConfig, CrossmintWalletConfig } from '@/config/crossmint';
 import { syncCrossmintWallet } from '@/services/crossmint/walletSync';
 
 // Check if Crossmint is properly configured at module load
@@ -82,16 +82,64 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
     return <>{children}</>;
   }
 
-  const walletConfig = user?.primaryEmailAddress?.emailAddress
-    ? getWalletCreationConfig(user.primaryEmailAddress.emailAddress)
+  // Get email or unique identifier from multiple sources (handles OAuth users)
+  const getUserIdentifier = (): string | null => {
+    if (!user) return null;
+
+    // Try primary email first
+    if (user.primaryEmailAddress?.emailAddress) {
+      console.log('[Crossmint] Found primary email');
+      return user.primaryEmailAddress.emailAddress;
+    }
+
+    // Try email addresses array
+    if (user.emailAddresses && user.emailAddresses.length > 0) {
+      const email = user.emailAddresses[0]?.emailAddress;
+      if (email) {
+        console.log('[Crossmint] Found email from addresses array');
+        return email;
+      }
+    }
+
+    // Try external accounts (OAuth providers like GitHub/Google)
+    if (user.externalAccounts && user.externalAccounts.length > 0) {
+      for (const account of user.externalAccounts) {
+        const accountData = account as any;
+        if (accountData.emailAddress) {
+          console.log('[Crossmint] Found email from external account:', accountData.provider);
+          return accountData.emailAddress;
+        }
+      }
+    }
+
+    // Fall back to user ID as unique identifier (creates email-like format for Crossmint)
+    if (user.id) {
+      const fallbackEmail = `${user.id}@clerk.blockdrive.sol`;
+      console.log('[Crossmint] Using fallback identifier based on user ID');
+      return fallbackEmail;
+    }
+
+    return null;
+  };
+
+  const userIdentifier = getUserIdentifier();
+  const walletConfig: CrossmintWalletConfig | undefined = userIdentifier
+    ? getWalletCreationConfig(userIdentifier)
     : undefined;
+
+  // Log wallet config for debugging
+  console.log('[Crossmint] User identifier:', userIdentifier);
+  console.log('[Crossmint] Wallet config:', walletConfig ? JSON.stringify(walletConfig, null, 2) : 'undefined');
+  console.log('[Crossmint] API Key present:', !!crossmintConfig.apiKey);
+  console.log('[Crossmint] Environment:', crossmintConfig.environment);
 
   return (
     <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
       <CrossmintAuthProvider>
         <CrossmintWalletProvider
-          {...walletConfig}
-          onWalletCreate={handleWalletCreate}
+          createOnLogin={walletConfig?.createOnLogin}
+          defaultChain={walletConfig?.defaultChain}
+          onWalletCreated={handleWalletCreate}
         >
           {children}
         </CrossmintWalletProvider>

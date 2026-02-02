@@ -108,6 +108,8 @@ export function useNFTMembership(): UseNFTMembershipReturn {
   }, [user, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
 
   // Auto-verify when user or wallet changes
+  // Note: verifyMembership is intentionally excluded from deps to prevent infinite loop
+  // The effect depends only on primitive values that indicate when to re-verify
   useEffect(() => {
     if (user) {
       verifyMembership();
@@ -115,7 +117,8 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setMembership(null);
       setIsLoading(false);
     }
-  }, [user, crossmintWallet.isInitialized, verifyMembership]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
 
   // Purchase membership using Crossmint gas-sponsored transaction
   const purchaseMembership = useCallback(async (
