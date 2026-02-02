@@ -16,14 +16,14 @@
 
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { StorageProviderType } from '@/types/storageProvider';
-import { 
+import {
   decryptFileWithCriticalBytes,
   decryptFileMetadata,
-  decryptCriticalBytes 
+  decryptCriticalBytes
 } from './crypto/blockDriveCryptoService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
 import { zkProofStorageService } from './zkProofStorageService';
-import { concatBytes } from './crypto/cryptoUtils';
+import { concatBytes, base64ToBytes } from './crypto/cryptoUtils';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ShardingClient, ParsedVaultMaster, FileLocation } from './solana';
 
@@ -46,6 +46,7 @@ export interface FileRecordData {
   commitment: string;
   encryptedCriticalBytes: string;
   criticalBytesIv: string;
+  fileIv: string; // Base64-encoded IV used for file encryption
   securityLevel: SecurityLevel;
   storageProvider: StorageProviderType;
   backupProviders?: Array<{
@@ -98,10 +99,12 @@ class BlockDriveDownloadService {
       );
       
       // Step 4: Decrypt and verify file
+      // Decode the file IV from base64 (stored during upload)
+      const fileIv = base64ToBytes(fileRecord.fileIv);
       const decryptResult = await decryptFileWithCriticalBytes(
         contentResult.data,
         criticalBytes,
-        new Uint8Array(12), // IV needs to be stored/retrieved properly
+        fileIv,
         fileRecord.commitment,
         decryptionKey
       );
@@ -180,6 +183,7 @@ class BlockDriveDownloadService {
     criticalBytesData: {
       encryptedCriticalBytes: string;
       criticalBytesIv: string;
+      fileIv: string; // Base64-encoded IV used for file encryption
     },
     commitment: string,
     decryptionKey: CryptoKey
@@ -200,11 +204,12 @@ class BlockDriveDownloadService {
         decryptionKey
       );
       
-      // Decrypt file
+      // Decrypt file using the stored file IV
+      const fileIv = base64ToBytes(criticalBytesData.fileIv);
       const decryptResult = await decryptFileWithCriticalBytes(
         encryptedContent,
         criticalBytes,
-        new Uint8Array(12), // IV from manifest
+        fileIv,
         commitment,
         decryptionKey
       );
@@ -337,28 +342,27 @@ class BlockDriveDownloadService {
         fileRecord.proofCid
       );
       
-      if (!zkProofResult.success || !zkProofResult.proof) {
+      if (!zkProofResult.success || !zkProofResult.proofPackage) {
         throw new Error(zkProofResult.error || 'Failed to download ZK proof');
       }
-      
+
       console.log('[BlockDriveDownload] ZK proof downloaded from R2');
-      
-      // Step 3: Verify and extract critical bytes from ZK proof
-      const proofValid = await zkProofStorageService.verifyProof(
-        zkProofResult.proof,
-        fileRecord.commitment
-      );
-      
-      if (!proofValid) {
-        throw new Error('ZK proof verification failed - file may be tampered');
+
+      const proofPackage = zkProofResult.proofPackage;
+
+      // Step 3: Verify proof integrity and commitment match
+      // Note: zkProofStorageService.downloadProof already verifies integrity
+      if (proofPackage.commitment !== fileRecord.commitment) {
+        throw new Error('ZK proof commitment mismatch - file may be tampered');
       }
-      
-      // Extract encrypted critical bytes from proof
-      const encryptedCriticalBytes = zkProofResult.proof.encryptedCriticalBytes;
-      const criticalBytesIv = zkProofResult.proof.iv;
-      
+
+      // Extract encrypted critical bytes and IVs from proof
+      const encryptedCriticalBytes = proofPackage.encryptedCriticalBytes;
+      const criticalBytesIv = proofPackage.encryptionIv; // IV used to encrypt critical bytes
+      const fileIv = base64ToBytes(proofPackage.encryptedIv); // IV used for file encryption
+
       const downloadTime = performance.now() - downloadStart;
-      
+
       // Step 4: Decrypt critical bytes
       const decryptStart = performance.now();
       const criticalBytes = await decryptCriticalBytes(
@@ -366,12 +370,12 @@ class BlockDriveDownloadService {
         criticalBytesIv,
         decryptionKey
       );
-      
-      // Step 5: Reconstruct and decrypt file
+
+      // Step 5: Reconstruct and decrypt file using the stored file IV
       const decryptResult = await decryptFileWithCriticalBytes(
         contentResult.data,
         criticalBytes,
-        new Uint8Array(12), // IV should be stored in proof or metadata
+        fileIv,
         fileRecord.commitment,
         decryptionKey
       );

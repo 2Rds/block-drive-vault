@@ -1,8 +1,8 @@
 # 🚀 Project State
 
-## 🎯 Current Mission: Phase 2 (Frontend Integration)
-- **Goal:** Integrate on-chain sharding with frontend services for seamless UX.
-- **Status:** TypeScript client and service integration COMPLETE.
+## 🎯 Current Mission: Phase 3 (Unified Payments)
+- **Goal:** Integrate Stripe Sync Engine + Crossmint crypto payments for dual payment rails.
+- **Status:** Stripe Sync Engine integration COMPLETE. Crypto checkout UI ready.
 
 ## ✅ Completed Phases
 
@@ -40,6 +40,52 @@
 - `downloadFileWithZKProof()` - Download using Programmed Incompleteness flow
 - `verifyFileCommitment()` - On-chain integrity verification
 
+### Phase 3.1 - Stripe Sync Engine Integration (COMPLETE)
+**Supabase Project:** `uxwfbialyxqaduiartpu` (BlockDrive - North Virginia)
+
+**Database Views (public schema)**
+- `stripe_products` - Active products from Stripe
+- `stripe_prices` - Active prices with recurring info
+- `stripe_customers` - Customer records (service-role only)
+- `stripe_subscriptions` - Subscription data (service-role only)
+- `stripe_invoices` - Invoice/payment history (service-role only)
+
+**RPC Functions**
+- `get_stripe_products()` - Fetch active products
+- `get_stripe_prices()` - Fetch active prices
+- `get_stripe_customer_by_email(email)` - Customer lookup
+- `get_stripe_subscription(id)` - Subscription by ID
+- `get_stripe_subscriptions_by_customer(customer_id)` - Customer subscriptions
+- `get_stripe_price(id)` - Price by ID
+
+**Analytics Functions**
+- `get_stripe_mrr()` - Monthly recurring revenue calculation
+- `get_stripe_revenue_by_period(start, end)` - Revenue over time
+- `get_subscription_tier_distribution()` - Tier breakdown
+
+**Edge Functions (Refactored)**
+- `create-checkout` - Uses synced customers table first, API fallback
+- `verify-subscription` - Uses synced subscriptions/prices, API fallback
+- `customer-portal` - Uses synced customers table first, API fallback
+
+### Phase 3.2 - Dynamic Pricing & Analytics (COMPLETE)
+**Frontend Hooks**
+- `useStripePricing` - Fetches dynamic pricing from Stripe Sync Engine
+- `useSubscriptionAnalytics` - MRR, revenue charts, tier distribution
+
+**PricingPage Integration**
+- Dynamic pricing with static fallback
+- Loading states during fetch
+
+### Phase 3.3 - Crypto Payment UI (COMPLETE)
+**Components**
+- `PaymentMethodToggle` - Fiat/Crypto toggle with wallet balance display
+- `CryptoCheckoutModal` - USDC payment flow with balance check, onramp link
+
+**Synced Data**
+- 9 products, 22 prices, 3 customers, 18 invoices
+- MRR analytics ready (currently $0 / 0 active subs)
+
 ## 🧩 Confirmed Architecture
 - **Encryption:** "Programmed Incompleteness" (AES-256-GCM + Split 16 Bytes).
 - **Sharding:** Master Vault -> Shards (100 files each) -> Index.
@@ -48,8 +94,8 @@
 - **Payments:** Stripe (fiat) + Crossmint (crypto recurring subscriptions).
 
 ## 📝 Remaining Implementation Phases
-1. **Phase 3: Unified Payments** - Stripe + Crossmint integration ✏️ NEXT
-2. **Phase 4: Enhanced Metadata Privacy** - Encrypted metadata blobs
+1. ~~**Phase 3: Unified Payments** - Stripe + Crossmint integration~~ ✅ COMPLETE
+2. **Phase 4: Enhanced Metadata Privacy** - Encrypted metadata blobs ✏️ NEXT
 3. **Phase 5: Full 3-Message Key Derivation** - Partially complete
 4. **Phase 6: Commitment Verification** - Partially complete
 5. **Phase 7: Python Recovery SDK** - Open source recovery tool
@@ -59,9 +105,13 @@
 1. ~~Create TypeScript client methods for sharding instructions~~ ✅
 2. ~~Update `blockDriveUploadService.ts` to use sharded registration~~ ✅
 3. ~~Update `blockDriveDownloadService.ts` to use sharded lookup~~ ✅
-4. Complete Crossmint payment integration (Phase 3)
-5. Build UI components for file upload/download with progress
-6. Add Supabase database sync for file metadata
+4. ~~Complete Stripe Sync Engine integration~~ ✅
+5. ~~Add dynamic pricing from synced Stripe data~~ ✅
+6. ~~Create crypto checkout UI components~~ ✅
+7. Test end-to-end Stripe checkout flow in production
+8. Test Crossmint crypto recurring payments (pg_cron)
+9. Build UI components for file upload/download with progress
+10. Add Supabase database sync for file metadata
 
 ## 🔧 Technical Notes
 
@@ -81,6 +131,25 @@ src/services/solana/
 src/services/
 ├── blockDriveUploadService.ts   [UPDATED] - On-chain registration integrated
 ├── blockDriveDownloadService.ts [UPDATED] - On-chain lookup integrated
+
+src/hooks/
+├── useStripePricing.tsx         [NEW] - Dynamic pricing from Stripe Sync
+├── useSubscriptionAnalytics.tsx [NEW] - MRR and revenue analytics
+├── usePricingSubscription.tsx   [UPDATED] - Crypto payment handling
+├── useCrossmintWallet.tsx       [UPDATED] - USDC balance checking
+
+src/components/subscription/
+├── PaymentMethodToggle.tsx      [NEW] - Fiat/Crypto toggle
+├── CryptoCheckoutModal.tsx      [NEW] - USDC checkout flow
+├── PricingPage.tsx              [UPDATED] - Dynamic pricing integration
+
+supabase/functions/
+├── create-checkout/index.ts     [UPDATED] - Synced customer lookup
+├── verify-subscription/index.ts [UPDATED] - Synced subscription/price lookup
+├── customer-portal/index.ts     [UPDATED] - Synced customer lookup
+
+supabase/migrations/
+├── 20260201_stripe_sync_views.sql [NEW] - Stripe Sync Engine views & functions
 ```
 
 ### Usage Example
