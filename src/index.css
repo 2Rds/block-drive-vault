@@ -45,6 +45,18 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 210 40% 18%;
     --sidebar-ring: 217 91% 60%;
+
+    /* Vault Terminal Theme */
+    --vault-glow: 217 91% 60%;
+    --vault-success: 142 76% 46%;
+    --vault-warning: 38 92% 50%;
+    --vault-danger: 0 84% 60%;
+    --vault-encrypt: 280 80% 60%;
+    --vault-cyan: 185 85% 50%;
+
+    /* Font families */
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --font-display: 'Orbitron', sans-serif;
   }
 }
 
@@ -124,4 +136,201 @@
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+}
+
+/* ============================================
+   VAULT TERMINAL - Custom Animations & Effects
+   ============================================ */
+
+/* Vault glow pulse animation */
+@keyframes vault-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--vault-glow) / 0.2),
+                inset 0 0 20px hsl(var(--vault-glow) / 0.05);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--vault-glow) / 0.4),
+                inset 0 0 30px hsl(var(--vault-glow) / 0.1);
+  }
+}
+
+/* Success pulse */
+@keyframes vault-success-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--vault-success) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 50px hsl(var(--vault-success) / 0.6);
+  }
+}
+
+/* Encryption shimmer effect */
+@keyframes vault-encrypt-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Scan line sweep */
+@keyframes vault-scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Data block float */
+@keyframes vault-block-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
+    opacity: 1;
+  }
+}
+
+/* Ring rotation for security levels */
+@keyframes vault-ring-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Ring pulse for active state */
+@keyframes vault-ring-pulse {
+  0%, 100% {
+    stroke-opacity: 0.3;
+    stroke-width: 2;
+  }
+  50% {
+    stroke-opacity: 0.8;
+    stroke-width: 3;
+  }
+}
+
+/* Progress bar glow */
+@keyframes vault-progress-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px hsl(var(--vault-glow) / 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px hsl(var(--vault-glow) / 0.8));
+  }
+}
+
+/* Hex block fragmentation */
+@keyframes vault-fragment {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.8) rotate(45deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.1) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+/* Border dash animation */
+@keyframes vault-border-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+/* Utility classes for vault theme */
+.vault-font-mono {
+  font-family: var(--font-mono);
+}
+
+.vault-font-display {
+  font-family: var(--font-display);
+}
+
+.vault-glow {
+  animation: vault-pulse 2s ease-in-out infinite;
+}
+
+.vault-glow-success {
+  animation: vault-success-pulse 1.5s ease-in-out infinite;
+}
+
+.vault-scan-line {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.vault-scan-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--vault-cyan) / 0.6),
+    transparent
+  );
+  animation: vault-scan 3s linear infinite;
+}
+
+/* Drop zone active state */
+.vault-dropzone-active {
+  border-color: hsl(var(--vault-glow)) !important;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--vault-glow) / 0.1),
+    hsl(var(--vault-encrypt) / 0.05)
+  ) !important;
+  animation: vault-pulse 1s ease-in-out infinite;
+}
+
+/* Hexagon clip path utility */
+.vault-hex {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+/* Data stream background */
+.vault-data-stream {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    hsl(var(--vault-glow) / 0.03) 2px,
+    hsl(var(--vault-glow) / 0.03) 4px
+  );
+  background-size: 100% 8px;
+  animation: vault-encrypt-shimmer 2s linear infinite;
+}
+
+/* Encryption active shimmer */
+.vault-encrypting {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--vault-encrypt) / 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: vault-encrypt-shimmer 1.5s linear infinite;
 }

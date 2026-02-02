@@ -1,106 +1,190 @@
 
-import React, { useRef, useState } from 'react';
-import { Upload, Plus } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Upload, Plus, Shield, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CreateFolderModal } from './CreateFolderModal';
+import { BlockDriveUploadModal } from './files/BlockDriveUploadModal';
+import { useBlockDriveUpload } from '@/hooks/useBlockDriveUpload';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface UploadAreaProps {
-  isUploading: boolean;
-  setIsUploading: (uploading: boolean) => void;
+  isUploading?: boolean;
+  setIsUploading?: (uploading: boolean) => void;
   onCreateFolder?: (folderName: string) => void;
+  onUploadComplete?: (results: any[]) => void;
+  currentFolder?: string;
 }
 
-export const UploadArea = ({ isUploading, setIsUploading, onCreateFolder }: UploadAreaProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export const UploadArea = ({
+  isUploading: externalIsUploading,
+  setIsUploading: externalSetIsUploading,
+  onCreateFolder,
+  onUploadComplete,
+  currentFolder = '/',
+}: UploadAreaProps) => {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleUpload = () => {
-    setIsUploading(true);
-    // Simulate upload process
-    setTimeout(() => {
-      setIsUploading(false);
-    }, 2000);
-  };
+  const { isUploading: hookIsUploading, progress, hasKeys } = useBlockDriveUpload();
+  const isUploading = externalIsUploading ?? hookIsUploading;
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    handleUpload();
-  };
+    e.stopPropagation();
+    setIsDragOver(false);
+    setShowUploadModal(true);
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  };
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
 
   const handleCreateFolder = (folderName: string) => {
     console.log('Creating folder:', folderName);
     toast.success(`Folder "${folderName}" created successfully!`);
-    
+
     if (onCreateFolder) {
       onCreateFolder(folderName);
     }
   };
 
+  const handleUploadComplete = (results: any[]) => {
+    if (externalSetIsUploading) {
+      externalSetIsUploading(false);
+    }
+    onUploadComplete?.(results);
+  };
+
   return (
     <>
-      <div className="bg-white/10 backdrop-blur-md rounded-xl border-2 border-dashed border-white/30 p-8 text-center hover:border-blue-500/50 transition-colors">
-        <div
-          className="space-y-4"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
+      <div
+        className={cn(
+          'relative rounded-xl border-2 border-dashed p-8 text-center transition-all duration-300',
+          'bg-card/40 backdrop-blur-md',
+          isDragOver
+            ? 'vault-dropzone-active border-primary'
+            : 'border-muted-foreground/30 hover:border-primary/50'
+        )}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        {/* Scan line effect when active */}
+        {isDragOver && <div className="vault-scan-line rounded-xl" />}
+
+        <div className="space-y-4">
+          {/* Icon */}
           <div className="flex justify-center">
-            <div className="p-4 bg-blue-600/20 rounded-full">
-              <Upload className="w-8 h-8 text-blue-600" />
+            <div
+              className={cn(
+                'p-4 rounded-xl transition-all duration-300',
+                isDragOver ? 'scale-110 vault-glow' : ''
+              )}
+              style={{
+                backgroundColor: isDragOver
+                  ? 'hsl(var(--vault-glow) / 0.3)'
+                  : 'hsl(var(--primary) / 0.1)',
+              }}
+            >
+              <Upload
+                className={cn(
+                  'w-8 h-8 transition-colors duration-300',
+                  isDragOver ? 'text-primary' : 'text-primary/70'
+                )}
+              />
             </div>
           </div>
+
+          {/* Text */}
           <div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Upload to Blockchain Storage
+            <h3 className="vault-font-display text-xl font-semibold text-foreground mb-2 tracking-wide">
+              {isDragOver ? 'DROP FILES HERE' : 'SECURE UPLOAD'}
             </h3>
-            <p className="text-gray-400 mb-4">
-              Drag and drop your files here, or click to browse
+            <p className="text-muted-foreground mb-1">
+              {isDragOver
+                ? 'Release to open upload dialog'
+                : 'Drag and drop files, or click to browse'}
             </p>
-            <div className="flex justify-center space-x-4">
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isUploading}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {isUploading ? 'Uploading...' : 'Choose Files'}
-              </Button>
-              <Button 
-                onClick={() => setShowCreateFolderModal(true)}
-                className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-300"
-                variant="outline"
-              >
-                Create Folder
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground/70 flex items-center justify-center gap-1">
+              <Shield className="w-3 h-3" />
+              AES-256-GCM encryption with on-chain registration
+            </p>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleUpload}
-          />
-          {isUploading && (
-            <div className="mt-4">
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full animate-pulse w-1/2"></div>
+
+          {/* Buttons */}
+          <div className="flex justify-center gap-3 pt-2">
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              disabled={isUploading}
+              className="vault-font-display tracking-wider"
+              style={{
+                backgroundColor: 'hsl(var(--primary) / 0.2)',
+                borderColor: 'hsl(var(--primary) / 0.5)',
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {isUploading ? 'UPLOADING...' : 'CHOOSE FILES'}
+            </Button>
+            <Button
+              onClick={() => setShowCreateFolderModal(true)}
+              variant="outline"
+              className="border-muted-foreground/30 hover:border-primary/50"
+            >
+              <FolderPlus className="w-4 h-4 mr-2" />
+              New Folder
+            </Button>
+          </div>
+
+          {/* Current upload progress indicator */}
+          {isUploading && progress && (
+            <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="vault-font-mono text-xs text-primary">
+                  {progress.phase.toUpperCase()}
+                </span>
+                <span className="vault-font-mono text-xs text-muted-foreground">
+                  {progress.progress.toFixed(0)}%
+                </span>
               </div>
-              <p className="text-sm text-gray-400 mt-2">Uploading to blockchain...</p>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500 animate-[vault-progress-glow_1.5s_ease-in-out_infinite]"
+                  style={{
+                    width: `${progress.progress}%`,
+                    backgroundColor: 'hsl(var(--primary))',
+                  }}
+                />
+              </div>
+              <p className="vault-font-mono text-xs text-muted-foreground mt-2 truncate">
+                {progress.fileName}
+              </p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Modals */}
       <CreateFolderModal
         isOpen={showCreateFolderModal}
         onClose={() => setShowCreateFolderModal(false)}
         onCreateFolder={handleCreateFolder}
+      />
+
+      <BlockDriveUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadComplete={handleUploadComplete}
+        defaultFolder={currentFolder}
       />
     </>
   );

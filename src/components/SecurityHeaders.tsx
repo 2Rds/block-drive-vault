@@ -12,12 +12,12 @@ export const SecurityHeaders = () => {
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://widget.intercom.io;
         font-src 'self' https://fonts.gstatic.com https://widget.intercom.io;
         img-src 'self' data: https: blob:;
-        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.intercom.io https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.crossmint.com https://staging.crossmint.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.intercom.io https://*.clerk.accounts.dev https://*.clerk.com https://clerk-telemetry.com https://challenges.cloudflare.com https://*.crossmint.com https://staging.crossmint.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com;
         frame-src 'self' https://widget.intercom.io https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.crossmint.com;
+        worker-src 'self' blob:;
         object-src 'none';
         base-uri 'self';
         form-action 'self';
-        frame-ancestors 'none';
         upgrade-insecure-requests;
       `.replace(/\s+/g, ' ').trim();
       document.head.appendChild(meta);
