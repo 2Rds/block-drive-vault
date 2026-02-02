@@ -1,8 +1,8 @@
 # 🚀 Project State
 
-## 🎯 Current Mission: Phase 3 (Unified Payments)
-- **Goal:** Integrate Stripe Sync Engine + Crossmint crypto payments for dual payment rails.
-- **Status:** Stripe Sync Engine integration COMPLETE. Crypto checkout UI ready.
+## 🎯 Current Mission: Phase 4 (Enhanced Metadata Privacy)
+- **Goal:** Encrypt sensitive file metadata in Supabase while maintaining searchability via HMAC tokens.
+- **Status:** COMPLETE. Encrypted metadata, search tokens, and size buckets implemented.
 
 ## ✅ Completed Phases
 
@@ -86,6 +86,38 @@
 - 9 products, 22 prices, 3 customers, 18 invoices
 - MRR analytics ready (currently $0 / 0 active subs)
 
+### Phase 4 - Enhanced Metadata Privacy (COMPLETE)
+**Database Migration**
+- `encrypted_metadata` JSONB - AES-256-GCM encrypted metadata blob
+- `metadata_version` INTEGER - Version indicator (1=plaintext, 2=encrypted)
+- `filename_hash` TEXT - HMAC-SHA256 token for filename search
+- `folder_path_hash` TEXT - HMAC-SHA256 token for folder listing
+- `size_bucket` TEXT - Approximate size category (tiny/small/medium/large/huge)
+- Partial indexes for efficient hash-based queries
+
+**MetadataPrivacyService (`src/services/crypto/metadataPrivacyService.ts`)**
+- `deriveSearchKey()` - HKDF derivation of separate search key from encryption key
+- `generateSearchToken()` - Deterministic HMAC-SHA256 tokens for exact-match search
+- `encryptFileMetadata()` - Encrypt full metadata payload with AES-256-GCM
+- `decryptFileMetadata()` - Decrypt metadata for display
+- `getSizeBucket()` - Convert exact sizes to privacy-preserving buckets
+- `getFileDetails()` - Unified handler for v1 (plaintext) and v2 (encrypted) files
+
+**Upload Service Integration**
+- `preparePrivacyMetadata()` - Generate encrypted metadata + search tokens
+- `saveToSupabaseWithPrivacy()` - Save with privacy-enhanced columns
+- `uploadFileWithPrivacyStorage()` - Full upload flow with v2 metadata
+
+**Download Service Integration**
+- `getFileDetailsFromRecord()` - Decrypt metadata for both v1 and v2 files
+- `hasEncryptedMetadata()` - Check if file uses v2 format
+
+**File Database Service**
+- `saveFileWithPrivacy()` - Insert with encrypted metadata columns
+- `searchByFilename()` - Query by HMAC filename token
+- `listFolder()` - Query by HMAC folder path token
+- `migrateToEncryptedMetadata()` - Upgrade v1 files to v2 format
+
 ## 🧩 Confirmed Architecture
 - **Encryption:** "Programmed Incompleteness" (AES-256-GCM + Split 16 Bytes).
 - **Sharding:** Master Vault -> Shards (100 files each) -> Index.
@@ -95,8 +127,8 @@
 
 ## 📝 Remaining Implementation Phases
 1. ~~**Phase 3: Unified Payments** - Stripe + Crossmint integration~~ ✅ COMPLETE
-2. **Phase 4: Enhanced Metadata Privacy** - Encrypted metadata blobs ✏️ NEXT
-3. **Phase 5: Full 3-Message Key Derivation** - Partially complete
+2. ~~**Phase 4: Enhanced Metadata Privacy** - Encrypted metadata blobs~~ ✅ COMPLETE
+3. **Phase 5: Full 3-Message Key Derivation** - Partially complete ✏️ NEXT
 4. **Phase 6: Commitment Verification** - Partially complete
 5. **Phase 7: Python Recovery SDK** - Open source recovery tool
 6. **Phase 8: Testing & Deployment** - Devnet → Mainnet
@@ -108,10 +140,12 @@
 4. ~~Complete Stripe Sync Engine integration~~ ✅
 5. ~~Add dynamic pricing from synced Stripe data~~ ✅
 6. ~~Create crypto checkout UI components~~ ✅
-7. Test end-to-end Stripe checkout flow in production
-8. Test Crossmint crypto recurring payments (pg_cron)
-9. Build UI components for file upload/download with progress
-10. Add Supabase database sync for file metadata
+7. ~~Create encrypted metadata service with HMAC search tokens~~ ✅
+8. ~~Update upload/download services for privacy-enhanced metadata~~ ✅
+9. Test end-to-end Stripe checkout flow in production
+10. Test Crossmint crypto recurring payments (pg_cron)
+11. Build UI components for file upload/download with progress
+12. Complete 3-message key derivation (Phase 5)
 
 ## 🔧 Technical Notes
 
@@ -150,6 +184,13 @@ supabase/functions/
 
 supabase/migrations/
 ├── 20260201_stripe_sync_views.sql [NEW] - Stripe Sync Engine views & functions
+├── 20260202_enhanced_metadata_privacy.sql [NEW] - Phase 4 encrypted metadata columns
+
+src/services/crypto/
+├── metadataPrivacyService.ts [NEW] - Encrypted metadata + HMAC search tokens
+
+src/services/
+├── fileDatabaseService.ts [UPDATED] - Privacy-enhanced save/search methods
 ```
 
 ### Usage Example
