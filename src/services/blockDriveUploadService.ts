@@ -17,10 +17,10 @@
  * Critical bytes are NEVER stored locally - they exist only in the ZK proof on R2.
  */
 
-import { 
+import {
   SecurityLevel,
   EncryptedFileData,
-  EncryptedFileMetadata 
+  EncryptedFileMetadata
 } from '@/types/blockdriveCrypto';
 import {
   StorageConfig,
@@ -42,6 +42,8 @@ import { sha256, bytesToBase64 } from './crypto/cryptoUtils';
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import { ShardingClient, SecurityLevel as SolanaSecurityLevel } from './solana';
 import { sha256HashBytes } from './solana/pdaUtils';
+import { metadataPrivacyService, PrivateFileMetadata, EncryptedMetadataResult } from './crypto/metadataPrivacyService';
+import { FileDatabaseService, PrivacyEnhancedFileData } from './fileDatabaseService';
 
 // Upload result with all data needed for on-chain storage
 export interface BlockDriveUploadResult {
@@ -654,6 +656,158 @@ class BlockDriveUploadService {
         return SolanaSecurityLevel.Maximum;
       default:
         return SolanaSecurityLevel.Standard;
+    }
+  }
+
+  // ============================================
+  // Phase 4: Privacy-Enhanced Supabase Storage
+  // ============================================
+
+  /**
+   * Generate privacy-enhanced metadata for Supabase storage
+   *
+   * Creates encrypted metadata blob and search tokens for a file.
+   * Use this after upload to get data ready for `FileDatabaseService.saveFileWithPrivacy()`.
+   *
+   * @param file - Original file (for metadata)
+   * @param encryptionKey - Wallet-derived encryption key
+   * @param securityLevel - Security level used for encryption
+   * @param folderPath - Folder path for file organization
+   * @returns Encrypted metadata result ready for database storage
+   */
+  async preparePrivacyMetadata(
+    file: File,
+    encryptionKey: CryptoKey,
+    securityLevel: SecurityLevel,
+    folderPath: string = '/'
+  ): Promise<EncryptedMetadataResult> {
+    const privateMetadata: PrivateFileMetadata = {
+      filename: file.name,
+      folderPath: folderPath,
+      contentType: file.type || 'application/octet-stream',
+      fileSize: file.size,
+      customMetadata: {
+        uploadedVia: 'blockdrive-web'
+      }
+    };
+
+    return metadataPrivacyService.encryptFileMetadata(
+      privateMetadata,
+      encryptionKey,
+      securityLevel
+    );
+  }
+
+  /**
+   * Save upload result to Supabase with privacy-enhanced metadata
+   *
+   * This is the recommended way to save file records to Supabase.
+   * All sensitive metadata (filename, folder, size, type) is encrypted.
+   *
+   * @param uploadResult - Result from uploadFile or uploadFileWithOnChainRegistration
+   * @param encryptionKey - Wallet-derived encryption key
+   * @param clerkUserId - User's Clerk ID
+   * @param folderPath - Folder path for file organization
+   */
+  async saveToSupabaseWithPrivacy(
+    uploadResult: BlockDriveUploadResult,
+    encryptionKey: CryptoKey,
+    clerkUserId: string,
+    folderPath: string = '/'
+  ): Promise<any> {
+    // Generate privacy-enhanced metadata
+    const privateMetadata: PrivateFileMetadata = {
+      filename: uploadResult.fileName,
+      folderPath: folderPath,
+      contentType: uploadResult.mimeType,
+      fileSize: uploadResult.originalSize,
+      customMetadata: {
+        uploadedVia: 'blockdrive-web',
+        commitment: uploadResult.commitment,
+        proofCid: uploadResult.proofCid,
+        metadataCID: uploadResult.metadataCID
+      }
+    };
+
+    const encryptedResult = await metadataPrivacyService.encryptFileMetadata(
+      privateMetadata,
+      encryptionKey,
+      uploadResult.securityLevel
+    );
+
+    // Build database record
+    const fileData: PrivacyEnhancedFileData = {
+      clerk_user_id: clerkUserId,
+      ipfs_cid: uploadResult.contentCID,
+      ipfs_url: uploadResult.contentUpload.primaryResult.url,
+      storage_provider: uploadResult.contentUpload.primaryProvider,
+      encrypted_metadata: encryptedResult.encryptedMetadata,
+      metadata_version: 2,
+      filename_hash: encryptedResult.filenameHash,
+      folder_path_hash: encryptedResult.folderPathHash,
+      size_bucket: encryptedResult.sizeBucket,
+      is_encrypted: true
+    };
+
+    // Save to Supabase
+    return FileDatabaseService.saveFileWithPrivacy(fileData);
+  }
+
+  /**
+   * Full upload flow with privacy-enhanced Supabase storage
+   *
+   * Combines:
+   * 1. File encryption with Programmed Incompleteness
+   * 2. Multi-provider storage upload
+   * 3. ZK proof generation and storage
+   * 4. Privacy-enhanced Supabase metadata storage
+   *
+   * Note: This does NOT include Solana on-chain registration.
+   * Use `uploadFileWithOnChainRegistration` + `saveToSupabaseWithPrivacy` for that.
+   */
+  async uploadFileWithPrivacyStorage(
+    file: File,
+    encryptionKey: CryptoKey,
+    securityLevel: SecurityLevel,
+    walletAddress: string,
+    clerkUserId: string,
+    storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
+    folderPath: string = '/'
+  ): Promise<BlockDriveUploadResult & { databaseRecord?: any }> {
+    // Step 1: Upload to storage providers
+    const uploadResult = await this.uploadFile(
+      file,
+      encryptionKey,
+      securityLevel,
+      walletAddress,
+      storageConfig,
+      folderPath
+    );
+
+    if (!uploadResult.success) {
+      return uploadResult;
+    }
+
+    // Step 2: Save to Supabase with privacy-enhanced metadata
+    try {
+      const databaseRecord = await this.saveToSupabaseWithPrivacy(
+        uploadResult,
+        encryptionKey,
+        clerkUserId,
+        folderPath
+      );
+
+      console.log('[BlockDrive] File saved to Supabase with privacy-enhanced metadata');
+
+      return {
+        ...uploadResult,
+        databaseRecord
+      };
+    } catch (dbError) {
+      console.error('[BlockDrive] Failed to save to Supabase:', dbError);
+      // Return upload result even if database save fails
+      // The file is still on storage, just not indexed
+      return uploadResult;
     }
   }
 }

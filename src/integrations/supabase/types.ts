@@ -31,6 +31,12 @@ export type Database = {
           storage_provider: string | null
           updated_at: string
           visibility: string | null
+          // Phase 4: Enhanced Metadata Privacy columns
+          encrypted_metadata: Json | null
+          metadata_version: number | null
+          filename_hash: string | null
+          folder_path_hash: string | null
+          size_bucket: string | null
         }
         Insert: {
           clerk_user_id: string
@@ -48,6 +54,12 @@ export type Database = {
           storage_provider?: string | null
           updated_at?: string
           visibility?: string | null
+          // Phase 4: Enhanced Metadata Privacy columns
+          encrypted_metadata?: Json | null
+          metadata_version?: number | null
+          filename_hash?: string | null
+          folder_path_hash?: string | null
+          size_bucket?: string | null
         }
         Update: {
           clerk_user_id?: string
@@ -65,6 +77,12 @@ export type Database = {
           storage_provider?: string | null
           updated_at?: string
           visibility?: string | null
+          // Phase 4: Enhanced Metadata Privacy columns
+          encrypted_metadata?: Json | null
+          metadata_version?: number | null
+          filename_hash?: string | null
+          folder_path_hash?: string | null
+          size_bucket?: string | null
         }
         Relationships: []
       }

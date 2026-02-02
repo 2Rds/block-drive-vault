@@ -26,6 +26,8 @@ import { zkProofStorageService } from './zkProofStorageService';
 import { concatBytes, base64ToBytes } from './crypto/cryptoUtils';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ShardingClient, ParsedVaultMaster, FileLocation } from './solana';
+import { metadataPrivacyService, PrivateFileMetadata } from './crypto/metadataPrivacyService';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface BlockDriveDownloadResult {
   success: boolean;
@@ -413,6 +415,55 @@ class BlockDriveDownloadService {
         error: error instanceof Error ? error.message : 'Download failed'
       };
     }
+  }
+
+  // ============================================
+  // Phase 4: Privacy-Enhanced Metadata Handling
+  // ============================================
+
+  /**
+   * Get file details from a Supabase database record
+   *
+   * Handles both v1 (plaintext) and v2 (encrypted) metadata formats.
+   * For v2 files, decrypts the encrypted metadata blob.
+   *
+   * @param fileRecord - Database record from Supabase
+   * @param decryptionKey - User's wallet-derived decryption key (required for v2)
+   * @returns File details (filename, folder, type, size)
+   */
+  async getFileDetailsFromRecord(
+    fileRecord: {
+      filename: string;
+      folder_path?: string | null;
+      content_type?: string | null;
+      file_size?: number | null;
+      encrypted_metadata?: Json | null;
+      metadata_version?: number | null;
+    },
+    decryptionKey?: CryptoKey
+  ): Promise<{
+    filename: string;
+    folderPath: string;
+    contentType: string;
+    fileSize: number;
+    isEncryptedMetadata: boolean;
+  }> {
+    const details = await metadataPrivacyService.getFileDetails(
+      fileRecord,
+      decryptionKey
+    );
+
+    return {
+      ...details,
+      isEncryptedMetadata: metadataPrivacyService.isEncryptedMetadata(fileRecord)
+    };
+  }
+
+  /**
+   * Check if a file record has privacy-enhanced (v2) metadata
+   */
+  hasEncryptedMetadata(fileRecord: { metadata_version?: number | null }): boolean {
+    return metadataPrivacyService.isEncryptedMetadata(fileRecord);
   }
 
   /**
