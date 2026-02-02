@@ -1,8 +1,8 @@
 # 🚀 Project State
 
-## 🎯 Current Mission: Phase 4 (Enhanced Metadata Privacy)
-- **Goal:** Encrypt sensitive file metadata in Supabase while maintaining searchability via HMAC tokens.
-- **Status:** COMPLETE. Encrypted metadata, search tokens, and size buckets implemented.
+## 🎯 Current Mission: Phase 7 (Python Recovery SDK)
+- **Goal:** Create open-source Python SDK for file recovery without BlockDrive app.
+- **Status:** NEXT. Core cryptography phases complete (3-6).
 
 ## ✅ Completed Phases
 
@@ -118,6 +118,29 @@
 - `listFolder()` - Query by HMAC folder path token
 - `migrateToEncryptedMetadata()` - Upgrade v1 files to v2 format
 
+### Phase 5 - Full 3-Message Key Derivation (COMPLETE)
+**Key Derivation Service (`src/services/crypto/keyDerivationService.ts`)**
+- `deriveKeyFromSignature()` - HKDF-based AES-256-GCM key derivation from wallet signatures
+- `getSignatureMessage()` / `getAllSignatureMessages()` - Security level message retrieval
+- `verifyKeyHash()` - Session key hash verification
+- 3-level security architecture with unique sign messages per level
+
+**Wallet Crypto Hook (`src/hooks/useWalletCrypto.tsx`)**
+- `initializeKeys()` - Full 3-message signing flow
+- `getKey()` - Automatic key derivation with session caching
+- `refreshKey()` - Re-sign for specific security level
+- 4-hour session expiry with auto-refresh
+- Dual wallet support (Crossmint embedded + external wallet adapter)
+
+### Phase 6 - On-Chain Commitment Verification (COMPLETE)
+**ShardingClient (`src/services/solana/shardingClient.ts`)**
+- `getFileRecord()` - Fetch FileRecord from Solana by owner + fileId
+- `verifyCommitment()` - Compare on-chain criticalBytesCommitment with expected value
+- `parseFileRecord()` - Full FileRecord account parsing
+
+**Download Service Integration**
+- `verifyFileCommitment()` - Now fetches actual on-chain commitment and compares
+
 ## 🧩 Confirmed Architecture
 - **Encryption:** "Programmed Incompleteness" (AES-256-GCM + Split 16 Bytes).
 - **Sharding:** Master Vault -> Shards (100 files each) -> Index.
@@ -128,9 +151,9 @@
 ## 📝 Remaining Implementation Phases
 1. ~~**Phase 3: Unified Payments** - Stripe + Crossmint integration~~ ✅ COMPLETE
 2. ~~**Phase 4: Enhanced Metadata Privacy** - Encrypted metadata blobs~~ ✅ COMPLETE
-3. **Phase 5: Full 3-Message Key Derivation** - Partially complete ✏️ NEXT
-4. **Phase 6: Commitment Verification** - Partially complete
-5. **Phase 7: Python Recovery SDK** - Open source recovery tool
+3. ~~**Phase 5: Full 3-Message Key Derivation** - Complete~~ ✅ COMPLETE
+4. ~~**Phase 6: Commitment Verification** - On-chain verification~~ ✅ COMPLETE
+5. **Phase 7: Python Recovery SDK** - Open source recovery tool ✏️ NEXT
 6. **Phase 8: Testing & Deployment** - Devnet → Mainnet
 
 ## 📝 Immediate Next Steps
@@ -142,10 +165,12 @@
 6. ~~Create crypto checkout UI components~~ ✅
 7. ~~Create encrypted metadata service with HMAC search tokens~~ ✅
 8. ~~Update upload/download services for privacy-enhanced metadata~~ ✅
-9. Test end-to-end Stripe checkout flow in production
-10. Test Crossmint crypto recurring payments (pg_cron)
-11. Build UI components for file upload/download with progress
-12. Complete 3-message key derivation (Phase 5)
+9. ~~Complete 3-message key derivation (Phase 5)~~ ✅
+10. ~~Implement on-chain commitment verification (Phase 6)~~ ✅
+11. Test end-to-end Stripe checkout flow in production
+12. Test Crossmint crypto recurring payments (pg_cron)
+13. Build UI components for file upload/download with progress
+14. Start Python Recovery SDK (Phase 7)
 
 ## 🔧 Technical Notes
 

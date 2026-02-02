@@ -469,6 +469,9 @@ class BlockDriveDownloadService {
   /**
    * Verify a file's commitment matches on-chain record.
    * Use this to verify file integrity before downloading.
+   *
+   * This fetches the actual FileRecord from Solana and compares
+   * the criticalBytesCommitment field against the expected value.
    */
   async verifyFileCommitment(
     connection: Connection,
@@ -479,35 +482,27 @@ class BlockDriveDownloadService {
     try {
       const shardingClient = new ShardingClient({ connection });
       const ownerPubkey = new PublicKey(ownerAddress);
-      const [vaultMasterPDA] = shardingClient.getVaultMasterPDA(ownerPubkey);
-      
-      // Find file location
-      const location = await shardingClient.findFileLocation(ownerPubkey, fileId);
-      if (!location) {
-        return { verified: false, error: 'File not found in vault index' };
+
+      // Use the shardingClient's verifyCommitment method which fetches
+      // the actual FileRecord and compares the commitment
+      const result = await shardingClient.verifyCommitment(
+        ownerPubkey,
+        fileId,
+        expectedCommitment
+      );
+
+      if (result.verified) {
+        console.log(`[Verify] Commitment verified for file ${fileId}`);
+      } else {
+        console.warn(`[Verify] Commitment verification failed: ${result.error}`);
       }
-      
-      // Get shard to access file record
-      const shard = await shardingClient.getVaultShard(vaultMasterPDA, location.shardIndex);
-      if (!shard) {
-        return { verified: false, error: 'Shard not found' };
-      }
-      
-      // For full verification, we'd need to fetch the FileRecord account
-      // and compare its commitment field. This is a simplified version.
-      // In production, fetch the actual FileRecord PDA and compare.
-      
-      console.log(`[Verify] File found at shard ${location.shardIndex}, slot ${location.slotIndex}`);
-      
-      return { 
-        verified: true, 
-        onChainCommitment: expectedCommitment 
-      };
-      
+
+      return result;
+
     } catch (error) {
-      return { 
-        verified: false, 
-        error: error instanceof Error ? error.message : 'Verification failed' 
+      return {
+        verified: false,
+        error: error instanceof Error ? error.message : 'Verification failed'
       };
     }
   }
