@@ -373,15 +373,34 @@ export class ShardingClient {
   // Instruction Encoding
   // ============================================
 
+  /**
+   * Compute Anchor instruction discriminator
+   * Anchor uses first 8 bytes of SHA256("global:<instruction_name>")
+   */
+  private computeDiscriminator(instructionName: string): Buffer {
+    // Use synchronous computation via crypto module
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256')
+      .update(`global:${instructionName}`)
+      .digest();
+    return hash.slice(0, 8);
+  }
+
   private encodeInitializeVaultMaster(): Buffer {
-    // Anchor discriminator for initialize_vault_master
-    const discriminator = Buffer.from([0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]);
+    // Anchor discriminator: SHA256("global:initialize_vault_master")[0..8]
+    const discriminator = this.computeDiscriminator('initialize_vault_master');
     return discriminator;
   }
 
   private encodeCreateShard(shardIndex: number): Buffer {
-    // Anchor discriminator for create_shard
-    const discriminator = Buffer.from([0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81]);
+    // Anchor discriminator: SHA256("global:create_shard")[0..8]
+    const discriminator = this.computeDiscriminator('create_shard');
+
+    // Validate shard index bounds
+    if (shardIndex < 0 || shardIndex >= MAX_SHARDS) {
+      throw new Error(`Invalid shard index ${shardIndex}. Must be 0-${MAX_SHARDS - 1}`);
+    }
+
     return Buffer.concat([discriminator, Buffer.from([shardIndex])]);
   }
 
@@ -397,8 +416,13 @@ export class ShardingClient {
     criticalBytesCommitment: Uint8Array;
     primaryCid: Uint8Array;
   }): Buffer {
-    // Anchor discriminator for register_file_sharded
-    const discriminator = Buffer.from([0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x82]);
+    // Anchor discriminator: SHA256("global:register_file_sharded")[0..8]
+    const discriminator = this.computeDiscriminator('register_file_sharded');
+
+    // Validate shard index bounds
+    if (params.shardIndex < 0 || params.shardIndex >= MAX_SHARDS) {
+      throw new Error(`Invalid shard index ${params.shardIndex}. Must be 0-${MAX_SHARDS - 1}`);
+    }
 
     const fileSizeBuffer = Buffer.alloc(8);
     fileSizeBuffer.writeBigUInt64LE(params.fileSize);
