@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 1.0.0
-**Date**: January 17, 2026
-**Status**: DRAFT
+**Version**: 2.0.0
+**Date**: February 3, 2026
+**Status**: ACTIVE
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -59,7 +59,8 @@
 | **Storage** | Cloudflare R2 + IPFS + Arweave | Encrypted file storage |
 | **Blockchain** | Solana (Anchor framework) | On-chain state |
 | **Cryptography** | AES-256-GCM + Groth16 (snarkjs) | Encryption + ZK proofs |
-| **Payments** | Stripe + Radom | Fiat + crypto subscriptions |
+| **Payments** | Stripe + Crossmint | Fiat + crypto subscriptions |
+| **Sharding** | Multi-PDA Sharding | 1000+ files per user |
 
 ---
 
@@ -69,86 +70,165 @@
 
 ```
 src/
-├── components/
-│   ├── auth/               # Clerk + Crossmint providers
-│   ├── dashboard/          # Main dashboard components
-│   ├── files/              # File management UI
-│   ├── sharing/            # Sharing & collaboration
-│   ├── encryption/         # Client-side encryption UI
-│   └── ui/                 # shadcn/ui components
-├── services/
-│   ├── storage/            # Storage orchestration
-│   │   ├── storageOrchestrator.ts    # Multi-provider management
-│   │   ├── r2Provider.ts             # Cloudflare R2 integration
-│   │   ├── ipfsProvider.ts           # IPFS via Cloudflare gateway
-│   │   └── arweaveProvider.ts        # Arweave integration
-│   ├── encryption/         # AES-256-GCM encryption
-│   ├── zkProofs/           # Groth16 proof generation
-│   ├── solana/             # Anchor client SDK
-│   └── api/                # Backend API clients
-├── hooks/
-│   ├── useCrossmintWallet.tsx        # Embedded wallet hook
-│   ├── useWalletCrypto.tsx           # Key derivation
-│   ├── useFiles.tsx                  # File operations
-│   └── useSubscription.tsx           # Subscription state
-├── config/
-│   ├── crossmint.ts        # Crossmint SDK config
-│   ├── storage.ts          # Storage provider config
-│   └── cloudflare.ts       # Cloudflare integration config
-└── pages/                  # Route components
+├── components/             # 151 total components
+│   ├── auth/               # Authentication (Clerk + Crossmint)
+│   │   ├── AuthHeader.tsx, AuthHero.tsx
+│   │   ├── MultichainAuthModal.tsx
+│   │   └── WalletConnectionStatus.tsx
+│   ├── dashboard/          # Analytics & metrics
+│   │   ├── ChartsSection.tsx, MetricsCards.tsx
+│   │   └── MembershipCard.tsx, NetworkStatus.tsx
+│   ├── files/              # File management (Programmed Incompleteness)
+│   │   ├── BlockDriveFileGrid.tsx    # Main grid with Solana integration
+│   │   ├── BlockDriveUploadModal.tsx # 4-phase upload pipeline
+│   │   ├── BlockDriveDownloadModal.tsx # ZK proof verification
+│   │   └── SharedFilesPanel.tsx      # File sharing UI
+│   ├── onboarding/         # User onboarding flow
+│   │   └── OrganizationJoinStep.tsx  # Org invite/email verification
+│   ├── organization/       # Organization management
+│   │   ├── InviteCodeInput.tsx
+│   │   └── BusinessEmailVerification.tsx
+│   ├── subscription/       # Payments & billing
+│   │   ├── SubscriptionManager.tsx
+│   │   └── PricingCard.tsx
+│   ├── integrations/       # Third-party integrations
+│   │   ├── BoxIntegration.tsx, GoogleDriveIntegration.tsx
+│   │   └── SlackIntegration.tsx
+│   └── ui/                 # Full shadcn/ui library
+├── services/               # 49 service files
+│   ├── crypto/             # Cryptography (AES-256-GCM, ZK)
+│   │   ├── blockDriveCryptoService.ts
+│   │   ├── keyDerivationService.ts   # 3-level HKDF
+│   │   ├── zkProofService.ts         # Groth16 proofs
+│   │   └── metadataPrivacyService.ts # v2 encrypted metadata
+│   ├── storage/            # Multi-provider orchestration
+│   │   ├── storageOrchestrator.ts
+│   │   ├── filebaseProvider.ts       # Primary IPFS
+│   │   ├── r2Provider.ts             # Cloudflare R2
+│   │   └── arweaveProvider.ts        # Permanent storage
+│   ├── solana/             # Blockchain integration
+│   │   ├── shardingClient.ts         # Multi-PDA Sharding
+│   │   ├── blockDriveClient.ts       # Anchor client
+│   │   └── pdaUtils.ts               # PDA derivation
+│   ├── crossmint/          # Wallet & NFT services
+│   │   ├── walletSync.ts
+│   │   └── usernameNFTService.ts
+│   ├── blockDriveUploadService.ts    # Main upload pipeline
+│   └── blockDriveDownloadService.ts  # Verified download
+├── hooks/                  # React state management
+│   ├── useCrossmintWallet.tsx        # Embedded wallet
+│   ├── useWalletCrypto.tsx           # 3-level key derivation
+│   ├── useOrganizations.tsx          # Org management
+│   ├── useOrgInviteCode.tsx          # Invite code validation
+│   ├── useOrgEmailVerification.tsx   # Email verification
+│   ├── useUsernameNFT.tsx            # SNS domain minting
+│   ├── useSubscriptionStatus.tsx     # Subscription state
+│   ├── useStripePricing.tsx          # Dynamic pricing
+│   └── useNFTMembership.tsx          # NFT verification
+├── contexts/
+│   └── ClerkAuthContext.tsx          # Clerk + Org state
+├── pages/                  # 18 route components
+│   ├── Dashboard.tsx, Index.tsx
+│   ├── Onboarding.tsx      # 5-step org-aware onboarding
+│   ├── Teams.tsx, Membership.tsx
+│   └── Pricing.tsx, Account.tsx
+└── integrations/
+    ├── supabase/           # Supabase client + types
+    └── clerk/              # Clerk-Supabase bridge
 ```
 
 ### Backend Architecture (Supabase Edge Functions)
 
 ```
-supabase/functions/
+supabase/functions/                 # 41 edge functions
 ├── auth/
-│   ├── clerk-webhook/              # Clerk event handling
+│   ├── clerk-webhook/              # Clerk user sync (created/updated/deleted)
 │   ├── secure-wallet-auth/         # Wallet signature verification
-│   └── sync-crossmint-wallet/      # Wallet DB sync
-├── files/
-│   ├── upload-file/                # File upload orchestration
-│   ├── download-file/              # File retrieval
-│   ├── delete-file/                # File deletion
-│   └── share-file/                 # Sharing management
+│   ├── secure-auth-token-verify/   # Email token validation
+│   ├── send-auth-token/            # Email auth token generation
+│   └── authenticate-wallet/        # Wallet authentication flow
+├── wallet/
+│   ├── sync-crossmint-wallet/      # Crossmint wallet DB sync
+│   ├── create-crossmint-wallet/    # Crossmint embedded wallet creation
+│   └── create-wallet/              # Generic wallet creation
+├── organization/
+│   ├── generate-org-invite-code/   # Admin invite code generation
+│   ├── validate-org-invite-code/   # Invite code validation
+│   ├── use-org-invite-code/        # Invite code consumption
+│   ├── check-email-org-membership/ # Email domain lookup
+│   ├── send-org-email-verification/# Magic link email
+│   └── verify-org-email-token/     # Magic link verification
+├── nft/
+│   ├── mint-solbound-nft/          # Membership NFT (Token-2022)
+│   └── mint-username-nft/          # Username subdomain NFT
 ├── storage/
-│   ├── filebase-upload/            # IPFS pinning
-│   ├── s3-upload/                  # S3 operations
-│   └── arweave-upload/             # Arweave persistence
+│   ├── upload-to-ipfs/             # Hierarchical IPFS upload
+│   ├── ipfs-pin/                   # Permanent pinning
+│   └── box-integration/            # Box cloud integration
 ├── payments/
-│   ├── stripe-webhook/             # Stripe events
-│   ├── stripe-create-checkout/     # Checkout sessions
-│   └── radom-webhook/              # Crypto payments
+│   ├── create-checkout/            # Stripe checkout (synced data)
+│   ├── customer-portal/            # Stripe customer portal
+│   ├── stripe-webhook/             # Stripe event handler
+│   ├── check-subscription/         # Subscription status
+│   ├── verify-subscription/        # Detailed subscription check
+│   ├── crossmint-create-checkout/  # Crypto checkout
+│   └── crossmint-process-recurring/# Crypto auto-renewal (pg_cron)
 ├── solana/
-│   ├── verify-transaction/         # TX verification
-│   └── sync-on-chain/              # State sync
-└── admin/
-    ├── cleanup-orphaned-files/     # Maintenance
-    └── sync-usage-stats/           # Analytics
+│   └── verify-token-security/      # Token security validation
+├── admin/
+│   ├── generate-intercom-jwt/      # Intercom authentication
+│   ├── log-security-event/         # Security audit logging
+│   └── get-clerk-publishable-key/  # Config serving
+└── _shared/
+    ├── cors.ts                     # CORS configuration
+    └── bucketStrategy.ts           # IPFS bucket path generation
 ```
 
-### Blockchain Architecture (Solana Anchor)
+### Blockchain Architecture (Solana Anchor + Multi-PDA Sharding)
 
 ```
 programs/blockdrive/
 ├── src/
 │   ├── lib.rs                      # Program entry
 │   ├── state/
-│   │   ├── user_vault.rs           # User storage vault
-│   │   ├── file_record.rs          # File metadata
+│   │   ├── user_vault_master.rs    # Master vault controller
+│   │   ├── user_vault_shard.rs     # File shard (100 files each)
+│   │   ├── user_vault_index.rs     # O(1) file-to-shard lookup
+│   │   ├── file_record.rs          # File metadata + commitments
 │   │   ├── delegation.rs           # Access delegation
 │   │   ├── vault_config.rs         # Global config
 │   │   └── membership_link.rs      # NFT ↔ SNS ↔ Wallet
 │   ├── instructions/
-│   │   ├── create_vault.rs         # Initialize user vault
-│   │   ├── register_file.rs        # Register file on-chain
+│   │   ├── create_vault_master.rs  # Initialize master vault
+│   │   ├── create_shard.rs         # Create new shard
+│   │   ├── register_file_sharded.rs # Register with auto-shard
 │   │   ├── delegate_access.rs      # Grant file access
 │   │   ├── revoke_access.rs        # Revoke file access
 │   │   └── update_file.rs          # Update file metadata
 │   └── extensions/
 │       └── transfer_hook.rs        # Soulbound NFT hook
-└── tests/
-    └── blockdrive.ts               # Integration tests
+├── tests/
+│   └── blockdrive.ts               # Integration tests
+└── client/
+    └── shardingClient.ts           # TypeScript sharding abstraction
+```
+
+**Multi-PDA Sharding Architecture** (supports 1000+ files per user):
+```
+UserVaultMaster (1 per user)
+    ├── shard_count: u8
+    ├── total_file_count: u64
+    └── bump: u8
+
+UserVaultShard (up to 10 per user, 100 files each)
+    ├── master: Pubkey
+    ├── shard_index: u8
+    ├── file_count: u64
+    └── files: [FileRecord; 100]
+
+UserVaultIndex (1 per user, O(1) lookup)
+    ├── master: Pubkey
+    └── file_locations: HashMap<[u8;16], (shard_index, file_index)>
 ```
 
 ---
@@ -743,6 +823,204 @@ import { CrossmintWalletProvider } from '@crossmint/client-sdk-react-ui';
 
 ---
 
+## Organization System
+
+### Hierarchical Subdomain Architecture
+
+BlockDrive implements a hierarchical organization system with Solana Name Service (SNS) subdomains:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    ORGANIZATION SUBDOMAIN HIERARCHY                              │
+│                                                                                 │
+│  INDIVIDUAL USERS:                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  username.blockdrive.sol                                                │   │
+│  │  Example: alice.blockdrive.sol                                          │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  ORGANIZATION USERS:                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  username.organization.blockdrive.sol                                   │   │
+│  │  Example: alice.acme.blockdrive.sol                                     │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  ORGANIZATION ROOT:                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  organization.blockdrive.sol                                            │   │
+│  │  Example: acme.blockdrive.sol                                           │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Clerk Organizations Integration
+
+BlockDrive bridges Clerk's native Organizations feature with Supabase for extended functionality:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CLERK + SUPABASE ORGANIZATION BRIDGE                          │
+│                                                                                 │
+│  ┌───────────────────┐                      ┌────────────────────────────────┐ │
+│  │   CLERK (Native)   │                      │   SUPABASE (Extended Data)    │ │
+│  │                    │                      │                                │ │
+│  │  • User membership │◄────clerk_org_id────►│  • SNS subdomain records      │ │
+│  │  • Role management │                      │  • NFT ownership data         │ │
+│  │  • Org switching   │                      │  • Custom invite codes        │ │
+│  │  • Org metadata    │                      │  • Email domain verification  │ │
+│  │  • Invitations     │                      │  • Organization settings      │ │
+│  └───────────────────┘                      └────────────────────────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Organization Join Flow
+
+Two methods for joining organizations during onboarding:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      ORGANIZATION JOIN METHODS                                   │
+│                                                                                 │
+│  METHOD 1: INVITE CODE                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  1. Admin generates invite code (e.g., ACME-2026-X7K9M2)                │   │
+│  │  2. User enters code during onboarding                                  │   │
+│  │  3. Code validated via validate-org-invite-code edge function           │   │
+│  │  4. Organization preview shown                                          │   │
+│  │  5. User confirms → joined organization                                 │   │
+│  │  6. Username minted as: username.org.blockdrive.sol                     │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  METHOD 2: BUSINESS EMAIL                                                        │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  1. Admin registers email domain (e.g., @acme.com)                      │   │
+│  │  2. User enters business email during onboarding                        │   │
+│  │  3. System detects matching organization                                │   │
+│  │  4. Magic link sent via Resend API                                      │   │
+│  │  5. User clicks link → email verified                                   │   │
+│  │  6. User joined organization with default role                          │   │
+│  │  7. Username minted as: username.org.blockdrive.sol                     │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Organization Database Schema
+
+```sql
+-- Organizations (renamed from teams)
+CREATE TABLE public.organizations (
+  id UUID PRIMARY KEY,
+  clerk_org_id TEXT UNIQUE,           -- Links to Clerk
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  subdomain TEXT UNIQUE,              -- SNS subdomain
+  sns_registry_key TEXT,              -- On-chain registry
+  org_nft_mint TEXT,                  -- Organization NFT
+  subscription_tier TEXT,             -- 'business' | 'enterprise'
+  settings JSONB DEFAULT '{}',
+  owner_clerk_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Organization Invite Codes
+CREATE TABLE public.organization_invite_codes (
+  id UUID PRIMARY KEY,
+  organization_id UUID REFERENCES organizations(id),
+  code TEXT UNIQUE NOT NULL,          -- e.g., ACME-2026-X7K9M2
+  max_uses INTEGER,
+  current_uses INTEGER DEFAULT 0,
+  expires_at TIMESTAMPTZ,
+  is_active BOOLEAN DEFAULT true,
+  default_role TEXT DEFAULT 'member',
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Organization Email Domains
+CREATE TABLE public.organization_email_domains (
+  id UUID PRIMARY KEY,
+  organization_id UUID REFERENCES organizations(id),
+  domain TEXT UNIQUE NOT NULL,        -- e.g., acme.com
+  verified_at TIMESTAMPTZ,
+  auto_join BOOLEAN DEFAULT true,
+  default_role TEXT DEFAULT 'member',
+  is_primary BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email Verification Tokens
+CREATE TABLE public.organization_email_verifications (
+  id UUID PRIMARY KEY,
+  organization_id UUID REFERENCES organizations(id),
+  email TEXT NOT NULL,
+  clerk_user_id TEXT,
+  token TEXT UNIQUE NOT NULL,
+  status TEXT DEFAULT 'pending',      -- pending, verified, expired, used
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Organization Members (extended)
+ALTER TABLE public.organization_members
+  ADD COLUMN join_method TEXT,        -- invite_code, email_domain, direct_invite, owner
+  ADD COLUMN org_username TEXT,       -- e.g., alice (for alice.acme.blockdrive.sol)
+  ADD COLUMN org_subdomain_nft_id UUID REFERENCES username_nfts(id);
+```
+
+### Organization Hooks & Services
+
+```
+src/hooks/
+├── useOrganizations.tsx          # Bridge Clerk + Supabase org data
+├── useOrgInviteCode.tsx          # Invite code validation & usage
+├── useOrgEmailVerification.tsx   # Email domain verification flow
+└── useUsernameNFT.tsx            # Updated with org context support
+
+src/services/
+├── organizationService.ts         # Organization CRUD operations
+└── organizationSubdomainService.ts # Hierarchical SNS registration
+
+supabase/functions/
+├── validate-org-invite-code/      # Validate invite codes
+├── use-org-invite-code/           # Redeem invite codes
+├── generate-org-invite-code/      # Generate new codes (admin)
+├── check-email-org-membership/    # Check email domain
+├── send-org-email-verification/   # Send magic link
+└── verify-org-email-token/        # Verify magic link
+```
+
+### Organization Onboarding Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                       5-STEP ONBOARDING FLOW                                     │
+│                                                                                 │
+│  ┌───────┐    ┌───────┐    ┌──────────┐    ┌────────┐    ┌───────┐            │
+│  │ STEP 1│───►│ STEP 2│───►│  STEP 3  │───►│ STEP 4 │───►│ STEP 5│            │
+│  │Sign Up│    │  Org  │    │ Username │    │ Wallet │    │  NFT  │            │
+│  └───────┘    └───────┘    └──────────┘    └────────┘    └───────┘            │
+│                   │                                                             │
+│                   ▼                                                             │
+│           ┌──────────────┐                                                      │
+│           │ Invite Code? │──Yes──► Validate → Join Org                         │
+│           │    or        │                                                      │
+│           │Business Email│──Yes──► Magic Link → Verify → Join Org              │
+│           │    or        │                                                      │
+│           │    Skip      │──────► Continue as individual user                  │
+│           └──────────────┘                                                      │
+│                                                                                 │
+│  RESULT:                                                                        │
+│  • Org user: username.organization.blockdrive.sol                              │
+│  • Individual: username.blockdrive.sol                                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Edge Infrastructure (Cloudflare)
 
 ### Architecture Overview
@@ -924,19 +1202,185 @@ identity_providers:
 
 ---
 
+## Stripe Sync Engine
+
+### Overview
+
+BlockDrive uses a Stripe Sync Engine that mirrors Stripe data to Supabase views for fast queries:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         STRIPE SYNC ENGINE                                       │
+│                                                                                 │
+│  ┌───────────────┐    Webhook Sync    ┌────────────────────────────────────┐   │
+│  │   STRIPE      │───────────────────►│   SUPABASE VIEWS                   │   │
+│  │               │                     │                                    │   │
+│  │  • Products   │                     │  • stripe_products (public)        │   │
+│  │  • Prices     │                     │  • stripe_prices (public)          │   │
+│  │  • Customers  │                     │  • stripe_customers (service-role) │   │
+│  │  • Subscriptions                    │  • stripe_subscriptions (public)   │   │
+│  │  • Invoices   │                     │  • stripe_invoices (service-role)  │   │
+│  └───────────────┘                     └────────────────────────────────────┘   │
+│                                                                                 │
+│  RPC FUNCTIONS:                                                                 │
+│  ├── get_stripe_products()           - All active products                     │
+│  ├── get_stripe_prices()             - Prices with recurring info              │
+│  ├── get_stripe_customer_by_email()  - Customer lookup                         │
+│  ├── get_stripe_subscription()       - User subscription status                │
+│  ├── get_stripe_mrr()                - Monthly recurring revenue               │
+│  └── get_subscription_tier_distribution() - Analytics                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Edge Function Integration
+
+```typescript
+// Edge functions use synced data with API fallback
+const subscription = await supabase.rpc('get_stripe_subscription', {
+  customer_email: userEmail
+});
+
+// Fallback to Stripe API if not synced
+if (!subscription) {
+  const stripeCustomer = await stripe.customers.list({ email: userEmail });
+  // ...
+}
+```
+
+---
+
+## Metadata Privacy (v2)
+
+### Encrypted Metadata Architecture
+
+BlockDrive v2 implements privacy-enhanced metadata to prevent information leakage:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     METADATA PRIVACY v2                                          │
+│                                                                                 │
+│  PLAINTEXT (v1 - Legacy)              ENCRYPTED (v2 - Current)                  │
+│  ┌─────────────────────┐              ┌─────────────────────────────────────┐   │
+│  │ filename: "report"  │              │ encrypted_metadata: {              │   │
+│  │ mime_type: "pdf"    │     ──►      │   iv: "...",                       │   │
+│  │ size: 1234567       │              │   ciphertext: "...",               │   │
+│  │ folder: "/work"     │              │   tag: "..."                       │   │
+│  └─────────────────────┘              │ }                                   │   │
+│                                        │ filename_hash: HMAC(filename)      │   │
+│  RISKS:                                │ folder_hash: HMAC(folder)          │   │
+│  • Filename reveals content            │ size_bucket: "medium"              │   │
+│  • Folder structure exposed            │ metadata_version: 2                │   │
+│  • Exact sizes linkable                └─────────────────────────────────────┘  │
+│                                                                                 │
+│  SEARCH TOKENS (HMAC-SHA256):                                                   │
+│  • Deterministic hashes allow exact-match searches                             │
+│  • No substring search (privacy tradeoff)                                      │
+│  • Same filename → same hash (for deduplication)                               │
+│                                                                                 │
+│  SIZE BUCKETS:                                                                  │
+│  • tiny (<10KB), small (<100KB), medium (<1MB), large (<100MB), huge (>100MB) │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation
+
+```typescript
+// metadataPrivacyService.ts
+interface EncryptedMetadataV2 {
+  encrypted_metadata: {
+    iv: string;
+    ciphertext: string;
+    tag: string;
+  };
+  filename_hash: string;      // HMAC-SHA256 for exact search
+  folder_path_hash: string;   // HMAC-SHA256 for folder listing
+  size_bucket: 'tiny' | 'small' | 'medium' | 'large' | 'huge';
+  metadata_version: 2;
+}
+
+// Backward compatible - detect v1 vs v2
+function isV2Metadata(file: FileRecord): boolean {
+  return file.metadata_version === 2;
+}
+```
+
+---
+
+## Python Recovery SDK
+
+### Independent File Recovery
+
+BlockDrive provides an open-source Python SDK for file recovery without the BlockDrive app:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      PYTHON RECOVERY SDK                                         │
+│                                                                                 │
+│  REQUIRED INPUTS:                                                               │
+│  ├── file_id: UUID of the file                                                 │
+│  ├── encryption_key: Wallet-derived AES-256 key                                │
+│  └── storage_access: IPFS gateway or Filebase credentials                      │
+│                                                                                 │
+│  OPTIONAL INPUTS:                                                               │
+│  └── solana_rpc: For on-chain commitment verification                          │
+│                                                                                 │
+│  RECOVERY FLOW:                                                                 │
+│  1. Fetch FileRecord from Solana (optional verification)                       │
+│  2. Download encrypted content from IPFS                                       │
+│  3. Download ZK proof package from R2                                          │
+│  4. Verify commitment (SHA-256 comparison)                                     │
+│  5. Decrypt critical bytes from proof                                          │
+│  6. Reconstruct file (critical bytes + content)                                │
+│  7. Decrypt with AES-256-GCM                                                   │
+│  8. Return original file                                                       │
+│                                                                                 │
+│  INSTALLATION:                                                                  │
+│  pip install blockdrive-recovery[solana]                                       │
+│                                                                                 │
+│  USAGE:                                                                         │
+│  from blockdrive import recover_file                                           │
+│  plaintext = recover_file(file_id, encryption_key, ipfs_gateway)               │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## API Reference
 
 ### REST Endpoints (via Supabase Edge Functions)
 
 | Endpoint | Method | Description | Auth |
 |----------|--------|-------------|------|
-| `/functions/v1/upload-file` | POST | Upload encrypted file | Clerk JWT |
-| `/functions/v1/download-file` | GET | Download encrypted file | Clerk JWT |
-| `/functions/v1/delete-file` | DELETE | Delete file | Clerk JWT |
-| `/functions/v1/share-file` | POST | Create share link | Clerk JWT |
-| `/functions/v1/revoke-access` | POST | Revoke file access | Clerk JWT |
+| **Authentication** | | | |
+| `/functions/v1/clerk-webhook` | POST | Clerk user sync | Webhook sig |
+| `/functions/v1/secure-wallet-auth` | POST | Wallet signature auth | None |
+| `/functions/v1/send-auth-token` | POST | Send email auth token | None |
+| `/functions/v1/secure-auth-token-verify` | POST | Verify email token | Token |
+| **Wallet** | | | |
+| `/functions/v1/sync-crossmint-wallet` | POST | Sync Crossmint wallet | Clerk JWT |
+| `/functions/v1/create-crossmint-wallet` | POST | Create Crossmint wallet | Clerk JWT |
+| **Organization** | | | |
+| `/functions/v1/generate-org-invite-code` | POST | Generate invite code | Clerk JWT (admin) |
+| `/functions/v1/validate-org-invite-code` | POST | Validate invite code | None |
+| `/functions/v1/use-org-invite-code` | POST | Use invite code | Clerk JWT |
+| `/functions/v1/check-email-org-membership` | POST | Check email domain | None |
+| `/functions/v1/send-org-email-verification` | POST | Send magic link | None |
+| `/functions/v1/verify-org-email-token` | POST | Verify magic link | Token |
+| **NFT** | | | |
+| `/functions/v1/mint-solbound-nft` | POST | Mint membership NFT | Clerk JWT |
+| `/functions/v1/mint-username-nft` | POST | Mint username NFT | Clerk JWT |
+| **Storage** | | | |
+| `/functions/v1/upload-to-ipfs` | POST | Upload to IPFS | Clerk JWT |
+| `/functions/v1/ipfs-pin` | POST | Pin IPFS content | Clerk JWT |
+| **Payments** | | | |
+| `/functions/v1/create-checkout` | POST | Stripe checkout | Clerk JWT |
+| `/functions/v1/customer-portal` | POST | Stripe portal | Clerk JWT |
 | `/functions/v1/stripe-webhook` | POST | Stripe events | Webhook sig |
-| `/functions/v1/clerk-webhook` | POST | Clerk events | Webhook sig |
+| `/functions/v1/check-subscription` | POST | Check subscription | Clerk JWT |
+| `/functions/v1/crossmint-create-checkout` | POST | Crypto checkout | Clerk JWT |
 
 ### WebSocket Events (Planned)
 
@@ -1041,9 +1485,10 @@ jobs:
 
 ### A. Related Documentation
 
-- [PRD.md](./PRD.md) - Product Requirements Document
-- [SECURITY.md](./SECURITY.md) - Security Model (TBD)
-- [API.md](./API.md) - API Reference (TBD)
+- [PRD.md](./prd.md) - Product Requirements Document
+- [SECURITY.md](./security.md) - Security Model
+- [SOLANA_PROGRAM_ARCHITECTURE.md](./solana_program_architecture.md) - On-chain program design
+- [CROSSMINT_INTEGRATION_PLAN.md](./CROSSMINT_INTEGRATION_PLAN.md) - Wallet integration
 
 ### B. External Dependencies
 
@@ -1070,3 +1515,9 @@ jobs:
 | **HKDF** | HMAC-based Key Derivation Function |
 | **AES-GCM** | Authenticated encryption cipher |
 | **Programmed Incompleteness** | BlockDrive's proprietary security architecture |
+| **Multi-PDA Sharding** | Scalable file storage using multiple Program Derived Addresses |
+| **SNS** | Solana Name Service - human-readable blockchain addresses |
+| **Metadata v2** | Privacy-enhanced metadata with HMAC search tokens |
+| **Stripe Sync Engine** | Real-time Stripe data mirroring to Supabase |
+| **Token-2022** | Solana token program with transfer hooks (soulbound NFTs) |
+| **Crossmint Embedded** | Non-custodial MPC wallets with gas sponsorship |

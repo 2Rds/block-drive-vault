@@ -1,8 +1,8 @@
 # BlockDrive Product Requirements Document (PRD)
 
-**Version**: 1.0.0
-**Date**: January 17, 2026
-**Status**: DRAFT - Ready for Review
+**Version**: 2.0.0
+**Date**: February 3, 2026
+**Status**: ACTIVE - Phase 8 Testing
 **Prepared By**: BlockDrive Product Team
 
 ---
@@ -36,10 +36,10 @@ This unique architecture enables **"Instant Revoke"** capabilities where senders
 
 ### Current Status
 
-- **Development Stage**: Active development, 75% complete
-- **Branch**: `feature/clerk-crossmint-integration`
-- **Last Major Milestone**: Crossmint multichain wallet integration complete
-- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions, Solana Anchor, Crossmint Embedded Wallets, AES-256-GCM, Groth16 ZK Proofs
+- **Development Stage**: Phase 8 Testing, ~95% complete
+- **Branch**: `feature/clerk-alchemy-integration`
+- **Last Major Milestone**: Organization Subdomain NFT System with Clerk Organizations
+- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions (41 functions), Solana Anchor + Multi-PDA Sharding, Crossmint Embedded Wallets, Clerk Organizations, Stripe Sync Engine, AES-256-GCM, Groth16 ZK Proofs, Metadata Privacy v2
 
 ### Unique Value Proposition
 
@@ -414,196 +414,181 @@ interface ZKProofPackage {
 
 ## Implementation Status
 
-### Overall Completion: ~75%
+### Overall Completion: ~95%
 
-### Completed Features (✅ 70%)
+### Completed Features (✅ 95%)
 
 **Frontend (100% Complete)**:
-- ✅ 40+ React components across all feature areas
-- ✅ 18 page components (Dashboard, Files, Membership, Teams, etc.)
-- ✅ 8+ custom React hooks (useAuth, useBlockDriveSolana, useIPFSUpload, etc.)
-- ✅ Clerk authentication UI integration
-- ✅ Alchemy wallet provider setup
+- ✅ 151 React components across all feature areas
+- ✅ 18 page components (Dashboard, Files, Membership, Teams, Onboarding, etc.)
+- ✅ 20+ custom React hooks (useAuth, useCrossmintWallet, useOrganizations, etc.)
+- ✅ Clerk authentication UI integration with Organizations
+- ✅ Crossmint embedded wallet provider (multichain)
 - ✅ File upload/download interfaces with progress tracking
 - ✅ File browser with folder navigation
-- ✅ Encryption setup wizard (security levels)
+- ✅ Encryption setup wizard (3 security levels)
 - ✅ File sharing modal with permissions
-- ✅ Subscription/pricing pages
-- ✅ Dashboard with usage metrics
-- ✅ Team management UI
+- ✅ Subscription/pricing pages with Stripe Sync
+- ✅ Dashboard with usage metrics and analytics
+- ✅ Organization management UI (invite codes, email domains)
+- ✅ 5-step onboarding flow (Sign Up → Org → Username → Wallet → NFT)
+- ✅ Username NFT minting UI
 - ✅ Account settings page
 
-**Backend Services (70% Complete)**:
-- ✅ Clerk authentication integration
+**Backend Services (95% Complete)**:
+- ✅ Clerk authentication integration with Organizations
 - ✅ Crossmint embedded wallet setup (multichain)
 - ✅ SNS domain verification (Solana)
 - ✅ File upload service (multi-provider orchestration)
-- ✅ File download service (verified retrieval)
+- ✅ File download service (verified retrieval with ZK proofs)
 - ✅ AES-256-GCM encryption (3 security levels)
 - ✅ ZK proof generation (Groth16/snarkjs)
-- ✅ Storage orchestration (Filebase/S3/Arweave)
+- ✅ Storage orchestration (Filebase/R2/Arweave)
 - ✅ NFT membership service (minting, verification)
+- ✅ Stripe Sync Engine (views + RPC functions)
 - ✅ Stripe payment integration (checkout, webhooks)
+- ✅ Crossmint crypto payments (recurring via pg_cron)
 - ✅ Supabase database integration + RLS policies
 - ✅ ECDH key exchange for secure sharing
 - ✅ Critical bytes extraction and storage
-- ✅ File metadata encryption
-- 🟡 3-message key derivation (basic working, Phase 5 refinement needed)
-- 🟡 Basenames verification (Base chain integration partial)
+- ✅ Metadata Privacy v2 (encrypted metadata + HMAC search)
+- ✅ 3-message key derivation (complete with 4-hour sessions)
+- ✅ Organization invite code system
+- ✅ Email domain verification (magic links via Resend)
+- ✅ Username NFT minting via Crossmint API
 
-**Blockchain Infrastructure (50% Complete)**:
+**Blockchain Infrastructure (90% Complete)**:
 - ✅ Solana Anchor program structure complete
-- ✅ PDA designs finalized (UserVault, FileRecord, Delegation, VaultConfig)
+- ✅ Multi-PDA Sharding (UserVaultMaster, Shard, Index)
+- ✅ PDA designs finalized (supports 1000+ files per user)
 - ✅ Instruction definitions (15+ instructions)
 - ✅ Comprehensive error handling (BlockDriveError enum)
 - ✅ Event definitions for audit trail
 - ✅ Gas sponsorship setup (Crossmint)
-- 🔴 Phase 1: Multi-PDA Sharding (not started - 1-2 weeks)
-- 🔴 Phase 2: Session Key Delegation (optional - 1 week)
-- 🔴 Deployment to devnet/mainnet
+- ✅ TypeScript sharding client (full abstraction)
+- ✅ On-chain commitment verification
+- 🟡 Deployment to devnet (testing phase)
+- 🔴 Deployment to mainnet (after testing)
 
-**Cryptography (90% Complete)**:
+**Cryptography (100% Complete)**:
 - ✅ AES-256-GCM implementation (WebCrypto API)
-- ✅ HKDF key derivation (wallet signatures)
+- ✅ HKDF key derivation (3-level wallet signatures)
 - ✅ Wallet signature collection flow
 - ✅ Groth16 ZK proof generation (snarkjs)
 - ✅ ECDH key exchange (X25519)
 - ✅ Commitment verification (SHA-256)
-- 🟡 Full 3-message key derivation (Phase 5 - 0.5 weeks)
+- ✅ Full 3-message key derivation (complete)
+- ✅ Metadata Privacy v2 (HMAC search tokens)
 - 🟡 Production trusted setup ceremony (before mainnet)
 
-**Payments & Monetization (80% Complete)**:
+**Payments & Monetization (95% Complete)**:
+- ✅ Stripe Sync Engine integration
 - ✅ Stripe integration (checkout, subscriptions, webhooks)
 - ✅ Subscription tier system (4 tiers)
 - ✅ NFT-based membership minting (Token-2022)
-- ✅ Pricing page with billing calculator
+- ✅ Pricing page with dynamic pricing
 - ✅ Billing history tracking
-- 🔴 Radom crypto payments (Phase 3 - 1 week)
+- ✅ Crossmint crypto payments (USDC, SOL, ETH)
+- ✅ Recurring crypto payments (pg_cron scheduler)
+
+**Organization Features (100% Complete)**:
+- ✅ Clerk Organizations integration
+- ✅ Organization invite codes (admin generation)
+- ✅ Business email domain verification
+- ✅ Magic link email verification (Resend API)
+- ✅ Hierarchical SNS subdomains (username.org.blockdrive.sol)
+- ✅ Organization-aware username NFT minting
+- ✅ 5-step onboarding with org join step
+- ✅ Organization member management
+
+**Recovery & Independence (100% Complete)**:
+- ✅ Python Recovery SDK (open-source)
+- ✅ Independent file recovery without BlockDrive app
+- ✅ Solana on-chain verification (optional)
+- ✅ Multi-gateway IPFS fallback
 
 ---
 
 ## Roadmap & Milestones
 
 ### Current Status
-- **Week**: 0 of 8-9 week roadmap
-- **Branch**: `feature/clerk-crossmint-integration`
-- **Last Milestone**: Crossmint multichain wallet integration complete
+- **Week**: Final weeks of 8-9 week roadmap
+- **Branch**: `feature/clerk-alchemy-integration`
+- **Last Milestone**: Organization Subdomain NFT System complete
+- **Current Phase**: Phase 8 - Testing & Mainnet Deployment
 
-### Q1 2026 Implementation Plan (8-9 weeks)
+### Q1 2026 Implementation Progress
 
-**Week 1-2: Phase 1 - Multi-PDA Sharding**
-- **Goal**: Support 1000+ files per user (currently limited to ~100)
-- **Priority**: CRITICAL (blocking scalability)
-- **Deliverables**:
-  - UserVaultMaster PDA implementation
-  - UserVaultShard PDA (up to 10 shards per user)
-  - UserVaultIndex for file-to-shard routing
-  - Auto-sharding logic when threshold reached
-  - Migration strategy for existing users
-  - Comprehensive tests with anchor-bankrun
-- **Files to Create**:
-  - `programs/blockdrive/src/state/user_vault_master.rs`
-  - `programs/blockdrive/src/state/user_vault_shard.rs`
-  - `programs/blockdrive/src/state/vault_index.rs`
-  - `programs/blockdrive/src/instructions/create_shard.rs`
-  - `programs/blockdrive/src/instructions/register_file_sharded.rs`
-- **Success Criteria**:
-  - Single user can upload 1000+ files
-  - Automatic shard creation when UserVault reaches capacity
-  - No performance degradation at scale
-  - Successful migration for all existing test users
+**Phase 1 - Multi-PDA Sharding** ✅ COMPLETE
+- ✅ UserVaultMaster PDA implementation
+- ✅ UserVaultShard PDA (up to 10 shards per user, 100 files each)
+- ✅ UserVaultIndex for O(1) file-to-shard routing
+- ✅ Auto-sharding logic when threshold reached
+- ✅ TypeScript sharding client abstraction
+- **Result**: Supports 1000+ files per user
 
-**Week 3: Phase 3 - Radom Crypto Payments**
-- **Goal**: Accept SOL, USDC, ETH, BTC for subscriptions
-- **Priority**: MEDIUM
-- **Deliverables**:
-  - Radom SDK integration
-  - Price conversion oracle (Chainlink or Pyth)
-  - Direct wallet-to-wallet settlement
-  - Transaction verification webhook
-  - Automatic membership NFT minting on payment
-  - UI for crypto payment method selection
-- **Success Criteria**:
-  - Users can pay with any supported cryptocurrency
-  - NFT minted automatically on confirmation
-  - Same UX quality as Stripe flow
-  - Payment-to-NFT flow <2 minutes
+**Phase 2 - Session Key Delegation** ✅ COMPLETE
+- ✅ Session-based signing for gasless operations
+- ✅ 4-hour session expiry with auto-refresh
 
-**Week 4: Phase 4 - Enhanced Metadata Privacy**
-- **Goal**: Prevent metadata leakage even with CID access
-- **Priority**: MEDIUM
-- **Deliverables**:
-  - Additional metadata encryption layer
-  - Encrypted metadata hash stored on-chain
-  - Client-side-only decryption
-  - Updated upload/download flows
-- **Success Criteria**:
-  - Metadata unreadable without wallet access
-  - No performance impact on upload/download
-  - Backward compatible with existing files
+**Phase 3 - Crypto Payments** ✅ COMPLETE
+- ✅ Crossmint crypto checkout (USDC, SOL, ETH)
+- ✅ pg_cron recurring payment scheduler
+- ✅ Treasury wallet integration
+- ✅ Automatic membership NFT minting
 
-**Week 4.5: Phase 5 - Full 3-Message Key Derivation**
-- **Goal**: Finalize key derivation mechanism
-- **Priority**: MEDIUM
-- **Deliverables**:
-  - 3-message templates finalized
-  - Message versioning system
-  - Key rotation mechanism
-  - Recovery safeguards documentation
-  - Client-side validation
-- **Success Criteria**:
-  - Deterministic key generation
-  - Key rotation works seamlessly
-  - User documentation complete
+**Phase 4 - Enhanced Metadata Privacy** ✅ COMPLETE
+- ✅ Metadata v2 with AES-256-GCM encryption
+- ✅ HMAC-SHA256 search tokens for deterministic lookups
+- ✅ Size buckets for privacy-preserving categorization
+- ✅ Backward compatibility with v1 metadata
 
-**Week 5: Phase 6 - Download Commitment Verification**
-- **Goal**: Full end-to-end verified retrieval
-- **Priority**: MEDIUM
-- **Deliverables**:
-  - On-chain verification at FileRecord level
-  - `record_access()` instruction for analytics
-  - Proof verification before file return
-  - Access tracking dashboard
-- **Success Criteria**:
-  - All downloads verified on-chain
-  - Verification adds <500ms overhead
-  - Access analytics working
+**Phase 5 - Full 3-Message Key Derivation** ✅ COMPLETE
+- ✅ 3-message templates finalized
+- ✅ HKDF-SHA256 with 3 security levels
+- ✅ 4-hour session expiry
+- ✅ Dual wallet support (Crossmint + external adapters)
 
-**Week 6-7: Phase 7 - Python Recovery SDK**
-- **Goal**: Independent file recovery tool (trustless)
-- **Priority**: MEDIUM
-- **Deliverables**:
-  - Standalone Python CLI application
-  - IPFS/storage provider connectivity
-  - AES-256-GCM decryption module
-  - ZK proof verification
-  - Critical bytes reconstruction
-  - File reassembly logic
-  - Comprehensive documentation
-  - Open-source GitHub repository
-- **Success Criteria**:
-  - Recovers files without BlockDrive servers running
-  - Works with: File ID + encryption key + storage provider access
-  - Open-source under MIT license
-  - <10 Python dependencies
+**Phase 6 - Download Commitment Verification** ✅ COMPLETE
+- ✅ On-chain verification at FileRecord level
+- ✅ Critical bytes commitment comparison
+- ✅ Integration into download service
 
-**Week 8-9: Phase 8 - Testing & Mainnet Deployment**
-- **Goal**: Production-ready deployment
-- **Priority**: CRITICAL
-- **Deliverables**:
-  - Unit tests (100% coverage for crypto/blockchain modules)
-  - Integration tests (all major workflows)
-  - E2E tests (complete user journeys)
-  - Performance tests (load, latency, concurrency)
-  - Third-party security audit
-  - Devnet deployment and validation
-  - Mainnet-beta deployment
-  - Monitoring setup (Sentry, Datadog, or similar)
-- **Success Criteria**:
-  - All tests passing
-  - Security audit approved (zero critical issues)
-  - Mainnet deployment successful
-  - Monitoring active and alerting configured
+**Phase 7 - Python Recovery SDK** ✅ COMPLETE
+- ✅ Standalone Python CLI application
+- ✅ IPFS/storage provider connectivity
+- ✅ AES-256-GCM decryption module
+- ✅ ZK proof verification
+- ✅ Critical bytes reconstruction
+- ✅ File reassembly logic
+- ✅ Open-source under MIT license
+- **Package**: `blockdrive-recovery[solana]`
+
+**Phase 7.5 - Organization Subdomain NFT System** ✅ COMPLETE
+- ✅ Clerk Organizations integration
+- ✅ Organization invite codes (admin generation)
+- ✅ Business email domain verification (magic links)
+- ✅ Hierarchical SNS subdomains
+- ✅ 5-step onboarding flow
+- ✅ Organization-aware username NFT minting
+
+**Phase 8 - Testing & Mainnet Deployment** 🔄 IN PROGRESS
+- ✅ Unit tests for crypto/blockchain modules
+- ✅ Integration tests for major workflows
+- 🔄 E2E tests (Playwright)
+- 🔄 Devnet deployment and validation
+- 📋 Third-party security audit
+- 📋 Mainnet-beta deployment
+- 📋 Production monitoring setup
+
+### Q2 2026 Planned
+
+**Post-Launch**:
+- SOC 2 Type II audit
+- Bug bounty program
+- Advanced threat detection
+- Multi-region data residency
+- Mobile app development
 
 ---
 
@@ -696,10 +681,10 @@ interface ZKProofPackage {
 
 ---
 
-**Document Version**: 1.0.0
-**Last Updated**: January 17, 2026
-**Status**: DRAFT - Ready for stakeholder review
+**Document Version**: 2.0.0
+**Last Updated**: February 3, 2026
+**Status**: ACTIVE - Phase 8 Testing
 **Prepared By**: BlockDrive Product Team
-**Next Review**: Weekly during development phases
+**Next Review**: Weekly during testing phase
 **Feedback**: Submit via GitHub issues or team@blockdrive.app
 
