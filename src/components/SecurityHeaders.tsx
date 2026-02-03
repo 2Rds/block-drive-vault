@@ -9,7 +9,7 @@ export const SecurityHeaders = () => {
       meta.content = `
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://widget.intercom.io https://cdn.gpteng.co https://*.clerk.accounts.dev https://*.clerk.com https://cdn.clerk.com https://challenges.cloudflare.com https://*.crossmint.com https://staging.crossmint.com https://*.dynamicauth.com https://app.dynamicauth.com https://*.coinbase.com https://cca-lite.coinbase.com https://*.walletlink.org;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://widget.intercom.io;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://widget.intercom.io https://*.dynamic.xyz https://app.dynamic.xyz;
         font-src 'self' https://fonts.gstatic.com https://widget.intercom.io;
         img-src 'self' data: https: blob:;
         connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.intercom.io https://*.clerk.accounts.dev https://*.clerk.com https://clerk-telemetry.com https://challenges.cloudflare.com https://*.crossmint.com https://staging.crossmint.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com wss://api.mainnet-beta.solana.com wss://api.devnet.solana.com https://*.dynamicauth.com https://app.dynamicauth.com https://*.coinbase.com https://cca-lite.coinbase.com wss://*.walletlink.org wss://www.walletlink.org https://*.walletconnect.com wss://*.walletconnect.com;
