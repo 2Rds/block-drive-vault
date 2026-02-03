@@ -1,7 +1,7 @@
 # BlockDrive Security Model
 
-> **Version**: 1.0.0
-> **Last Updated**: January 2026
+> **Version**: 2.0.0
+> **Last Updated**: February 2026
 > **Classification**: Technical Security Documentation
 
 ---
@@ -336,6 +336,152 @@ function createCommitment(secret: Uint8Array): Commitment {
 
 ---
 
+## Metadata Privacy (v2)
+
+### Privacy-Enhanced Metadata Architecture
+
+BlockDrive v2 implements encrypted metadata to prevent information leakage:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                 METADATA PRIVACY MODEL                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  THREAT: Metadata Leakage                                           │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ Even encrypted files leak information via:                    │ │
+│  │ • Filenames → reveals content type                            │ │
+│  │ • Folder paths → reveals organization structure               │ │
+│  │ • Exact sizes → enables file correlation attacks              │ │
+│  │ • MIME types → narrows content possibilities                  │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  SOLUTION: Encrypted Metadata v2                                    │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ • Full metadata encrypted with AES-256-GCM                    │ │
+│  │ • HMAC-SHA256 search tokens (deterministic, not reversible)   │ │
+│  │ • Size buckets instead of exact sizes                         │ │
+│  │ • Version field for backward compatibility                    │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Search Token Security
+
+```typescript
+// HMAC-SHA256 search tokens
+// - Deterministic: same input → same hash (enables exact search)
+// - Not reversible: cannot derive filename from hash
+// - Keyed: requires user's key to generate matching hash
+
+function generateSearchToken(value: string, key: CryptoKey): string {
+  const hmac = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(value)
+  );
+  return base64Encode(hmac);
+}
+
+// Search flow:
+// 1. User searches for "report.pdf"
+// 2. Client generates HMAC("report.pdf") = "abc123..."
+// 3. Query: WHERE filename_hash = "abc123..."
+// 4. Server cannot see actual filename
+```
+
+### Size Buckets
+
+| Bucket | Range | Purpose |
+|--------|-------|---------|
+| tiny | < 10KB | Config files, small texts |
+| small | 10KB - 100KB | Documents, images |
+| medium | 100KB - 1MB | Larger documents |
+| large | 1MB - 100MB | Media files |
+| huge | > 100MB | Video, archives |
+
+---
+
+## Organization Security
+
+### Organization Join Flow Security
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              ORGANIZATION SECURITY MODEL                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  INVITE CODE SECURITY:                                              │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ Format: {ORG_PREFIX}-{YEAR}-{6_CHAR_RANDOM}                   │ │
+│  │ Example: ACME-2026-X7K9M2                                     │ │
+│  │                                                               │ │
+│  │ Protections:                                                  │ │
+│  │ • Max uses limit (configurable)                               │ │
+│  │ • Expiration date (configurable)                              │ │
+│  │ • Single-use per user                                         │ │
+│  │ • Deactivation by admin                                       │ │
+│  │ • Rate limiting on validation endpoint                        │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  EMAIL DOMAIN VERIFICATION:                                         │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ Flow:                                                         │ │
+│  │ 1. Admin registers domain (e.g., @acme.com)                   │ │
+│  │ 2. User enters business email                                 │ │
+│  │ 3. Magic link sent via Resend API (24hr expiry)               │ │
+│  │ 4. User clicks link → token verified                          │ │
+│  │ 5. User joined with default role                              │ │
+│  │                                                               │ │
+│  │ Protections:                                                  │ │
+│  │ • Domain ownership verification (admin must prove control)    │ │
+│  │ • Magic link single-use                                       │ │
+│  │ • Token expiration (24 hours)                                 │ │
+│  │ • Resend cooldown (prevents spam)                             │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  ORGANIZATION DATA ISOLATION:                                       │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ • Clerk handles membership (native org features)              │ │
+│  │ • Supabase RLS enforces data access                           │ │
+│  │ • Organization-scoped file visibility                         │ │
+│  │ • Separate SNS subdomains per org                             │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Organization RLS Policies
+
+```sql
+-- Organization members can only see their org's files
+CREATE POLICY "Org members see org files"
+ON files FOR SELECT
+USING (
+  team_id IS NOT NULL
+  AND EXISTS (
+    SELECT 1 FROM organization_members om
+    WHERE om.organization_id = files.team_id
+    AND om.clerk_user_id = auth.jwt() ->> 'sub'
+  )
+);
+
+-- Organization invite codes accessible only by admins
+CREATE POLICY "Admins manage invite codes"
+ON organization_invite_codes FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM organization_members om
+    WHERE om.organization_id = organization_invite_codes.organization_id
+    AND om.clerk_user_id = auth.jwt() ->> 'sub'
+    AND om.role IN ('admin', 'owner')
+  )
+);
+```
+
+---
+
 ## Blockchain Security
 
 ### Solana Program Security
@@ -435,7 +581,7 @@ pub mod membership_transfer_hook {
 
 ## Authentication & Authorization
 
-### Clerk + Alchemy Architecture
+### Clerk + Crossmint Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -446,21 +592,26 @@ pub mod membership_transfer_hook {
 │     ┌──────────┐    ┌─────────────┐    ┌──────────────────────┐   │
 │     │  User    │───►│   Clerk     │───►│  Session + JWT       │   │
 │     │ (email/  │    │  (OAuth/    │    │  (short-lived)       │   │
-│     │  social) │    │   magic)    │    │                      │   │
+│     │  social) │    │   MFA)      │    │  with 'sub' claim    │   │
 │     └──────────┘    └─────────────┘    └──────────────────────┘   │
 │                                                                     │
-│  2. Embedded Wallet Derivation                                      │
+│  2. Crossmint Embedded Wallet                                       │
 │     ┌──────────────────────────────────────────────────────────┐   │
-│     │  Clerk JWT ──► Alchemy Signer ──► Deterministic Keypair  │   │
-│     │                    (OIDC)           (from user ID)       │   │
+│     │  Clerk JWT ──► Crossmint JWKS ──► MPC Wallet Creation    │   │
+│     │                 (verifies sub)     (gas-sponsored)       │   │
+│     │                                                          │   │
+│     │  Multichain Support:                                     │   │
+│     │  • Solana (devnet/mainnet)                               │   │
+│     │  • Ethereum, Base, Polygon, Arbitrum, Optimism           │   │
 │     └──────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  3. Authorization Layers                                            │
 │     ┌──────────────────────────────────────────────────────────┐   │
 │     │  Layer 1: Cloudflare Zero Trust (network)                │   │
 │     │  Layer 2: Clerk JWT verification (application)           │   │
-│     │  Layer 3: Supabase RLS (database)                        │   │
+│     │  Layer 3: Supabase RLS (database + auth.jwt() ->> 'sub') │   │
 │     │  Layer 4: Solana PDA ownership (blockchain)              │   │
+│     │  Layer 5: Clerk Organizations (team access)              │   │
 │     └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -775,8 +926,13 @@ interface AuditLog {
 |------|--------|----------|
 | Cloudflare WAF integration | ✅ Complete | P1 |
 | Rate limiting (all endpoints) | ✅ Complete | P1 |
-| R2 storage migration | 🔄 In Progress | P1 |
-| Zero Trust + Clerk OIDC | 📋 Planned | P2 |
+| R2 storage migration | ✅ Complete | P1 |
+| Crossmint embedded wallets | ✅ Complete | P1 |
+| Metadata Privacy v2 | ✅ Complete | P1 |
+| Multi-PDA Sharding | ✅ Complete | P1 |
+| Organization security (Clerk) | ✅ Complete | P1 |
+| Stripe Sync Engine | ✅ Complete | P2 |
+| Python Recovery SDK | ✅ Complete | P2 |
 
 ### Q2 2026
 
@@ -786,6 +942,7 @@ interface AuditLog {
 | Bug bounty program launch | 📋 Planned | P2 |
 | Penetration testing | 📋 Planned | P1 |
 | HIPAA BAA template | 📋 Planned | P3 |
+| Mainnet deployment | 📋 Planned | P1 |
 
 ### Q3 2026
 
@@ -794,6 +951,7 @@ interface AuditLog {
 | Hardware security key support | 📋 Planned | P2 |
 | Advanced threat detection | 📋 Planned | P2 |
 | Automated security scanning | 📋 Planned | P2 |
+| Multi-region data residency | 📋 Planned | P2 |
 
 ---
 

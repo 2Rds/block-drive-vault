@@ -2,21 +2,186 @@
 
 ## Overview
 
-The BlockDrive Solana program manages on-chain file records, user vaults, cryptographic commitments, and access delegation using Anchor framework.
+The BlockDrive Solana program manages on-chain file records, user vaults, cryptographic commitments, and access delegation using Anchor framework. The architecture implements **Multi-PDA Sharding** to support 1000+ files per user.
 
 ## Program ID
 
 ```
 Program ID: TBD (will be generated on deployment)
-Devnet: TBD
-Mainnet: TBD
+Devnet: Testing phase
+Mainnet: Pending security audit
+```
+
+---
+
+## Multi-PDA Sharding Architecture
+
+BlockDrive implements a sharding strategy to overcome Solana's account size limits while maintaining O(1) file lookup performance.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    MULTI-PDA SHARDING OVERVIEW                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  UserVaultMaster (1 per user)                                       │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │  owner: Pubkey                                                │ │
+│  │  shard_count: u8 (max 10)                                     │ │
+│  │  total_file_count: u64                                        │ │
+│  │  master_key_commitment: [u8; 32]                              │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                              │                                      │
+│                              ▼                                      │
+│  ┌────────────────┬────────────────┬────────────────┐             │
+│  │   Shard 0      │   Shard 1      │   Shard N      │             │
+│  │   (100 files)  │   (100 files)  │   (100 files)  │             │
+│  └────────────────┴────────────────┴────────────────┘             │
+│                              │                                      │
+│                              ▼                                      │
+│  UserVaultIndex (1 per user)                                        │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │  file_locations: HashMap<file_id, (shard_index, file_index)>  │ │
+│  │  Enables O(1) file lookup                                     │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  CAPACITY: 10 shards × 100 files = 1000+ files per user            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### TypeScript Sharding Client
+
+```typescript
+// src/services/solana/shardingClient.ts
+class ShardingClient {
+  // Auto-creates master vault + index on first use
+  async ensureVaultMasterExists(owner: PublicKey): Promise<void>;
+
+  // Auto-creates new shard when current is full
+  async ensureShardCapacity(owner: PublicKey): Promise<number>;
+
+  // Registers file with automatic shard selection
+  async registerFileSharded(params: RegisterFileParams): Promise<void>;
+
+  // O(1) file lookup via index
+  async findFileLocation(owner: PublicKey, fileId: Uint8Array): Promise<{
+    shardIndex: number;
+    fileIndex: number;
+  }>;
+}
 ```
 
 ---
 
 ## Account Structures
 
-### 1. UserVault PDA
+### 1. UserVaultMaster PDA
+
+Master controller for all user shards.
+
+```rust
+#[account]
+pub struct UserVaultMaster {
+    /// Bump seed for PDA derivation
+    pub bump: u8,
+
+    /// Owner's wallet public key
+    pub owner: Pubkey,
+
+    /// Hash of the wallet-derived master encryption key
+    pub master_key_commitment: [u8; 32],
+
+    /// Number of active shards
+    pub shard_count: u8,
+
+    /// Total number of files across all shards
+    pub total_file_count: u64,
+
+    /// Total storage used (bytes)
+    pub total_storage: u64,
+
+    /// Vault creation timestamp
+    pub created_at: i64,
+
+    /// Last activity timestamp
+    pub updated_at: i64,
+
+    /// Vault status (0=active, 1=frozen, 2=deleted)
+    pub status: u8,
+
+    /// Reserved for future use
+    pub reserved: [u8; 64],
+}
+
+// PDA Seeds: ["vault_master", owner_pubkey]
+// Size: 8 + 1 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 1 + 64 = 171 bytes
+```
+
+### 2. UserVaultShard PDA
+
+Holds up to 100 files per shard.
+
+```rust
+#[account]
+pub struct UserVaultShard {
+    /// Bump seed for PDA derivation
+    pub bump: u8,
+
+    /// Reference to master vault
+    pub master: Pubkey,
+
+    /// Shard index (0-9)
+    pub shard_index: u8,
+
+    /// Number of files in this shard
+    pub file_count: u64,
+
+    /// Storage used in this shard (bytes)
+    pub shard_storage: u64,
+
+    /// Created timestamp
+    pub created_at: i64,
+
+    /// Reserved for future use
+    pub reserved: [u8; 32],
+}
+
+// PDA Seeds: ["vault_shard", master_pubkey, shard_index]
+// Size: 8 + 1 + 32 + 1 + 8 + 8 + 8 + 32 = 98 bytes
+// Constants: FILES_PER_SHARD = 100, MAX_SHARDS = 10
+```
+
+### 3. UserVaultIndex PDA
+
+Enables O(1) file lookup.
+
+```rust
+#[account]
+pub struct UserVaultIndex {
+    /// Bump seed for PDA derivation
+    pub bump: u8,
+
+    /// Reference to master vault
+    pub master: Pubkey,
+
+    /// File ID to location mapping
+    /// Key: [u8; 16] (file UUID)
+    /// Value: (shard_index: u8, file_index: u16)
+    pub file_locations: Vec<FileLocation>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct FileLocation {
+    pub file_id: [u8; 16],
+    pub shard_index: u8,
+    pub file_index: u16,
+}
+
+// PDA Seeds: ["vault_index", master_pubkey]
+// Size: Variable based on file count
+```
+
+### 4. UserVault PDA (Legacy - for migration)
 
 Stores user's master key commitment and vault configuration.
 
@@ -26,29 +191,29 @@ Stores user's master key commitment and vault configuration.
 pub struct UserVault {
     /// Bump seed for PDA derivation
     pub bump: u8,
-    
+
     /// Owner's wallet public key
     pub owner: Pubkey,
-    
+
     /// Hash of the wallet-derived master encryption key
     /// SHA256(master_key) - proves key ownership without revealing key
     pub master_key_commitment: [u8; 32],
-    
+
     /// Total number of files in vault
     pub file_count: u64,
-    
+
     /// Total storage used (bytes)
     pub total_storage: u64,
-    
+
     /// Vault creation timestamp
     pub created_at: i64,
-    
+
     /// Last activity timestamp
     pub updated_at: i64,
-    
+
     /// Vault status (0=active, 1=frozen, 2=deleted)
     pub status: u8,
-    
+
     /// Reserved for future use
     pub reserved: [u8; 64],
 }
@@ -212,13 +377,24 @@ pub struct VaultConfig {
 
 ## Instructions
 
-### Vault Management
+### Vault Management (Sharded)
 
 ```rust
-/// Initialize a new user vault
-pub fn initialize_vault(
-    ctx: Context<InitializeVault>,
+/// Initialize a new user vault master (sharded architecture)
+pub fn initialize_vault_master(
+    ctx: Context<InitializeVaultMaster>,
     master_key_commitment: [u8; 32],
+) -> Result<()>
+
+/// Create a new shard when current shard is full
+pub fn create_shard(
+    ctx: Context<CreateShard>,
+    shard_index: u8,
+) -> Result<()>
+
+/// Initialize vault index for O(1) lookups
+pub fn initialize_vault_index(
+    ctx: Context<InitializeVaultIndex>,
 ) -> Result<()>
 
 /// Update vault master key commitment (key rotation)
@@ -239,10 +415,25 @@ pub fn unfreeze_vault(
 ) -> Result<()>
 ```
 
-### File Management
+### File Management (Sharded)
 
 ```rust
-/// Register a new encrypted file
+/// Register a new encrypted file with automatic shard selection
+pub fn register_file_sharded(
+    ctx: Context<RegisterFileSharded>,
+    file_id: [u8; 16],
+    filename_hash: [u8; 32],
+    file_size: u64,
+    encrypted_size: u64,
+    mime_type_hash: [u8; 32],
+    security_level: u8,
+    encryption_commitment: [u8; 32],
+    critical_bytes_commitment: [u8; 32],
+    primary_cid: [u8; 64],
+    target_shard: u8,  // Pre-computed by client
+) -> Result<()>
+
+/// Legacy: Register a new encrypted file (non-sharded)
 pub fn register_file(
     ctx: Context<RegisterFile>,
     file_id: [u8; 16],
@@ -560,10 +751,50 @@ pub struct FileAccessed {
 
 ---
 
-## Next Steps
+## Implementation Status
 
-1. **Phase 1A**: Implement Anchor program structure
-2. **Phase 1B**: Write instruction handlers
-3. **Phase 1C**: Add tests with anchor-bankrun
-4. **Phase 1D**: Deploy to devnet
-5. **Phase 2**: Integrate with frontend via @solana/web3.js
+### Completed ✅
+1. **Multi-PDA Sharding Architecture**: UserVaultMaster, Shard, Index PDAs
+2. **TypeScript Sharding Client**: Full abstraction layer (`shardingClient.ts`)
+3. **Auto-shard Creation**: Automatic new shard when current reaches 100 files
+4. **O(1) File Lookup**: Via UserVaultIndex
+5. **Session Key Delegation**: Gasless operations with 4-hour sessions
+6. **On-chain Commitment Verification**: Critical bytes commitment comparison
+7. **FileRecord Integration**: With encryption/critical bytes commitments
+
+### In Progress 🔄
+1. **Devnet Testing**: Integration testing with frontend
+2. **Anchor-bankrun Tests**: Comprehensive test coverage
+
+### Planned 📋
+1. **Mainnet Deployment**: After security audit
+2. **Migration Tools**: For legacy UserVault accounts
+3. **Session Key Enhancements**: Extended delegation options
+
+## Client Usage Example
+
+```typescript
+import { ShardingClient } from '@/services/solana/shardingClient';
+
+const client = new ShardingClient(connection, wallet);
+
+// Ensure vault exists (auto-creates master + index)
+await client.ensureVaultMasterExists(wallet.publicKey);
+
+// Register file (auto-selects shard)
+await client.registerFileSharded({
+  fileId: fileIdBytes,
+  filenameHash: sha256(filename),
+  fileSize: originalSize,
+  encryptedSize: encryptedSize,
+  mimeTypeHash: sha256(mimeType),
+  securityLevel: 1,
+  encryptionCommitment: sha256(encryptedContent),
+  criticalBytesCommitment: sha256(criticalBytes),
+  primaryCid: ipfsCid,
+});
+
+// Find file (O(1) lookup)
+const location = await client.findFileLocation(wallet.publicKey, fileIdBytes);
+console.log(`File in shard ${location.shardIndex}, index ${location.fileIndex}`);
+```
