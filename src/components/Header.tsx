@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Bell, User, Wallet, LogOut, LogIn, Users, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,17 @@ export const Header = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Get display name with fallbacks: username > firstName > email prefix > 'User'
+  const getDisplayName = () => {
+    if (!user) return 'User';
+    const metadata = user.user_metadata;
+    if (metadata?.username) return metadata.username;
+    if (metadata?.first_name) return metadata.first_name;
+    if (user.email) return user.email.split('@')[0];
+    return 'User';
+  };
+  const displayName = getDisplayName();
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -69,14 +80,14 @@ export const Header = () => {
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                       <User className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-medium">{user?.user_metadata?.username || 'User'}</span>
+                    <span className="font-medium">{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-4">
                     <div className="flex flex-col space-y-2">
                       <p className="text-sm font-semibold text-white">
-                        {user?.user_metadata?.username || 'User'}
+                        {displayName}
                       </p>
                       <p className="text-xs text-gray-300">
                         {user?.email}

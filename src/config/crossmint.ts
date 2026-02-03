@@ -66,11 +66,13 @@ export const crossmintConfig: CrossmintConfig = {
 
 /**
  * Get the appropriate chain identifier based on environment
+ * Note: For Crossmint Smart Wallets, use "solana" (not "solana:devnet")
+ * The network is determined by the Crossmint project settings (staging vs production)
  */
 export function getCurrentChain(): string {
-  return crossmintConfig.environment === 'production'
-    ? SUPPORTED_CHAINS.solana.mainnet
-    : SUPPORTED_CHAINS.solana.devnet;
+  // Crossmint Smart Wallets use "solana" as the chain identifier
+  // The actual network (devnet/mainnet) is determined by your Crossmint project environment
+  return 'solana';
 }
 
 /**

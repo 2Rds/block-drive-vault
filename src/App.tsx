@@ -37,6 +37,7 @@ const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
 const Teams = lazy(() => import("./pages/Teams"));
 const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
 const Membership = lazy(() => import("./pages/Membership"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 // Optimize QueryClient for better TBT performance
 const queryClient = new QueryClient({
@@ -119,6 +120,16 @@ const App = () => {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+
+                {/* Onboarding - protected but separate flow */}
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ClerkProtectedRoute>
+                      <Onboarding />
+                    </ClerkProtectedRoute>
+                  }
+                />
 
                 {/* Protected pages */}
                 <Route

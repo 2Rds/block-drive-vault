@@ -11,6 +11,7 @@ import { useWallet } from '@crossmint/client-sdk-react-ui';
 import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from '@solana/spl-token';
 import { createSolanaConnection } from '@/config/crossmint';
+import { useServerWallet } from '@/providers/CrossmintProvider';
 
 // USDC Token Mint addresses
 const USDC_MINT_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'); // Devnet USDC
@@ -46,7 +47,8 @@ interface CrossmintWalletState {
 
 export function useCrossmintWallet(): CrossmintWalletState {
   const { isSignedIn } = useAuth();
-  const { wallet } = useWallet(); // Crossmint wallet hook
+  const { wallet } = useWallet(); // Crossmint SDK wallet hook
+  const { serverWalletAddress, isCreatingServerWallet } = useServerWallet(); // Fallback server-side wallet
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [chainAddresses, setChainAddresses] = useState<{
@@ -60,9 +62,12 @@ export function useCrossmintWallet(): CrossmintWalletState {
   const [error, setError] = useState<string | null>(null);
   const [currentChain, setCurrentChain] = useState<string>('solana:devnet');
 
-  // Initialize wallet
+  // Initialize wallet (from SDK or server-side creation)
   useEffect(() => {
-    if (!isSignedIn || !wallet || isInitialized) return;
+    // Get address from SDK wallet or server-side wallet
+    const effectiveAddress = wallet?.address || serverWalletAddress;
+
+    if (!isSignedIn || !effectiveAddress || isInitialized) return;
 
     const initWallet = async () => {
       setIsLoading(true);
@@ -70,19 +75,18 @@ export function useCrossmintWallet(): CrossmintWalletState {
 
       try {
         // Get primary wallet address
-        const address = wallet.address;
-        setWalletAddress(address);
+        setWalletAddress(effectiveAddress);
 
         // Fetch addresses for all chains
         // Crossmint creates one wallet per chain from same key
         const addresses: typeof chainAddresses = {
-          solana: address, // Primary is Solana
+          solana: effectiveAddress, // Primary is Solana
         };
 
         setChainAddresses(addresses);
         setIsInitialized(true);
 
-        console.log('[useCrossmintWallet] Initialized:', address);
+        console.log('[useCrossmintWallet] Initialized:', effectiveAddress, wallet ? '(SDK)' : '(Server)');
       } catch (err) {
         console.error('[useCrossmintWallet] Init error:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
@@ -92,7 +96,7 @@ export function useCrossmintWallet(): CrossmintWalletState {
     };
 
     initWallet();
-  }, [isSignedIn, wallet, isInitialized]);
+  }, [isSignedIn, wallet, serverWalletAddress, isInitialized]);
 
   // Sign transaction (without sending)
   const signTransaction = useCallback(async (
@@ -234,7 +238,7 @@ export function useCrossmintWallet(): CrossmintWalletState {
     chainAddresses,
     connection,
     isInitialized,
-    isLoading,
+    isLoading: isLoading || isCreatingServerWallet,
     error,
     signTransaction,
     signAndSendTransaction,
