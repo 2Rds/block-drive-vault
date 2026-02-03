@@ -24,6 +24,7 @@ export const useAuth = (): AuthContextType & { isSignedIn: boolean; solanaWallet
     last_sign_in_at: new Date().toISOString(),
     app_metadata: { provider: 'clerk' },
     user_metadata: {
+      username: clerkAuth.user.username,
       first_name: clerkAuth.user.firstName,
       last_name: clerkAuth.user.lastName,
       full_name: clerkAuth.user.fullName,

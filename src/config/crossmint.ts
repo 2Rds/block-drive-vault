@@ -66,11 +66,13 @@ export const crossmintConfig: CrossmintConfig = {
 
 /**
  * Get the appropriate chain identifier based on environment
+ * Note: For Crossmint Smart Wallets, use "solana" (not "solana:devnet")
+ * The network is determined by the Crossmint project settings (staging vs production)
  */
 export function getCurrentChain(): string {
-  return crossmintConfig.environment === 'production'
-    ? SUPPORTED_CHAINS.solana.mainnet
-    : SUPPORTED_CHAINS.solana.devnet;
+  // Crossmint Smart Wallets use "solana" as the chain identifier
+  // The actual network (devnet/mainnet) is determined by your Crossmint project environment
+  return 'solana';
 }
 
 /**
@@ -90,18 +92,28 @@ export function validateCrossmintConfig(): { valid: boolean; missing: string[] }
 }
 
 /**
- * Create wallet configuration for automatic creation on login
+ * Crossmint SDK v1.9.x wallet configuration
+ * @see https://docs.crossmint.com/wallets/embedded/react
  */
-export function getWalletCreationConfig(userEmail: string) {
+export interface CrossmintWalletConfig {
+  createOnLogin: {
+    type: 'email' | 'passkey';
+    linkedUser: string;
+  };
+  defaultChain: string;
+}
+
+/**
+ * Create wallet configuration for automatic creation on login
+ * Uses Crossmint SDK v1.9.x format
+ */
+export function getWalletCreationConfig(userEmail: string): CrossmintWalletConfig {
   return {
     createOnLogin: {
-      chain: getCurrentChain(),
-      signer: {
-        type: 'email',
-        email: userEmail,
-      },
-      alias: `blockdrive_${userEmail.split('@')[0]}`,
+      type: 'email',
+      linkedUser: userEmail,
     },
+    defaultChain: getCurrentChain(),
   };
 }
 
