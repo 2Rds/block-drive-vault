@@ -14,6 +14,18 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Username validation constants
+const MIN_USERNAME_LENGTH = 3;
+const MAX_USERNAME_LENGTH = 20;
+const USERNAME_PATTERN = /^[a-z0-9_]+$/;
+const RESERVED_USERNAMES = [
+  'admin', 'blockdrive', 'system', 'support',
+  'help', 'api', 'www', 'mail', 'ftp'
+] as const;
+
+// Domain suffix
+const DOMAIN_SUFFIX = 'blockdrive.sol';
+
 interface MintUsernameNFTParams {
   clerkUserId: string;
   username: string;
@@ -53,22 +65,19 @@ export function validateUsername(username: string): { valid: boolean; error?: st
 
   const normalized = username.toLowerCase().trim();
 
-  if (normalized.length < 3) {
-    return { valid: false, error: 'Username must be at least 3 characters' };
+  if (normalized.length < MIN_USERNAME_LENGTH) {
+    return { valid: false, error: `Username must be at least ${MIN_USERNAME_LENGTH} characters` };
   }
 
-  if (normalized.length > 20) {
-    return { valid: false, error: 'Username must be 20 characters or less' };
+  if (normalized.length > MAX_USERNAME_LENGTH) {
+    return { valid: false, error: `Username must be ${MAX_USERNAME_LENGTH} characters or less` };
   }
 
-  const usernameRegex = /^[a-z0-9_]+$/;
-  if (!usernameRegex.test(normalized)) {
+  if (!USERNAME_PATTERN.test(normalized)) {
     return { valid: false, error: 'Username can only contain letters, numbers, and underscores' };
   }
 
-  // Reserved usernames
-  const reserved = ['admin', 'blockdrive', 'system', 'support', 'help', 'api', 'www', 'mail', 'ftp'];
-  if (reserved.includes(normalized)) {
+  if (RESERVED_USERNAMES.includes(normalized as typeof RESERVED_USERNAMES[number])) {
     return { valid: false, error: 'This username is reserved' };
   }
 
@@ -132,8 +141,8 @@ export async function mintUsernameNFT(params: MintUsernameNFTParams): Promise<Mi
     const normalized = username.toLowerCase().trim();
     const isOrgDomain = !!(organizationId && organizationSubdomain);
     const fullDomain = isOrgDomain
-      ? `${normalized}.${organizationSubdomain.toLowerCase()}.blockdrive.sol`
-      : `${normalized}.blockdrive.sol`;
+      ? `${normalized}.${organizationSubdomain.toLowerCase()}.${DOMAIN_SUFFIX}`
+      : `${normalized}.${DOMAIN_SUFFIX}`;
 
     console.log(`[usernameNFT] Minting ${fullDomain} for user ${clerkUserId}`);
     if (isOrgDomain) {

@@ -1,18 +1,10 @@
-/**
- * BlockDrive File Grid
- * 
- * Enhanced file grid that displays on-chain registration status,
- * verification badges, and encryption information for each file.
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  File, 
-  Download, 
-  Archive, 
-  Globe, 
-  ExternalLink, 
-  ArrowLeft, 
+import {
+  File,
+  Download,
+  Archive,
+  Globe,
+  ArrowLeft,
   Eye,
   Shield,
   ShieldCheck,
@@ -20,7 +12,6 @@ import {
   Link2,
   Lock,
   CheckCircle,
-  XCircle,
   Clock,
   Trash2,
   Share2,
@@ -46,6 +37,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { ParsedFileRecord } from '@/services/solana';
 import { cn } from '@/lib/utils';
+
+const BYTES_PER_KB = 1024;
+const SIZE_UNITS = ['Bytes', 'KB', 'MB', 'GB'] as const;
+const COMMITMENT_PREVIEW_LENGTH = 8;
+const CID_PREVIEW_LENGTH = 12;
+const SKELETON_COUNT = 8;
 
 interface BlockDriveFile {
   id: string;
@@ -179,17 +176,13 @@ export function BlockDriveFileGrid({
         return folderPath.includes(`/${selectedFolder}`);
       });
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const i = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KB));
+    return parseFloat((bytes / Math.pow(BYTES_PER_KB, i)).toFixed(2)) + ' ' + SIZE_UNITS[i];
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString();
-  };
+  const formatDate = (date: Date): string => new Date(date).toLocaleDateString();
 
   const getSecurityBadge = (level: string) => {
     switch (level) {
@@ -247,7 +240,7 @@ export function BlockDriveFileGrid({
           <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          {Array.from({ length: SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
             <div key={i} className="bg-card/60 rounded-lg p-4 border border-border animate-pulse">
               <div className="h-8 w-8 bg-muted rounded mb-3"></div>
               <div className="h-4 bg-muted rounded mb-2"></div>
@@ -529,7 +522,7 @@ function FileCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-xs text-primary/70 font-mono truncate max-w-[100px]">
-                    {file.onChain.encryptionCommitment?.slice(0, 8)}...
+                    {file.onChain.encryptionCommitment?.slice(0, COMMITMENT_PREVIEW_LENGTH)}...
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
@@ -574,7 +567,7 @@ function FileCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-xs text-muted-foreground/70 font-mono truncate max-w-[100px] cursor-help">
-                {file.cid?.slice(0, 12)}...
+                {file.cid?.slice(0, CID_PREVIEW_LENGTH)}...
               </span>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">

@@ -2,13 +2,12 @@
  * BlockDrive Solana SDK Client
  */
 
-import { 
-  Connection, 
-  PublicKey, 
-  Transaction, 
+import {
+  Connection,
+  PublicKey,
+  Transaction,
   TransactionInstruction,
   SystemProgram,
-  LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { 
   BLOCKDRIVE_PROGRAM_ID,
@@ -437,12 +436,9 @@ export class BlockDriveClient {
 
   private parseVaultAccount(pubkey: PublicKey, data: Buffer): ParsedUserVault | null {
     try {
-      // Skip 8-byte discriminator
-      let offset = 8;
-      
-      const bump = data.readUInt8(offset);
-      offset += 1;
-      
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
+
       const owner = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
       
@@ -482,11 +478,9 @@ export class BlockDriveClient {
 
   private parseFileRecordAccount(pubkey: PublicKey, data: Buffer): ParsedFileRecord | null {
     try {
-      let offset = 8; // discriminator
-      
-      const bump = data.readUInt8(offset);
-      offset += 1;
-      
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
+
       const vault = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
       
@@ -573,11 +567,9 @@ export class BlockDriveClient {
 
   private parseDelegationAccount(pubkey: PublicKey, data: Buffer): ParsedDelegation | null {
     try {
-      let offset = 8; // discriminator
-      
-      const bump = data.readUInt8(offset);
-      offset += 1;
-      
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
+
       const fileRecord = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
       

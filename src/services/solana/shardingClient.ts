@@ -504,10 +504,8 @@ export class ShardingClient {
 
   private parseVaultMaster(pubkey: PublicKey, data: Buffer): ParsedVaultMaster | null {
     try {
-      let offset = 8; // discriminator
-
-      const bump = data.readUInt8(offset);
-      offset += 1;
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
 
       const owner = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
@@ -558,10 +556,8 @@ export class ShardingClient {
 
   private parseVaultShard(pubkey: PublicKey, data: Buffer): ParsedVaultShard | null {
     try {
-      let offset = 8; // discriminator
-
-      const bump = data.readUInt8(offset);
-      offset += 1;
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
 
       const vaultMaster = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
@@ -613,10 +609,8 @@ export class ShardingClient {
 
   private parseVaultIndex(pubkey: PublicKey, data: Buffer): ParsedVaultIndex | null {
     try {
-      let offset = 8; // discriminator
-
-      const bump = data.readUInt8(offset);
-      offset += 1;
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
 
       const vaultMaster = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;
@@ -670,10 +664,8 @@ export class ShardingClient {
 
   private parseFileRecord(pubkey: PublicKey, data: Buffer): ParsedFileRecord | null {
     try {
-      let offset = 8; // discriminator
-
-      const bump = data.readUInt8(offset);
-      offset += 1;
+      // Skip 8-byte discriminator + 1-byte bump
+      let offset = 9;
 
       const vault = new PublicKey(data.slice(offset, offset + 32));
       offset += 32;

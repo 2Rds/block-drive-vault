@@ -1,74 +1,64 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+import { jsonResponse, errorResponse, handleCors } from '../_shared/response.ts';
+import { HTTP_STATUS, TIME_MS, SECURITY_EVENT_THRESHOLD } from '../_shared/constants.ts';
+import { getSupabaseServiceClient } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+type Severity = 'low' | 'medium' | 'high' | 'critical';
 
 interface SecurityLogRequest {
   eventType: string;
-  details: Record<string, any>;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  details: Record<string, unknown>;
+  severity: Severity;
+}
+
+const VALID_SEVERITIES: Severity[] = ['low', 'medium', 'high', 'critical'];
+const ESCALATION_EVENT_TYPES = ['rate_limit_exceeded', 'invalid_wallet_validation', 'session_hijacking_detected'];
+
+function getClientInfo(req: Request): { ip: string; userAgent: string; referer: string } {
+  return {
+    ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+    userAgent: req.headers.get('user-agent') || 'unknown',
+    referer: req.headers.get('referer') || 'none'
+  };
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  if (req.method !== 'POST') {
+    return errorResponse('Method not allowed', HTTP_STATUS.METHOD_NOT_ALLOWED);
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: corsHeaders }
-      );
-    }
-
+    const supabase = getSupabaseServiceClient();
     const { eventType, details, severity }: SecurityLogRequest = await req.json();
 
-    // Validate request
     if (!eventType || !details || !severity) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { status: 400, headers: corsHeaders }
-      );
+      return errorResponse('Missing required fields', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Validate severity level
-    const validSeverities = ['low', 'medium', 'high', 'critical'];
-    if (!validSeverities.includes(severity)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid severity level' }),
-        { status: 400, headers: corsHeaders }
-      );
+    if (!VALID_SEVERITIES.includes(severity)) {
+      return errorResponse('Invalid severity level', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Get client IP for additional context
-    const clientIP = req.headers.get('x-forwarded-for') || 
-                    req.headers.get('x-real-ip') || 
-                    'unknown';
+    const clientInfo = getClientInfo(req);
+    const identifier = (details.userId as string) || clientInfo.ip;
 
-    // Enhanced details with server-side context
     const enhancedDetails = {
       ...details,
-      client_ip: clientIP,
+      client_ip: clientInfo.ip,
       server_timestamp: new Date().toISOString(),
-      user_agent: req.headers.get('user-agent') || 'unknown',
-      referer: req.headers.get('referer') || 'none'
+      user_agent: clientInfo.userAgent,
+      referer: clientInfo.referer
     };
 
-    // Log to security_logs table
     const { error: logError } = await supabase
       .from('security_logs')
       .insert({
         event_type: eventType,
-        identifier: details.userId || clientIP,
+        identifier,
         details: enhancedDetails,
         severity,
         created_at: new Date().toISOString()
@@ -76,36 +66,29 @@ serve(async (req) => {
 
     if (logError) {
       console.error('Error inserting security log:', logError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to log security event' }),
-        { status: 500, headers: corsHeaders }
-      );
+      return errorResponse('Failed to log security event', HTTP_STATUS.INTERNAL_ERROR);
     }
 
-    // For critical events, also log to console for immediate attention
     if (severity === 'critical') {
       console.error(`[CRITICAL SECURITY EVENT] ${eventType}:`, enhancedDetails);
     }
 
-    // Check if this is a pattern of suspicious activity
-    if (['rate_limit_exceeded', 'invalid_wallet_validation', 'session_hijacking_detected'].includes(eventType)) {
-      // Check for repeated events from same identifier in last hour
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
+    if (ESCALATION_EVENT_TYPES.includes(eventType)) {
+      const oneHourAgo = new Date(Date.now() - TIME_MS.HOUR).toISOString();
+
       const { data: recentEvents, error: countError } = await supabase
         .from('security_logs')
         .select('id')
         .eq('event_type', eventType)
-        .eq('identifier', details.userId || clientIP)
+        .eq('identifier', identifier)
         .gte('created_at', oneHourAgo);
 
-      if (!countError && recentEvents && recentEvents.length >= 5) {
-        // Log escalated security event
+      if (!countError && recentEvents && recentEvents.length >= SECURITY_EVENT_THRESHOLD) {
         await supabase
           .from('security_logs')
           .insert({
             event_type: 'repeated_security_violations',
-            identifier: details.userId || clientIP,
+            identifier,
             details: {
               original_event: eventType,
               occurrence_count: recentEvents.length,
@@ -116,20 +99,14 @@ serve(async (req) => {
             created_at: new Date().toISOString()
           });
 
-        console.error(`[ESCALATED SECURITY THREAT] Repeated ${eventType} from ${details.userId || clientIP}`);
+        console.error(`[ESCALATED SECURITY THREAT] Repeated ${eventType} from ${identifier}`);
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, logged: true }),
-      { headers: corsHeaders }
-    );
+    return jsonResponse({ success: true, logged: true });
 
   } catch (error) {
     console.error('Security logging error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
-    );
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR);
   }
 });

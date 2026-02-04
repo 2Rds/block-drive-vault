@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,37 +7,46 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
+type PaymentProvider = 'stripe' | 'crossmint';
+
 interface SubscriptionDetails {
   tier: string;
-  provider: 'stripe' | 'crossmint';
+  provider: PaymentProvider;
   status: string;
 }
 
-const SubscriptionSuccess = () => {
+function LoadingState(): JSX.Element {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+      <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
+        <CardContent className="py-12 text-center">
+          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-300">Verifying your subscription...</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SubscriptionSuccess(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Determine if this is a crypto payment
   const isCrypto = searchParams.get('crypto') === 'true';
   const subscriptionId = searchParams.get('subscription_id');
   const sessionId = searchParams.get('session_id');
 
-  // Process subscription verification when user lands on success page
   useEffect(() => {
-    const processSubscriptionSuccess = async () => {
+    async function processSubscriptionSuccess() {
       if (!user) return;
 
       setIsLoading(true);
 
       try {
         if (isCrypto && subscriptionId) {
-          // Handle crypto subscription verification
-          console.log('Processing crypto subscription:', subscriptionId);
-
-          // Query the crypto_subscriptions table for details
           const { data: cryptoSub, error: cryptoError } = await supabase
             .from('crypto_subscriptions')
             .select('tier, status, current_period_start, current_period_end')
@@ -46,10 +54,8 @@ const SubscriptionSuccess = () => {
             .single();
 
           if (cryptoError) {
-            console.error('Error fetching crypto subscription:', cryptoError);
             toast.error('Failed to verify subscription. Please contact support.');
           } else if (cryptoSub) {
-            console.log('Crypto subscription verified:', cryptoSub);
             setSubscriptionDetails({
               tier: cryptoSub.tier,
               provider: 'crossmint',
@@ -61,61 +67,33 @@ const SubscriptionSuccess = () => {
             }
           }
         } else if (sessionId) {
-          // Handle Stripe subscription verification
-          console.log('Processing Stripe subscription verification for session:', sessionId);
-
           const { data, error } = await supabase.functions.invoke('verify-subscription', {
             body: { sessionId, userId: user.id }
           });
 
           if (error) {
-            console.error('Error verifying subscription:', error);
             toast.error('Failed to verify subscription. Please contact support.');
-          } else {
-            console.log('Stripe subscription verified:', data);
-            if (data?.subscribed) {
-              setSubscriptionDetails({
-                tier: data.subscription_tier,
-                provider: 'stripe',
-                status: 'active'
-              });
-              toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
-            }
+          } else if (data?.subscribed) {
+            setSubscriptionDetails({
+              tier: data.subscription_tier,
+              provider: 'stripe',
+              status: 'active'
+            });
+            toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
           }
-        } else {
-          console.log('No session ID or subscription ID found in URL');
         }
-      } catch (error) {
-        console.error('Failed to process subscription:', error);
+      } catch {
         toast.error('Failed to process subscription. Please contact support.');
       } finally {
         setIsLoading(false);
       }
-    };
+    }
 
     processSubscriptionSuccess();
   }, [user, isCrypto, subscriptionId, sessionId]);
 
-  const handleGoToAccount = () => {
-    navigate('/account');
-  };
-
-  const handleGoToDashboard = () => {
-    navigate('/dashboard');
-  };
-
-  // Show loading state while verifying
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-        <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
-          <CardContent className="py-12 text-center">
-            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-300">Verifying your subscription...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -175,7 +153,7 @@ const SubscriptionSuccess = () => {
 
           <div className="space-y-3">
             <Button
-              onClick={handleGoToAccount}
+              onClick={() => navigate('/account')}
               className={`w-full ${isCrypto ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               <Crown className="w-4 h-4 mr-2" />
@@ -184,7 +162,7 @@ const SubscriptionSuccess = () => {
             </Button>
 
             <Button
-              onClick={handleGoToDashboard}
+              onClick={() => navigate('/dashboard')}
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
             >
@@ -203,6 +181,6 @@ const SubscriptionSuccess = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default SubscriptionSuccess;

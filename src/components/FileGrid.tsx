@@ -3,6 +3,9 @@ import React from 'react';
 import { File, Folder, Download, Archive, Database } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
+const SKELETON_COUNT = 8;
+const DEFAULT_FILE_COLOR = 'text-blue-600';
+
 interface FileGridProps {
   selectedFolder: string;
   userFolders?: string[];
@@ -111,16 +114,6 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
     return File;
   };
 
-  const getFileColor = (type: string, name: string) => {
-    if (type === 'folder') return 'text-blue-600';
-    if (name.endsWith('.sol')) return 'text-blue-600';
-    if (name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.txt')) return 'text-blue-600';
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.gif')) return 'text-blue-600';
-    if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi')) return 'text-blue-600';
-    if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac')) return 'text-blue-600';
-    return 'text-blue-600';
-  };
-
   if (loading) {
     return (
       <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
@@ -129,7 +122,7 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
           <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          {Array.from({ length: SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
             <div key={i} className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse">
               <div className="h-8 w-8 bg-gray-600 rounded mb-3"></div>
               <div className="h-4 bg-gray-600 rounded mb-2"></div>
@@ -156,15 +149,14 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredFiles.map((file) => {
           const IconComponent = getFileIcon(file.type, file.name);
-          const iconColor = getFileColor(file.type, file.name);
-          
+
           return (
             <div
               key={file.id}
               className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer group"
             >
               <div className="flex items-start justify-between mb-3">
-                <IconComponent className={`w-8 h-8 ${iconColor}`} />
+                <IconComponent className={`w-8 h-8 ${DEFAULT_FILE_COLOR}`} />
                 {file.type !== 'folder' && (
                   <button className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Download className="w-4 h-4 text-blue-600 hover:text-blue-400" />

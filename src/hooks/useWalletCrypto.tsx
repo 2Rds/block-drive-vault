@@ -1,10 +1,3 @@
-/**
- * Wallet Crypto Hook
- *
- * React hook for managing wallet-derived encryption keys.
- * Handles the 3-signature setup flow and key caching.
- */
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   SecurityLevel,
@@ -15,15 +8,14 @@ import {
 import {
   deriveKeyFromSignature,
   getSignatureMessage,
-  getAllSignatureMessages
 } from '@/services/crypto/keyDerivationService';
 import { stringToBytes } from '@/services/crypto/cryptoUtils';
 import { useAuth } from './useAuth';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { toast } from 'sonner';
 
-// Session expiry time (4 hours)
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
+const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
 
 interface WalletCryptoState {
   isInitialized: boolean;
@@ -81,68 +73,46 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     });
   }, []);
 
-  // Clear keys when wallet disconnects or Crossmint wallet is not initialized
+  const hasAnyWallet = walletData?.connected || crossmintWallet.isInitialized;
+
   useEffect(() => {
-    if (!walletData?.connected && !crossmintWallet.isInitialized) {
+    if (!hasAnyWallet) {
       clearKeys();
     }
-  }, [walletData?.connected, crossmintWallet.isInitialized, clearKeys]);
+  }, [hasAnyWallet, clearKeys]);
 
   // Check if we have a key for a specific level
   const hasKey = useCallback((level: SecurityLevel): boolean => {
     return keysRef.current?.keys.has(level) ?? false;
   }, []);
 
-  // Request wallet signature for a specific level
-  const requestSignature = useCallback(async (level: SecurityLevel): Promise<Uint8Array | null> => {
-    // Prefer Crossmint embedded wallet for signing
-    if (crossmintWallet.isInitialized && crossmintWallet.signMessage) {
-      const message = getSignatureMessage(level);
-      const messageBytes = stringToBytes(message);
+  const requestSignature = useCallback(async (level: SecurityLevel): Promise<Uint8Array> => {
+    const message = getSignatureMessage(level);
+    const messageBytes = stringToBytes(message);
 
-      try {
-        console.log(`[useWalletCrypto] Requesting signature from Crossmint wallet for level ${level}`);
-        const signature = await crossmintWallet.signMessage(messageBytes);
-        return signature;
-      } catch (error) {
-        console.error(`Failed to get signature from Crossmint wallet for level ${level}:`, error);
-        throw error;
-      }
+    if (crossmintWallet.isInitialized && crossmintWallet.signMessage) {
+      console.log(`[useWalletCrypto] Requesting signature from Crossmint wallet for level ${level}`);
+      return crossmintWallet.signMessage(messageBytes);
     }
 
-    // Fallback to external wallet adapter if available
     if (walletData?.adapter?.signMessage) {
-      const message = getSignatureMessage(level);
-      const messageBytes = stringToBytes(message);
-
-      try {
-        console.log(`[useWalletCrypto] Requesting signature from external wallet for level ${level}`);
-        const signature = await walletData.adapter.signMessage(messageBytes);
-        return signature;
-      } catch (error) {
-        console.error(`Failed to get signature from external wallet for level ${level}:`, error);
-        throw error;
-      }
+      console.log(`[useWalletCrypto] Requesting signature from external wallet for level ${level}`);
+      return walletData.adapter.signMessage(messageBytes);
     }
 
     throw new Error('No wallet available for message signing');
   }, [crossmintWallet, walletData]);
 
-  // Derive key for a specific level
   const deriveKeyForLevel = useCallback(async (level: SecurityLevel): Promise<DerivedEncryptionKey | null> => {
     try {
       const signature = await requestSignature(level);
-      if (!signature) return null;
-
       const key = await deriveKeyFromSignature(signature, level);
 
-      // Store in session
       if (sessionRef.current) {
         sessionRef.current.signatures.set(level, signature);
         sessionRef.current.keys.set(level, key.key);
       }
 
-      // Store in keys
       if (keysRef.current) {
         keysRef.current.keys.set(level, key);
       }
@@ -154,9 +124,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     }
   }, [requestSignature]);
 
-  // Initialize all 3 keys
   const initializeKeys = useCallback(async (): Promise<boolean> => {
-    // Check if either Crossmint wallet or external wallet is available
     const hasCrossmintWallet = crossmintWallet.isInitialized && crossmintWallet.walletAddress;
     const hasExternalWallet = walletData?.connected && walletData?.address;
 
@@ -165,9 +133,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
-    // Check if wallet supports signing (Crossmint always does, check external wallet)
     const canSign = hasCrossmintWallet || walletData?.adapter?.signMessage;
-
     if (!canSign) {
       setState(prev => ({ ...prev, error: 'Wallet does not support message signing' }));
       toast.error('Your wallet does not support message signing');
@@ -176,22 +142,19 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
     setState(prev => ({ ...prev, isInitializing: true, error: null }));
 
-    // Determine which wallet address to use
     const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
 
     try {
-      // Initialize session
       sessionRef.current = {
-        walletAddress: walletAddress,
+        walletAddress,
         signatures: new Map(),
         keys: new Map(),
         isComplete: false,
         expiresAt: Date.now() + SESSION_EXPIRY_MS
       };
 
-      // Initialize keys storage
       keysRef.current = {
-        walletAddress: walletAddress,
+        walletAddress,
         keys: new Map(),
         initialized: false,
         lastRefreshed: Date.now()
@@ -199,25 +162,16 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
       toast.info('Please sign 3 messages to set up your encryption keys');
 
-      // Request signatures for all 3 levels
-      const levels = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM];
-
-      for (const level of levels) {
+      for (const level of ALL_SECURITY_LEVELS) {
         setState(prev => ({ ...prev, currentLevel: level }));
-
         const key = await deriveKeyForLevel(level);
         if (!key) {
           throw new Error(`Failed to derive key for security level ${level}`);
         }
       }
 
-      // Mark as complete
-      if (sessionRef.current) {
-        sessionRef.current.isComplete = true;
-      }
-      if (keysRef.current) {
-        keysRef.current.initialized = true;
-      }
+      if (sessionRef.current) sessionRef.current.isComplete = true;
+      if (keysRef.current) keysRef.current.initialized = true;
 
       setState({
         isInitialized: true,
@@ -228,7 +182,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
       toast.success('Encryption keys initialized successfully');
       return true;
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Key initialization failed';
       setState({
@@ -242,27 +195,19 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     }
   }, [crossmintWallet, walletData, deriveKeyForLevel]);
 
-  // Get key for a specific level (derives if not cached)
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    // Check if session is still valid
     if (!isSessionValid()) {
-      // Session expired, need to re-initialize
       const success = await initializeKeys();
       if (!success) return null;
     }
 
-    // Check if we have the key cached
     const cachedKey = keysRef.current?.keys.get(level);
-    if (cachedKey) {
-      return cachedKey.key;
-    }
+    if (cachedKey) return cachedKey.key;
 
-    // Need to derive the key
     const key = await deriveKeyForLevel(level);
     return key?.key ?? null;
   }, [isSessionValid, initializeKeys, deriveKeyForLevel]);
 
-  // Refresh a specific key (re-sign)
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     const key = await deriveKeyForLevel(level);
     return key?.key ?? null;

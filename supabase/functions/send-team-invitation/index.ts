@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { jsonResponse, errorResponse, handleCors } from "../_shared/response.ts";
+import { HTTP_STATUS } from "../_shared/constants.ts";
+import { getSupabaseServiceClient, extractBearerToken } from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -16,33 +13,25 @@ interface TeamInvitationRequest {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    const supabaseClient = getSupabaseServiceClient();
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    const token = extractBearerToken(req);
+    if (!token) throw new Error("No authorization header");
 
-    const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    
+
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
 
     const { email, teamId, role }: TeamInvitationRequest = await req.json();
 
-    // Generate invitation token
     const invitationToken = crypto.randomUUID();
-    
-    // Check if user is team owner
+
     const { data: team } = await supabaseClient
       .from("teams")
       .select("name, owner_id")
@@ -53,7 +42,6 @@ serve(async (req) => {
       throw new Error("Only team owners can send invitations");
     }
 
-    // Create invitation record
     const { error: inviteError } = await supabaseClient
       .from("team_invitations")
       .insert({
@@ -66,10 +54,9 @@ serve(async (req) => {
 
     if (inviteError) throw new Error(`Failed to create invitation: ${inviteError.message}`);
 
-    // Send invitation email
     const invitationUrl = `${req.headers.get("origin")}/team-invitation?token=${invitationToken}`;
-    
-    const emailResponse = await resend.emails.send({
+
+    await resend.emails.send({
       from: "BlockDrive <onboarding@resend.dev>",
       to: [email],
       subject: `You've been invited to join ${team.name} on BlockDrive`,
@@ -85,22 +72,10 @@ serve(async (req) => {
       `,
     });
 
-    return new Response(
-      JSON.stringify({ success: true, invitationToken }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    return jsonResponse({ success: true, invitationToken });
   } catch (error: unknown) {
     console.error("Error sending team invitation:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    return errorResponse(errorMessage, HTTP_STATUS.INTERNAL_ERROR);
   }
 });

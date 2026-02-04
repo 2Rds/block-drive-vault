@@ -1,9 +1,14 @@
 import React, { useEffect } from 'react';
-import { File, Folder, Download, Archive, Database, Globe, ExternalLink, ArrowLeft, Eye } from 'lucide-react';
+import { File, Download, Archive, Database, Globe, ExternalLink, ArrowLeft, Eye } from 'lucide-react';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { IPFSFile } from '@/types/ipfs';
 import { Button } from '@/components/ui/button';
+
+const BYTES_PER_KB = 1024;
+const SIZE_UNITS = ['Bytes', 'KB', 'MB', 'GB'] as const;
+const CID_PREVIEW_LENGTH = 12;
+const FILEBASE_GATEWAY = 'https://ipfs.filebase.io/ipfs';
 
 interface IPFSFileGridProps {
   selectedFolder: string;
@@ -29,36 +34,35 @@ export const IPFSFileGrid = ({
     }
   }, [user]);
 
-  // Filter files based on selected folder and current path
-  const filteredFiles = selectedFolder === 'all' 
-    ? userFiles.filter(file => {
-        if (currentPath === '/') return true;
-        const folderPath = file.folderPath || '/';
-        return folderPath.startsWith(currentPath);
-      })
-    : userFiles.filter(file => {
-        const contentType = file.contentType?.toLowerCase() || '';
-        
-        if (selectedFolder === 'documents') {
-          return contentType.includes('pdf') || 
-                 contentType.includes('document') || 
-                 contentType.includes('text') ||
-                 contentType.includes('application/');
-        }
-        if (selectedFolder === 'images') {
-          return contentType.startsWith('image/');
-        }
-        if (selectedFolder === 'videos') {
-          return contentType.startsWith('video/');
-        }
-        if (selectedFolder === 'audio') {
-          return contentType.startsWith('audio/');
-        }
-        
-        // For user-created folders
-        const folderPath = file.folderPath || '/';
-        return folderPath.includes(`/${selectedFolder}`);
-      });
+  const matchesFolder = (file: IPFSFile, folder: string): boolean => {
+    const contentType = file.contentType?.toLowerCase() || '';
+    const folderPath = file.folderPath || '/';
+
+    switch (folder) {
+      case 'documents':
+        return contentType.includes('pdf') ||
+               contentType.includes('document') ||
+               contentType.includes('text') ||
+               contentType.includes('application/');
+      case 'images':
+        return contentType.startsWith('image/');
+      case 'videos':
+        return contentType.startsWith('video/');
+      case 'audio':
+        return contentType.startsWith('audio/');
+      default:
+        return folderPath.includes(`/${folder}`);
+    }
+  };
+
+  const filteredFiles = userFiles.filter(file => {
+    if (selectedFolder === 'all') {
+      if (currentPath === '/') return true;
+      const folderPath = file.folderPath || '/';
+      return folderPath.startsWith(currentPath);
+    }
+    return matchesFolder(file, selectedFolder);
+  });
 
   const getFileIcon = (file: IPFSFile) => {
     if (file.contentType?.startsWith('image/')) return File;
@@ -76,12 +80,10 @@ export const IPFSFileGrid = ({
     return 'text-gray-400';
   };
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const i = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KB));
+    return parseFloat((bytes / Math.pow(BYTES_PER_KB, i)).toFixed(2)) + ' ' + SIZE_UNITS[i];
   };
 
   const formatDate = (dateString: string) => {
@@ -99,14 +101,11 @@ export const IPFSFileGrid = ({
   };
 
   const handleViewOnIPFS = (file: IPFSFile) => {
-    const ipfsUrl = `https://ipfs.filebase.io/ipfs/${file.cid}`;
-    window.open(ipfsUrl, '_blank');
+    window.open(`${FILEBASE_GATEWAY}/${file.cid}`, '_blank');
   };
 
   const handleFileClick = (file: IPFSFile) => {
-    if (onFileSelect) {
-      onFileSelect(file);
-    }
+    onFileSelect?.(file);
   };
 
   if (!user) {
@@ -236,7 +235,7 @@ export const IPFSFileGrid = ({
                   </div>
                   <div className="mt-1">
                     <p className="text-xs text-gray-500 truncate" title={file.cid}>
-                      CID: {file.cid.substring(0, 12)}...
+                      CID: {file.cid.substring(0, CID_PREVIEW_LENGTH)}...
                     </p>
                   </div>
                 </div>

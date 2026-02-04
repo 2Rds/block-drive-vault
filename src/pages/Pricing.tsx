@@ -1,9 +1,7 @@
-
-import React from 'react';
 import { PricingPage as PricingPageComponent } from '@/components/subscription/PricingPage';
 
-const Pricing = () => {
+function Pricing(): JSX.Element {
   return <PricingPageComponent />;
-};
+}
 
 export default Pricing;

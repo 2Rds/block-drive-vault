@@ -1,13 +1,3 @@
-/**
- * useBlockDriveUpload Hook
- * 
- * React hook for the unified BlockDrive upload flow that combines
- * wallet-derived encryption with multi-provider storage, ZK proof generation,
- * and Solana on-chain file registration.
- * 
- * Critical bytes are stored in ZK proofs on S3 - NOT locally.
- */
-
 import { useState, useCallback } from 'react';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { StorageConfig, DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
@@ -18,8 +8,12 @@ import { useBlockDriveSolana } from './useBlockDriveSolana';
 import { SecurityLevel as SolanaSecurityLevel } from '@/services/solana';
 import { toast } from 'sonner';
 
+const PROGRESS_CLEAR_DELAY_MS = 3000;
+
+type UploadPhase = 'encrypting' | 'uploading' | 'registering' | 'complete' | 'error';
+
 interface UploadProgress {
-  phase: 'encrypting' | 'uploading' | 'registering' | 'complete' | 'error';
+  phase: UploadPhase;
   progress: number;
   fileName: string;
   message: string;
@@ -66,18 +60,14 @@ interface UseBlockDriveUploadReturn {
   solanaLoading: boolean;
 }
 
-// Map security levels
+const SECURITY_LEVEL_MAP: Record<SecurityLevel, SolanaSecurityLevel> = {
+  [SecurityLevel.STANDARD]: SolanaSecurityLevel.Standard,
+  [SecurityLevel.SENSITIVE]: SolanaSecurityLevel.Enhanced,
+  [SecurityLevel.MAXIMUM]: SolanaSecurityLevel.Maximum,
+};
+
 function mapSecurityLevel(level: SecurityLevel): SolanaSecurityLevel {
-  switch (level) {
-    case SecurityLevel.STANDARD:
-      return SolanaSecurityLevel.Standard;
-    case SecurityLevel.SENSITIVE:
-      return SolanaSecurityLevel.Enhanced;
-    case SecurityLevel.MAXIMUM:
-      return SolanaSecurityLevel.Maximum;
-    default:
-      return SolanaSecurityLevel.Standard;
-  }
+  return SECURITY_LEVEL_MAP[level] ?? SolanaSecurityLevel.Standard;
 }
 
 export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): UseBlockDriveUploadReturn {
@@ -91,9 +81,12 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [lastUpload, setLastUpload] = useState<BlockDriveUploadResult | null>(null);
 
-  const hasKeys = walletCrypto.hasKey(SecurityLevel.STANDARD) &&
-                  walletCrypto.hasKey(SecurityLevel.SENSITIVE) &&
-                  walletCrypto.hasKey(SecurityLevel.MAXIMUM);
+  const hasKeys = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM]
+    .every(level => walletCrypto.hasKey(level));
+
+  function updateProgress(phase: UploadPhase, progress: number, fileName: string, message: string): void {
+    setProgress({ phase, progress, fileName, message });
+  }
 
   const initializeCrypto = useCallback(async (): Promise<boolean> => {
     if (!walletData?.connected) {
@@ -156,29 +149,11 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
     }
 
     setIsUploading(true);
-    setProgress({
-      phase: 'encrypting',
-      progress: 10,
-      fileName: file.name,
-      message: 'Encrypting file...'
-    });
+    updateProgress('encrypting', 10, file.name, 'Encrypting file...');
 
     try {
-      // Update progress for encryption
-      setProgress(prev => prev ? {
-        ...prev,
-        phase: 'encrypting',
-        progress: 30,
-        message: 'Extracting critical bytes...'
-      } : null);
-
-      // Perform upload
-      setProgress(prev => prev ? {
-        ...prev,
-        phase: 'uploading',
-        progress: 50,
-        message: 'Uploading to storage providers...'
-      } : null);
+      updateProgress('encrypting', 30, file.name, 'Extracting critical bytes...');
+      updateProgress('uploading', 50, file.name, 'Uploading to storage providers...');
 
       const result = await blockDriveUploadService.uploadFile(
         file,
@@ -190,24 +165,18 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
       );
 
       if (!result.success) {
-        setProgress({
-          phase: 'error',
-          progress: 0,
-          fileName: file.name,
-          message: 'Upload failed'
-        });
+        updateProgress('error', 0, file.name, 'Upload failed');
         toast.error(`Failed to upload ${file.name}`);
         return result;
       }
 
-      // Register on-chain if enabled and signTransaction provided
-      if (enableOnChainRegistration && signTransaction && result.encryptedContentBytes && result.criticalBytesRaw) {
-        setProgress({
-          phase: 'registering',
-          progress: 80,
-          fileName: file.name,
-          message: 'Registering on Solana blockchain...'
-        });
+      const shouldRegisterOnChain = enableOnChainRegistration &&
+        signTransaction &&
+        result.encryptedContentBytes &&
+        result.criticalBytesRaw;
+
+      if (shouldRegisterOnChain) {
+        updateProgress('registering', 80, file.name, 'Registering on Solana blockchain...');
 
         try {
           const onChainResult = await solana.registerFile(
@@ -242,45 +211,31 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         }
       }
 
-      // ZK proof is now stored on S3 - no local storage needed
       if (result.proofCid) {
         console.log('[BlockDriveUpload] ZK proof stored on S3 with CID:', result.proofCid);
       }
 
-      setProgress({
-        phase: 'complete',
-        progress: 100,
-        fileName: file.name,
-        message: result.onChainRegistration?.registered 
-          ? 'Upload complete & registered on-chain!' 
-          : 'Upload complete!'
-      });
+      const isRegistered = result.onChainRegistration?.registered;
+      const completeMessage = isRegistered
+        ? 'Upload complete & registered on-chain!'
+        : 'Upload complete!';
+      updateProgress('complete', 100, file.name, completeMessage);
       setLastUpload(result);
-      
+
       const providerMsg = `Encrypted with Level ${securityLevel} security, stored on ${result.contentUpload.successfulProviders} provider(s)`;
-      const chainMsg = result.onChainRegistration?.registered ? ' • Registered on Solana' : '';
-      
-      toast.success(`Uploaded ${file.name}`, {
-        description: providerMsg + chainMsg
-      });
+      const chainMsg = isRegistered ? ' - Registered on Solana' : '';
+      toast.success(`Uploaded ${file.name}`, { description: providerMsg + chainMsg });
 
       return result;
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed';
-      setProgress({
-        phase: 'error',
-        progress: 0,
-        fileName: file.name,
-        message
-      });
+      updateProgress('error', 0, file.name, message);
       toast.error(message);
       return null;
-
     } finally {
       setIsUploading(false);
-      // Clear progress after delay
-      setTimeout(() => setProgress(null), 3000);
+      setTimeout(() => setProgress(null), PROGRESS_CLEAR_DELAY_MS);
     }
   }, [walletData, walletCrypto, solana, enableOnChainRegistration]);
 
@@ -296,12 +251,8 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
 
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
-      setProgress({
-        phase: 'encrypting',
-        progress: (i / fileArray.length) * 100,
-        fileName: file.name,
-        message: `Processing file ${i + 1} of ${fileArray.length}...`
-      });
+      const progressPercent = (i / fileArray.length) * 100;
+      updateProgress('encrypting', progressPercent, file.name, `Processing file ${i + 1} of ${fileArray.length}...`);
 
       const result = await uploadFile(file, securityLevel, storageConfig, folderPath, signTransaction);
       if (result) {
@@ -309,15 +260,17 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
       }
     }
 
+    const totalCount = fileArray.length;
+    const successCount = results.length;
     const onChainCount = results.filter(r => r.onChainRegistration?.registered).length;
 
-    if (results.length === fileArray.length) {
-      const msg = onChainCount > 0 
-        ? `All ${results.length} files uploaded & ${onChainCount} registered on-chain`
-        : `All ${results.length} files uploaded successfully`;
+    if (successCount === totalCount) {
+      const msg = onChainCount > 0
+        ? `All ${successCount} files uploaded & ${onChainCount} registered on-chain`
+        : `All ${successCount} files uploaded successfully`;
       toast.success(msg);
-    } else if (results.length > 0) {
-      toast.warning(`${results.length} of ${fileArray.length} files uploaded`);
+    } else if (successCount > 0) {
+      toast.warning(`${successCount} of ${totalCount} files uploaded`);
     }
 
     return results;

@@ -1,20 +1,10 @@
-
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { XCircle, ArrowLeft, Crown } from 'lucide-react';
 
-const SubscriptionCancel = () => {
+function SubscriptionCancel(): JSX.Element {
   const navigate = useNavigate();
-
-  const handleGoBack = () => {
-    navigate('/pricing');
-  };
-
-  const handleGoToDashboard = () => {
-    navigate('/dashboard');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
@@ -46,16 +36,13 @@ const SubscriptionCancel = () => {
           </div>
 
           <div className="space-y-3">
-            <Button
-              onClick={handleGoBack}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
+            <Button onClick={() => navigate('/pricing')} className="w-full bg-blue-600 hover:bg-blue-700">
               <Crown className="w-4 h-4 mr-2" />
               View Pricing Plans
             </Button>
-            
+
             <Button
-              onClick={handleGoToDashboard}
+              onClick={() => navigate('/dashboard')}
               variant="outline"
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
             >
@@ -71,6 +58,6 @@ const SubscriptionCancel = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default SubscriptionCancel;

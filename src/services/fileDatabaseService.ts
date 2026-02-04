@@ -3,6 +3,9 @@ import { IPFSFile } from '@/types/ipfs';
 import type { Json } from '@/integrations/supabase/types';
 import type { SizeBucket } from './crypto/metadataPrivacyService';
 
+// Placeholder for encrypted filenames in v2 files
+const ENCRYPTED_FILENAME_PLACEHOLDER = '[encrypted]';
+
 /**
  * Privacy-enhanced file data for v2 uploads
  */
@@ -184,7 +187,7 @@ export class FileDatabaseService {
           size_bucket: fileData.size_bucket,
 
           // Legacy fields set to placeholders for v2 files
-          filename: '[encrypted]',
+          filename: ENCRYPTED_FILENAME_PLACEHOLDER,
           file_path: null,
           content_type: null,
           file_size: null,

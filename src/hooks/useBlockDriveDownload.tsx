@@ -1,23 +1,19 @@
-/**
- * useBlockDriveDownload Hook
- * 
- * React hook for downloading and decrypting BlockDrive files
- * using wallet-derived keys with commitment verification.
- */
-
 import { useState, useCallback } from 'react';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
-import { StorageProviderType } from '@/types/storageProvider';
-import { 
-  blockDriveDownloadService, 
+import {
+  blockDriveDownloadService,
   BlockDriveDownloadResult,
-  FileRecordData 
+  FileRecordData
 } from '@/services/blockDriveDownloadService';
 import { useWalletCrypto } from './useWalletCrypto';
 import { toast } from 'sonner';
 
+const PROGRESS_CLEAR_DELAY_MS = 3000;
+
+type DownloadPhase = 'downloading' | 'decrypting' | 'verifying' | 'complete' | 'error';
+
 interface DownloadProgress {
-  phase: 'downloading' | 'decrypting' | 'verifying' | 'complete' | 'error';
+  phase: DownloadPhase;
   progress: number;
   fileName: string;
   message: string;
@@ -45,9 +41,12 @@ export function useBlockDriveDownload(): UseBlockDriveDownloadReturn {
   const [progress, setProgress] = useState<DownloadProgress | null>(null);
   const [lastDownload, setLastDownload] = useState<BlockDriveDownloadResult | null>(null);
 
-  const hasKeys = walletCrypto.hasKey(SecurityLevel.STANDARD) &&
-                  walletCrypto.hasKey(SecurityLevel.SENSITIVE) &&
-                  walletCrypto.hasKey(SecurityLevel.MAXIMUM);
+  const hasKeys = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM]
+    .every(level => walletCrypto.hasKey(level));
+
+  function updateProgress(phase: DownloadPhase, progress: number, fileName: string, message: string): void {
+    setProgress({ phase, progress, fileName, message });
+  }
 
   const downloadFile = useCallback(async (
     fileRecord: FileRecordData
@@ -60,115 +59,64 @@ export function useBlockDriveDownload(): UseBlockDriveDownloadReturn {
     }
 
     setIsDownloading(true);
-    setProgress({
-      phase: 'downloading',
-      progress: 20,
-      fileName: 'Encrypted file',
-      message: 'Downloading encrypted content...'
-    });
+    updateProgress('downloading', 20, 'Encrypted file', 'Downloading encrypted content...');
 
     try {
-      // Update progress
-      setProgress(prev => prev ? {
-        ...prev,
-        phase: 'downloading',
-        progress: 40,
-        message: 'Content downloaded, decrypting...'
-      } : null);
+      updateProgress('downloading', 40, 'Encrypted file', 'Content downloaded, decrypting...');
 
-      // Perform download and decryption
       const result = await blockDriveDownloadService.downloadFile(fileRecord, key);
 
-      if (result.success) {
-        setProgress({
-          phase: 'verifying',
-          progress: 80,
-          fileName: result.fileName,
-          message: 'Verifying commitment...'
-        });
-
-        // Check verification status
-        if (!result.commitmentValid) {
-          toast.warning('Commitment verification failed - file may have been tampered with');
-        }
-
-        setProgress({
-          phase: 'complete',
-          progress: 100,
-          fileName: result.fileName,
-          message: result.verified ? 'Download complete and verified!' : 'Download complete (unverified)'
-        });
-
-        setLastDownload(result);
-        
-        toast.success(`Downloaded ${result.fileName}`, {
-          description: result.commitmentValid 
-            ? 'File integrity verified ✓' 
-            : 'Warning: Commitment mismatch'
-        });
-      } else {
-        setProgress({
-          phase: 'error',
-          progress: 0,
-          fileName: '',
-          message: result.error || 'Download failed'
-        });
+      if (!result.success) {
+        updateProgress('error', 0, '', result.error || 'Download failed');
         toast.error(result.error || 'Download failed');
+        return result;
       }
 
-      return result;
+      updateProgress('verifying', 80, result.fileName, 'Verifying commitment...');
 
+      if (!result.commitmentValid) {
+        toast.warning('Commitment verification failed - file may have been tampered with');
+      }
+
+      const completeMessage = result.verified
+        ? 'Download complete and verified!'
+        : 'Download complete (unverified)';
+      updateProgress('complete', 100, result.fileName, completeMessage);
+      setLastDownload(result);
+
+      const description = result.commitmentValid
+        ? 'File integrity verified'
+        : 'Warning: Commitment mismatch';
+      toast.success(`Downloaded ${result.fileName}`, { description });
+
+      return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Download failed';
-      setProgress({
-        phase: 'error',
-        progress: 0,
-        fileName: '',
-        message
-      });
+      updateProgress('error', 0, '', message);
       toast.error(message);
       return null;
-
     } finally {
       setIsDownloading(false);
-      setTimeout(() => setProgress(null), 3000);
+      setTimeout(() => setProgress(null), PROGRESS_CLEAR_DELAY_MS);
     }
   }, [walletCrypto]);
 
-  const downloadAndSave = useCallback(async (
-    fileRecord: FileRecordData
-  ): Promise<boolean> => {
+  const downloadAndSave = useCallback(async (fileRecord: FileRecordData): Promise<boolean> => {
     const result = await downloadFile(fileRecord);
-    
-    if (result?.success) {
-      blockDriveDownloadService.triggerBrowserDownload(
-        result.data,
-        result.fileName,
-        result.fileType
-      );
-      return true;
-    }
-    
-    return false;
+    if (!result?.success) return false;
+
+    blockDriveDownloadService.triggerBrowserDownload(result.data, result.fileName, result.fileType);
+    return true;
   }, [downloadFile]);
 
   const previewFile = useCallback(async (
     fileRecord: FileRecordData
   ): Promise<{ url: string; type: string } | null> => {
     const result = await downloadFile(fileRecord);
-    
-    if (result?.success) {
-      // Create blob URL for preview
-      const blob = new Blob([result.data.buffer as ArrayBuffer], { type: result.fileType });
-      const url = URL.createObjectURL(blob);
-      
-      return {
-        url,
-        type: result.fileType
-      };
-    }
-    
-    return null;
+    if (!result?.success) return null;
+
+    const blob = new Blob([result.data.buffer as ArrayBuffer], { type: result.fileType });
+    return { url: URL.createObjectURL(blob), type: result.fileType };
   }, [downloadFile]);
 
   return {

@@ -13,31 +13,42 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, Clock, Settings, Crown, Info, Files, Upload, BarChart3, Puzzle } from 'lucide-react';
+import { Users, Clock, Settings, Crown, Info, Files, BarChart3, Puzzle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-export default function Teams() {
+const SKELETON_COUNT = 3;
+
+const NAV_BUTTON_STYLES = {
+  active: "bg-primary hover:bg-primary/90 text-primary-foreground",
+  inactive: "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20",
+} as const;
+
+function LoadingSkeleton(): JSX.Element {
+  return (
+    <div className="container mx-auto p-6">
+      <div className="animate-pulse">
+        <div className="h-8 bg-muted rounded w-48 mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+            <div key={i} className="h-32 bg-muted rounded" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Teams(): JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
 
   if (loading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-48 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
-  const isCurrentTeamOwner = currentTeam && user && currentTeam.owner_clerk_id === user.id;
+  const isCurrentTeamOwner = Boolean(currentTeam && user && currentTeam.owner_clerk_id === user.id);
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
 
@@ -51,19 +62,19 @@ export default function Teams() {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Button onClick={() => navigate('/dashboard')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+          <Button onClick={() => navigate('/dashboard')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <BarChart3 className="w-4 h-4 mr-2" />Dashboard
           </Button>
-          <Button onClick={() => navigate('/files')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+          <Button onClick={() => navigate('/files')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <Files className="w-4 h-4 mr-2" />IPFS Files
           </Button>
-          <Button onClick={() => navigate('/integrations')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+          <Button onClick={() => navigate('/integrations')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <Puzzle className="w-4 h-4 mr-2" />Integrations
           </Button>
-          <Button variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button variant="default" className={NAV_BUTTON_STYLES.active}>
             <Users className="w-4 h-4 mr-2" />Teams
           </Button>
-          <Button onClick={() => navigate('/account')} variant="outline" className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+          <Button onClick={() => navigate('/account')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <Settings className="w-4 h-4 mr-2" />Account
           </Button>
         </div>
@@ -161,7 +172,7 @@ export default function Teams() {
                 <TeamMembersTable
                   members={teamMembers}
                   teamId={currentTeam.id}
-                  isOwner={isCurrentTeamOwner || false}
+                  isOwner={isCurrentTeamOwner}
                 />
               </TabsContent>
               

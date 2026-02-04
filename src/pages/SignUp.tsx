@@ -2,12 +2,28 @@ import { SignUp as ClerkSignUp, useAuth } from '@clerk/clerk-react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, FileText, Users } from 'lucide-react';
 
-export default function SignUp() {
+const CLERK_APPEARANCE = {
+  elements: {
+    rootBox: 'mx-auto w-full',
+    card: 'bg-card border border-border shadow-2xl rounded-xl',
+    headerTitle: 'text-foreground',
+    headerSubtitle: 'text-muted-foreground',
+    socialButtonsBlockButton: 'border-border hover:bg-accent/50',
+    socialButtonsBlockButtonText: 'text-foreground',
+    formFieldLabel: 'text-foreground',
+    formFieldInput: 'bg-background border-border text-foreground',
+    formButtonPrimary: 'bg-primary hover:bg-primary/90',
+    footerActionLink: 'text-primary hover:text-primary/80',
+    dividerLine: 'bg-border',
+    dividerText: 'text-muted-foreground',
+  },
+};
+
+export default function SignUp(): JSX.Element | null {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // Redirect if already signed in
   if (isLoaded && isSignedIn) {
     return <Navigate to={from} replace />;
   }
@@ -75,22 +91,7 @@ export default function SignUp() {
           </div>
           
           <ClerkSignUp
-            appearance={{
-              elements: {
-                rootBox: 'mx-auto w-full',
-                card: 'bg-card border border-border shadow-2xl rounded-xl',
-                headerTitle: 'text-foreground',
-                headerSubtitle: 'text-muted-foreground',
-                socialButtonsBlockButton: 'border-border hover:bg-accent/50',
-                socialButtonsBlockButtonText: 'text-foreground',
-                formFieldLabel: 'text-foreground',
-                formFieldInput: 'bg-background border-border text-foreground',
-                formButtonPrimary: 'bg-primary hover:bg-primary/90',
-                footerActionLink: 'text-primary hover:text-primary/80',
-                dividerLine: 'bg-border',
-                dividerText: 'text-muted-foreground',
-              },
-            }}
+            appearance={CLERK_APPEARANCE}
             routing="path"
             path="/sign-up"
             signInUrl="/sign-in"

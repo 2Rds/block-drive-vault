@@ -3,6 +3,13 @@ import React from 'react';
 import { Folder, FolderPlus, Database, Archive, FileText, Image, Video, ChevronRight, ChevronDown } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'] as const;
+const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'] as const;
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'] as const;
+const DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'ppt', 'pptx'] as const;
+
+type FileCategory = 'Images' | 'Videos' | 'Audio' | 'Documents' | 'Other';
+
 interface SidebarFoldersProps {
   selectedFolder: string;
   onFolderSelect: (folder: string) => void;
@@ -20,34 +27,26 @@ export const SidebarFolders = ({
 }: SidebarFoldersProps) => {
   const { userStats, loading } = useUserData();
 
-  const categorizeFileType = (contentType: string, filename: string) => {
+  const categorizeFileType = (contentType: string, filename: string): FileCategory => {
     const type = contentType?.toLowerCase() || '';
     const extension = filename?.toLowerCase().split('.').pop() || '';
-    
-    // Images
-    if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
+
+    if (type.startsWith('image/') || IMAGE_EXTENSIONS.includes(extension as any)) {
       return 'Images';
     }
-    
-    // Videos
-    if (type.startsWith('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension)) {
+    if (type.startsWith('video/') || VIDEO_EXTENSIONS.includes(extension as any)) {
       return 'Videos';
     }
-    
-    // Audio
-    if (type.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extension)) {
+    if (type.startsWith('audio/') || AUDIO_EXTENSIONS.includes(extension as any)) {
       return 'Audio';
     }
-    
-    // Documents
-    if (type.includes('pdf') || 
-        type.includes('document') || 
+    if (type.includes('pdf') ||
+        type.includes('document') ||
         type.includes('text') ||
         type.includes('application/') ||
-        ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension)) {
+        DOCUMENT_EXTENSIONS.includes(extension as any)) {
       return 'Documents';
     }
-    
     return 'Other';
   };
 
