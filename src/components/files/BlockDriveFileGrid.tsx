@@ -16,7 +16,8 @@ import {
   Trash2,
   Share2,
   MoreVertical,
-  RefreshCw
+  RefreshCw,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { ParsedFileRecord } from '@/services/solana';
 import { cn } from '@/lib/utils';
+import { TeamFileActions } from './TeamFileActions';
 
 const BYTES_PER_KB = 1024;
 const SIZE_UNITS = ['Bytes', 'KB', 'MB', 'GB'] as const;
@@ -81,9 +83,13 @@ interface BlockDriveFileGridProps {
   onFileShare?: (file: BlockDriveFile) => void;
   onRefresh?: () => void;
   loading?: boolean;
+  // Organization context
+  showTeamActions?: boolean;
+  isPrivateFile?: boolean;
+  onActionComplete?: () => void;
 }
 
-export function BlockDriveFileGrid({ 
+export function BlockDriveFileGrid({
   files,
   selectedFolder = 'all',
   currentPath = '/',
@@ -93,7 +99,10 @@ export function BlockDriveFileGrid({
   onFileDelete,
   onFileShare,
   onRefresh,
-  loading = false
+  loading = false,
+  showTeamActions = false,
+  isPrivateFile = false,
+  onActionComplete
 }: BlockDriveFileGridProps) {
   const { user, walletData } = useAuth();
   const { getUserFiles, isLoading: solanaLoading } = useBlockDriveSolana();
@@ -351,6 +360,9 @@ export function BlockDriveFileGrid({
                 formatDate={formatDate}
                 getSecurityBadge={getSecurityBadge}
                 getFileTypeColor={getFileTypeColor}
+                showTeamActions={showTeamActions}
+                isPrivateFile={isPrivateFile}
+                onActionComplete={onActionComplete}
               />
             ))}
           </div>
@@ -384,6 +396,10 @@ interface FileCardProps {
   formatDate: (date: Date) => string;
   getSecurityBadge: (level: string) => React.ReactNode;
   getFileTypeColor: (mimeType: string) => string;
+  // Team actions
+  showTeamActions?: boolean;
+  isPrivateFile?: boolean;
+  onActionComplete?: () => void;
 }
 
 function FileCard({
@@ -395,7 +411,10 @@ function FileCard({
   formatFileSize,
   formatDate,
   getSecurityBadge,
-  getFileTypeColor
+  getFileTypeColor,
+  showTeamActions = false,
+  isPrivateFile = false,
+  onActionComplete
 }: FileCardProps) {
   const iconColor = getFileTypeColor(file.mimeType);
 
@@ -403,8 +422,8 @@ function FileCard({
     <div
       className={cn(
         "bg-card/60 backdrop-blur-sm rounded-lg p-4 border transition-all duration-300 group cursor-pointer",
-        file.onChain?.registered 
-          ? "border-green-500/30 hover:border-green-500/50 hover:bg-card/80" 
+        file.onChain?.registered
+          ? "border-green-500/30 hover:border-green-500/50 hover:bg-card/80"
           : "border-border hover:border-primary/30 hover:bg-card/80"
       )}
       onClick={onSelect}
@@ -419,7 +438,7 @@ function FileCard({
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-1">
           {/* On-Chain Status Badge */}
           {file.onChain?.registered && (
@@ -427,8 +446,8 @@ function FileCard({
               <TooltipTrigger asChild>
                 <div className={cn(
                   "p-1 rounded-full",
-                  file.onChain.verified 
-                    ? "bg-green-500/20" 
+                  file.onChain.verified
+                    ? "bg-green-500/20"
                     : "bg-amber-500/20"
                 )}>
                   {file.onChain.verified ? (
@@ -439,48 +458,78 @@ function FileCard({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                {file.onChain.verified 
-                  ? 'Verified on Solana blockchain' 
+                {file.onChain.verified
+                  ? 'Verified on Solana blockchain'
                   : 'Pending verification'}
               </TooltipContent>
             </Tooltip>
           )}
-          
-          {/* Actions Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button 
-                className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-                <Eye className="w-4 h-4 mr-2" />
-                View
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }}>
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-              {file.onChain?.registered && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
+
+          {/* Team Badge for team files */}
+          {showTeamActions && !isPrivateFile && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-1 rounded-full bg-purple-500/20">
+                  <Users className="w-4 h-4 text-purple-400" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Team file - visible to all members</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Actions - Use TeamFileActions when in org context */}
+          {showTeamActions ? (
+            <TeamFileActions
+              file={{
+                id: file.id,
+                filename: file.filename,
+                cid: file.cid,
+                visibility: isPrivateFile ? 'private' : 'team'
+              }}
+              onView={onSelect}
+              onDownload={onDownload}
+              onShare={file.onChain?.registered ? onShare : undefined}
+              onDelete={onDelete}
+              onActionComplete={onActionComplete}
+              showTeamActions={true}
+              isPrivateFile={isPrivateFile}
+            />
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  View
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                {file.onChain?.registered && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       

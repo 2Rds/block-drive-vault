@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTeams, TeamMember } from '@/hooks/useTeams';
+import { TeamMember } from '@/hooks/useTeams';
 import { useAuth } from '@/hooks/useAuth';
 import { Trash2, Crown, Shield, User } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -11,11 +11,12 @@ interface TeamMembersTableProps {
   members: TeamMember[];
   teamId: string;
   isOwner: boolean;
+  removeTeamMember: (teamId: string, clerkUserId: string) => Promise<void>;
+  updateTeamMemberRole: (teamId: string, clerkUserId: string, newRole: string) => Promise<void>;
 }
 
-export const TeamMembersTable = ({ members, teamId, isOwner }: TeamMembersTableProps) => {
+export const TeamMembersTable = ({ members, teamId, isOwner, removeTeamMember, updateTeamMemberRole }: TeamMembersTableProps) => {
   const { user } = useAuth();
-  const { removeTeamMember, updateTeamMemberRole } = useTeams();
 
   const getRoleIcon = (role: string) => {
     switch (role) {

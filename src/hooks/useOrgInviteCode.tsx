@@ -15,6 +15,10 @@ import { useState, useCallback } from 'react';
 import { useAuth, useOrganizationList } from '@clerk/clerk-react';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
+// Constants
+const MIN_CODE_LENGTH = 6;
+const BLOCKDRIVE_DOMAIN_SUFFIX = '.blockdrive.sol';
+
 // Validation result when checking a code
 export interface InviteCodeValidationResult {
   valid: boolean;
@@ -68,7 +72,7 @@ export const useOrgInviteCode = () => {
    * Used for real-time feedback as user types
    */
   const validateCode = useCallback(async (code: string): Promise<InviteCodeValidationResult> => {
-    if (!code || code.length < 6) {
+    if (!code || code.length < MIN_CODE_LENGTH) {
       return { valid: false, error: 'Code is too short' };
     }
 
@@ -168,7 +172,7 @@ export const useOrgInviteCode = () => {
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           role: result.role || 'member',
-          snsDomain: `${result.organization.subdomain}.blockdrive.sol`,
+          snsDomain: `${result.organization.subdomain}${BLOCKDRIVE_DOMAIN_SUFFIX}`,
         };
         setOrganization(orgContext);
 

@@ -4,8 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileVisibilityToggle } from './FileVisibilityToggle';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
-import { useTeams } from '@/hooks/useTeams';
 import { toast } from 'sonner';
+
+// Constants
+const BYTES_PER_KB = 1024;
+const SIZE_UNITS = ['B', 'KB', 'MB', 'GB'];
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const DAYS_IN_WEEK = 7;
+const SKELETON_COUNT = 6;
+
+// File type color mapping
+const FILE_TYPE_COLORS: Record<string, string> = {
+  sol: 'text-blue-600',
+  image: 'text-green-600',
+  video: 'text-purple-600',
+  audio: 'text-yellow-600',
+  pdf: 'text-red-600',
+  default: 'text-blue-600',
+};
+
+type VisibilityFilter = 'all' | 'private' | 'team';
 
 interface TeamFile {
   id: string;
@@ -24,17 +42,42 @@ interface TeamFile {
 }
 
 interface TeamFileGridProps {
-  selectedTeamId?: string;
+  selectedTeamId: string;
 }
 
-export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
+function formatFileSize(bytes: number | null): string {
+  if (!bytes) return '—';
+  const i = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KB));
+  return `${(bytes / Math.pow(BYTES_PER_KB, i)).toFixed(1)} ${SIZE_UNITS[i]}`;
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInDays = Math.floor((now.getTime() - date.getTime()) / MS_PER_DAY);
+
+  if (diffInDays === 0) return 'Today';
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < DAYS_IN_WEEK) return `${diffInDays} days ago`;
+  return date.toLocaleDateString();
+}
+
+function getFileColor(contentType: string | null, filename: string): string {
+  if (filename.endsWith('.sol')) return FILE_TYPE_COLORS.sol;
+  if (contentType?.startsWith('image/')) return FILE_TYPE_COLORS.image;
+  if (contentType?.startsWith('video/')) return FILE_TYPE_COLORS.video;
+  if (contentType?.startsWith('audio/')) return FILE_TYPE_COLORS.audio;
+  if (contentType?.includes('pdf')) return FILE_TYPE_COLORS.pdf;
+  return FILE_TYPE_COLORS.default;
+}
+
+export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element {
   const { userId, supabase } = useClerkAuth();
-  const { currentTeam } = useTeams();
   const [files, setFiles] = useState<TeamFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'private' | 'team'>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>('all');
 
-  const teamId = selectedTeamId || currentTeam?.id;
+  const teamId = selectedTeamId;
 
   useEffect(() => {
     if (teamId && userId) {
@@ -84,38 +127,11 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
   };
 
   const handleVisibilityChange = (fileId: string, newVisibility: 'private' | 'team') => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId 
+    setFiles(prev => prev.map(file =>
+      file.id === fileId
         ? { ...file, visibility: newVisibility }
         : file
     ));
-  };
-
-  const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return '—';
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getFileColor = (contentType: string | null, filename: string) => {
-    if (filename.endsWith('.sol')) return 'text-blue-600';
-    if (contentType?.startsWith('image/')) return 'text-green-600';
-    if (contentType?.startsWith('video/')) return 'text-purple-600';
-    if (contentType?.startsWith('audio/')) return 'text-yellow-600';
-    if (contentType?.includes('pdf')) return 'text-red-600';
-    return 'text-blue-600';
   };
 
   const filteredFiles = files.filter(file => {
@@ -145,7 +161,7 @@ export const TeamFileGrid = ({ selectedTeamId }: TeamFileGridProps) => {
           <div className="h-8 bg-gray-600 rounded w-24 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             <div key={i} className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse">
               <div className="h-8 w-8 bg-gray-600 rounded mb-3"></div>
               <div className="h-4 bg-gray-600 rounded mb-2"></div>

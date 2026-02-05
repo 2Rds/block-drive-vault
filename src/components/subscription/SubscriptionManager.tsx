@@ -15,6 +15,7 @@ const PORTAL_REFRESH_DELAY_MS = 3000;
 const VISIBILITY_REFRESH_DELAY_MS = 2000;
 const BYTES_PER_GB = 1024 * 1024 * 1024;
 const UNLIMITED_SEATS = 999;
+const SCALE_MIN_SEATS = 2;
 const DEFAULT_BANDWIDTH_PERCENT = 15;
 
 export function SubscriptionManager(): React.ReactElement {
@@ -160,9 +161,16 @@ export function SubscriptionManager(): React.ReactElement {
     ? Math.min(Math.round((userStats.totalStorage / (limits.storage * BYTES_PER_GB)) * 100), 100)
     : 0;
   const bandwidthUsagePercent = DEFAULT_BANDWIDTH_PERCENT;
-  const seatsUsedPercent = Math.round((1 / limits.seats) * 100);
   const isFreeTrial = !subscribed && subscription_tier === 'Free Trial';
   const isUnlimitedSeats = limits.seats === UNLIMITED_SEATS;
+  const isScaleTier = subscription_tier?.toLowerCase() === 'scale';
+
+  // For Scale tier, show minimum 2 seats; otherwise show 1
+  // Actual team member count is shown on the Teams page
+  const displaySeatsUsed = isScaleTier ? SCALE_MIN_SEATS : 1;
+  const seatsUsedPercent = isUnlimitedSeats
+    ? Math.round((displaySeatsUsed / 10) * 100)
+    : Math.round((displaySeatsUsed / limits.seats) * 100);
 
   return (
     <div className="space-y-6">
@@ -266,11 +274,14 @@ export function SubscriptionManager(): React.ReactElement {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Team Size</span>
-                <span className="text-white">{isUnlimitedSeats ? 'Unlimited' : limits.seats} users</span>
+                <span className="text-white">
+                  {isUnlimitedSeats ? 'Unlimited' : limits.seats} users
+                  {isScaleTier && <span className="text-gray-500 ml-1">(min {SCALE_MIN_SEATS})</span>}
+                </span>
               </div>
               <Progress value={seatsUsedPercent} className="h-2" />
               <p className="text-xs text-gray-500">
-                1 of {isUnlimitedSeats ? 'unlimited' : limits.seats} seats used
+                {displaySeatsUsed} of {isUnlimitedSeats ? 'unlimited' : limits.seats} seats used
               </p>
             </div>
           </div>

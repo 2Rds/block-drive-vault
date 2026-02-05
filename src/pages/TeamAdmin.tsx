@@ -1,3 +1,9 @@
+/**
+ * @deprecated This page uses the old Supabase-based team admin system.
+ * Team admin functionality has been migrated to use Clerk's OrganizationProfile.
+ * Use /team-settings route with TeamSettings component instead.
+ * This file is kept for backward compatibility and should be removed in a future cleanup.
+ */
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganizations } from '@/hooks/useOrganizations';

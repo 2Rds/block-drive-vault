@@ -26,6 +26,7 @@ export interface PaymentOptions {
   billingPeriod: BillingPeriod;
   priceId?: string; // Stripe price ID for fiat
   paymentCurrency?: CryptoCurrency; // For crypto payments
+  authToken?: string; // Optional Clerk user ID for authentication
 }
 
 export interface CheckoutResult {
@@ -100,13 +101,21 @@ class PaymentService {
     console.log('[PaymentService] Starting fiat subscription', options);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          priceId: options.priceId,
-          tier: options.tier,
-          billingPeriod: options.billingPeriod,
-        },
-      });
+      // Build request body - include Clerk user ID if available
+      const requestBody: Record<string, unknown> = {
+        priceId: options.priceId,
+        tier: options.tier,
+        billingPeriod: options.billingPeriod,
+      };
+
+      // Pass Clerk user ID in body for edge function to use
+      // This is more reliable than custom Authorization header which can conflict with Supabase auth
+      if (options.authToken) {
+        requestBody.clerkUserId = options.authToken;
+        console.log('[PaymentService] Including Clerk user ID:', options.authToken.substring(0, 10) + '...');
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', { body: requestBody });
 
       if (error) {
         console.error('[PaymentService] Fiat checkout error:', error);

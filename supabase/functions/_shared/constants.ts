@@ -30,9 +30,10 @@ export const AUTH = {
 
 export const SUBSCRIPTION_TIERS = {
   STARTER: { storage: 50, bandwidth: 50, seats: 1 },
-  PRO: { storage: 250, bandwidth: 250, seats: 1 },
-  GROWTH: { storage: 500, bandwidth: 500, seats: 3 },
-  SCALE: { storage: 1000, bandwidth: 1000, seats: 999 },
+  PRO: { storage: 200, bandwidth: 200, seats: 1 },      // 200 GB
+  POWER: { storage: 2000, bandwidth: 2000, seats: 1 },  // 2 TB
+  GROWTH: { storage: 500, bandwidth: 500, seats: 3 },   // Legacy
+  SCALE: { storage: 1000, bandwidth: 1000, seats: 999 }, // 1 TB per seat
   FREE_TRIAL: { storage: 50, bandwidth: 50, seats: 1 },
   DEFAULT: { storage: 1, bandwidth: 1, seats: 1 },
 } as const;

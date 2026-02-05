@@ -9,6 +9,7 @@ const log = createLogger('CHECK-SUBSCRIPTION');
 const TIER_LIMITS: Record<string, { storage: number; bandwidth: number; seats: number }> = {
   starter: SUBSCRIPTION_TIERS.STARTER,
   pro: SUBSCRIPTION_TIERS.PRO,
+  power: SUBSCRIPTION_TIERS.POWER,
   growth: SUBSCRIPTION_TIERS.GROWTH,
   scale: SUBSCRIPTION_TIERS.SCALE,
   'free trial': SUBSCRIPTION_TIERS.FREE_TRIAL,
@@ -89,27 +90,60 @@ serve(async (req) => {
 
     let userEmail: string | null = null;
     let userId: string | null = null;
+    let subscriber = null;
 
+    // First, try looking up by clerk_user_id (handles Clerk users where email may not match)
+    // This is tried BEFORE email lookup to ensure we find subscriptions even when
+    // Stripe checkout email differs from Clerk auth email
+    if (token && !token.includes('@')) {
+      const { data: clerkSubscriber, error: clerkError } = await supabaseService
+        .from('subscribers')
+        .select('*')
+        .eq('clerk_user_id', token)
+        .maybeSingle();
+
+      if (!clerkError && clerkSubscriber) {
+        log("Found subscriber by clerk_user_id", { clerkUserId: token.substring(0, 10), email: clerkSubscriber.email });
+        return buildResponse(clerkSubscriber, clerkSubscriber.email as string, supabaseService);
+      }
+      log("No subscriber found by clerk_user_id, continuing with other methods");
+    }
+
+    // Try Supabase auth
     const { data: userData, error: userError } = await supabaseService.auth.getUser(token);
     if (!userError && userData.user) {
       userEmail = userData.user.email ?? null;
       userId = userData.user.id;
       log("Regular user authenticated", { email: userEmail, userId });
     } else {
-      const result = await findUserEmail(supabaseService, token);
-      userEmail = result.email;
-      userId = result.userId;
+      // For email tokens or wallet tokens, use findUserEmail
+      try {
+        const result = await findUserEmail(supabaseService, token);
+        userEmail = result.email;
+        userId = result.userId;
+      } catch (findError) {
+        // If findUserEmail fails (e.g., Clerk user ID without email), return unsubscribed
+        log("findUserEmail failed", { error: findError, tokenPrefix: token.substring(0, 10) });
+        return jsonResponse({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+          limits: SUBSCRIPTION_TIERS.DEFAULT
+        });
+      }
     }
 
     if (!userEmail) {
       throw new Error("Unable to determine user email");
     }
 
-    const { data: subscriber, error: subscriberError } = await supabaseService
+    const { data: emailSubscriber, error: subscriberError } = await supabaseService
       .from('subscribers')
       .select('*')
       .eq('email', userEmail)
       .maybeSingle();
+
+    subscriber = emailSubscriber;
 
     if (subscriberError) {
       log("Error querying subscriber", subscriberError);
@@ -138,7 +172,7 @@ serve(async (req) => {
     }
 
     if (!subscriber) {
-      log("No subscriber record found");
+      log("No subscriber record found", { searchedEmail: userEmail });
       return jsonResponse({
         subscribed: false,
         subscription_tier: null,

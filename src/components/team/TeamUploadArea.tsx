@@ -3,20 +3,20 @@ import { Upload, Plus, Users, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { useTeams } from '@/hooks/useTeams';
+import { Team } from '@/hooks/useTeams';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { toast } from 'sonner';
 
 interface TeamUploadAreaProps {
+  currentTeam: Team | null;
   onFileUploaded?: () => void;
 }
 
-export const TeamUploadArea = ({ onFileUploaded }: TeamUploadAreaProps) => {
+export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [visibility, setVisibility] = useState<'private' | 'team'>('private');
-  const { currentTeam } = useTeams();
   const { userId, supabase } = useClerkAuth();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

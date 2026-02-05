@@ -1,12 +1,19 @@
+/**
+ * @deprecated This page uses the old Supabase-based team system.
+ * Teams functionality has been migrated to use Clerk Organizations.
+ * Team files are now shown in the Dashboard/IPFSFiles with Team Files/My Files tabs.
+ * This file is kept for backward compatibility and should be removed in a future cleanup.
+ * Use:
+ * - OrganizationSwitcher in Header to switch teams
+ * - TeamSettings page for team management (uses OrganizationProfile)
+ * - CreateTeamOnboarding for new team creation
+ */
 import { useTeams } from '@/hooks/useTeams';
-import { useOrganizations } from '@/hooks/useOrganizations';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useNavigate } from 'react-router-dom';
 import { CreateTeamModal } from '@/components/team/CreateTeamModal';
 import { TeamSelector } from '@/components/team/TeamSelector';
-import { InviteTeamMemberModal } from '@/components/team/InviteTeamMemberModal';
-import { TeamMembersTable } from '@/components/team/TeamMembersTable';
 import { TeamFileGrid } from '@/components/team/TeamFileGrid';
 import { TeamUploadArea } from '@/components/team/TeamUploadArea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, Clock, Settings, Crown, Info, Files, BarChart3, Puzzle, Shield } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Users, Clock, FolderOpen, Crown, Info, Files, BarChart3, Puzzle, Settings } from 'lucide-react';
 
 const SKELETON_COUNT = 3;
 
@@ -42,15 +48,19 @@ function LoadingSkeleton(): JSX.Element {
 export default function Teams(): JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
-  const { canManageOrganization, currentOrganization } = useOrganizations();
+  const {
+    teams,
+    currentTeam,
+    setCurrentTeam,
+    loading,
+    createTeam,
+  } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
 
   if (loading) {
     return <LoadingSkeleton />;
   }
 
-  const isCurrentTeamOwner = Boolean(currentTeam && user && currentTeam.owner_clerk_id === user.id);
   const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
 
@@ -60,7 +70,7 @@ export default function Teams(): JSX.Element {
         <div>
           <h1 className="text-3xl font-bold">Teams</h1>
           <p className="text-muted-foreground">
-            Manage your teams and collaborate with your colleagues
+            Collaborate with your team on shared files
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -76,21 +86,16 @@ export default function Teams(): JSX.Element {
           <Button variant="default" className={NAV_BUTTON_STYLES.active}>
             <Users className="w-4 h-4 mr-2" />Teams
           </Button>
-          {canManageOrganization && currentOrganization && (
-            <Button onClick={() => navigate('/team-admin')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
-              <Shield className="w-4 h-4 mr-2" />Team Admin
-            </Button>
-          )}
           <Button onClick={() => navigate('/account')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <Settings className="w-4 h-4 mr-2" />Account
           </Button>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <TeamSelector />
-          <CreateTeamModal />
+          <TeamSelector teams={teams} currentTeam={currentTeam} setCurrentTeam={setCurrentTeam} />
+          <CreateTeamModal createTeam={createTeam} />
         </div>
       </div>
 
@@ -117,16 +122,19 @@ export default function Teams(): JSX.Element {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-16 w-16 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">No teams yet</h2>
-            <p className="text-muted-foreground text-center mb-6">
-              Create your first team to start collaborating with your colleagues
+            <p className="text-muted-foreground text-center">
+              Use the "Create Team" button above to start collaborating with your colleagues
             </p>
-            <CreateTeamModal />
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {teams.map((team) => (
-            <Card key={team.id} className={currentTeam?.id === team.id ? 'ring-2 ring-primary' : ''}>
+            <Card
+              key={team.id}
+              className={`cursor-pointer transition-all hover:shadow-md ${currentTeam?.id === team.id ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setCurrentTeam(team)}
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{team.name}</CardTitle>
@@ -138,10 +146,6 @@ export default function Teams(): JSX.Element {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>{teamMembers.filter(m => m.team_id === team.id).length || 0} members</span>
-                  </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
                     <span>{new Date(team.created_at).toLocaleDateString()}</span>
@@ -156,68 +160,24 @@ export default function Teams(): JSX.Element {
       {currentTeam && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                {currentTeam.name} Management
-              </CardTitle>
-              {isCurrentTeamOwner && (
-                <InviteTeamMemberModal teamId={currentTeam.id} />
-              )}
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <FolderOpen className="h-5 w-5" />
+              {currentTeam.name} Files
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="members" className="w-full">
+            <Tabs defaultValue="files" className="w-full">
               <TabsList>
-                <TabsTrigger value="members">Members</TabsTrigger>
                 <TabsTrigger value="files">Team Files</TabsTrigger>
                 <TabsTrigger value="upload">Upload Files</TabsTrigger>
-                <TabsTrigger value="invitations">Pending Invitations</TabsTrigger>
               </TabsList>
-              
-              <TabsContent value="members" className="space-y-4">
-                <TeamMembersTable
-                  members={teamMembers}
-                  teamId={currentTeam.id}
-                  isOwner={isCurrentTeamOwner}
-                />
-              </TabsContent>
-              
+
               <TabsContent value="files" className="space-y-4">
                 <TeamFileGrid selectedTeamId={currentTeam.id} />
               </TabsContent>
 
               <TabsContent value="upload" className="space-y-4">
-                <TeamUploadArea />
-              </TabsContent>
-              
-              <TabsContent value="invitations" className="space-y-4">
-                {teamInvitations.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No pending invitations
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Invited</TableHead>
-                        <TableHead>Expires</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {teamInvitations.map((invitation) => (
-                        <TableRow key={invitation.id}>
-                          <TableCell>{invitation.email}</TableCell>
-                          <TableCell><Badge variant="outline">{invitation.role}</Badge></TableCell>
-                          <TableCell>{new Date(invitation.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell>{new Date(invitation.expires_at).toLocaleDateString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <TeamUploadArea currentTeam={currentTeam} />
               </TabsContent>
             </Tabs>
           </CardContent>

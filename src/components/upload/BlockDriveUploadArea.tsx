@@ -6,18 +6,19 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  Upload, 
-  Plus, 
-  Globe, 
-  Shield, 
-  Zap, 
-  CheckCircle, 
-  Key, 
+import {
+  Upload,
+  Plus,
+  Globe,
+  Shield,
+  Zap,
+  CheckCircle,
+  Key,
   Lock,
   Settings,
   AlertCircle,
-  Link2
+  Link2,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -33,6 +34,7 @@ import { StorageHealthIndicator } from '../storage/StorageHealthIndicator';
 import { useBlockDriveUpload } from '@/hooks/useBlockDriveUpload';
 import { useStorageOrchestrator } from '@/hooks/useStorageOrchestrator';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@clerk/clerk-react';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { DEFAULT_STORAGE_CONFIG, StorageConfig } from '@/types/storageProvider';
 import { cn } from '@/lib/utils';
@@ -68,8 +70,11 @@ export function BlockDriveUploadArea({
   const [enableOnChain, setEnableOnChain] = useState(true);
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [initializingVault, setInitializingVault] = useState(false);
-  
+  const [shareWithTeam, setShareWithTeam] = useState(true);
+
   const { user, walletData } = useAuth();
+  const { organization } = useOrganization();
+  const isInOrganization = !!organization;
   const { 
     isUploading, 
     progress, 
@@ -271,6 +276,28 @@ export function BlockDriveUploadArea({
           </div>
         )}
 
+        {/* Team Upload Indicator */}
+        {isInOrganization && (
+          <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-400" />
+              <span className="text-sm text-purple-300">
+                Uploading to <strong>{organization.name}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {shareWithTeam ? 'Team Files' : 'My Files'}
+              </span>
+              <Switch
+                checked={shareWithTeam}
+                onCheckedChange={setShareWithTeam}
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Main Upload Area */}
         <div
           className={cn(
@@ -405,6 +432,29 @@ export function BlockDriveUploadArea({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4">
+            {/* Share with Team Toggle - Only shown when in organization */}
+            {isInOrganization && (
+              <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                <div className="space-y-0.5">
+                  <Label htmlFor="share-team" className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-400" />
+                    Share with Team
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {shareWithTeam
+                      ? `Files will be visible to all ${organization.name} members`
+                      : 'Files will be private to you within the team'}
+                  </p>
+                </div>
+                <Switch
+                  id="share-team"
+                  checked={shareWithTeam}
+                  onCheckedChange={setShareWithTeam}
+                  disabled={isUploading}
+                />
+              </div>
+            )}
+
             {/* On-Chain Registration Toggle */}
             <div className="flex items-center justify-between p-4 bg-card/60 rounded-lg border border-border">
               <div className="space-y-0.5">

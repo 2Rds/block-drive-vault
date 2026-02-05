@@ -1,4 +1,13 @@
-import { useState, useEffect } from 'react';
+/**
+ * @deprecated This hook uses the old Supabase-based team system.
+ * Teams functionality has been migrated to use Clerk Organizations.
+ * Use Clerk's hooks instead:
+ * - useOrganization() - get current organization
+ * - useOrganizationList() - list user's organizations
+ * - useOrganizationMemberships() - get memberships
+ * This file is kept for backward compatibility and should be removed in a future cleanup.
+ */
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { toast } from 'sonner';
 
@@ -41,9 +50,16 @@ export const useTeams = () => {
   const [teamInvitations, setTeamInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchTeams = async () => {
-    if (!userId) return;
+  // Refs to prevent duplicate fetches and infinite loops
+  const isFetchingTeams = useRef(false);
+  const isFetchingMembers = useRef(false);
+  const isFetchingInvitations = useRef(false);
+  const lastFetchedTeamId = useRef<string | null>(null);
 
+  const fetchTeams = useCallback(async () => {
+    if (!userId || isFetchingTeams.current) return;
+
+    isFetchingTeams.current = true;
     try {
       const { data, error } = await supabase
         .from('teams')
@@ -55,10 +71,15 @@ export const useTeams = () => {
     } catch (error) {
       console.error('Error fetching teams:', error);
       toast.error('Failed to fetch teams');
+    } finally {
+      isFetchingTeams.current = false;
     }
-  };
+  }, [userId, supabase]);
 
-  const fetchTeamMembers = async (teamId: string) => {
+  const fetchTeamMembers = useCallback(async (teamId: string) => {
+    if (isFetchingMembers.current) return;
+
+    isFetchingMembers.current = true;
     try {
       const { data, error } = await supabase
         .from('team_members')
@@ -69,23 +90,28 @@ export const useTeams = () => {
         .eq('team_id', teamId);
 
       if (error) throw error;
-      
+
       const membersWithUserInfo = (data || []).map((member: any) => ({
         ...member,
         user_email: member.profiles?.email,
-        user_name: member.profiles?.first_name 
+        user_name: member.profiles?.first_name
           ? `${member.profiles.first_name} ${member.profiles.last_name || ''}`.trim()
           : member.profiles?.email
       }));
-      
+
       setTeamMembers(membersWithUserInfo);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast.error('Failed to fetch team members');
+    } finally {
+      isFetchingMembers.current = false;
     }
-  };
+  }, [supabase]);
 
-  const fetchTeamInvitations = async (teamId: string) => {
+  const fetchTeamInvitations = useCallback(async (teamId: string) => {
+    if (isFetchingInvitations.current) return;
+
+    isFetchingInvitations.current = true;
     try {
       const { data, error } = await supabase
         .from('team_invitations')
@@ -99,10 +125,12 @@ export const useTeams = () => {
     } catch (error) {
       console.error('Error fetching team invitations:', error);
       toast.error('Failed to fetch team invitations');
+    } finally {
+      isFetchingInvitations.current = false;
     }
-  };
+  }, [supabase]);
 
-  const createTeam = async (teamData: { name: string; description?: string }) => {
+  const createTeam = useCallback(async (teamData: { name: string; description?: string }) => {
     if (!userId) return null;
 
     try {
@@ -117,7 +145,16 @@ export const useTeams = () => {
         .single();
 
       if (error) throw error;
-      
+
+      // Also add the owner as a member
+      await supabase
+        .from('team_members')
+        .insert({
+          team_id: data.id,
+          clerk_user_id: userId,
+          role: 'owner',
+        });
+
       await fetchTeams();
       toast.success('Team created successfully');
       return data;
@@ -126,25 +163,25 @@ export const useTeams = () => {
       toast.error('Failed to create team');
       return null;
     }
-  };
+  }, [userId, supabase, fetchTeams]);
 
-  const inviteTeamMember = async (teamId: string, email: string, role: string = 'member') => {
+  const inviteTeamMember = useCallback(async (teamId: string, email: string, role: string = 'member') => {
     try {
       const { error } = await supabase.functions.invoke('send-team-invitation', {
         body: { email, teamId, role },
       });
 
       if (error) throw error;
-      
+
       await fetchTeamInvitations(teamId);
       toast.success('Invitation sent successfully');
     } catch (error) {
       console.error('Error inviting team member:', error);
       toast.error('Failed to send invitation');
     }
-  };
+  }, [supabase, fetchTeamInvitations]);
 
-  const acceptInvitation = async (token: string) => {
+  const acceptInvitation = useCallback(async (token: string) => {
     if (!userId) return false;
 
     try {
@@ -187,9 +224,9 @@ export const useTeams = () => {
       toast.error('Failed to accept invitation');
       return false;
     }
-  };
+  }, [userId, supabase, fetchTeams]);
 
-  const removeTeamMember = async (teamId: string, clerkUserId: string) => {
+  const removeTeamMember = useCallback(async (teamId: string, clerkUserId: string) => {
     try {
       const { error } = await supabase
         .from('team_members')
@@ -198,16 +235,16 @@ export const useTeams = () => {
         .eq('clerk_user_id', clerkUserId);
 
       if (error) throw error;
-      
+
       await fetchTeamMembers(teamId);
       toast.success('Team member removed successfully');
     } catch (error) {
       console.error('Error removing team member:', error);
       toast.error('Failed to remove team member');
     }
-  };
+  }, [supabase, fetchTeamMembers]);
 
-  const updateTeamMemberRole = async (teamId: string, clerkUserId: string, newRole: string) => {
+  const updateTeamMemberRole = useCallback(async (teamId: string, clerkUserId: string, newRole: string) => {
     try {
       const { error } = await supabase
         .from('team_members')
@@ -216,29 +253,36 @@ export const useTeams = () => {
         .eq('clerk_user_id', clerkUserId);
 
       if (error) throw error;
-      
+
       await fetchTeamMembers(teamId);
       toast.success('Team member role updated successfully');
     } catch (error) {
       console.error('Error updating team member role:', error);
       toast.error('Failed to update team member role');
     }
-  };
+  }, [supabase, fetchTeamMembers]);
 
+  // Initial fetch of teams
   useEffect(() => {
     if (isSignedIn && userId) {
       fetchTeams().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, fetchTeams]);
 
+  // Fetch team members and invitations when currentTeam changes
   useEffect(() => {
-    if (currentTeam) {
+    if (currentTeam && currentTeam.id !== lastFetchedTeamId.current) {
+      lastFetchedTeamId.current = currentTeam.id;
       fetchTeamMembers(currentTeam.id);
       fetchTeamInvitations(currentTeam.id);
+    } else if (!currentTeam) {
+      lastFetchedTeamId.current = null;
+      setTeamMembers([]);
+      setTeamInvitations([]);
     }
-  }, [currentTeam]);
+  }, [currentTeam, fetchTeamMembers, fetchTeamInvitations]);
 
   return {
     teams,
@@ -253,7 +297,11 @@ export const useTeams = () => {
     removeTeamMember,
     updateTeamMemberRole,
     refetchTeams: fetchTeams,
-    refetchTeamMembers: () => currentTeam && fetchTeamMembers(currentTeam.id),
-    refetchTeamInvitations: () => currentTeam && fetchTeamInvitations(currentTeam.id),
+    refetchTeamMembers: useCallback(() => {
+      if (currentTeam) fetchTeamMembers(currentTeam.id);
+    }, [currentTeam, fetchTeamMembers]),
+    refetchTeamInvitations: useCallback(() => {
+      if (currentTeam) fetchTeamInvitations(currentTeam.id);
+    }, [currentTeam, fetchTeamInvitations]),
   };
 };

@@ -31,27 +31,41 @@ export const useSubscriptionStatus = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Checking subscription for user:', user.id);
-      
-      // For wallet users, use the user ID directly as the auth token
-      // For regular users, use the session access token
+      console.log('Checking subscription for user:', user.id, 'email:', user.email);
+
+      // Determine auth token based on user type:
+      // 1. Wallet users (@blockdrive.wallet) - use user ID
+      // 2. Clerk users (have email, app_metadata.provider === 'clerk') - use email
+      // 3. Supabase users - use session access token
       let authToken;
-      
+
       // Check if this is a wallet user (email ends with @blockdrive.wallet)
       if (user.email?.endsWith('@blockdrive.wallet')) {
         authToken = user.id;
         console.log('Using wallet auth with user ID:', user.id);
+      } else if (user.app_metadata?.provider === 'clerk') {
+        // Clerk users: pass user ID (check-subscription looks up by clerk_user_id first)
+        // This handles cases where Stripe checkout email differs from Clerk auth email
+        authToken = user.id;
+        console.log('Using Clerk user ID for subscription check:', user.id);
       } else {
-        // Get auth token from current session for regular users
+        // Supabase users: get auth token from current session
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
-          console.error('No valid session found for regular user');
-          setSubscriptionStatus(null);
-          setError('Authentication required');
-          return;
+          // Fallback: if user has email, try that
+          if (user.email) {
+            authToken = user.email;
+            console.log('No session, falling back to email:', user.email);
+          } else {
+            console.error('No valid session or email found for user');
+            setSubscriptionStatus(null);
+            setError('Authentication required');
+            return;
+          }
+        } else {
+          authToken = session.access_token;
+          console.log('Using Supabase session token for regular user');
         }
-        authToken = session.access_token;
-        console.log('Using session token for regular user');
       }
       
       const { data, error: functionError } = await supabase.functions.invoke('check-subscription', {

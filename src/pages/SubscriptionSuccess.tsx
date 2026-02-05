@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Crown, ArrowRight, Home, Wallet, Loader2 } from 'lucide-react';
+import { CheckCircle, Crown, ArrowRight, Wallet, Loader2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationList } from '@clerk/clerk-react';
+
+// Team-enabled subscription tiers
+const TEAM_TIERS = ['scale', 'growth', 'business', 'enterprise'];
 
 type PaymentProvider = 'stripe' | 'crossmint';
 
@@ -17,11 +21,11 @@ interface SubscriptionDetails {
 
 function LoadingState(): JSX.Element {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
+    <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center p-4">
+      <Card className="bg-[#18181b]/90 border-[#27272a] max-w-md w-full backdrop-blur-sm">
         <CardContent className="py-12 text-center">
-          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Verifying your subscription...</p>
+          <Loader2 className="w-12 h-12 text-[#2dd4bf] animate-spin mx-auto mb-4" />
+          <p className="text-[#a1a1aa]">Verifying your subscription...</p>
         </CardContent>
       </Card>
     </div>
@@ -32,16 +36,27 @@ function SubscriptionSuccess(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { organizationList, isLoaded: orgsLoaded } = useOrganizationList();
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   const isCrypto = searchParams.get('crypto') === 'true';
   const subscriptionId = searchParams.get('subscription_id');
   const sessionId = searchParams.get('session_id');
+  const userId = user?.id;
+
+  // Check if user has a team-enabled tier and no organizations
+  const isTeamTier = subscriptionDetails?.tier
+    ? TEAM_TIERS.includes(subscriptionDetails.tier.toLowerCase())
+    : false;
+  const hasNoOrganizations = orgsLoaded && (!organizationList || organizationList.length === 0);
+  const shouldForceTeamCreation = isTeamTier && hasNoOrganizations;
 
   useEffect(() => {
     async function processSubscriptionSuccess() {
-      if (!user) return;
+      // Guard: only process once per session
+      if (!userId || hasProcessed) return;
 
       setIsLoading(true);
 
@@ -68,7 +83,7 @@ function SubscriptionSuccess(): JSX.Element {
           }
         } else if (sessionId) {
           const { data, error } = await supabase.functions.invoke('verify-subscription', {
-            body: { sessionId, userId: user.id }
+            body: { sessionId, userId }
           });
 
           if (error) {
@@ -82,6 +97,8 @@ function SubscriptionSuccess(): JSX.Element {
             toast.success(`Welcome to ${data.subscription_tier}! Your subscription is now active.`);
           }
         }
+        // Mark as processed to prevent re-running
+        setHasProcessed(true);
       } catch {
         toast.error('Failed to process subscription. Please contact support.');
       } finally {
@@ -90,91 +107,132 @@ function SubscriptionSuccess(): JSX.Element {
     }
 
     processSubscriptionSuccess();
-  }, [user, isCrypto, subscriptionId, sessionId]);
+  }, [userId, isCrypto, subscriptionId, sessionId, hasProcessed]);
 
   if (isLoading) {
     return <LoadingState />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
-        <CardHeader className="text-center">
-          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-            isCrypto ? 'bg-purple-600/20' : 'bg-green-600/20'
-          }`}>
+    <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Subtle grid pattern overlay */}
+      <div
+        className="fixed inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px'
+        }}
+      />
+
+      {/* Gradient glow effects */}
+      <div className="fixed top-1/3 left-1/3 w-[400px] h-[400px] bg-[#2dd4bf]/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="fixed bottom-1/3 right-1/3 w-[300px] h-[300px] bg-[#0d9488]/5 rounded-full blur-[80px] pointer-events-none" />
+
+      <Card className="bg-[#18181b]/90 border-[#27272a] max-w-md w-full backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br from-[#2dd4bf]/20 to-[#0d9488]/20 border border-[#2dd4bf]/30">
             {isCrypto ? (
-              <Wallet className="w-8 h-8 text-purple-400" />
+              <Wallet className="w-8 h-8 text-[#2dd4bf]" />
             ) : (
-              <CheckCircle className="w-8 h-8 text-green-400" />
+              <CheckCircle className="w-8 h-8 text-[#2dd4bf]" />
             )}
           </div>
           <CardTitle className="text-2xl text-white flex items-center justify-center gap-2">
-            <Crown className="w-6 h-6 text-yellow-400" />
+            <Crown className="w-6 h-6 text-amber-400" />
             Subscription Activated!
           </CardTitle>
           {subscriptionDetails && (
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-[#a1a1aa] mt-2">
               {subscriptionDetails.tier} Plan • Paid with {isCrypto ? 'USDC' : 'Card'}
             </p>
           )}
         </CardHeader>
 
-        <CardContent className="space-y-6 text-center">
+        <CardContent className="space-y-5 text-center">
           <div className="space-y-2">
-            <p className="text-gray-300">
-              Thank you for subscribing to BlockDrive! Your {isCrypto ? 'crypto ' : ''}payment has been processed successfully.
+            <p className="text-[#e4e4e7]">
+              Thank you for subscribing to BlockDrive!
             </p>
-            <p className="text-sm text-gray-400">
-              Your subscription is now active and you have access to all premium features.
+            <p className="text-sm text-[#71717a]">
+              Your subscription is now active with access to all premium features.
             </p>
           </div>
 
-          <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4">
-            <h4 className="text-green-400 font-medium mb-2">What's Next?</h4>
-            <ul className="text-sm text-green-300 space-y-1 text-left">
-              <li>• Access your enhanced storage limits</li>
-              <li>• Explore advanced blockchain features</li>
-              <li>• Manage your subscription in Account settings</li>
-              {isCrypto && <li>• Your USDC will be automatically charged for renewals</li>}
-              <li>• Contact support if you need assistance</li>
+          {/* Features list */}
+          <div className="bg-[#0c0c0c] border border-[#27272a] rounded-xl p-4">
+            <h4 className="text-white font-medium mb-3 text-left">What's included:</h4>
+            <ul className="text-sm text-[#a1a1aa] space-y-2 text-left">
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-4 h-4 text-[#2dd4bf] flex-shrink-0" />
+                Enhanced storage limits
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-4 h-4 text-[#2dd4bf] flex-shrink-0" />
+                Advanced blockchain features
+              </li>
+              {isTeamTier && (
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-4 h-4 text-[#2dd4bf] flex-shrink-0" />
+                  Team collaboration tools
+                </li>
+              )}
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-4 h-4 text-[#2dd4bf] flex-shrink-0" />
+                Priority support
+              </li>
             </ul>
           </div>
 
           {isCrypto && (
-            <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-4">
-              <h4 className="text-purple-400 font-medium mb-2">Crypto Subscription Info</h4>
-              <p className="text-sm text-purple-300 text-left">
-                Your subscription is paid with USDC from your Crossmint wallet.
-                Make sure to keep sufficient USDC balance for automatic renewals.
+            <div className="bg-[#0c0c0c] border border-[#27272a] rounded-xl p-4">
+              <h4 className="text-white font-medium mb-2 text-sm">Crypto Payment Info</h4>
+              <p className="text-xs text-[#71717a] text-left">
+                Your subscription is paid with USDC. Ensure sufficient balance for automatic renewals.
               </p>
             </div>
           )}
 
-          <div className="space-y-3">
-            <Button
-              onClick={() => navigate('/account')}
-              className={`w-full ${isCrypto ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              View Subscription Details
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+          {/* Team creation section - forced for team tier users */}
+          {shouldForceTeamCreation ? (
+            <div className="space-y-4 pt-2">
+              <div className="bg-gradient-to-br from-[#2dd4bf]/10 to-[#0d9488]/5 border border-[#2dd4bf]/20 rounded-xl p-5">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Users className="w-5 h-5 text-[#2dd4bf]" />
+                  <h4 className="text-[#2dd4bf] font-semibold">Set Up Your Team</h4>
+                </div>
+                <p className="text-sm text-[#a1a1aa] mb-4">
+                  Your {subscriptionDetails?.tier} plan includes team collaboration.
+                  Create your team workspace to get started.
+                </p>
+                <Button
+                  onClick={() => navigate('/onboarding/create-team')}
+                  className="w-full bg-gradient-to-r from-[#2dd4bf] to-[#0d9488] hover:from-[#14b8a6] hover:to-[#0f766e] text-[#0c0c0c] font-semibold shadow-lg shadow-[#2dd4bf]/20"
+                  size="lg"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Create Your Team
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              <Button
+                onClick={() => navigate('/dashboard')}
+                className="w-full bg-gradient-to-r from-[#2dd4bf] to-[#0d9488] hover:from-[#14b8a6] hover:to-[#0f766e] text-[#0c0c0c] font-semibold shadow-lg shadow-[#2dd4bf]/20"
+                size="lg"
+              >
+                Go to Dashboard
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          )}
 
-            <Button
-              onClick={() => navigate('/dashboard')}
-              variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go to Dashboard
-            </Button>
-          </div>
-
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#52525b] pt-2">
             {isCrypto
-              ? 'Your payment has been recorded on the Solana blockchain.'
-              : 'You will receive an email confirmation from Stripe shortly.'
+              ? 'Payment recorded on Solana blockchain.'
+              : 'Email confirmation sent via Stripe.'
             }
           </p>
         </CardContent>

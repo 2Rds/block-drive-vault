@@ -59,6 +59,33 @@ const TIER_ICONS = {
   enterprise: '⚡',
 };
 
+// Map subscription tier names (from backend) to frontend tier keys
+// Backend stores display names like "Pro", "Power", "Scale"
+// Frontend TIER_CONFIGS uses internal keys like "pro", "premium", "enterprise"
+function normalizeTierKey(tier: string | null | undefined): keyof typeof TIER_CONFIGS {
+  if (!tier) return 'basic';
+
+  const normalizedTier = tier.toLowerCase();
+
+  // Direct matches (pro, trial, basic, premium, enterprise)
+  if (normalizedTier in TIER_CONFIGS) {
+    return normalizedTier as keyof typeof TIER_CONFIGS;
+  }
+
+  // Map display names to internal keys
+  const tierMapping: Record<string, keyof typeof TIER_CONFIGS> = {
+    'scale': 'enterprise',
+    'power': 'premium',
+    'growth': 'premium',
+    'starter': 'basic',
+    'free': 'basic',
+    'free_trial': 'trial',
+    'free trial': 'trial',
+  };
+
+  return tierMapping[normalizedTier] || 'basic';
+}
+
 export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false }) => {
   const { user } = useAuth();
   const { subscriptionStatus, loading: subLoading } = useSubscriptionStatus();
@@ -71,8 +98,8 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
                       user?.email?.split('@')[0] ||
                       'User';
 
-  // Get tier from subscription or membership
-  const tier = (subscriptionStatus?.subscription_tier || membership?.tier || 'basic') as keyof typeof TIER_CONFIGS;
+  // Get tier from subscription or membership (normalize to internal key)
+  const tier = normalizeTierKey(subscriptionStatus?.subscription_tier || membership?.tier);
   const tierConfig = TIER_CONFIGS[tier];
   const tierInfo = membership ? membership : null;
 

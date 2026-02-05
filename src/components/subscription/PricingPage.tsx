@@ -7,7 +7,7 @@ import { PaymentMethodToggle, PaymentMethod } from './PaymentMethodToggle';
 import { CryptoCheckoutModal } from './CryptoCheckoutModal';
 import { usePricingSubscription, getTierPrice } from '@/hooks/usePricingSubscription';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
-import { useStripePricing } from '@/hooks/useStripePricing';
+// import { useStripePricing } from '@/hooks/useStripePricing'; // TODO: Re-enable when sync is configured
 import { BillingPeriod, PricingTier, PricingOption } from '@/types/pricing';
 import { Button } from '@/components/ui/button';
 
@@ -15,18 +15,12 @@ export const PricingPage = () => {
   const { loading, handleSubscribe, handleSubscribeCrypto } = usePricingSubscription();
   const { walletAddress, isInitialized: walletConnected, getUsdcBalance } = useCrossmintWallet();
 
-  // Use dynamic pricing from Stripe Sync Engine with fallback to static
-  const { pricingTiers: dynamicTiers, isLoading: pricingLoading } = useStripePricing();
+  // TODO: Re-enable dynamic pricing once Stripe Sync Engine is properly configured
+  // const { pricingTiers: dynamicTiers, isLoading: pricingLoading } = useStripePricing();
 
-  // Use dynamic pricing if available, otherwise fall back to static
-  const pricingTiers = useMemo(() => {
-    if (dynamicTiers && dynamicTiers.length > 0) {
-      console.log('[PricingPage] Using dynamic pricing from Stripe Sync Engine');
-      return dynamicTiers;
-    }
-    console.log('[PricingPage] Using static pricing fallback');
-    return staticPricingTiers;
-  }, [dynamicTiers]);
+  // Use static pricing (Stripe products were just created, sync not yet configured)
+  const pricingTiers = staticPricingTiers;
+  const pricingLoading = false;
 
   const [selectedPeriod, setSelectedPeriod] = useState<BillingPeriod>('monthly');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('fiat');

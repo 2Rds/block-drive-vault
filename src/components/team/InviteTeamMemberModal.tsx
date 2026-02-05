@@ -4,21 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTeams } from '@/hooks/useTeams';
+import { TeamMember } from '@/hooks/useTeams';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { UserPlus, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InviteTeamMemberModalProps {
   teamId: string;
+  teamMembers: TeamMember[];
+  inviteTeamMember: (teamId: string, email: string, role?: string) => Promise<void>;
 }
 
-export const InviteTeamMemberModal = ({ teamId }: InviteTeamMemberModalProps) => {
+export const InviteTeamMemberModal = ({ teamId, teamMembers, inviteTeamMember }: InviteTeamMemberModalProps) => {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('member');
   const [loading, setLoading] = useState(false);
-  const { inviteTeamMember, teamMembers, currentTeam } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
