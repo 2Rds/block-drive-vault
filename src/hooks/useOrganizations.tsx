@@ -93,6 +93,17 @@ export interface OrganizationEmailDomain {
   isPrimary: boolean;
 }
 
+// Pending invitation type
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  sentAt: string;
+  expiresAt: string | null;
+  invitedBy?: string;
+}
+
 const ADMIN_ROLES = ['admin', 'org:admin'] as const;
 const BLOCKDRIVE_DOMAIN = 'blockdrive.sol';
 
@@ -156,6 +167,7 @@ export const useOrganizations = () => {
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [inviteCodes, setInviteCodes] = useState<OrganizationInviteCode[]>([]);
   const [emailDomains, setEmailDomains] = useState<OrganizationEmailDomain[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -263,6 +275,33 @@ export const useOrganizations = () => {
       setEmailDomains((data || []).map(mapEmailDomain));
     } catch (err) {
       console.error('[useOrganizations] Error fetching email domains:', err);
+    }
+  }, [supabase, activeOrg, activeOrgBlockDriveData]);
+
+  const fetchPendingInvitations = useCallback(async () => {
+    if (!supabase || !activeOrg || !activeOrgBlockDriveData) return;
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('team_invitations')
+        .select('*')
+        .eq('team_id', activeOrgBlockDriveData.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setPendingInvitations((data || []).map((inv: any) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role,
+        status: inv.status,
+        sentAt: inv.created_at,
+        expiresAt: inv.expires_at,
+        invitedBy: inv.invited_by,
+      })));
+    } catch (err) {
+      console.error('[useOrganizations] Error fetching pending invitations:', err);
     }
   }, [supabase, activeOrg, activeOrgBlockDriveData]);
 
@@ -413,6 +452,184 @@ export const useOrganizations = () => {
     }
   };
 
+  // Remove a member from the team
+  const removeMember = async (clerkUserId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    if (clerkUserId === userId) {
+      throw new Error('Cannot remove yourself from the team');
+    }
+
+    try {
+      // Remove from Clerk organization
+      await activeOrg.removeMember(clerkUserId);
+
+      // Remove from Supabase organization_members
+      await supabase
+        .from('organization_members')
+        .delete()
+        .eq('organization_id', activeOrgBlockDriveData.id)
+        .eq('clerk_user_id', clerkUserId);
+
+      await fetchMembers(activeOrg.id);
+      toast.success('Member removed from team');
+    } catch (err) {
+      console.error('[useOrganizations] Error removing member:', err);
+      toast.error('Failed to remove member');
+      throw err;
+    }
+  };
+
+  // Update a member's role (promote/demote)
+  const updateMemberRole = async (clerkUserId: string, newRole: 'org:admin' | 'org:member') => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    if (clerkUserId === userId) {
+      throw new Error('Cannot change your own role');
+    }
+
+    try {
+      // Get the membership to check if they're the owner
+      const memberships = await activeOrg.getMemberships();
+      const membership = memberships.data?.find(
+        m => m.publicUserData?.userId === clerkUserId
+      );
+
+      if (membership?.role === 'org:owner') {
+        throw new Error('Cannot change the owner\'s role');
+      }
+
+      // Update role in Clerk
+      await activeOrg.updateMember({ userId: clerkUserId, role: newRole });
+
+      // Update role in Supabase
+      const supabaseRole = newRole === 'org:admin' ? 'admin' : 'member';
+      await supabase
+        .from('organization_members')
+        .update({ role: supabaseRole })
+        .eq('organization_id', activeOrgBlockDriveData.id)
+        .eq('clerk_user_id', clerkUserId);
+
+      await fetchMembers(activeOrg.id);
+      toast.success(`Role updated to ${newRole === 'org:admin' ? 'Admin' : 'Member'}`);
+    } catch (err) {
+      console.error('[useOrganizations] Error updating member role:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update member role');
+      throw err;
+    }
+  };
+
+  // Send a team invitation via email
+  const sendTeamInvitation = async (email: string, role: string = 'member') => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    const token = await getToken();
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            teamId: activeOrgBlockDriveData.id,
+            email: email.toLowerCase(),
+            role,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send invitation');
+      }
+
+      await fetchPendingInvitations();
+      toast.success(`Invitation sent to ${email}`);
+      return result;
+    } catch (err) {
+      console.error('[useOrganizations] Error sending team invitation:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to send invitation');
+      throw err;
+    }
+  };
+
+  // Revoke a pending invitation
+  const revokeInvitation = async (invitationId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    try {
+      const { error: updateError } = await supabase
+        .from('team_invitations')
+        .update({ status: 'revoked' })
+        .eq('id', invitationId)
+        .eq('team_id', activeOrgBlockDriveData.id);
+
+      if (updateError) throw updateError;
+
+      await fetchPendingInvitations();
+      toast.success('Invitation revoked');
+    } catch (err) {
+      console.error('[useOrganizations] Error revoking invitation:', err);
+      toast.error('Failed to revoke invitation');
+      throw err;
+    }
+  };
+
+  // Resend a team invitation
+  const resendInvitation = async (invitationId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    const token = await getToken();
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            invitationId,
+            teamId: activeOrgBlockDriveData.id,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to resend invitation');
+      }
+
+      await fetchPendingInvitations();
+      toast.success('Invitation resent');
+      return result;
+    } catch (err) {
+      console.error('[useOrganizations] Error resending invitation:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to resend invitation');
+      throw err;
+    }
+  };
+
   function buildSnsDomain(subdomain: string | undefined): string | undefined {
     return subdomain ? `${subdomain}.${BLOCKDRIVE_DOMAIN}` : undefined;
   }
@@ -460,25 +677,40 @@ export const useOrganizations = () => {
       fetchMembers(activeOrg.id);
       fetchInviteCodes();
       fetchEmailDomains();
+      fetchPendingInvitations();
     }
-  }, [activeOrg, activeOrgBlockDriveData, fetchMembers, fetchInviteCodes, fetchEmailDomains]);
+  }, [activeOrg, activeOrgBlockDriveData, fetchMembers, fetchInviteCodes, fetchEmailDomains, fetchPendingInvitations]);
 
   return {
+    // State
     organizations,
     currentOrganization,
     members,
     inviteCodes,
     emailDomains,
+    pendingInvitations,
     loading: !orgLoaded || !listLoaded || loading,
     error,
     canManageOrganization,
+    // Organization management
     createOrganization,
     switchOrganization,
+    // Invite codes (legacy - consider deprecating)
     generateInviteCode,
-    addEmailDomain,
     deactivateInviteCode,
+    // Email domains
+    addEmailDomain,
+    // Member management
+    removeMember,
+    updateMemberRole,
+    // Team invitations (email-based)
+    sendTeamInvitation,
+    revokeInvitation,
+    resendInvitation,
+    // Refresh functions
     refreshMembers: () => activeOrg && fetchMembers(activeOrg.id),
     refreshInviteCodes: fetchInviteCodes,
     refreshEmailDomains: fetchEmailDomains,
+    refreshPendingInvitations: fetchPendingInvitations,
   };
 };

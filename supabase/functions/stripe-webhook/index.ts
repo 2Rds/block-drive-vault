@@ -1,11 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { EmailService } from "../_shared/emailService.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
+
+// Format currency from cents to display string
+function formatAmount(amountCents: number): string {
+  return `$${(amountCents / 100).toFixed(2)}`;
+}
 
 serve(async (req) => {
   try {
@@ -178,6 +184,24 @@ serve(async (req) => {
           break;
         }
 
+        // Get subscription details for tier info
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const priceId = subscription.items.data[0].price.id;
+        const price = await stripe.prices.retrieve(priceId);
+        const amount = price.unit_amount || 0;
+
+        // Determine tier
+        let subscriptionTier = "Starter";
+        if (amount <= 8900) {
+          subscriptionTier = "Starter";
+        } else if (amount <= 49900) {
+          subscriptionTier = "Pro";
+        } else if (amount <= 99900) {
+          subscriptionTier = "Growth";
+        } else {
+          subscriptionTier = "Scale";
+        }
+
         // Ensure subscription is marked as active
         const { error: updateError } = await supabaseService
           .from('subscribers')
@@ -192,6 +216,20 @@ serve(async (req) => {
           logStep("Error updating subscriber", updateError);
         } else {
           logStep("Payment confirmed, subscription active", { email: customerEmail });
+        }
+
+        // Send payment confirmation email
+        const emailResult = await EmailService.sendPaymentConfirmation({
+          to: customerEmail,
+          amount: formatAmount(invoice.amount_paid),
+          plan: subscriptionTier,
+          invoiceUrl: invoice.hosted_invoice_url || undefined,
+        });
+
+        if (!emailResult.success) {
+          logStep("Failed to send payment confirmation email", { error: emailResult.error });
+        } else {
+          logStep("Payment confirmation email sent", { email: customerEmail });
         }
         break;
       }
@@ -217,9 +255,38 @@ serve(async (req) => {
           break;
         }
 
-        // Optionally disable access after payment failure
-        // For now, we'll just log it - Stripe will retry and eventually cancel
+        // Get subscription details for tier info
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const priceId = subscription.items.data[0].price.id;
+        const price = await stripe.prices.retrieve(priceId);
+        const amount = price.unit_amount || 0;
+
+        // Determine tier
+        let subscriptionTier = "Starter";
+        if (amount <= 8900) {
+          subscriptionTier = "Starter";
+        } else if (amount <= 49900) {
+          subscriptionTier = "Pro";
+        } else if (amount <= 99900) {
+          subscriptionTier = "Growth";
+        } else {
+          subscriptionTier = "Scale";
+        }
+
         logStep("Payment failed for customer", { email: customerEmail });
+
+        // Send payment failed email
+        const emailResult = await EmailService.sendPaymentFailed({
+          to: customerEmail,
+          plan: subscriptionTier,
+          retryUrl: `${Deno.env.get("SITE_URL") || "https://blockdrive.app"}/membership`,
+        });
+
+        if (!emailResult.success) {
+          logStep("Failed to send payment failed email", { error: emailResult.error });
+        } else {
+          logStep("Payment failed email sent", { email: customerEmail });
+        }
         break;
       }
 

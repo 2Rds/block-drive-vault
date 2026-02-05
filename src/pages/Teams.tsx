@@ -1,4 +1,5 @@
 import { useTeams } from '@/hooks/useTeams';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Users, Clock, Settings, Crown, Info, Files, BarChart3, Puzzle } from 'lucide-react';
+import { Users, Clock, Settings, Crown, Info, Files, BarChart3, Puzzle, Shield } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const SKELETON_COUNT = 3;
@@ -42,6 +43,7 @@ export default function Teams(): JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { teams, currentTeam, teamMembers, teamInvitations, loading } = useTeams();
+  const { canManageOrganization, currentOrganization } = useOrganizations();
   const { subscriptionStatus } = useSubscriptionStatus();
 
   if (loading) {
@@ -74,6 +76,11 @@ export default function Teams(): JSX.Element {
           <Button variant="default" className={NAV_BUTTON_STYLES.active}>
             <Users className="w-4 h-4 mr-2" />Teams
           </Button>
+          {canManageOrganization && currentOrganization && (
+            <Button onClick={() => navigate('/team-admin')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
+              <Shield className="w-4 h-4 mr-2" />Team Admin
+            </Button>
+          )}
           <Button onClick={() => navigate('/account')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
             <Settings className="w-4 h-4 mr-2" />Account
           </Button>
