@@ -1,15 +1,5 @@
-/**
- * Hook for managing username NFT minting
- *
- * Provides functionality to:
- * - Check username availability
- * - Mint username NFT
- * - Get current user's username NFT
- */
-
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import {
   validateUsername,
   checkUsernameAvailability,
@@ -87,23 +77,17 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
     refreshUsernameNFT();
   }, [refreshUsernameNFT]);
 
-  // Check username availability
   const checkAvailability = useCallback(
     async (usernameToCheck: string): Promise<{ available: boolean; error?: string }> => {
-      // First validate format
       const validation = validateUsername(usernameToCheck);
       if (!validation.valid) {
         return { available: false, error: validation.error };
       }
-
-      // Then check against database
-      const result = await checkUsernameAvailability(usernameToCheck);
-      return result;
+      return checkUsernameAvailability(usernameToCheck);
     },
     []
   );
 
-  // Mint username NFT (supports organization context for org subdomains)
   const mintUsername = useCallback(
     async (
       usernameToMint: string,
@@ -113,7 +97,6 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
         return { success: false, error: 'User not authenticated' };
       }
 
-      // Validate format
       const validation = validateUsername(usernameToMint);
       if (!validation.valid) {
         return { success: false, error: validation.error };
@@ -128,10 +111,6 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
           throw new Error('No authentication token available');
         }
 
-        // Get user email
-        const email = user.primaryEmailAddress?.emailAddress;
-
-        // Log organization context if present
         if (orgContext?.organizationId) {
           console.log(`[useUsernameNFT] Minting with org context: ${orgContext.organizationSubdomain}`);
         }
@@ -139,26 +118,23 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
         const result = await mintUsernameNFT({
           clerkUserId: userId,
           username: usernameToMint,
-          recipientEmail: email,
+          recipientEmail: user.primaryEmailAddress?.emailAddress,
           recipientWalletAddress: walletAddress || undefined,
           token,
-          // Pass organization context
           organizationId: orgContext?.organizationId,
           organizationSubdomain: orgContext?.organizationSubdomain,
         });
 
-        if (result.success) {
-          // Update local state
-          setHasUsernameNFT(true);
-          setUsername(result.username || null);
-          setFullDomain(result.fullDomain || null);
-          setMintStatus(result.status || 'pending');
-
-          return { success: true };
-        } else {
+        if (!result.success) {
           setError(result.error || 'Minting failed');
           return { success: false, error: result.error };
         }
+
+        setHasUsernameNFT(true);
+        setUsername(result.username || null);
+        setFullDomain(result.fullDomain || null);
+        setMintStatus(result.status || 'pending');
+        return { success: true };
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to mint username NFT';
         console.error('[useUsernameNFT] Mint error:', err);

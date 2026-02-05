@@ -93,12 +93,61 @@ export interface OrganizationEmailDomain {
   isPrimary: boolean;
 }
 
-export const useOrganizations = () => {
-  const { userId, supabase, isSignedIn } = useClerkAuth();
-  const { getToken } = useAuth();
-  const { user } = useUser();
+// Pending invitation type
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  sentAt: string;
+  expiresAt: string | null;
+  invitedBy?: string;
+}
 
-  // Clerk organization hooks
+const ADMIN_ROLES = ['admin', 'org:admin'] as const;
+const BLOCKDRIVE_DOMAIN = 'blockdrive.sol';
+
+function mapInviteCode(c: any): OrganizationInviteCode {
+  return {
+    id: c.id,
+    code: c.code,
+    maxUses: c.max_uses,
+    currentUses: c.current_uses,
+    expiresAt: c.expires_at,
+    isActive: c.is_active,
+    defaultRole: c.default_role,
+    createdAt: c.created_at,
+  };
+}
+
+function mapEmailDomain(d: any): OrganizationEmailDomain {
+  return {
+    id: d.id,
+    domain: d.domain,
+    verifiedAt: d.verified_at,
+    autoJoin: d.auto_join,
+    defaultRole: d.default_role,
+    isPrimary: d.is_primary,
+  };
+}
+
+function mapBlockDriveOrgData(org: any): OrganizationBlockDriveData {
+  return {
+    id: org.id,
+    clerkOrgId: org.clerk_org_id,
+    subdomain: org.subdomain,
+    snsRegistryKey: org.sns_registry_key,
+    orgNftMint: org.org_nft_mint,
+    subscriptionTier: org.subscription_tier,
+    settings: org.settings || {},
+    createdAt: org.created_at,
+  };
+}
+
+export const useOrganizations = () => {
+  const { userId, supabase } = useClerkAuth();
+  const { getToken } = useAuth();
+
   const {
     organization: activeOrg,
     membership: activeMembership,
@@ -111,20 +160,19 @@ export const useOrganizations = () => {
     setActive,
     createOrganization: clerkCreateOrg
   } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    }
+    userMemberships: { infinite: true }
   });
 
-  // Local state for BlockDrive-specific data
   const [blockdriveOrgData, setBlockdriveOrgData] = useState<Map<string, OrganizationBlockDriveData>>(new Map());
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [inviteCodes, setInviteCodes] = useState<OrganizationInviteCode[]>([]);
   const [emailDomains, setEmailDomains] = useState<OrganizationEmailDomain[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch BlockDrive organization data from Supabase
+  const activeOrgBlockDriveData = activeOrg ? blockdriveOrgData.get(activeOrg.id) : undefined;
+
   const fetchBlockDriveOrgData = useCallback(async (clerkOrgIds: string[]) => {
     if (!supabase || clerkOrgIds.length === 0) return;
 
@@ -137,31 +185,17 @@ export const useOrganizations = () => {
       if (fetchError) throw fetchError;
 
       const dataMap = new Map<string, OrganizationBlockDriveData>();
-      (data || []).forEach((org: any) => {
-        dataMap.set(org.clerk_org_id, {
-          id: org.id,
-          clerkOrgId: org.clerk_org_id,
-          subdomain: org.subdomain,
-          snsRegistryKey: org.sns_registry_key,
-          orgNftMint: org.org_nft_mint,
-          subscriptionTier: org.subscription_tier,
-          settings: org.settings || {},
-          createdAt: org.created_at,
-        });
-      });
-
+      for (const org of data || []) {
+        dataMap.set(org.clerk_org_id, mapBlockDriveOrgData(org));
+      }
       setBlockdriveOrgData(dataMap);
     } catch (err) {
       console.error('[useOrganizations] Error fetching BlockDrive data:', err);
     }
   }, [supabase]);
 
-  // Fetch organization members with BlockDrive extensions
   const fetchMembers = useCallback(async (orgId: string) => {
-    if (!supabase || !activeOrg) return;
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) return;
+    if (!supabase || !activeOrg || !activeOrgBlockDriveData) return;
 
     try {
       const { data, error: fetchError } = await supabase
@@ -175,7 +209,7 @@ export const useOrganizations = () => {
           join_method,
           created_at
         `)
-        .eq('organization_id', blockdriveData.id);
+        .eq('organization_id', activeOrgBlockDriveData.id);
 
       if (fetchError) throw fetchError;
 
@@ -206,69 +240,71 @@ export const useOrganizations = () => {
     } catch (err) {
       console.error('[useOrganizations] Error fetching members:', err);
     }
-  }, [supabase, activeOrg, blockdriveOrgData]);
+  }, [supabase, activeOrg, activeOrgBlockDriveData]);
 
-  // Fetch invite codes for current organization
   const fetchInviteCodes = useCallback(async () => {
-    if (!supabase || !activeOrg) return;
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) return;
+    if (!supabase || !activeOrg || !activeOrgBlockDriveData) return;
 
     try {
       const { data, error: fetchError } = await supabase
         .from('organization_invite_codes')
         .select('*')
-        .eq('organization_id', blockdriveData.id)
+        .eq('organization_id', activeOrgBlockDriveData.id)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      setInviteCodes((data || []).map((c: any) => ({
-        id: c.id,
-        code: c.code,
-        maxUses: c.max_uses,
-        currentUses: c.current_uses,
-        expiresAt: c.expires_at,
-        isActive: c.is_active,
-        defaultRole: c.default_role,
-        createdAt: c.created_at,
-      })));
+      setInviteCodes((data || []).map(mapInviteCode));
     } catch (err) {
       console.error('[useOrganizations] Error fetching invite codes:', err);
     }
-  }, [supabase, activeOrg, blockdriveOrgData]);
+  }, [supabase, activeOrg, activeOrgBlockDriveData]);
 
-  // Fetch email domains for current organization
   const fetchEmailDomains = useCallback(async () => {
-    if (!supabase || !activeOrg) return;
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) return;
+    if (!supabase || !activeOrg || !activeOrgBlockDriveData) return;
 
     try {
       const { data, error: fetchError } = await supabase
         .from('organization_email_domains')
         .select('*')
-        .eq('organization_id', blockdriveData.id)
+        .eq('organization_id', activeOrgBlockDriveData.id)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      setEmailDomains((data || []).map((d: any) => ({
-        id: d.id,
-        domain: d.domain,
-        verifiedAt: d.verified_at,
-        autoJoin: d.auto_join,
-        defaultRole: d.default_role,
-        isPrimary: d.is_primary,
-      })));
+      setEmailDomains((data || []).map(mapEmailDomain));
     } catch (err) {
       console.error('[useOrganizations] Error fetching email domains:', err);
     }
-  }, [supabase, activeOrg, blockdriveOrgData]);
+  }, [supabase, activeOrg, activeOrgBlockDriveData]);
 
-  // Create organization (subscription-gated)
+  const fetchPendingInvitations = useCallback(async () => {
+    if (!supabase || !activeOrg || !activeOrgBlockDriveData) return;
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('team_invitations')
+        .select('*')
+        .eq('team_id', activeOrgBlockDriveData.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setPendingInvitations((data || []).map((inv: any) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role,
+        status: inv.status,
+        sentAt: inv.created_at,
+        expiresAt: inv.expires_at,
+        invitedBy: inv.invited_by,
+      })));
+    } catch (err) {
+      console.error('[useOrganizations] Error fetching pending invitations:', err);
+    }
+  }, [supabase, activeOrg, activeOrgBlockDriveData]);
+
   const createOrganization = async (params: {
     name: string;
     subdomain: string;
@@ -278,18 +314,18 @@ export const useOrganizations = () => {
       throw new Error('Not authenticated');
     }
 
+    const subdomain = params.subdomain.toLowerCase();
+
     try {
-      // First create in Clerk
       const clerkOrg = await clerkCreateOrg({ name: params.name });
 
-      // Then create BlockDrive record in Supabase
       const { data, error: insertError } = await supabase
         .from('organizations')
         .insert({
           clerk_org_id: clerkOrg.id,
           name: params.name,
-          slug: params.subdomain.toLowerCase(),
-          subdomain: params.subdomain.toLowerCase(),
+          slug: subdomain,
+          subdomain,
           owner_clerk_id: userId,
           subscription_tier: params.subscriptionTier,
         })
@@ -297,19 +333,17 @@ export const useOrganizations = () => {
         .single();
 
       if (insertError) {
-        // Cleanup: delete from Clerk if Supabase fails
         console.error('[useOrganizations] Supabase insert failed, cleaning up Clerk org');
         throw insertError;
       }
 
-      // Set as active organization
       await setActive?.({ organization: clerkOrg.id });
 
       toast.success(`Organization "${params.name}" created successfully`);
       return {
         clerkOrgId: clerkOrg.id,
         blockdriveOrgId: data.id,
-        subdomain: params.subdomain,
+        subdomain,
       };
     } catch (err) {
       console.error('[useOrganizations] Error creating organization:', err);
@@ -331,19 +365,13 @@ export const useOrganizations = () => {
     }
   };
 
-  // Generate invite code
   const generateInviteCode = async (options: {
     maxUses?: number;
     expiresInDays?: number;
     defaultRole?: string;
   } = {}) => {
-    if (!activeOrg) {
+    if (!activeOrg || !activeOrgBlockDriveData) {
       throw new Error('No active organization');
-    }
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) {
-      throw new Error('Organization not found in BlockDrive');
     }
 
     const token = await getToken();
@@ -358,7 +386,7 @@ export const useOrganizations = () => {
           'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
-          organizationId: blockdriveData.id,
+          organizationId: activeOrgBlockDriveData.id,
           maxUses: options.maxUses,
           expiresInDays: options.expiresInDays,
           defaultRole: options.defaultRole || 'member',
@@ -378,22 +406,16 @@ export const useOrganizations = () => {
     return result.code;
   };
 
-  // Add email domain
   const addEmailDomain = async (domain: string) => {
-    if (!activeOrg || !userId) {
+    if (!activeOrg || !userId || !activeOrgBlockDriveData) {
       throw new Error('No active organization');
-    }
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) {
-      throw new Error('Organization not found in BlockDrive');
     }
 
     try {
       const { error: insertError } = await supabase
         .from('organization_email_domains')
         .insert({
-          organization_id: blockdriveData.id,
+          organization_id: activeOrgBlockDriveData.id,
           domain: domain.toLowerCase(),
           auto_join: true,
           default_role: 'member',
@@ -410,19 +432,15 @@ export const useOrganizations = () => {
     }
   };
 
-  // Deactivate invite code
   const deactivateInviteCode = async (codeId: string) => {
-    if (!activeOrg) return;
-
-    const blockdriveData = blockdriveOrgData.get(activeOrg.id);
-    if (!blockdriveData) return;
+    if (!activeOrg || !activeOrgBlockDriveData) return;
 
     try {
       const { error: updateError } = await supabase
         .from('organization_invite_codes')
         .update({ is_active: false })
         .eq('id', codeId)
-        .eq('organization_id', blockdriveData.id);
+        .eq('organization_id', activeOrgBlockDriveData.id);
 
       if (updateError) throw updateError;
 
@@ -434,10 +452,190 @@ export const useOrganizations = () => {
     }
   };
 
-  // Get combined organization list
+  // Remove a member from the team
+  const removeMember = async (clerkUserId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    if (clerkUserId === userId) {
+      throw new Error('Cannot remove yourself from the team');
+    }
+
+    try {
+      // Remove from Clerk organization
+      await activeOrg.removeMember(clerkUserId);
+
+      // Remove from Supabase organization_members
+      await supabase
+        .from('organization_members')
+        .delete()
+        .eq('organization_id', activeOrgBlockDriveData.id)
+        .eq('clerk_user_id', clerkUserId);
+
+      await fetchMembers(activeOrg.id);
+      toast.success('Member removed from team');
+    } catch (err) {
+      console.error('[useOrganizations] Error removing member:', err);
+      toast.error('Failed to remove member');
+      throw err;
+    }
+  };
+
+  // Update a member's role (promote/demote)
+  const updateMemberRole = async (clerkUserId: string, newRole: 'org:admin' | 'org:member') => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    if (clerkUserId === userId) {
+      throw new Error('Cannot change your own role');
+    }
+
+    try {
+      // Get the membership to check if they're the owner
+      const memberships = await activeOrg.getMemberships();
+      const membership = memberships.data?.find(
+        m => m.publicUserData?.userId === clerkUserId
+      );
+
+      if (membership?.role === 'org:owner') {
+        throw new Error('Cannot change the owner\'s role');
+      }
+
+      // Update role in Clerk
+      await activeOrg.updateMember({ userId: clerkUserId, role: newRole });
+
+      // Update role in Supabase
+      const supabaseRole = newRole === 'org:admin' ? 'admin' : 'member';
+      await supabase
+        .from('organization_members')
+        .update({ role: supabaseRole })
+        .eq('organization_id', activeOrgBlockDriveData.id)
+        .eq('clerk_user_id', clerkUserId);
+
+      await fetchMembers(activeOrg.id);
+      toast.success(`Role updated to ${newRole === 'org:admin' ? 'Admin' : 'Member'}`);
+    } catch (err) {
+      console.error('[useOrganizations] Error updating member role:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update member role');
+      throw err;
+    }
+  };
+
+  // Send a team invitation via email
+  const sendTeamInvitation = async (email: string, role: string = 'member') => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    const token = await getToken();
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            teamId: activeOrgBlockDriveData.id,
+            email: email.toLowerCase(),
+            role,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send invitation');
+      }
+
+      await fetchPendingInvitations();
+      toast.success(`Invitation sent to ${email}`);
+      return result;
+    } catch (err) {
+      console.error('[useOrganizations] Error sending team invitation:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to send invitation');
+      throw err;
+    }
+  };
+
+  // Revoke a pending invitation
+  const revokeInvitation = async (invitationId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    try {
+      const { error: updateError } = await supabase
+        .from('team_invitations')
+        .update({ status: 'revoked' })
+        .eq('id', invitationId)
+        .eq('team_id', activeOrgBlockDriveData.id);
+
+      if (updateError) throw updateError;
+
+      await fetchPendingInvitations();
+      toast.success('Invitation revoked');
+    } catch (err) {
+      console.error('[useOrganizations] Error revoking invitation:', err);
+      toast.error('Failed to revoke invitation');
+      throw err;
+    }
+  };
+
+  // Resend a team invitation
+  const resendInvitation = async (invitationId: string) => {
+    if (!activeOrg || !activeOrgBlockDriveData) {
+      throw new Error('No active organization');
+    }
+
+    const token = await getToken();
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            invitationId,
+            teamId: activeOrgBlockDriveData.id,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to resend invitation');
+      }
+
+      await fetchPendingInvitations();
+      toast.success('Invitation resent');
+      return result;
+    } catch (err) {
+      console.error('[useOrganizations] Error resending invitation:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to resend invitation');
+      throw err;
+    }
+  };
+
+  function buildSnsDomain(subdomain: string | undefined): string | undefined {
+    return subdomain ? `${subdomain}.${BLOCKDRIVE_DOMAIN}` : undefined;
+  }
+
   const organizations: Organization[] = (organizationList || []).map(({ organization, membership }) => {
     const blockdriveData = blockdriveOrgData.get(organization.id);
-
     return {
       id: organization.id,
       name: organization.name,
@@ -446,15 +644,12 @@ export const useOrganizations = () => {
       membersCount: organization.membersCount || 0,
       role: membership.role,
       subdomain: blockdriveData?.subdomain,
-      snsDomain: blockdriveData?.subdomain
-        ? `${blockdriveData.subdomain}.blockdrive.sol`
-        : undefined,
+      snsDomain: buildSnsDomain(blockdriveData?.subdomain),
       subscriptionTier: blockdriveData?.subscriptionTier,
       hasSubdomainNft: !!blockdriveData?.orgNftMint,
     };
   });
 
-  // Current organization with BlockDrive data
   const currentOrganization: Organization | null = activeOrg ? {
     id: activeOrg.id,
     name: activeOrg.name,
@@ -462,19 +657,14 @@ export const useOrganizations = () => {
     imageUrl: activeOrg.imageUrl,
     membersCount: activeOrg.membersCount || 0,
     role: activeMembership?.role || 'member',
-    subdomain: blockdriveOrgData.get(activeOrg.id)?.subdomain,
-    snsDomain: blockdriveOrgData.get(activeOrg.id)?.subdomain
-      ? `${blockdriveOrgData.get(activeOrg.id)!.subdomain}.blockdrive.sol`
-      : undefined,
-    subscriptionTier: blockdriveOrgData.get(activeOrg.id)?.subscriptionTier,
-    hasSubdomainNft: !!blockdriveOrgData.get(activeOrg.id)?.orgNftMint,
+    subdomain: activeOrgBlockDriveData?.subdomain,
+    snsDomain: buildSnsDomain(activeOrgBlockDriveData?.subdomain),
+    subscriptionTier: activeOrgBlockDriveData?.subscriptionTier,
+    hasSubdomainNft: !!activeOrgBlockDriveData?.orgNftMint,
   } : null;
 
-  // Check if user can manage organization (admin or owner)
-  const canManageOrganization = activeMembership?.role === 'admin' ||
-                                 activeMembership?.role === 'org:admin';
+  const canManageOrganization = ADMIN_ROLES.includes(activeMembership?.role as typeof ADMIN_ROLES[number]);
 
-  // Effects
   useEffect(() => {
     if (listLoaded && organizationList) {
       const clerkOrgIds = organizationList.map(m => m.organization.id);
@@ -483,38 +673,44 @@ export const useOrganizations = () => {
   }, [listLoaded, organizationList, fetchBlockDriveOrgData]);
 
   useEffect(() => {
-    if (activeOrg && blockdriveOrgData.has(activeOrg.id)) {
+    if (activeOrg && activeOrgBlockDriveData) {
       fetchMembers(activeOrg.id);
       fetchInviteCodes();
       fetchEmailDomains();
+      fetchPendingInvitations();
     }
-  }, [activeOrg, blockdriveOrgData, fetchMembers, fetchInviteCodes, fetchEmailDomains]);
+  }, [activeOrg, activeOrgBlockDriveData, fetchMembers, fetchInviteCodes, fetchEmailDomains, fetchPendingInvitations]);
 
   return {
-    // Organization data
+    // State
     organizations,
     currentOrganization,
     members,
     inviteCodes,
     emailDomains,
-
-    // Loading states
+    pendingInvitations,
     loading: !orgLoaded || !listLoaded || loading,
     error,
-
-    // Permissions
     canManageOrganization,
-
-    // Actions
+    // Organization management
     createOrganization,
     switchOrganization,
+    // Invite codes (legacy - consider deprecating)
     generateInviteCode,
-    addEmailDomain,
     deactivateInviteCode,
-
+    // Email domains
+    addEmailDomain,
+    // Member management
+    removeMember,
+    updateMemberRole,
+    // Team invitations (email-based)
+    sendTeamInvitation,
+    revokeInvitation,
+    resendInvitation,
     // Refresh functions
     refreshMembers: () => activeOrg && fetchMembers(activeOrg.id),
     refreshInviteCodes: fetchInviteCodes,
     refreshEmailDomains: fetchEmailDomains,
+    refreshPendingInvitations: fetchPendingInvitations,
   };
 };

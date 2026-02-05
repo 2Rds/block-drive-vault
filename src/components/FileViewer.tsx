@@ -3,13 +3,24 @@ import { X, Download, ExternalLink, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IPFSFile } from '@/types/ipfs';
 
-// Component to handle image loading with fallback URLs
-const ImageWithFallback = ({ src, fallbackUrls, alt, className }: {
+const BYTES_PER_KB = 1024;
+const SIZE_UNITS = ['Bytes', 'KB', 'MB', 'GB'] as const;
+
+const IPFS_GATEWAYS = [
+  'https://ipfs.filebase.io/ipfs',
+  'https://ipfs.io/ipfs',
+  'https://cloudflare-ipfs.com/ipfs',
+  'https://dweb.link/ipfs'
+] as const;
+
+interface ImageWithFallbackProps {
   src: string;
   fallbackUrls: string[];
   alt: string;
   className: string;
-}) => {
+}
+
+function ImageWithFallback({ src, fallbackUrls, alt, className }: ImageWithFallbackProps): React.ReactElement {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [fallbackIndex, setFallbackIndex] = useState(-1);
   const [hasError, setHasError] = useState(false);
@@ -59,41 +70,36 @@ interface FileViewerProps {
   onDownload: (file: IPFSFile) => void;
 }
 
-export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
-  const isImage = file.contentType?.startsWith('image/');
-  const isVideo = file.contentType?.startsWith('video/');
-  const isAudio = file.contentType?.startsWith('audio/');
-  const isPDF = file.contentType?.includes('pdf');
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const i = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KB));
+  return parseFloat((bytes / Math.pow(BYTES_PER_KB, i)).toFixed(2)) + ' ' + SIZE_UNITS[i];
+}
+
+function getFileType(contentType: string | undefined): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
+  if (contentType?.startsWith('image/')) return 'image';
+  if (contentType?.startsWith('video/')) return 'video';
+  if (contentType?.startsWith('audio/')) return 'audio';
+  if (contentType?.includes('pdf')) return 'pdf';
+  return 'other';
+}
+
+export function FileViewer({ file, onClose, onDownload }: FileViewerProps): React.ReactElement {
+  const fileType = getFileType(file.contentType);
 
   const handleViewOnIPFS = () => {
-    const ipfsUrl = `https://ipfs.filebase.io/ipfs/${file.cid}`;
-    window.open(ipfsUrl, '_blank');
+    window.open(`${IPFS_GATEWAYS[0]}/${file.cid}`, '_blank');
   };
 
-  const getFileDisplayUrl = () => {
-    // Try the stored ipfs_url first, then fallback to Filebase gateway
-    const url = file.ipfsUrl || `https://ipfs.filebase.io/ipfs/${file.cid}`;
+  const getFileDisplayUrl = (): string => {
+    const url = file.ipfsUrl || `${IPFS_GATEWAYS[0]}/${file.cid}`;
     console.log('FileViewer - Displaying file:', file);
     console.log('FileViewer - Using URL:', url);
     return url;
   };
 
-  const getFallbackUrls = () => {
-    const fallbackGateways = [
-      'https://ipfs.filebase.io/ipfs',
-      'https://ipfs.io/ipfs',
-      'https://cloudflare-ipfs.com/ipfs',
-      'https://dweb.link/ipfs'
-    ];
-    return fallbackGateways.map(gateway => `${gateway}/${file.cid}`);
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const getFallbackUrls = (): string[] => {
+    return IPFS_GATEWAYS.map(gateway => `${gateway}/${file.cid}`);
   };
 
   return (
@@ -142,9 +148,9 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
 
         {/* Content */}
         <div className="p-4 overflow-auto max-h-[calc(90vh-120px)]">
-          {isImage && (
+          {fileType === 'image' && (
             <div className="flex justify-center">
-              <ImageWithFallback 
+              <ImageWithFallback
                 src={getFileDisplayUrl()}
                 fallbackUrls={getFallbackUrls()}
                 alt={file.filename}
@@ -153,7 +159,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
             </div>
           )}
 
-          {isVideo && (
+          {fileType === 'video' && (
             <div className="flex justify-center">
               <video
                 controls
@@ -174,7 +180,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
             </div>
           )}
 
-          {isAudio && (
+          {fileType === 'audio' && (
             <div className="flex justify-center py-8">
               <audio
                 controls
@@ -195,7 +201,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
             </div>
           )}
 
-          {isPDF && (
+          {fileType === 'pdf' && (
             <div className="w-full h-96">
               <iframe
                 src={getFileDisplayUrl()}
@@ -214,7 +220,7 @@ export const FileViewer = ({ file, onClose, onDownload }: FileViewerProps) => {
             </div>
           )}
 
-          {!isImage && !isVideo && !isAudio && !isPDF && (
+          {fileType === 'other' && (
             <div className="text-center py-12">
               <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-400 mb-2">Preview not available for this file type</p>

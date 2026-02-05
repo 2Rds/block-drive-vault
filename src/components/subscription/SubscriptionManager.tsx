@@ -10,7 +10,15 @@ import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { RefreshCw, Settings, Crown, CheckCircle, ExternalLink } from 'lucide-react';
 import { useUserData } from '@/hooks/useUserData';
 
-export const SubscriptionManager = () => {
+const STRIPE_PORTAL_URL = 'https://billing.stripe.com/p/login/9B6aEW3a59YdbgXgn42VG00';
+const PORTAL_REFRESH_DELAY_MS = 3000;
+const VISIBILITY_REFRESH_DELAY_MS = 2000;
+const BYTES_PER_GB = 1024 * 1024 * 1024;
+const UNLIMITED_SEATS = 999;
+const SCALE_MIN_SEATS = 2;
+const DEFAULT_BANDWIDTH_PERCENT = 15;
+
+export function SubscriptionManager(): React.ReactElement {
   const { user } = useAuth();
   const { subscriptionStatus, loading, refetch } = useSubscriptionStatus();
   const { userStats } = useUserData();
@@ -25,28 +33,13 @@ export const SubscriptionManager = () => {
 
   const handleManageSubscription = () => {
     if (!user) return;
-    
-    try {
-      console.log('Opening Stripe customer portal for user:', user.id);
-      
-      // Open the Stripe customer portal in a new tab
-      const portalUrl = 'https://billing.stripe.com/p/login/9B6aEW3a59YdbgXgn42VG00';
-      window.open(portalUrl, '_blank');
-      
-      toast.success('Opening subscription management portal...');
-      
-      // Refresh subscription status after a delay to catch any changes
-      setTimeout(() => {
-        handleRefresh();
-      }, 3000);
-      
-    } catch (error: any) {
-      console.error('Error opening customer portal:', error);
-      toast.error('Failed to open subscription management');
-    }
+
+    console.log('Opening Stripe customer portal for user:', user.id);
+    window.open(STRIPE_PORTAL_URL, '_blank');
+    toast.success('Opening subscription management portal...');
+    setTimeout(handleRefresh, PORTAL_REFRESH_DELAY_MS);
   };
 
-  // Listen for window focus to refresh subscription status when user returns from portal
   React.useEffect(() => {
     const handleFocus = () => {
       if (user && document.hasFocus()) {
@@ -58,15 +51,13 @@ export const SubscriptionManager = () => {
     const handleVisibilityChange = () => {
       if (user && !document.hidden) {
         console.log('Page became visible, refreshing subscription status');
-        setTimeout(() => {
-          handleRefresh();
-        }, 2000); // Small delay to ensure any updates have propagated
+        setTimeout(handleRefresh, VISIBILITY_REFRESH_DELAY_MS);
       }
     };
 
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -166,13 +157,20 @@ export const SubscriptionManager = () => {
 
   const { subscribed, subscription_tier, subscription_end, limits } = subscriptionStatus;
 
-  // Calculate usage percentages based on real data
-  const storageUsagePercent = limits.storage > 0 ? Math.min(Math.round((userStats.totalStorage / (limits.storage * 1024 * 1024 * 1024)) * 100), 100) : 0;
-  const bandwidthUsagePercent = 15; // This would need to be tracked separately
-  const seatsUsedPercent = Math.round((1 / limits.seats) * 100);
-
-  // Determine if this is a free trial
+  const storageUsagePercent = limits.storage > 0
+    ? Math.min(Math.round((userStats.totalStorage / (limits.storage * BYTES_PER_GB)) * 100), 100)
+    : 0;
+  const bandwidthUsagePercent = DEFAULT_BANDWIDTH_PERCENT;
   const isFreeTrial = !subscribed && subscription_tier === 'Free Trial';
+  const isUnlimitedSeats = limits.seats === UNLIMITED_SEATS;
+  const isScaleTier = subscription_tier?.toLowerCase() === 'scale';
+
+  // For Scale tier, show minimum 2 seats; otherwise show 1
+  // Actual team member count is shown on the Teams page
+  const displaySeatsUsed = isScaleTier ? SCALE_MIN_SEATS : 1;
+  const seatsUsedPercent = isUnlimitedSeats
+    ? Math.round((displaySeatsUsed / 10) * 100)
+    : Math.round((displaySeatsUsed / limits.seats) * 100);
 
   return (
     <div className="space-y-6">
@@ -276,11 +274,14 @@ export const SubscriptionManager = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Team Size</span>
-                <span className="text-white">{limits.seats === 999 ? 'Unlimited' : limits.seats} users</span>
+                <span className="text-white">
+                  {isUnlimitedSeats ? 'Unlimited' : limits.seats} users
+                  {isScaleTier && <span className="text-gray-500 ml-1">(min {SCALE_MIN_SEATS})</span>}
+                </span>
               </div>
               <Progress value={seatsUsedPercent} className="h-2" />
               <p className="text-xs text-gray-500">
-                1 of {limits.seats === 999 ? 'unlimited' : limits.seats} seats used
+                {displaySeatsUsed} of {isUnlimitedSeats ? 'unlimited' : limits.seats} seats used
               </p>
             </div>
           </div>
@@ -342,7 +343,7 @@ export const SubscriptionManager = () => {
               <ul className="text-sm text-green-300 space-y-1">
                 <li>• Enhanced storage capacity: {limits.storage} GB</li>
                 <li>• Bandwidth allowance: {limits.bandwidth} GB/month</li>
-                <li>• Team seats: {limits.seats === 999 ? 'Unlimited' : limits.seats}</li>
+                <li>• Team seats: {isUnlimitedSeats ? 'Unlimited' : limits.seats}</li>
                 <li>• {subscribed ? 'Priority customer support' : 'Community support'}</li>
                 <li>• Advanced blockchain features</li>
                 {subscribed && <li>• Team collaboration tools</li>}

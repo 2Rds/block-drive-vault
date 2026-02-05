@@ -14,6 +14,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth, useOrganizationList } from '@clerk/clerk-react';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
+// Constants
+const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+const RESEND_COOLDOWN_SECONDS = 60;
+const BLOCKDRIVE_DOMAIN_SUFFIX = '.blockdrive.sol';
+
 // Result when checking if email domain matches an organization
 export interface EmailCheckResult {
   hasOrganization: boolean;
@@ -239,7 +244,7 @@ export const useOrgEmailVerification = () => {
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           role: result.defaultRole || 'member',
-          snsDomain: `${result.organization.subdomain}.blockdrive.sol`,
+          snsDomain: `${result.organization.subdomain}${BLOCKDRIVE_DOMAIN_SUFFIX}`,
         };
         setOrganization(orgContext);
 
@@ -271,7 +276,7 @@ export const useOrgEmailVerification = () => {
 
   /**
    * Resend verification email
-   * Only allowed after cooldown period (60 seconds)
+   * Only allowed after cooldown period
    */
   const resendVerification = useCallback(async (): Promise<SendVerificationResult> => {
     if (!email) {
@@ -280,10 +285,9 @@ export const useOrgEmailVerification = () => {
 
     // Check cooldown
     if (verificationSentAt) {
-      const cooldownMs = 60 * 1000; // 60 seconds
       const elapsed = Date.now() - verificationSentAt.getTime();
-      if (elapsed < cooldownMs) {
-        const remainingSeconds = Math.ceil((cooldownMs - elapsed) / 1000);
+      if (elapsed < RESEND_COOLDOWN_MS) {
+        const remainingSeconds = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
         return {
           success: false,
           error: `Please wait ${remainingSeconds} seconds before resending`,
@@ -307,8 +311,7 @@ export const useOrgEmailVerification = () => {
    */
   const canResend = useCallback((): boolean => {
     if (!verificationSentAt) return true;
-    const cooldownMs = 60 * 1000;
-    return Date.now() - verificationSentAt.getTime() >= cooldownMs;
+    return Date.now() - verificationSentAt.getTime() >= RESEND_COOLDOWN_MS;
   }, [verificationSentAt]);
 
   /**
@@ -316,9 +319,8 @@ export const useOrgEmailVerification = () => {
    */
   const getResendCooldown = useCallback((): number => {
     if (!verificationSentAt) return 0;
-    const cooldownMs = 60 * 1000;
     const elapsed = Date.now() - verificationSentAt.getTime();
-    return Math.max(0, Math.ceil((cooldownMs - elapsed) / 1000));
+    return Math.max(0, Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000));
   }, [verificationSentAt]);
 
   /**

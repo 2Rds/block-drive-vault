@@ -1,16 +1,3 @@
-/**
- * Onboarding Page
- *
- * Shown to new users after signup to:
- * 1. Optionally join an organization (invite code or business email)
- * 2. Wait for wallet creation
- * 3. Auto-mint their username NFT (using Clerk username)
- * 4. Complete initial setup
- *
- * Organization users get: username.organization.blockdrive.sol
- * Individual users get: username.blockdrive.sol
- */
-
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
@@ -24,6 +11,28 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 type OnboardingStep = 'loading' | 'organization' | 'username' | 'wallet' | 'minting' | 'complete' | 'error';
+type StepStatus = 'pending' | 'current' | 'complete';
+
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_MAX_LENGTH = 20;
+const REDIRECT_DELAY_MS = 1500;
+const FAST_REDIRECT_DELAY_MS = 500;
+
+function getStepStatus(stepName: string, currentStep: OnboardingStep, isCompleted: boolean): StepStatus {
+  if (currentStep === stepName) return 'current';
+  if (isCompleted) return 'complete';
+  return 'pending';
+}
+
+function validateUsername(username: string): string | null {
+  if (!username) return 'Username is required';
+  if (username.length < USERNAME_MIN_LENGTH) return `Username must be at least ${USERNAME_MIN_LENGTH} characters`;
+  if (username.length > USERNAME_MAX_LENGTH) return `Username must be ${USERNAME_MAX_LENGTH} characters or less`;
+  if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) {
+    return 'Only letters, numbers, and underscores allowed';
+  }
+  return null;
+}
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -50,16 +59,6 @@ export default function Onboarding() {
   const [confirmedUsername, setConfirmedUsername] = useState<string | null>(null);
   const effectiveUsername = confirmedUsername || clerkUsername;
 
-  // Validate username format
-  const validateUsername = (username: string): string | null => {
-    if (!username) return 'Username is required';
-    if (username.length < 3) return 'Username must be at least 3 characters';
-    if (username.length > 20) return 'Username must be 20 characters or less';
-    if (!/^[a-z0-9_]+$/.test(username.toLowerCase())) {
-      return 'Only letters, numbers, and underscores allowed';
-    }
-    return null;
-  };
 
   // Handle username confirmation for users who didn't set one in Clerk
   const handleConfirmUsername = async () => {
@@ -124,7 +123,7 @@ export default function Onboarding() {
       const fullDomain = getFullDomain();
       toast.success(`Successfully claimed ${fullDomain}!`);
       setCurrentStep('complete');
-      setTimeout(() => navigate('/dashboard'), 1500);
+      setTimeout(() => navigate('/dashboard'), REDIRECT_DELAY_MS);
     } else {
       console.error('[Onboarding] Mint failed:', result.error);
       setError(result.error || 'Failed to mint username NFT');
@@ -164,7 +163,7 @@ export default function Onboarding() {
     // Already has NFT - go to dashboard
     if (hasUsernameNFT) {
       setCurrentStep('complete');
-      setTimeout(() => navigate('/dashboard'), 500);
+      setTimeout(() => navigate('/dashboard'), FAST_REDIRECT_DELAY_MS);
       return;
     }
 
@@ -237,58 +236,30 @@ export default function Onboarding() {
 
       {/* Progress Steps */}
       <div className="flex items-center gap-1 sm:gap-2 mb-8 overflow-x-auto">
-        <StepIndicator
-          number={1}
-          label="Sign Up"
-          status="complete"
-        />
-        <div className="w-3 sm:w-6 h-0.5 bg-border flex-shrink-0" />
+        <StepIndicator number={1} label="Sign Up" status="complete" />
+        <StepDivider />
         <StepIndicator
           number={2}
           label="Org"
-          status={
-            currentStep === 'organization'
-              ? 'current'
-              : orgStepCompleted
-              ? 'complete'
-              : 'pending'
-          }
+          status={getStepStatus('organization', currentStep, orgStepCompleted)}
         />
-        <div className="w-3 sm:w-6 h-0.5 bg-border flex-shrink-0" />
+        <StepDivider />
         <StepIndicator
           number={3}
           label="Username"
-          status={
-            currentStep === 'username'
-              ? 'current'
-              : effectiveUsername
-              ? 'complete'
-              : 'pending'
-          }
+          status={getStepStatus('username', currentStep, Boolean(effectiveUsername))}
         />
-        <div className="w-3 sm:w-6 h-0.5 bg-border flex-shrink-0" />
+        <StepDivider />
         <StepIndicator
           number={4}
           label="Wallet"
-          status={
-            currentStep === 'wallet'
-              ? 'current'
-              : isWalletReady || walletAddress
-              ? 'complete'
-              : 'pending'
-          }
+          status={getStepStatus('wallet', currentStep, isWalletReady || Boolean(walletAddress))}
         />
-        <div className="w-3 sm:w-6 h-0.5 bg-border flex-shrink-0" />
+        <StepDivider />
         <StepIndicator
           number={5}
           label="NFT"
-          status={
-            currentStep === 'minting'
-              ? 'current'
-              : hasUsernameNFT || currentStep === 'complete'
-              ? 'complete'
-              : 'pending'
-          }
+          status={getStepStatus('minting', currentStep, hasUsernameNFT || currentStep === 'complete')}
         />
       </div>
 
@@ -346,7 +317,7 @@ export default function Onboarding() {
                     setUsernameError(null);
                   }}
                   className={`font-mono ${organizationContext ? 'pr-44' : 'pr-32'}`}
-                  maxLength={20}
+                  maxLength={USERNAME_MAX_LENGTH}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono truncate max-w-[160px]">
                   {organizationContext
@@ -360,7 +331,7 @@ export default function Onboarding() {
               )}
 
               <p className="text-xs text-muted-foreground">
-                3-20 characters, letters, numbers, and underscores only
+                {USERNAME_MIN_LENGTH}-{USERNAME_MAX_LENGTH} characters, letters, numbers, and underscores only
               </p>
 
               <Button
@@ -466,36 +437,38 @@ export default function Onboarding() {
   );
 }
 
-// Step indicator component
-function StepIndicator({
-  number,
-  label,
-  status,
-}: {
+function StepDivider(): JSX.Element {
+  return <div className="w-3 sm:w-6 h-0.5 bg-border flex-shrink-0" />;
+}
+
+interface StepIndicatorProps {
   number: number;
   label: string;
-  status: 'pending' | 'current' | 'complete';
-}) {
+  status: StepStatus;
+}
+
+function StepIndicator({ number, label, status }: StepIndicatorProps): JSX.Element {
+  const circleClass = (() => {
+    switch (status) {
+      case 'complete':
+        return 'bg-green-500 text-white';
+      case 'current':
+        return 'bg-primary text-primary-foreground';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  })();
+
+  const labelClass = status === 'current'
+    ? 'text-foreground font-medium'
+    : 'text-muted-foreground';
+
   return (
     <div className="flex flex-col items-center">
-      <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-          status === 'complete'
-            ? 'bg-green-500 text-white'
-            : status === 'current'
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground'
-        }`}
-      >
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${circleClass}`}>
         {status === 'complete' ? <CheckCircle2 className="w-4 h-4" /> : number}
       </div>
-      <span
-        className={`text-xs mt-1 ${
-          status === 'current' ? 'text-foreground font-medium' : 'text-muted-foreground'
-        }`}
-      >
-        {label}
-      </span>
+      <span className={`text-xs mt-1 ${labelClass}`}>{label}</span>
     </div>
   );
 }

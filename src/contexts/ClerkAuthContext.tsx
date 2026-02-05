@@ -12,6 +12,29 @@ interface ClerkOrganization {
   role: string;
 }
 
+// Map Clerk organization list item to ClerkOrganization
+function mapOrganizationListItem(item: { organization: any; membership: any }): ClerkOrganization {
+  return {
+    id: item.organization.id,
+    name: item.organization.name,
+    slug: item.organization.slug,
+    imageUrl: item.organization.imageUrl,
+    role: item.membership.role,
+  };
+}
+
+// Map active Clerk organization to ClerkOrganization
+function mapActiveOrganization(organization: any, membership: any): ClerkOrganization | null {
+  if (!organization || !membership) return null;
+  return {
+    id: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+    imageUrl: organization.imageUrl,
+    role: membership.role,
+  };
+}
+
 interface ClerkAuthContextType {
   // User state
   userId: string | null;
@@ -68,8 +91,6 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = useMemo(() => {
     if (session) {
       return createClerkSupabaseClient(async () => {
-        // Get Supabase-specific token from Clerk
-        // You need to create a JWT template named "supabase" in Clerk dashboard
         return await session.getToken({ template: 'supabase' });
       });
     }
@@ -90,26 +111,14 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   // Map Clerk organizations to our format
   const organizations: ClerkOrganization[] = useMemo(() => {
     if (!organizationList) return [];
-    return organizationList.map(({ organization: org, membership: mem }) => ({
-      id: org.id,
-      name: org.name,
-      slug: org.slug,
-      imageUrl: org.imageUrl,
-      role: mem.role,
-    }));
+    return organizationList.map(mapOrganizationListItem);
   }, [organizationList]);
 
   // Current active organization
-  const activeOrganization: ClerkOrganization | null = useMemo(() => {
-    if (!organization || !membership) return null;
-    return {
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      imageUrl: organization.imageUrl,
-      role: membership.role,
-    };
-  }, [organization, membership]);
+  const activeOrganization: ClerkOrganization | null = useMemo(
+    () => mapActiveOrganization(organization, membership),
+    [organization, membership]
+  );
 
   const value: ClerkAuthContextType = {
     userId: user?.id ?? null,

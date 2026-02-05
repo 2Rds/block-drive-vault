@@ -1,79 +1,66 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from '../_shared/cors.ts';
+import { jsonResponse, errorResponse, handleCors } from '../_shared/response.ts';
+import { HTTP_STATUS } from '../_shared/constants.ts';
+import { getSupabaseServiceClient } from '../_shared/auth.ts';
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+const HEX_CHARS = '0123456789abcdef';
+const BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const KEY_LENGTHS = {
+  solana: { address: 44, privateKey: 64, publicKey: 64 },
+  ethereum: { address: 40, privateKey: 64, publicKey: 128 },
+  ton: { address: 46, privateKey: 64, publicKey: 64 },
+} as const;
+
+function generateRandomString(length: number, chars: string): string {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function generateWallet(blockchain: keyof typeof KEY_LENGTHS) {
+  const lengths = KEY_LENGTHS[blockchain];
+  if (!lengths) {
+    throw new Error('Unsupported blockchain type');
+  }
+
+  switch (blockchain) {
+    case 'solana':
+      return {
+        address: generateRandomString(lengths.address, BASE58_CHARS),
+        privateKey: generateRandomString(lengths.privateKey, HEX_CHARS),
+        publicKey: generateRandomString(lengths.publicKey, HEX_CHARS),
+      };
+    case 'ethereum':
+      return {
+        address: '0x' + generateRandomString(lengths.address, HEX_CHARS),
+        privateKey: generateRandomString(lengths.privateKey, HEX_CHARS),
+        publicKey: generateRandomString(lengths.publicKey, HEX_CHARS),
+      };
+    case 'ton':
+      return {
+        address: 'EQ' + generateRandomString(lengths.address, BASE58_CHARS),
+        privateKey: generateRandomString(lengths.privateKey, HEX_CHARS),
+        publicKey: generateRandomString(lengths.publicKey, HEX_CHARS),
+      };
+  }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { userId, blockchainType, password } = await req.json()
+    const { userId, blockchainType, password } = await req.json();
+    const supabaseClient = getSupabaseServiceClient();
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Simple wallet generation (in production, use proper blockchain libraries)
-    const generateWallet = (blockchain: string) => {
-      const generateRandomHex = (length: number) => {
-        const chars = '0123456789abcdef';
-        let result = '';
-        for (let i = 0; i < length; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-      };
-
-      const generateRandomBase58 = (length: number) => {
-        const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-        let result = '';
-        for (let i = 0; i < length; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-      };
-
-      switch (blockchain) {
-        case 'solana':
-          return {
-            address: generateRandomBase58(44),
-            privateKey: generateRandomHex(64),
-            publicKey: generateRandomHex(64),
-          };
-        case 'ethereum':
-          return {
-            address: '0x' + generateRandomHex(40),
-            privateKey: generateRandomHex(64),
-            publicKey: generateRandomHex(128),
-          };
-        case 'ton':
-          return {
-            address: 'EQ' + generateRandomBase58(46),
-            privateKey: generateRandomHex(64),
-            publicKey: generateRandomHex(64),
-          };
-        default:
-          throw new Error('Unsupported blockchain type');
-      }
-    };
-
-    // Generate wallet
     const walletData = generateWallet(blockchainType);
-    
-    // Simple encryption (use proper encryption in production)
     const encryptedPrivateKey = btoa(walletData.privateKey + '|' + password);
 
-    // Create wallet using secure function with operation context
-    const { data: walletId, error: walletError } = await supabaseClient
+    const { error: walletError } = await supabaseClient
       .rpc('create_wallet_with_context', {
         target_user_id: userId,
         wallet_address_param: walletData.address,
@@ -84,7 +71,6 @@ serve(async (req) => {
 
     if (walletError) throw walletError;
 
-    // Get the created wallet data (without private key)
     const { data: wallet, error: getWalletError } = await supabaseClient
       .rpc('get_user_wallet_safe', { target_user_id: userId });
 
@@ -94,12 +80,10 @@ serve(async (req) => {
 
     const walletRecord = wallet[0];
 
-    // Generate unique token
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
     const tokenId = `${blockchainType.toUpperCase()}_${walletData.address.substring(0, 8)}_${timestamp}_${random}`;
 
-    // Create blockchain token
     const { data: token, error: tokenError } = await supabaseClient
       .from('blockchain_tokens')
       .insert({
@@ -118,26 +102,14 @@ serve(async (req) => {
 
     if (tokenError) throw tokenError;
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        wallet: walletRecord,
-        token: token
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
+    return jsonResponse({
+      success: true,
+      wallet: walletRecord,
+      token
+    });
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      },
-    )
+    return errorResponse(errorMessage, HTTP_STATUS.BAD_REQUEST);
   }
-})
+});

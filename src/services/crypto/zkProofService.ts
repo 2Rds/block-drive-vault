@@ -12,8 +12,13 @@
  * This ensures critical bytes are never stored locally or on-chain in usable form.
  */
 
-import { sha256, sha256Bytes, bytesToBase64, base64ToBytes, bytesToHex, randomBytes, concatBytes } from './cryptoUtils';
+import { sha256, bytesToBase64, base64ToBytes, randomBytes, concatBytes } from './cryptoUtils';
 import { snarkjsService, Groth16ProofPackage, Groth16Proof } from './snarkjsService';
+
+// Constants for payload structure
+const CRITICAL_BYTES_LENGTH = 16;
+const FILE_IV_LENGTH = 12;
+const ENCRYPTION_IV_LENGTH = 12;
 
 /**
  * ZK Proof structure that gets uploaded to storage
@@ -87,6 +92,28 @@ class ZKProofService {
   private circuitVersion = '1.0.0';
 
   /**
+   * Build the content object used for proof hash computation.
+   * Centralizes the hash content structure for consistency.
+   */
+  private buildProofHashContent(proofPackage: AnyZKProofPackage): string {
+    if (proofPackage.version === 2) {
+      return JSON.stringify({
+        commitment: proofPackage.commitment,
+        groth16Proof: proofPackage.groth16Proof,
+        publicSignals: proofPackage.publicSignals,
+        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+        proofTimestamp: proofPackage.proofTimestamp
+      });
+    }
+    // V1 legacy format
+    return JSON.stringify({
+      commitment: proofPackage.commitment,
+      encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
+      proofTimestamp: proofPackage.proofTimestamp
+    });
+  }
+
+  /**
    * Generate a ZK proof package for the critical bytes
    * Uses Groth16 circuits when available, falls back to simulated
    */
@@ -120,7 +147,7 @@ class ZKProofService {
     }
 
     // Generate IV for encrypting critical bytes
-    const encryptionIv = randomBytes(12);
+    const encryptionIv = randomBytes(ENCRYPTION_IV_LENGTH);
 
     // Create payload: critical bytes + file IV
     const payload = concatBytes(criticalBytes, fileIv);
@@ -155,14 +182,9 @@ class ZKProofService {
     };
 
     // Compute proof hash for integrity verification
-    const proofContentForHash = JSON.stringify({
-      commitment: proofPackage.commitment,
-      groth16Proof: proofPackage.groth16Proof,
-      publicSignals: proofPackage.publicSignals,
-      encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-      proofTimestamp: proofPackage.proofTimestamp
-    });
-    proofPackage.proofHash = await sha256(new TextEncoder().encode(proofContentForHash));
+    proofPackage.proofHash = await sha256(
+      new TextEncoder().encode(this.buildProofHashContent(proofPackage))
+    );
 
     console.log(`[ZKProof] Generated ${proofType} proof with commitment:`, commitment.slice(0, 16) + '...');
 
@@ -214,34 +236,19 @@ class ZKProofService {
     }
 
     // Step 2: Verify proof hash integrity
-    let proofContentForHash: string;
-    
-    if (proofPackage.version === 2) {
-      proofContentForHash = JSON.stringify({
-        commitment: proofPackage.commitment,
-        groth16Proof: proofPackage.groth16Proof,
-        publicSignals: proofPackage.publicSignals,
-        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-        proofTimestamp: proofPackage.proofTimestamp
-      });
+    const computedHash = await sha256(
+      new TextEncoder().encode(this.buildProofHashContent(proofPackage))
+    );
 
-      // Step 2.5: Verify Groth16 proof if available
-      if (proofPackage.groth16Proof && proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
-        const groth16Valid = await this.verifyGroth16Proof(proofPackage);
-        if (!groth16Valid) {
-          throw new Error('Groth16 cryptographic verification failed');
-        }
+    // Step 2.5: Verify Groth16 proof if available (v2 only)
+    if (proofPackage.version === 2 &&
+        proofPackage.groth16Proof &&
+        proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
+      const groth16Valid = await this.verifyGroth16Proof(proofPackage);
+      if (!groth16Valid) {
+        throw new Error('Groth16 cryptographic verification failed');
       }
-    } else {
-      // V1 legacy format
-      proofContentForHash = JSON.stringify({
-        commitment: proofPackage.commitment,
-        encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-        proofTimestamp: proofPackage.proofTimestamp
-      });
     }
-
-    const computedHash = await sha256(new TextEncoder().encode(proofContentForHash));
     
     if (computedHash !== proofPackage.proofHash) {
       throw new Error('Proof integrity verification failed - data may be tampered');
@@ -262,10 +269,10 @@ class ZKProofService {
       );
 
       const payload = new Uint8Array(decryptedPayload);
-      
-      // First 16 bytes are critical bytes, next 12 are file IV
-      const criticalBytes = payload.slice(0, 16);
-      const fileIv = payload.slice(16, 28);
+
+      // Extract critical bytes and file IV from payload
+      const criticalBytes = payload.slice(0, CRITICAL_BYTES_LENGTH);
+      const fileIv = payload.slice(CRITICAL_BYTES_LENGTH, CRITICAL_BYTES_LENGTH + FILE_IV_LENGTH);
 
       // Step 4: Verify extracted bytes match commitment
       const extractedCommitment = await sha256(criticalBytes);
@@ -349,32 +356,17 @@ class ZKProofService {
    */
   async verifyProofIntegrity(proofPackage: AnyZKProofPackage): Promise<boolean> {
     try {
-      let proofContentForHash: string;
-      
-      if (proofPackage.version === 2) {
-        proofContentForHash = JSON.stringify({
-          commitment: proofPackage.commitment,
-          groth16Proof: proofPackage.groth16Proof,
-          publicSignals: proofPackage.publicSignals,
-          encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-          proofTimestamp: proofPackage.proofTimestamp
-        });
-      } else {
-        proofContentForHash = JSON.stringify({
-          commitment: proofPackage.commitment,
-          encryptedCriticalBytes: proofPackage.encryptedCriticalBytes,
-          proofTimestamp: proofPackage.proofTimestamp
-        });
-      }
-      
-      const computedHash = await sha256(new TextEncoder().encode(proofContentForHash));
-      
+      const computedHash = await sha256(
+        new TextEncoder().encode(this.buildProofHashContent(proofPackage))
+      );
+
       if (computedHash !== proofPackage.proofHash) {
         return false;
       }
 
       // For v2 proofs, also verify Groth16 if real circuits were used
-      if (proofPackage.version === 2 && proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
+      if (proofPackage.version === 2 &&
+          proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Groth16') {
         return await this.verifyGroth16Proof(proofPackage);
       }
 

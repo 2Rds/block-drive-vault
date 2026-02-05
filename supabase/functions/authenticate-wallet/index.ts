@@ -1,58 +1,44 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from '../_shared/cors.ts';
+import { jsonResponse, errorResponse, handleCors } from '../_shared/response.ts';
+import { HTTP_STATUS } from '../_shared/constants.ts';
+import { getSupabaseServiceClient } from '../_shared/auth.ts';
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const PGRST116_NOT_FOUND = 'PGRST116';
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return new Response('ok', { headers: corsHeaders });
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const { walletAddress, signature, message, blockchainType = 'solana' } = await req.json()
+    const supabaseClient = getSupabaseServiceClient();
+    const { walletAddress, signature, message, blockchainType = 'solana' } = await req.json();
 
     if (!walletAddress || !signature || !message) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: walletAddress, signature, message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return errorResponse('Missing required fields: walletAddress, signature, message', HTTP_STATUS.BAD_REQUEST);
     }
 
-    console.log('Authenticating wallet:', walletAddress)
+    console.log('Authenticating wallet:', walletAddress);
 
-    // Check if wallet already has an authentication token
     const { data: existingToken, error: tokenError } = await supabaseClient
       .from('wallet_auth_tokens')
       .select('*')
       .eq('wallet_address', walletAddress)
       .eq('blockchain_type', blockchainType)
       .eq('is_active', true)
-      .single()
+      .single();
 
-    if (tokenError && tokenError.code !== 'PGRST116') {
-      console.error('Error checking existing token:', tokenError)
-      return new Response(
-        JSON.stringify({ error: 'Database error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (tokenError && tokenError.code !== PGRST116_NOT_FOUND) {
+      console.error('Error checking existing token:', tokenError);
+      return errorResponse('Database error', HTTP_STATUS.INTERNAL_ERROR);
     }
 
-    let authToken = existingToken?.auth_token
-    let isFirstTime = !existingToken
+    let authToken = existingToken?.auth_token;
+    const isFirstTime = !existingToken;
 
-    // Generate new token for first-time wallets
     if (isFirstTime) {
-      authToken = crypto.randomUUID()
-      
+      authToken = crypto.randomUUID();
+
       const { error: insertError } = await supabaseClient
         .from('wallet_auth_tokens')
         .insert({
@@ -60,64 +46,48 @@ serve(async (req) => {
           blockchain_type: blockchainType,
           auth_token: authToken,
           is_active: true
-        })
+        });
 
       if (insertError) {
-        console.error('Error creating wallet token:', insertError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to create wallet authentication token' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        console.error('Error creating wallet token:', insertError);
+        return errorResponse('Failed to create wallet authentication token', HTTP_STATUS.INTERNAL_ERROR);
       }
 
-      console.log('Created new wallet token for:', walletAddress)
+      console.log('Created new wallet token for:', walletAddress);
     } else {
-      // Update last login time for existing wallet
       const { error: updateError } = await supabaseClient
         .from('wallet_auth_tokens')
         .update({ last_login_at: new Date().toISOString() })
         .eq('wallet_address', walletAddress)
-        .eq('blockchain_type', blockchainType)
+        .eq('blockchain_type', blockchainType);
 
       if (updateError) {
-        console.error('Error updating last login:', updateError)
+        console.error('Error updating last login:', updateError);
       }
 
-      console.log('Updated last login for existing wallet:', walletAddress)
+      console.log('Updated last login for existing wallet:', walletAddress);
     }
 
-    // Create a custom JWT token for this wallet
-    // Note: signInWithIdToken with 'custom' provider doesn't support data in options
-    // We use a workaround by storing the wallet info separately
     const { data: { user }, error: signInError } = await supabaseClient.auth.signInWithIdToken({
-      provider: 'custom' as any,
-      token: authToken,
-    })
+      provider: 'custom' as Parameters<typeof supabaseClient.auth.signInWithIdToken>[0]['provider'],
+      token: authToken!,
+    });
 
     if (signInError) {
-      console.error('Error signing in with token:', signInError)
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.error('Error signing in with token:', signInError);
+      return errorResponse('Authentication failed', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        isFirstTime,
-        authToken,
-        walletAddress,
-        user: user
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonResponse({
+      success: true,
+      isFirstTime,
+      authToken,
+      walletAddress,
+      user
+    });
 
   } catch (error) {
-    console.error('Wallet authentication error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error('Wallet authentication error:', error);
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR);
   }
-})
+});

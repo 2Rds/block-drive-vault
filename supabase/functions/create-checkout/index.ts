@@ -1,178 +1,109 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { jsonResponse, errorResponse, handleCors } from "../_shared/response.ts";
+import { HTTP_STATUS, WALLET_ADDRESS_PATTERNS } from "../_shared/constants.ts";
+import { getSupabaseServiceClient, getSupabaseClient, extractBearerToken } from "../_shared/auth.ts";
+import { getStripeCustomerByEmail, createCheckoutSession } from "../_shared/stripe.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const log = createLogger('CREATE-CHECKOUT');
 
-const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
-};
+// Legacy payment links to price ID mapping (deprecated)
+const PAYMENT_LINK_TO_PRICE_ID: Record<string, string> = {};
 
-/**
- * Helper to get customer from synced stripe.customers table
- * Falls back to Stripe API if customer not found in sync
- */
-async function getCustomerFromSync(
-  supabase: ReturnType<typeof createClient>,
-  email: string,
-  stripeKey: string
-): Promise<{ customerId: string | null; fromSync: boolean }> {
-  try {
-    // Try synced table first (faster, no API quota)
-    const { data: syncedCustomer, error } = await supabase
-      .rpc('get_stripe_customer_by_email', { customer_email: email });
+// Valid Stripe price IDs (created 2026-02-04)
+const VALID_PRICE_IDS = [
+  // Pro tier
+  'price_1SxJG0CXWi8NqmFCwwspKiz5', // Pro Monthly $9
+  'price_1SxJG0CXWi8NqmFCBCgGULcp', // Pro Quarterly $24
+  'price_1SxJG0CXWi8NqmFCT5dNX0or', // Pro Annual $89
+  // Power tier
+  'price_1SxJG1CXWi8NqmFCP3CJ1SSA', // Power Monthly $49
+  'price_1SxJG1CXWi8NqmFCYgrLZOwT', // Power Quarterly $134
+  'price_1SxJG1CXWi8NqmFCLaDwUoUY', // Power Annual $499
+  // Scale tier (per seat)
+  'price_1SxJG2CXWi8NqmFCKYtf8mRC', // Scale Monthly $29/seat
+  'price_1SxJG2CXWi8NqmFCCWJLv7Ed', // Scale Quarterly $79/seat
+  'price_1SxJG2CXWi8NqmFCk7yinOnh', // Scale Annual $299/seat
+];
 
-    if (!error && syncedCustomer && syncedCustomer.length > 0) {
-      logStep("Customer loaded from sync table", { email, customerId: syncedCustomer[0].id });
-      return { customerId: syncedCustomer[0].id, fromSync: true };
-    }
-
-    logStep("Customer not in sync table, checking Stripe API", { email });
-  } catch (err) {
-    logStep("Sync table query failed, falling back to API", { error: err });
-  }
-
-  // Fall back to Stripe API
-  const customersResponse = await fetch(
-    `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=1`,
-    {
-      headers: {
-        'Authorization': `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
-
-  if (!customersResponse.ok) {
-    logStep("Stripe API error during customer lookup", { status: customersResponse.status });
-    return { customerId: null, fromSync: false };
-  }
-
-  const customersData = await customersResponse.json();
-  if (customersData.data.length > 0) {
-    logStep("Customer found via Stripe API", { customerId: customersData.data[0].id });
-    return { customerId: customersData.data[0].id, fromSync: false };
-  }
-
-  return { customerId: null, fromSync: false };
-}
+const PRO_TRIAL_DAYS = 7;
+const SCALE_MIN_SEATS = 2;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    logStep("Function started");
+    log("Function started");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      logStep("No authorization header found");
-      return new Response(JSON.stringify({ error: "No authorization header provided" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
+    // Parse request body first to check for Clerk user ID
+    const body = await req.json();
+    const { priceId, tier, hasTrial, clerkUserId } = body;
 
-    const token = authHeader.replace("Bearer ", "");
-    logStep("Processing auth token", { tokenPrefix: token.substring(0, 10) + "..." });
-    
-    // For wallet-based auth, we need to extract user info from the token
-    // The token format is the user ID for wallet authentication
-    let userEmail;
-    let userId = token;
-    
-    // Check if this is a wallet authentication token (UUID format)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
-    if (uuidRegex.test(token)) {
-      // This is a wallet auth token (user ID)
-      logStep("Wallet authentication detected", { userId });
-      userEmail = `${userId}@blockdrive.wallet`;
+    let userEmail: string;
+    let userId: string;
+
+    // If Clerk user ID is provided in body, use it (for Clerk-authenticated users)
+    if (clerkUserId) {
+      userId = clerkUserId;
+      // Clerk users will provide email during Stripe checkout
+      // Use a placeholder that will be updated by Stripe
+      userEmail = `${clerkUserId}@clerk.placeholder`;
+      log("Clerk user ID provided", { userId, clerkUserId });
     } else {
-      // Try standard Supabase auth
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-      );
-      
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      
-      if (userError || !userData.user) {
-        logStep("Standard auth failed, treating as wallet auth", { error: userError?.message });
-        userId = token;
+      // Fall back to token-based authentication
+      const token = extractBearerToken(req);
+      if (!token) {
+        log("No authorization header found and no Clerk user ID");
+        return errorResponse("No authorization provided", HTTP_STATUS.UNAUTHORIZED);
+      }
+
+      log("Processing auth token", { tokenPrefix: token.substring(0, 10) + "..." });
+      userId = token;
+
+      if (WALLET_ADDRESS_PATTERNS.UUID.test(token)) {
+        log("Wallet authentication detected", { userId });
         userEmail = `${userId}@blockdrive.wallet`;
       } else {
-        userId = userData.user.id;
-        userEmail = userData.user.email;
-        logStep("Standard authentication successful", { userId, email: userEmail });
+        const supabaseClient = getSupabaseClient();
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+
+        if (userError || !userData.user) {
+          log("Standard auth failed, treating as wallet auth", { error: userError?.message });
+          userEmail = `${userId}@blockdrive.wallet`;
+        } else {
+          userId = userData.user.id;
+          userEmail = userData.user.email || `${userId}@blockdrive.wallet`;
+          log("Standard authentication successful", { userId, email: userEmail });
+        }
       }
     }
-    
-    if (!userEmail) {
-      logStep("No user email available");
-      return new Response(JSON.stringify({ error: "User email not available" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
+    log("Request body parsed", { priceId, tier, hasTrial });
+
+    const actualPriceId = PAYMENT_LINK_TO_PRICE_ID[priceId] || priceId;
+
+    // Price validation - allow any price ID that starts with 'price_' (Stripe format)
+    // This allows new prices to work without redeploying the edge function
+    if (!actualPriceId.startsWith('price_')) {
+      log("Invalid price ID format", { priceId, actualPriceId });
+      return errorResponse(`Invalid price ID format: ${actualPriceId}`, HTTP_STATUS.BAD_REQUEST);
     }
-
-    const { priceId, tier, hasTrial } = await req.json();
-    logStep("Request body parsed", { priceId, tier, hasTrial });
-
-    // Map payment links to actual Stripe price IDs
-    const paymentLinkToPriceId: { [key: string]: string } = {
-      'https://pay.blockdrive.co/b/00wbJ0261fixdp59YG2VG07': 'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
-      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzq8bM3': 'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
-      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzr9cM4': 'price_1RfrEICXWi8NqmFChG0fYrRy', // Growth
-      'https://pay.blockdrive.co/b/00waIQeAKaLqx82Fzs0dM5': 'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Scale
-    };
-
-    const actualPriceId = paymentLinkToPriceId[priceId] || priceId;
-    
-    const validPriceIds = [
-      'price_1RfquDCXWi8NqmFCLUCGHtkZ', // Starter
-      'price_1Rfr9KCXWi8NqmFCoglqEMRH', // Pro
-      'price_1RfrEICXWi8NqmFChG0fYrRy', // Growth
-      'price_1RfrzdCXWi8NqmFCzAJZnHjF'  // Scale
-    ];
-
-    if (!validPriceIds.includes(actualPriceId)) {
-      logStep("Invalid price ID", { priceId, actualPriceId });
-      return new Response(JSON.stringify({ error: `Invalid price ID: ${actualPriceId}` }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
+    log("Price ID validated", { priceId: actualPriceId });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
-      logStep("Stripe secret key not configured");
-      return new Response(JSON.stringify({ error: "Stripe configuration error" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
+      log("Stripe secret key not configured");
+      return errorResponse("Stripe configuration error", HTTP_STATUS.INTERNAL_ERROR);
     }
 
-    // For wallet users, we need to collect their email during checkout
     const isWalletUser = userEmail.endsWith('@blockdrive.wallet');
-    let realUserEmail = userEmail;
-    let customerId;
+    const isClerkUser = userEmail.endsWith('@clerk.placeholder');
+    const supabaseService = getSupabaseServiceClient();
+    let customerId: string | undefined;
 
-    // Use service role client for synced table access
-    const supabaseService = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    if (!isWalletUser) {
-      // Check if customer exists - try synced table first, fall back to API
-      const { customerId: foundCustomerId, fromSync } = await getCustomerFromSync(
+    // For regular users (not wallet or Clerk), try to find existing Stripe customer
+    if (!isWalletUser && !isClerkUser) {
+      const { customerId: foundCustomerId, fromSync } = await getStripeCustomerByEmail(
         supabaseService,
         userEmail,
         stripeKey
@@ -180,74 +111,62 @@ serve(async (req) => {
 
       if (foundCustomerId) {
         customerId = foundCustomerId;
-        logStep("Existing customer found", { customerId, fromSync });
+        log("Existing customer found", { customerId, fromSync });
       } else {
-        logStep("No existing customer, will create during checkout");
+        log("No existing customer, will create during checkout");
       }
+    } else if (isClerkUser) {
+      log("Clerk user detected, will collect email during checkout");
     } else {
-      logStep("Wallet user detected, will collect email during checkout");
+      log("Wallet user detected, will collect email during checkout");
     }
 
-    // Create checkout session using Stripe REST API
+    const origin = req.headers.get("origin") || "http://localhost:3000";
+
+    // Scale tier requires minimum 2 seats
+    const isScaleTier = tier?.toLowerCase() === 'scale';
+    const quantity = isScaleTier ? SCALE_MIN_SEATS : 1;
+    if (isScaleTier) {
+      log("Scale tier detected, enforcing minimum seats", { quantity: SCALE_MIN_SEATS });
+    }
+
     const sessionData = new URLSearchParams({
       'line_items[0][price]': actualPriceId,
-      'line_items[0][quantity]': '1',
+      'line_items[0][quantity]': String(quantity),
       'mode': 'subscription',
-      'success_url': `${req.headers.get("origin")}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      'cancel_url': `${req.headers.get("origin")}/pricing`,
+      'success_url': `${origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
+      'cancel_url': `${origin}/pricing`,
+      'allow_promotion_codes': 'true',
+      // Session metadata (for verification)
       'metadata[user_id]': userId,
       'metadata[tier]': tier,
       'metadata[wallet_user]': isWalletUser ? 'true' : 'false',
+      // Subscription metadata (persists with the subscription)
+      'subscription_data[metadata][tier]': tier,
+      'subscription_data[metadata][user_id]': userId,
     });
 
     if (customerId) {
       sessionData.append('customer', customerId);
+    } else if (isWalletUser || isClerkUser) {
+      // For wallet and Clerk users, let Stripe collect email during checkout
+      sessionData.append('billing_address_collection', 'required');
     } else {
-      // For wallet users, we need to collect email and let Stripe auto-create customer
-      // For regular users, we set the email directly
-      if (isWalletUser) {
-        // Don't set customer_email for wallet users - let them enter it during checkout
-        // Stripe will automatically create the customer when the subscription is created
-        sessionData.append('billing_address_collection', 'required');
-      } else {
-        sessionData.append('customer_email', realUserEmail);
-      }
+      sessionData.append('customer_email', userEmail);
     }
 
-    // Add trial period for Starter tier
-    if (hasTrial && tier === 'Starter') {
-      sessionData.append('subscription_data[trial_period_days]', '7');
-      logStep("Added 7-day trial period for Starter tier");
+    if (hasTrial && tier === 'Pro') {
+      sessionData.append('subscription_data[trial_period_days]', String(PRO_TRIAL_DAYS));
+      log("Added trial period for Pro tier", { days: PRO_TRIAL_DAYS });
     }
 
-    const sessionResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: sessionData,
-    });
+    const session = await createCheckoutSession(stripeKey, sessionData);
+    log("Checkout session created", { sessionId: session.id, url: session.url });
 
-    if (!sessionResponse.ok) {
-      const errorData = await sessionResponse.json();
-      throw new Error(`Stripe checkout error: ${JSON.stringify(errorData)}`);
-    }
-
-    const session = await sessionResponse.json();
-
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return jsonResponse({ url: session.url });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in create-checkout", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    log("ERROR in create-checkout", { message: errorMessage });
+    return errorResponse(errorMessage, HTTP_STATUS.INTERNAL_ERROR);
   }
 });

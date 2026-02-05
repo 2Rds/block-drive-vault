@@ -1,29 +1,58 @@
-
 import { useState } from 'react';
-import { Search, Bell, User, Wallet, LogOut, LogIn, Users, Crown } from 'lucide-react';
+import { Search, Bell, User, Wallet, LogOut, LogIn, Crown, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { OrganizationSwitcher, useOrganization } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PricingButton } from '@/components/PricingButton';
 import { MembershipBadge } from '@/components/membership/MembershipBadge';
 
-export const Header = () => {
+// Tiers that support team/organization features
+const TEAM_ENABLED_TIERS = ['scale', 'growth', 'business', 'enterprise'];
+
+// Common dropdown menu item style
+const DROPDOWN_ITEM_CLASS = "text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white";
+
+// Organization switcher appearance configuration
+const ORG_SWITCHER_APPEARANCE = {
+  elements: {
+    rootBox: "ml-2",
+    organizationSwitcherTrigger:
+      "px-3 py-2 rounded-xl border border-gray-600 bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white transition-all",
+    organizationPreviewMainIdentifier: "text-white",
+    organizationPreviewSecondaryIdentifier: "text-gray-400",
+    organizationSwitcherTriggerIcon: "text-gray-400",
+  },
+};
+
+// Get display name with fallbacks: username > firstName > email prefix > 'User'
+function getDisplayName(user: any): string {
+  if (!user) return 'User';
+  const metadata = user.user_metadata;
+  if (metadata?.username) return metadata.username;
+  if (metadata?.first_name) return metadata.first_name;
+  if (user.email) return user.email.split('@')[0];
+  return 'User';
+}
+
+export function Header(): JSX.Element {
   const { user, signOut } = useAuth();
+  const { subscriptionStatus } = useSubscriptionStatus();
+  const { organization, membership } = useOrganization();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Get display name with fallbacks: username > firstName > email prefix > 'User'
-  const getDisplayName = () => {
-    if (!user) return 'User';
-    const metadata = user.user_metadata;
-    if (metadata?.username) return metadata.username;
-    if (metadata?.first_name) return metadata.first_name;
-    if (user.email) return user.email.split('@')[0];
-    return 'User';
-  };
-  const displayName = getDisplayName();
+  // Check if user has a team-enabled subscription tier
+  const subscriptionTier = subscriptionStatus?.subscription_tier?.toLowerCase() || 'free';
+  const hasTeamTier = TEAM_ENABLED_TIERS.includes(subscriptionTier);
+
+  // Check if user can manage the current organization (admin or owner)
+  const canManageOrganization = membership?.role === 'org:admin' || membership?.role === 'org:owner';
+
+  const displayName = getDisplayName(user);
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -69,11 +98,22 @@ export const Header = () => {
               <MembershipBadge variant="compact" />
               
               <PricingButton variant="outline" size="sm" className="text-purple-400 border-purple-400 hover:bg-purple-600 hover:text-white" />
-              
+
+              {/* Organization Switcher - only shown for team-enabled tiers */}
+              {hasTeamTier && (
+                <OrganizationSwitcher
+                  hidePersonal={false}
+                  afterCreateOrganizationUrl="/dashboard"
+                  afterLeaveOrganizationUrl="/dashboard"
+                  afterSelectOrganizationUrl="/dashboard"
+                  appearance={ORG_SWITCHER_APPEARANCE}
+                />
+              )}
+
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl">
                 <Bell className="w-5 h-5" />
               </Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-xl px-3 py-2">
@@ -95,35 +135,32 @@ export const Header = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-600" />
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
-                    onClick={() => navigate('/teams')}
-                  >
-                    <div className="flex items-center">
-                      <Users className="mr-3 h-4 w-4" />
-                      <span>Teams</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
+                  {/* Team Settings - only shown when in an org and user is admin */}
+                  {organization && canManageOrganization && (
+                    <DropdownMenuItem
+                      className={DROPDOWN_ITEM_CLASS}
+                      onClick={() => navigate('/team-settings')}
+                    >
+                      <Settings className="mr-3 h-4 w-4" />
+                      <span>Team Settings</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className={DROPDOWN_ITEM_CLASS}
                     onClick={() => navigate('/membership')}
                   >
-                    <div className="flex items-center">
-                      <Crown className="mr-3 h-4 w-4" />
-                      <span>Membership</span>
-                    </div>
+                    <Crown className="mr-3 h-4 w-4" />
+                    <span>Membership</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" 
+                  <DropdownMenuItem
+                    className={DROPDOWN_ITEM_CLASS}
                     onClick={() => navigate('/account')}
                   >
-                    <div className="flex items-center">
-                      <User className="mr-3 h-4 w-4" />
-                      <span>Account</span>
-                    </div>
+                    <User className="mr-3 h-4 w-4" />
+                    <span>Account</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-600" />
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg hover:text-white" onClick={handleSignOut} disabled={isLoading}>
+                  <DropdownMenuItem className={DROPDOWN_ITEM_CLASS} onClick={handleSignOut} disabled={isLoading}>
                     <LogOut className="mr-3 h-4 w-4" />
                     <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
                   </DropdownMenuItem>

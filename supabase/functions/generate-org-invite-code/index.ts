@@ -1,17 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface GenerateInviteCodeRequest {
-  organizationId: string;
-  maxUses?: number | null;
-  expiresInDays?: number | null;
-  defaultRole?: "member" | "admin";
-}
+import { jsonResponse, handleCors } from "../_shared/response.ts";
+import { HTTP_STATUS, WALLET_ADDRESS_PATTERNS } from "../_shared/constants.ts";
+import { getSupabaseServiceClient, getSupabaseClient, extractBearerToken } from "../_shared/auth.ts";
 
 interface GenerateInviteCodeResponse {
   success: boolean;
@@ -20,26 +10,23 @@ interface GenerateInviteCodeResponse {
   error?: string;
 }
 
+const ADMIN_ROLES = ["admin", "owner"];
+
+function createResponse(data: GenerateInviteCodeResponse, status = HTTP_STATUS.OK): Response {
+  return jsonResponse(data, status);
+}
+
 serve(async (req) => {
-  // Handle CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "No authorization header provided",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
+    const token = extractBearerToken(req);
+    if (!token) {
+      return createResponse({
+        success: false,
+        error: "No authorization header provided",
+      }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     const {
@@ -47,76 +34,35 @@ serve(async (req) => {
       maxUses = null,
       expiresInDays = null,
       defaultRole = "member",
-    }: GenerateInviteCodeRequest = await req.json();
+    } = await req.json();
 
     if (!organizationId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Organization ID is required",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
+      return createResponse({
+        success: false,
+        error: "Organization ID is required",
+      }, HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Initialize Supabase clients
-    const supabaseAuthClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    );
+    const supabaseAuthClient = getSupabaseClient();
+    const supabaseClient = getSupabaseServiceClient();
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    );
-
-    // Authenticate user
-    const token = authHeader.replace("Bearer ", "");
     let clerkUserId: string;
-
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+    const isUUID = WALLET_ADDRESS_PATTERNS.UUID.test(token);
 
     if (isUUID) {
       clerkUserId = token;
     } else {
       const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-
-      if (userError || !user) {
-        clerkUserId = token;
-      } else {
-        clerkUserId = user.id;
-      }
+      clerkUserId = (userError || !user) ? token : user.id;
     }
 
     if (!clerkUserId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Authentication failed",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
+      return createResponse({
+        success: false,
+        error: "Authentication failed",
+      }, HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Check if user is admin/owner of the organization
     const { data: membership, error: membershipError } = await supabaseClient
       .from("organization_members")
       .select("role")
@@ -125,32 +71,19 @@ serve(async (req) => {
       .single();
 
     if (membershipError || !membership) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "You are not a member of this organization",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403,
-        }
-      );
+      return createResponse({
+        success: false,
+        error: "You are not a member of this organization",
+      }, HTTP_STATUS.FORBIDDEN);
     }
 
-    if (!["admin", "owner"].includes(membership.role)) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Only admins and owners can generate invite codes",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403,
-        }
-      );
+    if (!ADMIN_ROLES.includes(membership.role)) {
+      return createResponse({
+        success: false,
+        error: "Only admins and owners can generate invite codes",
+      }, HTTP_STATUS.FORBIDDEN);
     }
 
-    // Generate the invite code using database function
     const { data: code, error: codeError } = await supabaseClient.rpc(
       "generate_invite_code",
       {
@@ -164,19 +97,12 @@ serve(async (req) => {
 
     if (codeError) {
       console.error("[generate-org-invite-code] Database error:", codeError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Failed to generate invite code",
-        } as GenerateInviteCodeResponse),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        }
-      );
+      return createResponse({
+        success: false,
+        error: "Failed to generate invite code",
+      }, HTTP_STATUS.INTERNAL_ERROR);
     }
 
-    // Calculate expiry date for response
     let expiresAt: string | null = null;
     if (expiresInDays) {
       const expiry = new Date();
@@ -184,28 +110,16 @@ serve(async (req) => {
       expiresAt = expiry.toISOString();
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        code,
-        expiresAt,
-      } as GenerateInviteCodeResponse),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    return createResponse({
+      success: true,
+      code,
+      expiresAt,
+    });
   } catch (error) {
     console.error("[generate-org-invite-code] Error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      } as GenerateInviteCodeResponse),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    return createResponse({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    }, HTTP_STATUS.INTERNAL_ERROR);
   }
 });

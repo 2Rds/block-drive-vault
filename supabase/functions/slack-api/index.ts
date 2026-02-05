@@ -1,74 +1,45 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+import { jsonResponse, errorResponse, handleCors } from '../_shared/response.ts';
+import { HTTP_STATUS, SLACK_API_BASE } from '../_shared/constants.ts';
+import { getSupabaseServiceClient, getSupabaseClient, extractBearerToken } from '../_shared/auth.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseService = getSupabaseServiceClient();
+    const authClient = getSupabaseClient();
 
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: corsHeaders }
-      );
+    const token = extractBearerToken(req);
+    if (!token) {
+      return errorResponse('No authorization header', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Validate JWT with auth client
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    );
-    
     const { data: { user }, error: userError } = await authClient.auth.getUser(token);
-    
+
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: corsHeaders }
-      );
+      return errorResponse('Invalid authentication', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Get user's Slack token
-    const { data: tokenData, error: tokenError } = await supabaseClient
+    const { data: tokenData, error: tokenError } = await supabaseService
       .from('slack_tokens')
       .select('access_token')
       .eq('user_id', user.id)
       .single();
 
     if (tokenError || !tokenData) {
-      return new Response(
-        JSON.stringify({ error: 'Slack not connected' }),
-        { status: 401, headers: corsHeaders }
-      );
+      return errorResponse('Slack not connected', HTTP_STATUS.UNAUTHORIZED);
     }
 
     const { endpoint, method = 'GET', body: requestBody } = await req.json();
-    
+
     if (!endpoint) {
-      return new Response(
-        JSON.stringify({ error: 'Missing endpoint' }),
-        { status: 400, headers: corsHeaders }
-      );
+      return errorResponse('Missing endpoint', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Make request to Slack API
-    const slackResponse = await fetch(`https://slack.com/api/${endpoint}`, {
+    const slackResponse = await fetch(`${SLACK_API_BASE}/${endpoint}`, {
       method,
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -78,17 +49,10 @@ serve(async (req) => {
     });
 
     const slackData = await slackResponse.json();
-
-    return new Response(
-      JSON.stringify(slackData),
-      { headers: corsHeaders }
-    );
+    return jsonResponse(slackData);
 
   } catch (error) {
     console.error('Slack API error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
-    );
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR);
   }
 });

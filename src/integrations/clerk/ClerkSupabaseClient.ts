@@ -9,8 +9,16 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
  */
 export function createClerkSupabaseClient(getToken: () => Promise<string | null>) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: {},
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
     async accessToken() {
-      return await getToken() ?? null;
+      return (await getToken()) ?? null;
     },
   });
 }

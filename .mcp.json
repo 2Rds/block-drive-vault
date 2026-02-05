@@ -108,6 +108,13 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=uxwfbialyxqaduiartpu"
+    },
+    "clerk": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.clerk.com/mcp"
+      ]
     }
   }
 }

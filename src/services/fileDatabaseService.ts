@@ -2,6 +2,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { IPFSFile } from '@/types/ipfs';
 import type { Json } from '@/integrations/supabase/types';
 import type { SizeBucket } from './crypto/metadataPrivacyService';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Placeholder for encrypted filenames in v2 files
+const ENCRYPTED_FILENAME_PLACEHOLDER = '[encrypted]';
+
+// File visibility options for organization context
+export type FileVisibility = 'team' | 'private';
 
 /**
  * Privacy-enhanced file data for v2 uploads
@@ -22,6 +29,11 @@ export interface PrivacyEnhancedFileData {
 
   // Operational flags
   is_encrypted: boolean;
+
+  // Organization support (optional)
+  clerk_org_id?: string;
+  visibility?: FileVisibility;
+  owner_clerk_id?: string;
 }
 
 export class FileDatabaseService {
@@ -82,29 +94,53 @@ export class FileDatabaseService {
     ipfs_cid: string;
     ipfs_url: string;
     metadata?: any;
+    // Organization support
+    clerk_org_id?: string;
+    visibility?: FileVisibility;
+    owner_clerk_id?: string;
   }) {
     console.log('Saving file with hybrid storage data:', fileData);
-    
+
     try {
+      const insertData: Record<string, unknown> = {
+        filename: fileData.filename,
+        file_size: fileData.file_size,
+        content_type: fileData.content_type,
+        clerk_user_id: fileData.clerk_user_id,
+        storage_provider: fileData.storage_provider,
+        ipfs_cid: fileData.ipfs_cid,
+        ipfs_url: fileData.ipfs_url,
+        metadata: fileData.metadata,
+        file_path: `/${fileData.filename}`,
+        is_encrypted: false,
+        folder_path: fileData.folder_path || '/'
+      };
+
+      // Add organization fields if provided
+      if (fileData.clerk_org_id) {
+        insertData.clerk_org_id = fileData.clerk_org_id;
+      }
+      if (fileData.visibility) {
+        insertData.visibility = fileData.visibility;
+      }
+      if (fileData.owner_clerk_id) {
+        insertData.owner_clerk_id = fileData.owner_clerk_id;
+      }
+
       const { data: dbFile, error: dbError } = await supabase
         .from('files')
-        .insert({
-          ...fileData,
-          file_path: `/${fileData.filename}`,
-          is_encrypted: false,
-          folder_path: fileData.folder_path || '/'
-        })
+        .insert(insertData)
         .select()
         .single();
-      
+
       if (dbError) {
         console.error('Database error saving hybrid file:', dbError);
         throw new Error(`Failed to save file: ${dbError.message}`);
       }
-      
+
       console.log('Hybrid file saved to database:', dbFile);
       return dbFile;
-      
+
     } catch (error) {
       console.error('Error saving hybrid file:', error);
       throw error;
@@ -149,6 +185,164 @@ export class FileDatabaseService {
   }
 
   // =============================================================================
+  // Organization-Aware File Methods
+  // =============================================================================
+
+  /**
+   * Load team files visible to all organization members
+   * Requires authenticated Supabase client with org_id in JWT
+   */
+  static async loadTeamFiles(
+    client: SupabaseClient,
+    clerkOrgId: string
+  ): Promise<IPFSFile[]> {
+    const { data: files, error } = await client
+      .from('files')
+      .select('*')
+      .eq('clerk_org_id', clerkOrgId)
+      .eq('visibility', 'team')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading team files:', error);
+      throw error;
+    }
+
+    return (files || []).map(file => ({
+      id: file.id,
+      filename: file.filename,
+      cid: file.ipfs_cid || '',
+      size: file.file_size || 0,
+      contentType: file.content_type || 'application/octet-stream',
+      ipfsUrl: file.ipfs_url || '',
+      uploadedAt: file.created_at,
+      userId: file.clerk_user_id,
+      folderPath: file.folder_path,
+      metadata: file.metadata as IPFSFile['metadata'],
+      visibility: file.visibility as FileVisibility,
+      clerkOrgId: file.clerk_org_id,
+      ownerClerkId: file.owner_clerk_id,
+    }));
+  }
+
+  /**
+   * Load user's private files within an organization
+   * Only visible to the file owner
+   */
+  static async loadMyOrgFiles(
+    client: SupabaseClient,
+    clerkOrgId: string,
+    clerkUserId: string
+  ): Promise<IPFSFile[]> {
+    const { data: files, error } = await client
+      .from('files')
+      .select('*')
+      .eq('clerk_org_id', clerkOrgId)
+      .eq('visibility', 'private')
+      .eq('clerk_user_id', clerkUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading my org files:', error);
+      throw error;
+    }
+
+    return (files || []).map(file => ({
+      id: file.id,
+      filename: file.filename,
+      cid: file.ipfs_cid || '',
+      size: file.file_size || 0,
+      contentType: file.content_type || 'application/octet-stream',
+      ipfsUrl: file.ipfs_url || '',
+      uploadedAt: file.created_at,
+      userId: file.clerk_user_id,
+      folderPath: file.folder_path,
+      metadata: file.metadata as IPFSFile['metadata'],
+      visibility: file.visibility as FileVisibility,
+      clerkOrgId: file.clerk_org_id,
+      ownerClerkId: file.owner_clerk_id,
+    }));
+  }
+
+  /**
+   * Load user's personal files (no organization)
+   */
+  static async loadPersonalFiles(
+    client: SupabaseClient,
+    clerkUserId: string
+  ): Promise<IPFSFile[]> {
+    const { data: files, error } = await client
+      .from('files')
+      .select('*')
+      .is('clerk_org_id', null)
+      .eq('clerk_user_id', clerkUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading personal files:', error);
+      throw error;
+    }
+
+    return (files || []).map(file => ({
+      id: file.id,
+      filename: file.filename,
+      cid: file.ipfs_cid || '',
+      size: file.file_size || 0,
+      contentType: file.content_type || 'application/octet-stream',
+      ipfsUrl: file.ipfs_url || '',
+      uploadedAt: file.created_at,
+      userId: file.clerk_user_id,
+      folderPath: file.folder_path,
+      metadata: file.metadata as IPFSFile['metadata'],
+      visibility: file.visibility as FileVisibility | undefined,
+      clerkOrgId: undefined,
+      ownerClerkId: file.owner_clerk_id,
+    }));
+  }
+
+  /**
+   * Update file visibility (move between team/private)
+   */
+  static async updateFileVisibility(
+    client: SupabaseClient,
+    fileId: string,
+    visibility: FileVisibility
+  ): Promise<void> {
+    const { error } = await client
+      .from('files')
+      .update({ visibility })
+      .eq('id', fileId);
+
+    if (error) {
+      console.error('Error updating file visibility:', error);
+      throw new Error(`Failed to update file visibility: ${error.message}`);
+    }
+  }
+
+  /**
+   * Move a personal file to an organization
+   */
+  static async moveFileToOrg(
+    client: SupabaseClient,
+    fileId: string,
+    clerkOrgId: string,
+    visibility: FileVisibility = 'team'
+  ): Promise<void> {
+    const { error } = await client
+      .from('files')
+      .update({
+        clerk_org_id: clerkOrgId,
+        visibility
+      })
+      .eq('id', fileId);
+
+    if (error) {
+      console.error('Error moving file to org:', error);
+      throw new Error(`Failed to move file to organization: ${error.message}`);
+    }
+  }
+
+  // =============================================================================
   // Phase 4: Privacy-Enhanced Methods
   // =============================================================================
 
@@ -165,32 +359,45 @@ export class FileDatabaseService {
     });
 
     try {
+      const insertData: Record<string, unknown> = {
+        clerk_user_id: fileData.clerk_user_id,
+
+        // Plaintext fields (required for operation)
+        ipfs_cid: fileData.ipfs_cid,
+        ipfs_url: fileData.ipfs_url,
+        storage_provider: fileData.storage_provider,
+        is_encrypted: fileData.is_encrypted,
+
+        // Privacy-enhanced metadata
+        encrypted_metadata: fileData.encrypted_metadata,
+        metadata_version: fileData.metadata_version,
+        filename_hash: fileData.filename_hash,
+        folder_path_hash: fileData.folder_path_hash,
+        size_bucket: fileData.size_bucket,
+
+        // Legacy fields set to placeholders for v2 files
+        filename: ENCRYPTED_FILENAME_PLACEHOLDER,
+        file_path: null,
+        content_type: null,
+        file_size: null,
+        folder_path: null,
+        metadata: null
+      };
+
+      // Add organization fields if provided
+      if (fileData.clerk_org_id) {
+        insertData.clerk_org_id = fileData.clerk_org_id;
+      }
+      if (fileData.visibility) {
+        insertData.visibility = fileData.visibility;
+      }
+      if (fileData.owner_clerk_id) {
+        insertData.owner_clerk_id = fileData.owner_clerk_id;
+      }
+
       const { data: dbFile, error: dbError } = await supabase
         .from('files')
-        .insert({
-          clerk_user_id: fileData.clerk_user_id,
-
-          // Plaintext fields (required for operation)
-          ipfs_cid: fileData.ipfs_cid,
-          ipfs_url: fileData.ipfs_url,
-          storage_provider: fileData.storage_provider,
-          is_encrypted: fileData.is_encrypted,
-
-          // Privacy-enhanced metadata
-          encrypted_metadata: fileData.encrypted_metadata,
-          metadata_version: fileData.metadata_version,
-          filename_hash: fileData.filename_hash,
-          folder_path_hash: fileData.folder_path_hash,
-          size_bucket: fileData.size_bucket,
-
-          // Legacy fields set to placeholders for v2 files
-          filename: '[encrypted]',
-          file_path: null,
-          content_type: null,
-          file_size: null,
-          folder_path: null,
-          metadata: null
-        })
+        .insert(insertData)
         .select()
         .single();
 

@@ -4,39 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTeams } from '@/hooks/useTeams';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { Plus, Crown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
-export const CreateTeamModal = () => {
+interface CreateTeamModalProps {
+  createTeam: (teamData: { name: string; description?: string }) => Promise<any>;
+}
+
+export const CreateTeamModal = ({ createTeam }: CreateTeamModalProps) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    plan_type: 'growth',
   });
   const [loading, setLoading] = useState(false);
-  const { createTeam, teams } = useTeams();
   const { subscriptionStatus } = useSubscriptionStatus();
+
+  // Tiers that allow team creation
+  const TEAM_ENABLED_TIERS = ['scale', 'growth', 'business', 'enterprise'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    // Check subscription limits for team creation
+    // Teams require a paid tier that supports team features
     const isSubscribed = subscriptionStatus?.subscribed || false;
-    const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
-    
-    if (!isSubscribed) {
-      toast.error('Upgrade your subscription to create teams');
-      return;
-    }
+    const subscriptionTier = subscriptionStatus?.subscription_tier?.toLowerCase() || 'free';
 
-    // Growth plan allows 1 team, Scale allows unlimited
-    if (subscriptionTier === 'growth' && teams.length >= 1) {
-      toast.error('Growth plan allows 1 team. Upgrade to Scale for unlimited teams.');
+    if (!isSubscribed || !TEAM_ENABLED_TIERS.includes(subscriptionTier)) {
+      toast.error('Teams require a Growth, Scale, Business, or Enterprise subscription');
       return;
     }
 
@@ -45,31 +42,28 @@ export const CreateTeamModal = () => {
       const team = await createTeam(formData);
       if (team) {
         setOpen(false);
-        setFormData({ name: '', description: '', plan_type: 'growth' });
+        setFormData({ name: '', description: '' });
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Check subscription status
+  // Check subscription status - teams require paid tier with team features
   const isSubscribed = subscriptionStatus?.subscribed || false;
-  const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
-  const isGrowthPlan = subscriptionTier === 'growth';
-  const isAtTeamLimit = isGrowthPlan && teams.length >= 1;
+  const subscriptionTier = subscriptionStatus?.subscription_tier?.toLowerCase() || 'free';
+  const hasTeamTier = TEAM_ENABLED_TIERS.includes(subscriptionTier);
+  const canCreateTeam = isSubscribed && hasTeamTier;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
+        <Button
           className="flex items-center gap-2"
-          disabled={!isSubscribed || isAtTeamLimit}
+          disabled={!canCreateTeam}
         >
           <Plus className="h-4 w-4" />
           Create Team
-          {isGrowthPlan && (
-            <Crown className="h-3 w-3 ml-1 text-yellow-500" />
-          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -87,7 +81,7 @@ export const CreateTeamModal = () => {
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
@@ -98,24 +92,7 @@ export const CreateTeamModal = () => {
               rows={3}
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="plan_type">Plan Type</Label>
-            <Select
-              value={formData.plan_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, plan_type: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select plan type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="growth">Growth</SelectItem>
-                <SelectItem value="scale">Scale</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
+
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel

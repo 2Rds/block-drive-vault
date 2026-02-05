@@ -1,24 +1,24 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const TermsOfService = () => {
+function BackButton({ onClick }: { onClick: () => void }): JSX.Element {
+  return (
+    <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 z-10">
+      <Button variant="ghost" size="sm" onClick={onClick} className="flex items-center gap-2 hover:bg-muted">
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Button>
+    </div>
+  );
+}
+
+export function TermsOfService(): JSX.Element {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 z-10">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 hover:bg-muted"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-      </div>
+      <BackButton onClick={() => navigate(-1)} />
       
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="prose prose-slate dark:prose-invert max-w-none">

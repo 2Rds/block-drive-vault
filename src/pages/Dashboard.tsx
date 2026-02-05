@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,58 +10,40 @@ import { BarChart3, Files, Settings, Users, Crown, Puzzle } from 'lucide-react';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
-const Dashboard = () => {
+const TEAM_TIERS = ['growth', 'scale'] as const;
+
+const NAV_BUTTON_STYLES = {
+  active: "bg-primary hover:bg-primary/90 text-primary-foreground",
+  inactive: "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50",
+  teams: "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50",
+} as const;
+
+function canAccessTeamsFeature(subscriptionStatus: { subscribed?: boolean; subscription_tier?: string } | null): boolean {
+  if (!subscriptionStatus?.subscribed) return false;
+  const tier = subscriptionStatus.subscription_tier || 'free';
+  return TEAM_TIERS.includes(tier as typeof TEAM_TIERS[number]);
+}
+
+function Dashboard(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const { subscriptionStatus } = useSubscriptionStatus();
-  const { currentPath, openFolders, toggleFolder } = useFolderNavigation();
-  const { isConnected: isBoxConnected } = useBoxOAuth(); // Handle Box OAuth callbacks
-  const [selectedFolder, setSelectedFolder] = React.useState('all');
+  const { openFolders, toggleFolder } = useFolderNavigation();
+  useBoxOAuth();
+  const [selectedFolder, setSelectedFolder] = useState('all');
 
-  const handleFolderSelect = (folderId: string) => {
-    setSelectedFolder(folderId);
-  };
-
-  const handleFolderClick = (folderPath: string) => {
-    toggleFolder(folderPath);
-  };
-
-  const handleFilesClick = () => {
-    console.log('Navigating to IPFS files');
-    navigate('/files');
-  };
-
-  const handleAccountClick = () => {
-    console.log('Navigating to account');
-    navigate('/account');
-  };
-
-  const handleTeamsClick = () => {
-    console.log('Navigating to teams');
-    navigate('/teams');
-  };
-
-  const handleIntegrationsClick = () => {
-    console.log('Navigating to integrations');
-    navigate('/integrations');
-  };
-
-  // Check if user has growth or scale subscription
-  const isSubscribed = subscriptionStatus?.subscribed || false;
   const subscriptionTier = subscriptionStatus?.subscription_tier || 'free';
-  const canAccessTeams = isSubscribed && (subscriptionTier === 'growth' || subscriptionTier === 'scale');
-  
-  // Determine active page for button styling
+  const canAccessTeams = canAccessTeamsFeature(subscriptionStatus);
   const isOnDashboard = location.pathname === '/dashboard';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
       <Header />
       <div className="flex">
-        <Sidebar 
+        <Sidebar
           selectedFolder={selectedFolder}
-          onFolderSelect={handleFolderSelect}
-          onFolderClick={handleFolderClick}
+          onFolderSelect={setSelectedFolder}
+          onFolderClick={toggleFolder}
           openFolders={openFolders}
         />
         <main className="flex-1 p-6 ml-64">
@@ -74,35 +56,32 @@ const Dashboard = () => {
               <div className="flex items-center space-x-4">
                 <Button
                   variant={isOnDashboard ? "default" : "outline"}
-                  className={isOnDashboard 
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
-                    : "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-                  }
+                  className={isOnDashboard ? NAV_BUTTON_STYLES.active : NAV_BUTTON_STYLES.inactive}
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
                 </Button>
                 <Button
-                  onClick={handleFilesClick}
+                  onClick={() => navigate('/files')}
                   variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  className={NAV_BUTTON_STYLES.inactive}
                 >
                   <Files className="w-4 h-4 mr-2" />
                   IPFS Files
                 </Button>
                 <Button
-                  onClick={handleIntegrationsClick}
+                  onClick={() => navigate('/integrations')}
                   variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  className={NAV_BUTTON_STYLES.inactive}
                 >
                   <Puzzle className="w-4 h-4 mr-2" />
                   Integrations
                 </Button>
                 {canAccessTeams && (
                   <Button
-                    onClick={handleTeamsClick}
+                    onClick={() => navigate('/teams')}
                     variant="outline"
-                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
+                    className={NAV_BUTTON_STYLES.teams}
                   >
                     <Users className="w-4 h-4 mr-2" />
                     Teams
@@ -112,9 +91,9 @@ const Dashboard = () => {
                   </Button>
                 )}
                 <Button
-                  onClick={handleAccountClick}
+                  onClick={() => navigate('/account')}
                   variant="outline"
-                  className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
+                  className={NAV_BUTTON_STYLES.inactive}
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Account
@@ -122,16 +101,13 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Clean Membership Card - Always visible for all users */}
             <MembershipCard />
-
             <DataDashboard />
           </div>
         </main>
       </div>
-
     </div>
   );
-};
+}
 
 export default Dashboard;

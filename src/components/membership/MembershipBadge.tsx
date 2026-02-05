@@ -32,9 +32,30 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useNFTMembership } from '@/hooks/useNFTMembership';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { SubscriptionTier, TIER_CONFIGS } from '@/types/nftMembership';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+
+// Map Stripe subscription tier names to NFT tier keys
+function normalizeStripeTier(tier: string | null | undefined): SubscriptionTier | null {
+  if (!tier) return null;
+  const normalized = tier.toLowerCase();
+  const tierMapping: Record<string, SubscriptionTier> = {
+    'scale': 'enterprise',
+    'power': 'premium',
+    'growth': 'premium',
+    'pro': 'pro',
+    'starter': 'basic',
+    'free_trial': 'trial',
+    'free trial': 'trial',
+    'trial': 'trial',
+    'basic': 'basic',
+    'premium': 'premium',
+    'enterprise': 'enterprise',
+  };
+  return tierMapping[normalized] || null;
+}
 
 interface MembershipBadgeProps {
   variant?: 'compact' | 'full' | 'card';
@@ -47,28 +68,52 @@ export function MembershipBadge({
   showStorage = true,
   onUpgrade,
 }: MembershipBadgeProps) {
-  const { 
-    membership, 
-    isLoading, 
+  const {
+    membership,
+    isLoading: nftLoading,
     formatStorageSize,
-    getDisplayInfo 
+    getDisplayInfo
   } = useNFTMembership();
+
+  const { subscriptionStatus, loading: stripeLoading } = useSubscriptionStatus();
+
+  // Check if loading either subscription system
+  const isLoading = nftLoading || stripeLoading;
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-sm">Loading membership...</span>
+        <span className="text-sm">Loading...</span>
       </div>
     );
   }
 
-  if (!membership) {
+  // Prioritize Stripe subscription over NFT membership
+  const hasActiveStripeSubscription = subscriptionStatus?.subscribed === true;
+  const stripeTier = normalizeStripeTier(subscriptionStatus?.subscription_tier);
+
+  // Use Stripe tier if active subscription, otherwise fall back to NFT membership
+  const effectiveTier: SubscriptionTier | null = hasActiveStripeSubscription && stripeTier
+    ? stripeTier
+    : membership?.tier || null;
+
+  // If no tier from either system, show nothing
+  if (!effectiveTier && !membership) {
     return null;
   }
 
-  const tierConfig = membership.tier ? TIER_CONFIGS[membership.tier] : null;
-  const displayInfo = membership.tier ? getDisplayInfo(membership.tier) : null;
+  const tierConfig = effectiveTier ? TIER_CONFIGS[effectiveTier] : null;
+  const displayInfo = effectiveTier ? getDisplayInfo(effectiveTier) : null;
+
+  // Track if this is from Stripe or NFT
+  const isStripeSubscription = hasActiveStripeSubscription && stripeTier;
+  const subscriptionEnd = subscriptionStatus?.subscription_end
+    ? new Date(subscriptionStatus.subscription_end).getTime()
+    : membership?.expiresAt;
+  const daysRemaining = subscriptionEnd
+    ? Math.max(0, Math.ceil((subscriptionEnd - Date.now()) / (1000 * 60 * 60 * 24)))
+    : membership?.daysRemaining || 0;
 
   const getTierColor = (tier: SubscriptionTier | null) => {
     switch (tier) {
@@ -96,26 +141,28 @@ export function MembershipBadge({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge 
-              variant="outline" 
-              className={cn("gap-1 cursor-help", getTierColor(membership.tier))}
+            <Badge
+              variant="outline"
+              className={cn("gap-1 cursor-help", getTierColor(effectiveTier))}
             >
-              {getTierIcon(membership.tier)}
+              {getTierIcon(effectiveTier)}
               {tierConfig?.name || 'Free'}
-              {membership.nftMint && (
-                <span className="text-[10px] opacity-70">NFT</span>
-              )}
             </Badge>
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
             <div className="space-y-2">
               <p className="font-medium">{displayInfo?.name || 'BlockDrive Membership'}</p>
-              {membership.expiresAt && (
+              {subscriptionEnd && (
                 <p className="text-xs text-muted-foreground">
-                  Expires: {format(membership.expiresAt, 'MMM d, yyyy')}
+                  Expires: {format(subscriptionEnd, 'MMM d, yyyy')}
                 </p>
               )}
-              {membership.nftMint && (
+              {isStripeSubscription && (
+                <p className="text-xs text-muted-foreground">
+                  Via Stripe subscription
+                </p>
+              )}
+              {!isStripeSubscription && membership?.nftMint && (
                 <p className="text-xs font-mono text-muted-foreground">
                   NFT: {membership.nftMint.slice(0, 12)}...
                 </p>
@@ -129,35 +176,35 @@ export function MembershipBadge({
 
   // Full variant - inline with more details
   if (variant === 'full') {
-    const storagePercent = tierConfig 
+    const storagePercent = tierConfig && membership?.storageRemaining
       ? (Number(membership.storageRemaining) / Number(BigInt(tierConfig.storageGB) * BigInt(1024 * 1024 * 1024))) * 100
       : 0;
 
     return (
       <div className="flex items-center gap-4 flex-wrap">
-        <Badge 
-          variant="outline" 
-          className={cn("gap-1", getTierColor(membership.tier))}
+        <Badge
+          variant="outline"
+          className={cn("gap-1", getTierColor(effectiveTier))}
         >
-          {getTierIcon(membership.tier)}
+          {getTierIcon(effectiveTier)}
           {tierConfig?.name || 'Free'} Membership
         </Badge>
 
-        {membership.expiresAt && membership.daysRemaining >= 0 && (
+        {subscriptionEnd && daysRemaining >= 0 && (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Clock className="w-3 h-3" />
-            {membership.daysRemaining} days left
+            {daysRemaining} days left
           </div>
         )}
 
-        {showStorage && (
+        {showStorage && membership?.storageRemaining && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{formatStorageSize(membership.storageRemaining)} remaining</span>
           </div>
         )}
 
-        {membership.nftMint && (
-          <a 
+        {!isStripeSubscription && membership?.nftMint && (
+          <a
             href={`https://explorer.solana.com/address/${membership.nftMint}?cluster=devnet`}
             target="_blank"
             rel="noopener noreferrer"
@@ -172,38 +219,42 @@ export function MembershipBadge({
   }
 
   // Card variant - full details
-  const storageUsedPercent = tierConfig 
+  const storageUsedPercent = tierConfig && membership?.storageRemaining
     ? 100 - (Number(membership.storageRemaining) / Number(BigInt(tierConfig.storageGB) * BigInt(1024 * 1024 * 1024))) * 100
     : 0;
 
   return (
     <Card className={cn(
       "border-2",
-      membership.tier === 'enterprise' && "border-amber-500/50",
-      membership.tier === 'premium' && "border-purple-500/50",
-      membership.tier === 'pro' && "border-blue-500/50",
+      effectiveTier === 'enterprise' && "border-amber-500/50",
+      effectiveTier === 'premium' && "border-purple-500/50",
+      effectiveTier === 'pro' && "border-blue-500/50",
     )}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={cn(
               "p-2 rounded-lg",
-              getTierColor(membership.tier)
+              getTierColor(effectiveTier)
             )}>
-              {getTierIcon(membership.tier)}
+              {getTierIcon(effectiveTier)}
             </div>
             <div>
               <CardTitle className="text-lg">
                 {displayInfo?.name || 'BlockDrive Membership'}
               </CardTitle>
               <CardDescription>
-                {membership.nftMint ? 'NFT-based subscription' : 'Free tier'}
+                {isStripeSubscription
+                  ? 'Stripe subscription'
+                  : membership?.nftMint
+                    ? 'NFT-based subscription'
+                    : 'Free tier'}
               </CardDescription>
             </div>
           </div>
-          <Badge 
-            variant="outline" 
-            className={cn("text-xs", getTierColor(membership.tier))}
+          <Badge
+            variant="outline"
+            className={cn("text-xs", getTierColor(effectiveTier))}
           >
             {displayInfo?.icon} {tierConfig?.name || 'Free'}
           </Badge>
@@ -211,20 +262,20 @@ export function MembershipBadge({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Expiration */}
-        {membership.expiresAt && (
+        {subscriptionEnd && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
               <Clock className="w-4 h-4" />
               Expires
             </span>
             <span className={cn(
-              membership.daysRemaining <= 7 && "text-amber-400",
-              membership.daysRemaining <= 0 && "text-destructive"
+              daysRemaining <= 7 && "text-amber-400",
+              daysRemaining <= 0 && "text-destructive"
             )}>
-              {format(membership.expiresAt, 'MMM d, yyyy')}
-              {membership.daysRemaining > 0 && (
+              {format(subscriptionEnd, 'MMM d, yyyy')}
+              {daysRemaining > 0 && (
                 <span className="text-muted-foreground ml-1">
-                  ({membership.daysRemaining} days)
+                  ({daysRemaining} days)
                 </span>
               )}
             </span>
@@ -232,7 +283,7 @@ export function MembershipBadge({
         )}
 
         {/* Storage Usage */}
-        {showStorage && tierConfig && (
+        {showStorage && tierConfig && membership?.storageRemaining && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Storage</span>
@@ -245,11 +296,11 @@ export function MembershipBadge({
         )}
 
         {/* NFT Info */}
-        {membership.nftMint && (
+        {!isStripeSubscription && membership?.nftMint && (
           <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">NFT Mint</span>
-              <a 
+              <a
                 href={`https://explorer.solana.com/address/${membership.nftMint}?cluster=devnet`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -263,7 +314,7 @@ export function MembershipBadge({
         )}
 
         {/* Expiration Warning */}
-        {membership.daysRemaining <= 7 && membership.daysRemaining > 0 && (
+        {daysRemaining <= 7 && daysRemaining > 0 && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5" />
             <div className="text-sm">
@@ -276,10 +327,10 @@ export function MembershipBadge({
         )}
 
         {/* Upgrade Button */}
-        {onUpgrade && membership.tier !== 'enterprise' && (
-          <Button 
-            onClick={onUpgrade} 
-            variant="outline" 
+        {onUpgrade && effectiveTier !== 'enterprise' && (
+          <Button
+            onClick={onUpgrade}
+            variant="outline"
             className="w-full"
           >
             <Crown className="w-4 h-4 mr-2" />

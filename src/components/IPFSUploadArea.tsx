@@ -7,18 +7,82 @@ import { SubscriptionGate } from './SubscriptionGate';
 import { useIPFSUpload } from '@/hooks/useIPFSUpload';
 import { useAuth } from '@/hooks/useAuth';
 
+const SUCCESS_TIMEOUT_MS = 3000;
+const ERROR_TIMEOUT_MS = 5000;
+
+type UploadStatus = 'idle' | 'success' | 'error';
+
 interface IPFSUploadAreaProps {
   onCreateFolder?: (folderName: string) => void;
   selectedFolder?: string;
   onUploadComplete?: () => void;
 }
 
-export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplete }: IPFSUploadAreaProps) => {
+function getUploadAreaClasses(dragOver: boolean, uploading: boolean, uploadStatus: UploadStatus): string {
+  const baseClasses = 'bg-gradient-to-br backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center';
+
+  if (dragOver) {
+    return `${baseClasses} border-blue-400/70 bg-blue-900/30 scale-105 from-blue-900/30 to-purple-900/30`;
+  }
+  if (uploading) {
+    return `${baseClasses} border-green-400/50 bg-green-900/20 from-green-900/20 to-blue-900/20`;
+  }
+  if (uploadStatus === 'success') {
+    return `${baseClasses} border-green-400/70 bg-green-900/30 from-green-900/30 to-blue-900/30`;
+  }
+  if (uploadStatus === 'error') {
+    return `${baseClasses} border-red-400/70 bg-red-900/30 from-red-900/30 to-orange-900/30`;
+  }
+  return `${baseClasses} border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-900/25 from-blue-900/20 to-purple-900/20`;
+}
+
+function getIconContainerClasses(uploading: boolean, uploadStatus: UploadStatus): string {
+  const baseClasses = 'p-4 rounded-full transition-all duration-300';
+
+  if (uploading) {
+    return `${baseClasses} bg-green-600/20 animate-pulse`;
+  }
+  if (uploadStatus === 'success') {
+    return `${baseClasses} bg-green-600/30`;
+  }
+  if (uploadStatus === 'error') {
+    return `${baseClasses} bg-red-600/30`;
+  }
+  return `${baseClasses} bg-blue-600/20 hover:bg-blue-600/30`;
+}
+
+function getUploadIcon(uploading: boolean, uploadStatus: UploadStatus): React.ReactNode {
+  if (uploading) {
+    return <Zap className="w-8 h-8 text-green-400 animate-pulse" />;
+  }
+  if (uploadStatus === 'success') {
+    return <CheckCircle className="w-8 h-8 text-green-400" />;
+  }
+  if (uploadStatus === 'error') {
+    return <Key className="w-8 h-8 text-red-400" />;
+  }
+  return <Upload className="w-8 h-8 text-blue-400" />;
+}
+
+function getHeadingText(uploading: boolean, uploadStatus: UploadStatus): string {
+  if (uploadStatus === 'success') return 'Upload Successful!';
+  if (uploadStatus === 'error') return 'Upload Failed';
+  if (uploading) return 'Uploading to BlockDrive IPFS...';
+  return 'Upload to BlockDrive IPFS';
+}
+
+function getDescriptionText(uploadStatus: UploadStatus): string {
+  if (uploadStatus === 'success') return 'Your files have been stored in BlockDrive IPFS via Filebase!';
+  if (uploadStatus === 'error') return 'There was an error uploading your files. Please try again.';
+  return 'Secure, decentralized storage powered by IPFS via Filebase';
+}
+
+export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplete }: IPFSUploadAreaProps): React.ReactElement | null {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
+
   const { uploading, uploadProgress, uploadToIPFS } = useIPFSUpload();
   const { user, session } = useAuth();
 
@@ -32,18 +96,16 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
       const result = await uploadToIPFS(files, folderPath);
       if (result && result.length > 0) {
         setUploadStatus('success');
-        if (onUploadComplete) {
-          onUploadComplete();
-        }
-        setTimeout(() => setUploadStatus('idle'), 3000);
+        onUploadComplete?.();
+        setTimeout(() => setUploadStatus('idle'), SUCCESS_TIMEOUT_MS);
       } else {
         setUploadStatus('error');
-        setTimeout(() => setUploadStatus('idle'), 5000);
+        setTimeout(() => setUploadStatus('idle'), ERROR_TIMEOUT_MS);
       }
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
-      setTimeout(() => setUploadStatus('idle'), 5000);
+      setTimeout(() => setUploadStatus('idle'), ERROR_TIMEOUT_MS);
     }
   };
 
@@ -67,9 +129,7 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
 
   const handleCreateFolder = (folderName: string) => {
     console.log('Creating folder:', folderName);
-    if (onCreateFolder) {
-      onCreateFolder(folderName);
-    }
+    onCreateFolder?.(folderName);
   };
 
   const hasValidSession = session || localStorage.getItem('sb-supabase-auth-token');
@@ -124,19 +184,8 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
     );
   }
 
-  // Wrap the upload functionality with subscription gate
   const uploadContent = (
-    <div className={`bg-gradient-to-br backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center ${
-      dragOver 
-        ? 'border-blue-400/70 bg-blue-900/30 scale-105 from-blue-900/30 to-purple-900/30' 
-        : uploading 
-          ? 'border-green-400/50 bg-green-900/20 from-green-900/20 to-blue-900/20'
-          : uploadStatus === 'success'
-            ? 'border-green-400/70 bg-green-900/30 from-green-900/30 to-blue-900/30'
-            : uploadStatus === 'error'
-              ? 'border-red-400/70 bg-red-900/30 from-red-900/30 to-orange-900/30'
-              : 'border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-900/25 from-blue-900/20 to-purple-900/20'
-    }`}>
+    <div className={getUploadAreaClasses(dragOver, uploading, uploadStatus)}>
       <div
         className="space-y-6"
         onDrop={handleDrop}
@@ -144,38 +193,18 @@ export const IPFSUploadArea = ({ onCreateFolder, selectedFolder, onUploadComplet
         onDragLeave={handleDragLeave}
       >
         <div className="flex justify-center">
-          <div className={`p-4 rounded-full transition-all duration-300 ${
-            uploading 
-              ? 'bg-green-600/20 animate-pulse' 
-              : uploadStatus === 'success'
-                ? 'bg-green-600/30'
-                : uploadStatus === 'error'
-                  ? 'bg-red-600/30'
-                  : 'bg-blue-600/20 hover:bg-blue-600/30'
-          }`}>
-            {uploading ? (
-              <Zap className="w-8 h-8 text-green-400 animate-pulse" />
-            ) : uploadStatus === 'success' ? (
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            ) : uploadStatus === 'error' ? (
-              <Key className="w-8 h-8 text-red-400" />
-            ) : (
-              <Upload className="w-8 h-8 text-blue-400" />
-            )}
+          <div className={getIconContainerClasses(uploading, uploadStatus)}>
+            {getUploadIcon(uploading, uploadStatus)}
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-2xl font-bold text-white mb-3 flex items-center justify-center gap-2">
             <Globe className="w-6 h-6 text-blue-400" />
-            {uploadStatus === 'success' ? 'Upload Successful!' : 
-             uploadStatus === 'error' ? 'Upload Failed' :
-             uploading ? 'Uploading to BlockDrive IPFS...' : 'Upload to BlockDrive IPFS'}
+            {getHeadingText(uploading, uploadStatus)}
           </h3>
           <p className="text-gray-300 mb-2">
-            {uploadStatus === 'success' ? 'Your files have been stored in BlockDrive IPFS via Filebase!' :
-             uploadStatus === 'error' ? 'There was an error uploading your files. Please try again.' :
-             'Secure, decentralized storage powered by IPFS via Filebase'}
+            {getDescriptionText(uploadStatus)}
           </p>
           
           <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">

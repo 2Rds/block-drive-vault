@@ -126,9 +126,12 @@ serve(async (req) => {
       customerEmail: session.customer_details?.email
     });
 
-    if (session.payment_status !== 'paid') {
+    // Accept 'paid' (normal payment) or 'no_payment_required' (100% discount coupon)
+    const validPaymentStatuses = ['paid', 'no_payment_required'];
+    if (!validPaymentStatuses.includes(session.payment_status)) {
       throw new Error(`Payment not completed. Status: ${session.payment_status}`);
     }
+    logStep("Payment status valid", { status: session.payment_status });
 
     const customerEmail = session.customer_details?.email;
     const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
@@ -139,9 +142,12 @@ serve(async (req) => {
 
     logStep("Customer details", { email: customerEmail, stripeCustomerId });
 
-    // Determine subscription tier from the subscription
-    let subscriptionTier = "Pro"; // Default tier
+    // Determine subscription tier from the session/subscription metadata
+    // Priority: 1) Subscription metadata, 2) Session metadata, 3) Price-based detection
+    let subscriptionTier = session.metadata?.tier || "Pro"; // Use session metadata as initial value
     let subscriptionEnd = null;
+
+    logStep("Initial tier from session metadata", { tier: subscriptionTier, sessionMetadata: session.metadata });
 
     if (session.subscription) {
       const subscriptionId = typeof session.subscription === 'string'
@@ -158,38 +164,54 @@ serve(async (req) => {
       if (subscription) {
         subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
 
-        // Check metadata for tier first (set during checkout)
+        // Check subscription metadata for tier (most reliable)
         if (subscription.metadata?.tier) {
           subscriptionTier = subscription.metadata.tier;
           logStep("Tier from subscription metadata", { tier: subscriptionTier });
+        } else if (session.metadata?.tier) {
+          // Fall back to session metadata (already set above, but log for clarity)
+          logStep("Using tier from session metadata", { tier: subscriptionTier });
         } else {
-          // Fall back to price-based tier detection
+          // Last resort: price ID based detection
           const priceId = subscription.items.data[0]?.price?.id;
           if (priceId) {
-            const { price, fromSync: priceFromSync } = await getPriceFromSync(
-              supabaseService,
-              priceId,
-              stripe
-            );
-            const amount = price.unit_amount || 0;
+            // Map known price IDs to tiers
+            const PRICE_TO_TIER: Record<string, string> = {
+              // Pro tier
+              'price_1SxJG0CXWi8NqmFCwwspKiz5': 'Pro',
+              'price_1SxJG0CXWi8NqmFCBCgGULcp': 'Pro',
+              'price_1SxJG0CXWi8NqmFCT5dNX0or': 'Pro',
+              // Power tier
+              'price_1SxJG1CXWi8NqmFCP3CJ1SSA': 'Power',
+              'price_1SxJG1CXWi8NqmFCYgrLZOwT': 'Power',
+              'price_1SxJG1CXWi8NqmFCLaDwUoUY': 'Power',
+              // Scale tier
+              'price_1SxJG2CXWi8NqmFCKYtf8mRC': 'Scale',
+              'price_1SxJG2CXWi8NqmFCCWJLv7Ed': 'Scale',
+              'price_1SxJG2CXWi8NqmFCk7yinOnh': 'Scale',
+            };
 
-            // Match pricing tiers (amounts in cents)
-            // Pro: $9/mo (900), $24/qtr (2400), $89/yr (8900)
-            // Power: $49/mo (4900), $134/qtr (13400), $499/yr (49900)
-            // Scale: $29/seat/mo (2900), $79/seat/qtr (7900), $299/seat/yr (29900)
-            if (amount <= 8900) {
-              subscriptionTier = "Pro";
-            } else if (amount <= 29900) {
-              subscriptionTier = "Scale";
+            if (PRICE_TO_TIER[priceId]) {
+              subscriptionTier = PRICE_TO_TIER[priceId];
+              logStep("Tier from price ID mapping", { tier: subscriptionTier, priceId });
             } else {
-              subscriptionTier = "Power";
-            }
+              // Unknown price, use amount-based detection as last resort
+              const { price, fromSync: priceFromSync } = await getPriceFromSync(
+                supabaseService,
+                priceId,
+                stripe
+              );
+              const amount = price.unit_amount || 0;
 
-            logStep("Tier from price amount", {
-              tier: subscriptionTier,
-              amount,
-              priceFromSync
-            });
+              // Note: Can't reliably detect tier from price alone since Scale < Power
+              // Default to Pro for unknown prices
+              logStep("Unknown price ID, defaulting to Pro", {
+                priceId,
+                amount,
+                priceFromSync
+              });
+              subscriptionTier = "Pro";
+            }
           }
         }
 
@@ -259,22 +281,71 @@ serve(async (req) => {
     }
 
     // Create or update subscriber record
-    // For wallet users, we don't have a traditional auth.users entry, so set user_id to null
-    const subscriberData = {
-      email: customerEmail,
-      user_id: isWalletUser ? null : userId,
-      stripe_customer_id: stripeCustomerId,
-      subscribed: true,
-      subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd,
-      signup_completed: true,
-      can_upload_files: true,
-      updated_at: new Date().toISOString(),
-    };
+    // Note: user_id is set to null because:
+    // 1. Wallet users don't have auth.users entries
+    // 2. Clerk users have Clerk IDs, not Supabase auth.users IDs
+    // 3. The user_id column has a FK constraint to auth.users
+    // We rely on email for lookups instead
+    //
+    // IMPORTANT: Cannot use upsert with onConflict because the subscribers table
+    // has a partial unique index (WHERE email IS NOT NULL) instead of a proper
+    // UNIQUE constraint. PostgreSQL's ON CONFLICT doesn't work with partial indexes.
+    // Instead, we do an explicit check-then-insert/update.
 
-    const { error: subscriberError } = await supabaseService
+    // First, check if subscriber already exists
+    const { data: existingSubscriber, error: lookupError } = await supabaseService
       .from('subscribers')
-      .upsert(subscriberData, { onConflict: 'email' });
+      .select('id')
+      .eq('email', customerEmail)
+      .maybeSingle();
+
+    if (lookupError) {
+      logStep("Error looking up subscriber", lookupError);
+      throw new Error(`Failed to lookup subscriber: ${lookupError.message}`);
+    }
+
+    let subscriberError;
+
+    // Get Clerk user ID from session metadata (passed from checkout)
+    const clerkUserId = session.metadata?.user_id || userId || null;
+    logStep("Clerk user ID for subscriber", { clerkUserId });
+
+    if (existingSubscriber) {
+      // Update existing subscriber
+      logStep("Updating existing subscriber", { email: customerEmail, id: existingSubscriber.id });
+      const { error } = await supabaseService
+        .from('subscribers')
+        .update({
+          stripe_customer_id: stripeCustomerId,
+          subscribed: true,
+          subscription_tier: subscriptionTier,
+          subscription_end: subscriptionEnd,
+          can_upload_files: true,
+          payment_provider: 'stripe',
+          clerk_user_id: clerkUserId, // Store Clerk ID for fallback lookups
+          updated_at: new Date().toISOString(),
+        })
+        .eq('email', customerEmail);
+      subscriberError = error;
+    } else {
+      // Insert new subscriber
+      logStep("Creating new subscriber", { email: customerEmail });
+      const { error } = await supabaseService
+        .from('subscribers')
+        .insert({
+          email: customerEmail,
+          user_id: null, // FK constraint requires valid auth.users ID - use email for lookups
+          clerk_user_id: clerkUserId, // Store Clerk ID for fallback lookups
+          stripe_customer_id: stripeCustomerId,
+          subscribed: true,
+          subscription_tier: subscriptionTier,
+          subscription_end: subscriptionEnd,
+          can_upload_files: true,
+          payment_provider: 'stripe',
+          updated_at: new Date().toISOString(),
+        });
+      subscriberError = error;
+    }
 
     if (subscriberError) {
       logStep("Error updating subscriber", subscriberError);

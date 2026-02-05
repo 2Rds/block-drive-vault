@@ -1,62 +1,44 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { jsonResponse, errorResponse, handleCors } from "../_shared/response.ts";
+import { HTTP_STATUS } from "../_shared/constants.ts";
+import { getSupabaseServiceClient, getSupabaseClient, extractBearerToken } from "../_shared/auth.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[LINK-WALLET-TO-EMAIL] ${step}${detailsStr}`);
-};
+const log = createLogger('LINK-WALLET-TO-EMAIL');
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
+  const supabaseClient = getSupabaseServiceClient();
 
   try {
-    logStep("Function started");
+    log("Function started");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    const token = extractBearerToken(req);
+    if (!token) {
+      throw new Error("No authorization header provided");
+    }
 
-    const token = authHeader.replace("Bearer ", "");
     const body = await req.json();
-    const { email, wallet_address, blockchain_type, fullName, username } = body;
+    const { email, wallet_address, blockchain_type, fullName } = body;
 
     if (!email || !wallet_address || !blockchain_type) {
       throw new Error("Missing required fields: email, wallet_address, blockchain_type");
     }
 
-    logStep("Linking wallet to email", { email, wallet_address, blockchain_type, fullName, username });
+    log("Linking wallet to email", { email, wallet_address, blockchain_type, fullName });
 
-    // Only accept valid Supabase JWTs - no UUID bypass
-    let userId;
-    
-    // Validate JWT with auth client
-    const authClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-    
+    const authClient = getSupabaseClient();
     const { data: { user }, error: userError } = await authClient.auth.getUser(token);
-    
+
     if (userError || !user) {
       throw new Error(`Authentication failed: ${userError?.message || 'Invalid token'}`);
     }
-    
-    userId = user.id;
-    logStep("JWT authentication successful", { userId });
 
-    // Create or update user_signups record linking wallet to email
+    const userId = user.id;
+    log("JWT authentication successful", { userId });
+
     const { data: existingSignup, error: lookupError } = await supabaseClient
       .from('user_signups')
       .select('*')
@@ -64,11 +46,10 @@ serve(async (req) => {
       .maybeSingle();
 
     if (lookupError) {
-      logStep("Error looking up existing signup", lookupError);
+      log("Error looking up existing signup", lookupError);
       throw new Error(`Database error: ${lookupError.message}`);
     }
 
-    // Upsert the signup record with wallet information
     const signupData = {
       email,
       wallet_address,
@@ -85,11 +66,10 @@ serve(async (req) => {
       .upsert(signupData, { onConflict: 'email' });
 
     if (upsertError) {
-      logStep("Error upserting signup", upsertError);
+      log("Error upserting signup", upsertError);
       throw new Error(`Failed to link wallet: ${upsertError.message}`);
     }
 
-    // Also update wallet_auth_tokens to link the user ID
     const { error: walletTokenError } = await supabaseClient
       .from('wallet_auth_tokens')
       .upsert({
@@ -103,28 +83,19 @@ serve(async (req) => {
       }, { onConflict: 'wallet_address' });
 
     if (walletTokenError) {
-      logStep("Error updating wallet token", walletTokenError);
+      log("Error updating wallet token", walletTokenError);
     }
 
-    logStep("Successfully linked wallet to email", { email, wallet_address, userId });
+    log("Successfully linked wallet to email", { email, wallet_address, userId });
 
-    return new Response(JSON.stringify({ 
+    return jsonResponse({
       success: true,
       message: "Wallet successfully linked to email"
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in link-wallet-to-email", { message: errorMessage });
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      success: false 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    log("ERROR in link-wallet-to-email", { message: errorMessage });
+    return errorResponse(errorMessage, HTTP_STATUS.INTERNAL_ERROR);
   }
 });

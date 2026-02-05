@@ -32,10 +32,13 @@ export const usePricingSubscription = () => {
     try {
       console.log('Creating checkout session for tier:', tier.name);
 
+      // Pass Clerk user ID as auth token for Clerk users
+      // This ensures the edge function can identify the user and store clerk_user_id
       const result = await paymentService.subscribeFiat({
         tier: tier.name as SubscriptionTier,
         billingPeriod: mapPeriodToBillingPeriod(option.period),
         priceId: option.paymentLink,
+        authToken: user?.id, // Clerk user ID
       });
 
       if (!result.success || !result.url) {

@@ -2,12 +2,28 @@ import { SignIn as ClerkSignIn, useAuth } from '@clerk/clerk-react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, Lock, Zap } from 'lucide-react';
 
-export default function SignIn() {
+const CLERK_APPEARANCE = {
+  elements: {
+    rootBox: 'mx-auto w-full',
+    card: 'bg-card border border-border shadow-2xl rounded-xl',
+    headerTitle: 'text-foreground',
+    headerSubtitle: 'text-muted-foreground',
+    socialButtonsBlockButton: 'border-border hover:bg-accent/50',
+    socialButtonsBlockButtonText: 'text-foreground',
+    formFieldLabel: 'text-foreground',
+    formFieldInput: 'bg-background border-border text-foreground',
+    formButtonPrimary: 'bg-primary hover:bg-primary/90',
+    footerActionLink: 'text-primary hover:text-primary/80',
+    dividerLine: 'bg-border',
+    dividerText: 'text-muted-foreground',
+  },
+};
+
+export default function SignIn(): JSX.Element | null {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // Redirect if already signed in
   if (isLoaded && isSignedIn) {
     return <Navigate to={from} replace />;
   }
@@ -74,23 +90,8 @@ export default function SignIn() {
             <p className="text-muted-foreground">Sign in to continue</p>
           </div>
           
-          <ClerkSignIn 
-            appearance={{
-              elements: {
-                rootBox: 'mx-auto w-full',
-                card: 'bg-card border border-border shadow-2xl rounded-xl',
-                headerTitle: 'text-foreground',
-                headerSubtitle: 'text-muted-foreground',
-                socialButtonsBlockButton: 'border-border hover:bg-accent/50',
-                socialButtonsBlockButtonText: 'text-foreground',
-                formFieldLabel: 'text-foreground',
-                formFieldInput: 'bg-background border-border text-foreground',
-                formButtonPrimary: 'bg-primary hover:bg-primary/90',
-                footerActionLink: 'text-primary hover:text-primary/80',
-                dividerLine: 'bg-border',
-                dividerText: 'text-muted-foreground',
-              },
-            }}
+          <ClerkSignIn
+            appearance={CLERK_APPEARANCE}
             routing="path"
             path="/sign-in"
             signUpUrl="/sign-up"

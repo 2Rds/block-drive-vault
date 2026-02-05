@@ -5,9 +5,65 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Users, Mail } from 'lucide-react';
+import { XCircle, Users, Mail } from 'lucide-react';
 
-export default function TeamInvitation() {
+function LoadingSkeleton(): JSX.Element {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="animate-pulse">
+        <div className="h-8 bg-muted rounded w-48 mb-4" />
+        <div className="h-32 bg-muted rounded w-96" />
+      </div>
+    </div>
+  );
+}
+
+interface ErrorStateProps {
+  error: string;
+  onNavigateHome: () => void;
+}
+
+function ErrorState({ error, onNavigateHome }: ErrorStateProps): JSX.Element {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <XCircle className="h-6 w-6 text-red-500" />
+            <CardTitle>Invalid Invitation</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={onNavigateHome} className="w-full">Go Home</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function LoginPrompt({ onNavigateAuth }: { onNavigateAuth: () => void }): JSX.Element {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Mail className="h-6 w-6 text-blue-500" />
+            <CardTitle>Team Invitation</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground mb-4">
+            You need to be logged in to accept this team invitation.
+          </p>
+          <Button onClick={onNavigateAuth} className="w-full">Login / Sign Up</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function TeamInvitation(): JSX.Element {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -26,8 +82,7 @@ export default function TeamInvitation() {
       return;
     }
 
-    // Fetch invitation details
-    const fetchInvitation = async () => {
+    async function fetchInvitation() {
       try {
         const response = await fetch(`/api/team-invitation/${token}`);
         if (!response.ok) {
@@ -35,12 +90,12 @@ export default function TeamInvitation() {
         }
         const data = await response.json();
         setInvitation(data);
-      } catch (err) {
+      } catch {
         setError('Failed to load invitation details');
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     fetchInvitation();
   }, [token]);
@@ -54,7 +109,7 @@ export default function TeamInvitation() {
       if (success) {
         navigate('/teams');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to accept invitation');
     } finally {
       setAccepting(false);
@@ -62,58 +117,15 @@ export default function TeamInvitation() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-48 mb-4"></div>
-          <div className="h-32 bg-muted rounded w-96"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-6 w-6 text-red-500" />
-              <CardTitle>Invalid Invitation</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ErrorState error={error} onNavigateHome={() => navigate('/')} />;
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Mail className="h-6 w-6 text-blue-500" />
-              <CardTitle>Team Invitation</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              You need to be logged in to accept this team invitation.
-            </p>
-            <Button onClick={() => navigate('/auth')} className="w-full">
-              Login / Sign Up
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <LoginPrompt onNavigateAuth={() => navigate('/auth')} />;
   }
 
   return (

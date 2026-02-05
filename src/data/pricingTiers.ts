@@ -8,21 +8,21 @@ export const pricingTiers: PricingTier[] = [
       {
         period: 'monthly',
         price: '$9',
-        priceId: 'price_1RfquDCXWi8NqmFCLUCGHtkZ',
-        paymentLink: 'price_1RfquDCXWi8NqmFCLUCGHtkZ'
+        priceId: 'price_1SxJG0CXWi8NqmFCwwspKiz5',
+        paymentLink: 'price_1SxJG0CXWi8NqmFCwwspKiz5'
       },
       {
         period: 'quarterly',
         price: '$24',
-        priceId: 'price_1RitmxCXWi8NqmFCY0YKiefl',
-        paymentLink: 'price_1RitmxCXWi8NqmFCY0YKiefl',
+        priceId: 'price_1SxJG0CXWi8NqmFCBCgGULcp',
+        paymentLink: 'price_1SxJG0CXWi8NqmFCBCgGULcp',
         savings: 'Save 11%'
       },
       {
         period: 'annual',
         price: '$89',
-        priceId: 'price_1RitmxCXWi8NqmFCf3wDnP2E',
-        paymentLink: 'price_1RitmxCXWi8NqmFCf3wDnP2E',
+        priceId: 'price_1SxJG0CXWi8NqmFCT5dNX0or',
+        paymentLink: 'price_1SxJG0CXWi8NqmFCT5dNX0or',
         savings: 'Save 17%'
       }
     ],
@@ -46,21 +46,21 @@ export const pricingTiers: PricingTier[] = [
       {
         period: 'monthly',
         price: '$49',
-        priceId: 'price_1Rfr9KCXWi8NqmFCoglqEMRH',
-        paymentLink: 'price_1Rfr9KCXWi8NqmFCoglqEMRH'
+        priceId: 'price_1SxJG1CXWi8NqmFCP3CJ1SSA',
+        paymentLink: 'price_1SxJG1CXWi8NqmFCP3CJ1SSA'
       },
       {
         period: 'quarterly',
         price: '$134',
-        priceId: 'price_1RixAICXWi8NqmFCXmfOkywQ',
-        paymentLink: 'price_1RixAICXWi8NqmFCXmfOkywQ',
+        priceId: 'price_1SxJG1CXWi8NqmFCYgrLZOwT',
+        paymentLink: 'price_1SxJG1CXWi8NqmFCYgrLZOwT',
         savings: 'Save 9%'
       },
       {
         period: 'annual',
         price: '$499',
-        priceId: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
-        paymentLink: 'price_1RixBZCXWi8NqmFCVZNvXJSF',
+        priceId: 'price_1SxJG1CXWi8NqmFCLaDwUoUY',
+        paymentLink: 'price_1SxJG1CXWi8NqmFCLaDwUoUY',
         savings: 'Save 15%'
       }
     ],
@@ -83,21 +83,21 @@ export const pricingTiers: PricingTier[] = [
       {
         period: 'monthly',
         price: '$29',
-        priceId: 'price_1RjjLjCXWi8NqmFCUSZpnelu',
-        paymentLink: 'price_1RjjLjCXWi8NqmFCUSZpnelu'
+        priceId: 'price_1SxJG2CXWi8NqmFCKYtf8mRC',
+        paymentLink: 'price_1SxJG2CXWi8NqmFCKYtf8mRC'
       },
       {
         period: 'quarterly',
         price: '$79',
-        priceId: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
-        paymentLink: 'price_1RjjP4CXWi8NqmFCPqUeO9Hm',
+        priceId: 'price_1SxJG2CXWi8NqmFCCWJLv7Ed',
+        paymentLink: 'price_1SxJG2CXWi8NqmFCCWJLv7Ed',
         savings: 'Save 9%'
       },
       {
         period: 'annual',
         price: '$299',
-        priceId: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
-        paymentLink: 'price_1RjjQaCXWi8NqmFCqbNgZqIx',
+        priceId: 'price_1SxJG2CXWi8NqmFCk7yinOnh',
+        paymentLink: 'price_1SxJG2CXWi8NqmFCk7yinOnh',
         savings: 'Save 14%'
       }
     ],

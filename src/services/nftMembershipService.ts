@@ -58,6 +58,34 @@ const MEMBERSHIP_SEED = 'blockdrive_membership';
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
 
+// Time constants for billing periods (in milliseconds)
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MONTHLY_DURATION_MS = 30 * MS_PER_DAY;
+const QUARTERLY_DURATION_MS = 90 * MS_PER_DAY;
+const ANNUAL_DURATION_MS = 365 * MS_PER_DAY;
+
+// NFT decimals (0 for non-fungible tokens)
+const NFT_DECIMALS = 0;
+// NFT supply (1 for unique membership token)
+const NFT_SUPPLY = 1;
+
+// Tier display configuration
+const TIER_COLORS: Record<SubscriptionTier, string> = {
+  trial: 'emerald',
+  basic: 'gray',
+  pro: 'blue',
+  premium: 'purple',
+  enterprise: 'gold',
+};
+
+const TIER_ICONS: Record<SubscriptionTier, string> = {
+  trial: '',
+  basic: '',
+  pro: '',
+  premium: '',
+  enterprise: '',
+};
+
 // Get Crossmint-configured Solana connection (Devnet for MVP)
 const getConnection = () => createSolanaConnection();
 
@@ -246,15 +274,15 @@ class NFTMembershipService {
 
       switch (request.billingPeriod) {
         case 'quarterly':
-          validUntil = now + (90 * 24 * 60 * 60 * 1000);
+          validUntil = now + QUARTERLY_DURATION_MS;
           price = tierConfig.quarterlyPrice;
           break;
         case 'annual':
-          validUntil = now + (365 * 24 * 60 * 60 * 1000);
+          validUntil = now + ANNUAL_DURATION_MS;
           price = tierConfig.annualPrice;
           break;
         default:
-          validUntil = now + (30 * 24 * 60 * 60 * 1000);
+          validUntil = now + MONTHLY_DURATION_MS;
           price = tierConfig.monthlyPrice;
       }
 
@@ -316,11 +344,11 @@ class NFTMembershipService {
         )
       );
 
-      // 3. Initialize the mint (0 decimals for NFT, supply of 1)
+      // 3. Initialize the mint
       transaction.add(
         createInitializeMintInstruction(
           mintKeypair.publicKey,
-          0, // decimals (0 for NFT)
+          NFT_DECIMALS,
           walletPubkey, // mint authority
           walletPubkey, // freeze authority
           TOKEN_2022_PROGRAM_ID
@@ -372,13 +400,13 @@ class NFTMembershipService {
         )
       );
 
-      // 7. Mint 1 token to the user's ATA
+      // 7. Mint token to the user's ATA
       transaction.add(
         createMintToInstruction(
           mintKeypair.publicKey,
           ata,
           walletPubkey,
-          1, // amount (1 NFT)
+          NFT_SUPPLY,
           [],
           TOKEN_2022_PROGRAM_ID
         )
@@ -546,27 +574,11 @@ class NFTMembershipService {
   } {
     const config = TIER_CONFIGS[tier];
 
-    const colors: Record<SubscriptionTier, string> = {
-      trial: 'emerald',
-      basic: 'gray',
-      pro: 'blue',
-      premium: 'purple',
-      enterprise: 'gold',
-    };
-
-    const icons: Record<SubscriptionTier, string> = {
-      trial: '✨',
-      basic: '🔵',
-      pro: '💎',
-      premium: '👑',
-      enterprise: '🏆',
-    };
-
     return {
       name: `BlockDrive ${config.name} Membership`,
       symbol: config.nftSymbol,
-      color: colors[tier],
-      icon: icons[tier],
+      color: TIER_COLORS[tier],
+      icon: TIER_ICONS[tier],
     };
   }
 

@@ -1,10 +1,3 @@
-/**
- * Membership Page
- * 
- * Dedicated page for NFT membership management including
- * tier details, upgrades, and renewal settings.
- */
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -16,13 +9,13 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Crown, 
-  Zap, 
-  Shield, 
-  HardDrive, 
-  ArrowUp, 
-  RefreshCw, 
+import {
+  Crown,
+  Zap,
+  Shield,
+  HardDrive,
+  ArrowUp,
+  RefreshCw,
   Calendar,
   Check,
   X,
@@ -37,9 +30,11 @@ import {
 import { SubscriptionTier, TIER_CONFIGS } from '@/types/nftMembership';
 import { toast } from 'sonner';
 
-const tierOrder: SubscriptionTier[] = ['trial', 'basic', 'pro', 'premium', 'enterprise'];
+type BillingPeriod = 'monthly' | 'quarterly' | 'annual';
 
-const tierColors: Record<SubscriptionTier, string> = {
+const TIER_ORDER: SubscriptionTier[] = ['trial', 'basic', 'pro', 'premium', 'enterprise'];
+
+const TIER_COLORS: Record<SubscriptionTier, string> = {
   trial: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   basic: 'bg-muted text-muted-foreground',
   pro: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -47,7 +42,7 @@ const tierColors: Record<SubscriptionTier, string> = {
   enterprise: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
 };
 
-const tierIcons: Record<SubscriptionTier, React.ReactNode> = {
+const TIER_ICONS: Record<SubscriptionTier, React.ReactNode> = {
   trial: <Clock className="h-5 w-5" />,
   basic: <Shield className="h-5 w-5" />,
   pro: <Zap className="h-5 w-5" />,
@@ -55,33 +50,53 @@ const tierIcons: Record<SubscriptionTier, React.ReactNode> = {
   enterprise: <Crown className="h-5 w-5" />,
 };
 
-export default function Membership() {
+const BILLING_LABELS: Record<BillingPeriod, string> = {
+  monthly: 'mo',
+  quarterly: 'qtr',
+  annual: 'yr',
+};
+
+function getPrice(tier: SubscriptionTier, billingPeriod: BillingPeriod): number {
+  const config = TIER_CONFIGS[tier];
+  switch (billingPeriod) {
+    case 'monthly':
+      return config.monthlyPrice;
+    case 'quarterly':
+      return config.quarterlyPrice;
+    case 'annual':
+      return config.annualPrice;
+  }
+}
+
+function getTierIndex(tier: SubscriptionTier): number {
+  return TIER_ORDER.indexOf(tier);
+}
+
+export default function Membership(): JSX.Element {
   const navigate = useNavigate();
-  const { 
-    membership, 
-    isLoading, 
+  const {
+    membership,
+    isLoading,
     isPurchasing,
     purchaseMembership,
     renewMembership,
     upgradeMembership,
     getTierConfig,
-    formatStorageSize,
-    getDisplayInfo
+    formatStorageSize
   } = useNFTMembership();
 
   const [autoRenew, setAutoRenew] = useState(true);
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
   const currentTier = membership?.tier || 'basic';
   const currentConfig = getTierConfig(currentTier);
-  const displayInfo = getDisplayInfo(currentTier);
 
   const handleUpgrade = async (newTier: SubscriptionTier) => {
-    if (tierOrder.indexOf(newTier) <= tierOrder.indexOf(currentTier)) {
+    if (getTierIndex(newTier) <= getTierIndex(currentTier)) {
       toast.error('Cannot downgrade tier');
       return;
     }
-    
+
     const result = await upgradeMembership(newTier);
     if (!result.success) {
       toast.error('Upgrade failed', { description: result.error });
@@ -102,16 +117,7 @@ export default function Membership() {
     }
   };
 
-  const getPrice = (tier: SubscriptionTier) => {
-    const config = TIER_CONFIGS[tier];
-    switch (billingPeriod) {
-      case 'monthly': return config.monthlyPrice;
-      case 'quarterly': return config.quarterlyPrice;
-      case 'annual': return config.annualPrice;
-    }
-  };
-
-  const storageUsedPercent = membership?.features 
+  const storageUsedPercent = membership?.features
     ? (Number(membership.storageRemaining) / Number(currentConfig.storageGB * 1024 * 1024 * 1024)) * 100
     : 0;
 
@@ -152,8 +158,8 @@ export default function Membership() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${tierColors[currentTier]}`}>
-                      {tierIcons[currentTier]}
+                    <div className={`p-3 rounded-lg ${TIER_COLORS[currentTier]}`}>
+                      {TIER_ICONS[currentTier]}
                     </div>
                     <div>
                       <CardTitle className="text-xl">{currentConfig.name} Membership</CardTitle>
@@ -329,20 +335,17 @@ export default function Membership() {
               </CardContent>
             </Card>
 
-            {/* Tier Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {tierOrder.map((tier) => {
+              {TIER_ORDER.map((tier) => {
                 const config = TIER_CONFIGS[tier];
                 const isCurrent = tier === currentTier;
-                const canUpgrade = tierOrder.indexOf(tier) > tierOrder.indexOf(currentTier);
-                const price = getPrice(tier);
+                const canUpgrade = getTierIndex(tier) > getTierIndex(currentTier);
+                const price = getPrice(tier, billingPeriod);
 
                 return (
-                  <Card 
+                  <Card
                     key={tier}
-                    className={`border-border/50 bg-card/50 relative ${
-                      isCurrent ? 'ring-2 ring-primary' : ''
-                    }`}
+                    className={`border-border/50 bg-card/50 relative ${isCurrent ? 'ring-2 ring-primary' : ''}`}
                   >
                     {isCurrent && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -350,8 +353,8 @@ export default function Membership() {
                       </div>
                     )}
                     <CardHeader className="text-center pb-2">
-                      <div className={`mx-auto p-3 rounded-lg w-fit ${tierColors[tier]}`}>
-                        {tierIcons[tier]}
+                      <div className={`mx-auto p-3 rounded-lg w-fit ${TIER_COLORS[tier]}`}>
+                        {TIER_ICONS[tier]}
                       </div>
                       <CardTitle className="text-lg mt-3">{config.name}</CardTitle>
                       <CardDescription className="text-xs">{config.description}</CardDescription>
@@ -359,11 +362,9 @@ export default function Membership() {
                     <CardContent className="text-center space-y-4">
                       <div>
                         <span className="text-3xl font-bold">${price}</span>
-                        <span className="text-muted-foreground text-sm">
-                          /{billingPeriod === 'monthly' ? 'mo' : billingPeriod === 'quarterly' ? 'qtr' : 'yr'}
-                        </span>
+                        <span className="text-muted-foreground text-sm">/{BILLING_LABELS[billingPeriod]}</span>
                       </div>
-                      
+
                       <ul className="space-y-2 text-sm text-left">
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-green-500" />
@@ -374,20 +375,20 @@ export default function Membership() {
                           Level {config.features.maxSecurityLevel} Security
                         </li>
                         <li className="flex items-center gap-2">
-                          {config.features.teamCollaboration 
+                          {config.features.teamCollaboration
                             ? <Check className="h-4 w-4 text-green-500" />
                             : <X className="h-4 w-4 text-muted-foreground" />}
                           Team Collaboration
                         </li>
                         <li className="flex items-center gap-2">
-                          {config.features.apiAccess 
+                          {config.features.apiAccess
                             ? <Check className="h-4 w-4 text-green-500" />
                             : <X className="h-4 w-4 text-muted-foreground" />}
                           API Access
                         </li>
                       </ul>
 
-                      <Button 
+                      <Button
                         className="w-full"
                         variant={canUpgrade ? 'default' : 'outline'}
                         disabled={isCurrent || !canUpgrade || isPurchasing}
@@ -486,20 +487,19 @@ export default function Membership() {
   );
 }
 
-// Feature Item Component
-function FeatureItem({ 
-  icon, 
-  label, 
-  enabled 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
+interface FeatureItemProps {
+  icon: React.ReactNode;
+  label: string;
   enabled: boolean;
-}) {
+}
+
+function FeatureItem({ icon, label, enabled }: FeatureItemProps): JSX.Element {
+  const className = enabled
+    ? 'bg-green-500/10 text-green-400'
+    : 'bg-muted/30 text-muted-foreground';
+
   return (
-    <div className={`flex items-center gap-2 p-2 rounded-lg ${
-      enabled ? 'bg-green-500/10 text-green-400' : 'bg-muted/30 text-muted-foreground'
-    }`}>
+    <div className={`flex items-center gap-2 p-2 rounded-lg ${className}`}>
       {icon}
       <span className="text-xs">{label}</span>
     </div>
