@@ -91,7 +91,7 @@ export const DocsContent = ({ activeSection }: DocsContentProps) => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Learn how to integrate wallet authentication with support for 50+ blockchains and wallet providers.
+                Learn how to integrate wallet authentication with support for multiple blockchains via Crossmint embedded wallets.
               </p>
               <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
                 View Docs <ArrowRight className="w-4 h-4 ml-2" />
@@ -191,7 +191,7 @@ export const DocsContent = ({ activeSection }: DocsContentProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Start by connecting your preferred wallet. We support 50+ wallets across multiple blockchains.
+                Sign in with Clerk (email or social login). A Crossmint embedded wallet is automatically created for you.
               </p>
               <CodeBlock id="connect-wallet">
 {`// Connect wallet using Clerk + Crossmint
@@ -201,11 +201,13 @@ import { SignInButton } from '@clerk/clerk-react';
   Connect Wallet
 </SignInButton>`}
               </CodeBlock>
-              <div className="flex gap-2">
-                <Badge variant="secondary">Ethereum</Badge>
+              <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">Solana</Badge>
+                <Badge variant="secondary">Ethereum</Badge>
+                <Badge variant="secondary">Base</Badge>
                 <Badge variant="secondary">Polygon</Badge>
-                <Badge variant="secondary">+47 more</Badge>
+                <Badge variant="secondary">Arbitrum</Badge>
+                <Badge variant="secondary">Optimism</Badge>
               </div>
             </CardContent>
           </Card>
@@ -291,7 +293,7 @@ const uploadFile = async (file: File) => {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Secure upload to IPFS via Pinata
+                  Secure upload to IPFS via Filebase
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
@@ -323,16 +325,16 @@ const uploadFile = async (file: File) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Connect with 50+ blockchain networks and wallet providers seamlessly.
+                Crossmint embedded wallets supporting Solana and EVM chains out of the box.
               </p>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Ethereum, Solana, and 50+ other chains
+                  Solana, Ethereum, Base, Polygon, Arbitrum, Optimism
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Phantom, MetaMask, WalletConnect support
+                  MPC-based embedded wallets via Crossmint
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
@@ -345,7 +347,7 @@ const uploadFile = async (file: File) => {
               </ul>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                  💡 Supported: Ethereum • Solana • Polygon • BSC • Avalanche
+                  Supported: Solana • Ethereum • Base • Polygon • Arbitrum • Optimism
                 </p>
               </div>
             </CardContent>
@@ -428,49 +430,38 @@ const uploadFile = async (file: File) => {
 
         <div className="mt-12">
           <h2 className="text-2xl font-semibold mb-6">Storage Quotas by Plan</h2>
-          <div className="grid md:grid-cols-4 gap-4">
-            <Card className="border-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Starter</CardTitle>
-                <p className="text-sm text-muted-foreground">$9/month</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-semibold text-sm">50 GB</p>
-                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
-              </CardContent>
-            </Card>
-            
+          <div className="grid md:grid-cols-3 gap-4">
             <Card className="border-2">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Pro</CardTitle>
-                <p className="text-sm text-muted-foreground">$29/month</p>
+                <p className="text-sm text-muted-foreground">From $9/month</p>
               </CardHeader>
               <CardContent>
-                <p className="font-semibold text-sm">150 GB</p>
+                <p className="font-semibold text-sm">200 GB</p>
+                <p className="text-xs text-muted-foreground">Storage + Bandwidth &middot; 7-day trial</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Power</CardTitle>
+                <p className="text-sm text-muted-foreground">From $49/month</p>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">2 TB</p>
                 <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
               </CardContent>
             </Card>
-            
+
             <Card className="border-2 border-primary">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Growth</CardTitle>
-                <p className="text-sm text-muted-foreground">$59/month</p>
+                <CardTitle className="text-lg">Scale</CardTitle>
+                <p className="text-sm text-muted-foreground">From $29/seat/month</p>
                 <Badge variant="secondary" className="w-fit">Most Popular</Badge>
               </CardHeader>
               <CardContent>
-                <p className="font-semibold text-sm">300 GB</p>
-                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Scale</CardTitle>
-                <p className="text-sm text-muted-foreground">$99/month/seat</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-semibold text-sm">500 GB</p>
-                <p className="text-xs text-muted-foreground">Per seat</p>
+                <p className="font-semibold text-sm">1 TB per seat</p>
+                <p className="text-xs text-muted-foreground">2 seat minimum</p>
               </CardContent>
             </Card>
           </div>
@@ -485,7 +476,7 @@ const uploadFile = async (file: File) => {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Wallet Authentication</h1>
           <p className="text-lg text-muted-foreground">
-            Connect securely with 50+ blockchain wallets across multiple networks.
+            Crossmint MPC-based embedded wallets auto-created on Clerk sign-up.
           </p>
         </div>
 
@@ -499,21 +490,21 @@ const uploadFile = async (file: File) => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">🦊 Popular Wallets</h4>
+                <h4 className="font-medium mb-2">Embedded Wallets</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>MetaMask</li>
-                  <li>Phantom</li>
-                  <li>Solflare</li>
-                  <li>WalletConnect</li>
+                  <li>Crossmint MPC Wallets</li>
+                  <li>Auto-created on sign-up</li>
+                  <li>Email-linked via Clerk</li>
+                  <li>Server-side fallback</li>
                 </ul>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">⛓️ Supported Networks</h4>
+                <h4 className="font-medium mb-2">Supported Networks</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>Ethereum</li>
-                  <li>Solana</li>
-                  <li>Polygon</li>
-                  <li>+47 more chains</li>
+                  <li>Solana (primary)</li>
+                  <li>Ethereum / Base</li>
+                  <li>Polygon / Arbitrum</li>
+                  <li>Optimism</li>
                 </ul>
               </div>
             </div>
@@ -619,12 +610,12 @@ const { user, isSignedIn, wallet } = useAuth();`}
           </CardHeader>
           <CardContent className="space-y-6">
             {[
-              { step: 1, title: "User Initiation", desc: "User clicks 'Connect Wallet' button" },
-              { step: 2, title: "Wallet Selection", desc: "Choose from 50+ supported wallets" },
-              { step: 3, title: "Connection", desc: "Clerk + Crossmint handle wallet authentication" },
-              { step: 4, title: "Verification", desc: "Cryptographic signature verification" },
-              { step: 5, title: "Session Creation", desc: "Generate secure session tokens" },
-              { step: 6, title: "Redirection", desc: "Automatic redirect to dashboard" }
+              { step: 1, title: "User Initiation", desc: "User clicks 'Sign In' or 'Sign Up' button" },
+              { step: 2, title: "Clerk Authentication", desc: "Email, social login, or passkey via Clerk" },
+              { step: 3, title: "Wallet Creation", desc: "Crossmint auto-creates an MPC embedded wallet linked to the user's email" },
+              { step: 4, title: "Session Established", desc: "Clerk session token issued, Supabase client authenticated" },
+              { step: 5, title: "Wallet Ready", desc: "Solana and EVM addresses available via useCrossmintWallet hook" },
+              { step: 6, title: "Redirect", desc: "User redirected to onboarding (new) or dashboard (returning)" }
             ].map((item) => (
               <div key={item.step} className="flex gap-4">
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
@@ -659,8 +650,8 @@ const { user, isSignedIn, wallet } = useAuth();`}
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">📡 Pinata Provider</h4>
-                <p className="text-sm text-muted-foreground">Primary IPFS gateway for reliable storage</p>
+                <h4 className="font-medium mb-2">📡 Filebase Provider</h4>
+                <p className="text-sm text-muted-foreground">S3-compatible IPFS gateway with 3x redundancy</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">🌍 Global CDN</h4>
@@ -772,7 +763,7 @@ const shareFile = async (fileId: string) => {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Storage Quotas</h1>
           <p className="text-lg text-muted-foreground">
-            Storage and bandwidth limits based on your subscription plan.
+            Storage and bandwidth limits based on your subscription plan. Quarterly and annual billing available with discounts.
           </p>
         </div>
 
@@ -783,10 +774,9 @@ const shareFile = async (fileId: string) => {
           <CardContent>
             <div className="grid gap-4">
               {[
-                { plan: "Starter", storage: "50 GB", bandwidth: "50 GB", price: "$9/month" },
-                { plan: "Pro", storage: "150 GB", bandwidth: "150 GB", price: "$29/month" },
-                { plan: "Growth", storage: "300 GB", bandwidth: "300 GB", price: "$59/month" },
-                { plan: "Scale", storage: "500 GB/seat", bandwidth: "500 GB/seat", price: "$99/month/seat" }
+                { plan: "Pro", storage: "200 GB", bandwidth: "200 GB", price: "From $9/month", note: "7-day free trial" },
+                { plan: "Power", storage: "2 TB", bandwidth: "2 TB", price: "From $49/month", note: "Single user" },
+                { plan: "Scale", storage: "1 TB/seat", bandwidth: "1 TB/seat", price: "From $29/seat/month", note: "2 seat minimum" }
               ].map((tier) => (
                 <div key={tier.plan} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-center">
@@ -797,6 +787,7 @@ const shareFile = async (fileId: string) => {
                     <div className="text-right">
                       <p className="text-sm">Storage: {tier.storage}</p>
                       <p className="text-sm">Bandwidth: {tier.bandwidth}</p>
+                      {tier.note && <p className="text-xs text-muted-foreground">{tier.note}</p>}
                     </div>
                   </div>
                 </div>
@@ -812,34 +803,45 @@ const shareFile = async (fileId: string) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Team Management</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Teams & Organizations</h1>
           <p className="text-lg text-muted-foreground">
-            Create teams, invite members, and manage collaborative workspaces.
+            Powered by Clerk Organizations with BlockDrive extensions for SNS subdomains, NFT ownership, and Supabase data.
           </p>
         </div>
+
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-foreground mb-2">Architecture</h3>
+            <p className="text-muted-foreground">
+              Clerk handles organization membership, switching, metadata, and invitations natively.
+              Supabase stores BlockDrive-specific data: SNS subdomain records, NFT ownership, custom invite codes,
+              email domain verification, and organization settings.
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Team Features</CardTitle>
+              <CardTitle>Organization Features</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">👥 Multiple Teams</h4>
-                  <p className="text-sm text-muted-foreground">Create and manage multiple teams</p>
+                  <h4 className="font-medium mb-2">Clerk Organizations</h4>
+                  <p className="text-sm text-muted-foreground">Native org management with admin/member roles</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">🛡️ Role-Based Access</h4>
-                  <p className="text-sm text-muted-foreground">Owner and Member roles with different permissions</p>
+                  <h4 className="font-medium mb-2">SNS Subdomains</h4>
+                  <p className="text-sm text-muted-foreground">Each org gets a .blockdrive.sol subdomain</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">📧 Email Invitations</h4>
-                  <p className="text-sm text-muted-foreground">Invite members via secure email links</p>
+                  <h4 className="font-medium mb-2">Email Domain Verification</h4>
+                  <p className="text-sm text-muted-foreground">Auto-join organizations by verified email domain</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">📁 Shared Storage</h4>
-                  <p className="text-sm text-muted-foreground">Team-specific file storage and sharing</p>
+                  <h4 className="font-medium mb-2">Invite Codes</h4>
+                  <p className="text-sm text-muted-foreground">Custom invite codes alongside Clerk native invites</p>
                 </div>
               </div>
             </CardContent>
@@ -847,21 +849,29 @@ const shareFile = async (fileId: string) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Team Operations</CardTitle>
+              <CardTitle>Organization Data Model</CardTitle>
             </CardHeader>
             <CardContent>
               <CodeBlock id="team-ops">
-{`// Team file upload
-const teamUpload = async (file: File, teamId: string) => {
-  const result = await uploadToTeamStorage(file, teamId);
-  return result;
-};
+{`// Combined Organization type
+interface Organization {
+  // From Clerk
+  id: string;
+  name: string;
+  slug: string | null;
+  imageUrl: string;
+  membersCount: number;
+  role: string;
 
-// Invite team member
-const inviteMember = async (email: string, teamId: string, role: string) => {
-  const invitation = await sendTeamInvitation(email, teamId, role);
-  return invitation;
-};`}
+  // From Supabase (BlockDrive extensions)
+  subdomain?: string;        // .blockdrive.sol subdomain
+  snsDomain?: string;        // Full SNS domain
+  subscriptionTier?: 'business' | 'enterprise';
+  hasSubdomainNft?: boolean; // NFT-gated features
+}
+
+// Usage with the useOrganizations hook
+const { activeOrg, organizations, switchOrg } = useOrganizations();`}
               </CodeBlock>
             </CardContent>
           </Card>
@@ -873,12 +883,8 @@ const inviteMember = async (email: string, teamId: string, role: string) => {
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Growth Plan</h4>
-                  <p className="text-sm text-muted-foreground">1 team, up to 3 members total</p>
-                </div>
-                <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Scale Plan</h4>
-                  <p className="text-sm text-muted-foreground">Unlimited teams and members</p>
+                  <p className="text-sm text-muted-foreground">$29/seat/month (2 seat min) &middot; 1 TB/seat &middot; Team collaboration &middot; Clerk Organizations</p>
                 </div>
               </div>
             </CardContent>
@@ -927,45 +933,41 @@ const inviteMember = async (email: string, teamId: string, role: string) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Pricing Tiers</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Pricing Plans</h1>
           <p className="text-lg text-muted-foreground">
-            Flexible pricing plans to match your storage and collaboration needs.
+            Flexible pricing with monthly, quarterly, and annual billing options.
+            Pay with card (Stripe) or crypto (USDC, SOL, ETH via Crossmint).
           </p>
         </div>
 
         <div className="grid gap-6">
           {[
             {
-              name: "Starter",
-              price: "$9/month",
-              storage: "50 GB storage & bandwidth",
+              name: "Pro",
+              prices: { monthly: "$9", quarterly: "$24", annual: "$89" },
+              savings: { quarterly: "Save 11%", annual: "Save 17%" },
+              storage: "200 GB storage & bandwidth",
               users: "1 user",
-              features: ["Basic blockchain features", "7-day free trial"],
+              features: ["Blockchain authentication", "File encryption", "Basic support", "7-day free trial"],
               popular: false
             },
             {
-              name: "Pro", 
-              price: "$29/month",
-              storage: "150 GB storage & bandwidth",
-              users: "Enhanced features",
-              features: ["Priority support", "Advanced sharing"],
+              name: "Power",
+              prices: { monthly: "$49", quarterly: "$134", annual: "$499" },
+              savings: { quarterly: "Save 9%", annual: "Save 15%" },
+              storage: "2 TB storage & bandwidth",
+              users: "1 user",
+              features: ["Advanced blockchain features", "Priority support", "Enhanced file encryption", "Advanced sharing options"],
               popular: false
-            },
-            {
-              name: "Growth",
-              price: "$59/month",
-              storage: "300 GB storage & bandwidth", 
-              users: "Up to 3 team members",
-              features: ["Team collaboration tools", "Advanced analytics"],
-              popular: true
             },
             {
               name: "Scale",
-              price: "$99/month/seat",
-              storage: "500 GB per seat",
-              users: "Unlimited team members",
-              features: ["Custom solutions", "24/7 support"],
-              popular: false
+              prices: { monthly: "$29/seat", quarterly: "$79/seat", annual: "$299/seat" },
+              savings: { quarterly: "Save 9%", annual: "Save 14%" },
+              storage: "1 TB storage & bandwidth per seat",
+              users: "2+ users (2 seat minimum)",
+              features: ["Team collaboration tools", "Clerk Organizations", "24/7 priority support", "Advanced integrations"],
+              popular: true
             }
           ].map((plan) => (
             <Card key={plan.name} className={plan.popular ? "border-primary" : ""}>
@@ -976,7 +978,9 @@ const inviteMember = async (email: string, teamId: string, role: string) => {
                       {plan.name}
                       {plan.popular && <Badge>Most Popular</Badge>}
                     </CardTitle>
-                    <CardDescription>{plan.price}</CardDescription>
+                    <CardDescription>
+                      {plan.prices.monthly}/mo &middot; {plan.prices.quarterly}/qtr ({plan.savings.quarterly}) &middot; {plan.prices.annual}/yr ({plan.savings.annual})
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -1497,31 +1501,41 @@ pub struct Delegation {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Multi-Provider Storage</h1>
           <p className="text-lg text-muted-foreground">
-            Automatic failover across Filebase, S3, and Arweave for maximum reliability.
+            Automatic failover across Filebase, Cloudflare R2, S3, and Arweave for maximum reliability.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Filebase (Primary)</CardTitle>
               <Badge variant="secondary">IPFS</Badge>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">S3-compatible IPFS API with global CDN and automatic pinning.</p>
+              <p className="text-sm text-muted-foreground">S3-compatible IPFS API with 3x redundancy, global CDN, and automatic pinning.</p>
             </CardContent>
           </Card>
-          
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Cloudflare R2</CardTitle>
+              <Badge variant="secondary">ZK Proofs</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Zero-egress-fee storage for ZK proof packages and critical bytes.</p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Amazon S3</CardTitle>
               <Badge variant="secondary">Backup</Badge>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Critical bytes storage and redundant content backup.</p>
+              <p className="text-sm text-muted-foreground">Redundant content backup and critical bytes storage.</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Arweave</CardTitle>
@@ -1556,6 +1570,1079 @@ pub struct Delegation {
                 Chunking for large files
               </li>
             </ul>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'sns-verification') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">SNS Domain Verification</h1>
+          <p className="text-lg text-muted-foreground">
+            Solana Naming Service subdomains under blockdrive.sol for human-readable wallet identities.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>How It Works</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Each BlockDrive user can claim a subdomain like <code className="text-primary">username.blockdrive.sol</code>.
+              Subdomains are registered on-chain via Bonfida's SPL Name Service and require NFT membership.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Availability Check</h4>
+                <p className="text-sm text-muted-foreground">Real-time lookup against the SNS registry</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">On-Chain Registration</h4>
+                <p className="text-sm text-muted-foreground">Signed via Crossmint embedded wallet</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Ownership Verification</h4>
+                <p className="text-sm text-muted-foreground">Resolve subdomain to wallet address</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Transfer & Release</h4>
+                <p className="text-sm text-muted-foreground">Transfer ownership or release subdomains</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Validation Rules</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />3-32 characters, alphanumeric and hyphens only</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Cannot start or end with a hyphen, no consecutive hyphens</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Reserved names blocked (www, api, admin, etc.)</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />NFT membership required for registration</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <CodeBlock id="sns-usage">
+{`// SNS Subdomain Service
+import { snsSubdomainService } from '@/services/snsSubdomainService';
+
+// Check availability
+const result = await snsSubdomainService.checkAvailability('myname');
+// { available: true, subdomain: 'myname', fullDomain: 'myname.blockdrive.sol' }
+
+// Register subdomain (requires Crossmint signer)
+const reg = await snsSubdomainService.registerSubdomain(
+  'myname', walletAddress, crossmintSigner
+);
+
+// Resolve to wallet address
+const owner = await snsSubdomainService.resolveSubdomain('myname');
+
+// Verify ownership
+const isOwner = await snsSubdomainService.verifyOwnership('myname', walletAddress);`}
+        </CodeBlock>
+      </div>
+    );
+  }
+
+  if (activeSection === 'basenames-verification') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Basenames Verification</h1>
+          <p className="text-lg text-muted-foreground">
+            Base chain domain verification for dual-chain identity as part of Multichain Authentication.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Base Chain Identity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Basenames provide human-readable identities on the Base L2 network. Combined with SNS domains on Solana,
+              they form BlockDrive's dual-chain verification for the MCA authentication system.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <h4 className="font-medium mb-2">Base Domain</h4>
+                <p className="font-mono text-sm text-blue-400">label.blockdrive.base</p>
+                <p className="text-xs text-muted-foreground mt-2">EVM-based domain verification</p>
+              </div>
+              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                <h4 className="font-medium mb-2">Solana Domain</h4>
+                <p className="font-mono text-sm text-purple-400">label.blockdrive.sol</p>
+                <p className="text-xs text-muted-foreground mt-2">SNS-based domain verification</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>MCA Requirement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Multichain Authentication requires proving ownership of matching subdomains on both chains.
+              The user signs a canonical challenge with both their Solana and EVM wallets, and the backend
+              verifies domain ownership on both chains before issuing a short-lived JWT.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'onchain-registry') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">On-Chain Registry</h1>
+          <p className="text-lg text-muted-foreground">
+            Every file uploaded to BlockDrive is registered on Solana with cryptographic commitments
+            using Multi-PDA Sharding for scalability beyond 1,000 files.
+          </p>
+        </div>
+
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-foreground mb-2">What Gets Stored On-Chain</h3>
+            <p className="text-muted-foreground">
+              File content is never stored on Solana. Only cryptographic commitments, file metadata hashes,
+              storage provider CIDs, security levels, and delegation records are registered as PDAs.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Registration Flow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { step: 1, title: "Encrypt & Split", desc: "AES-256-GCM encrypt, extract critical 16 bytes" },
+              { step: 2, title: "Generate Commitments", desc: "SHA-256 of critical bytes and encrypted content" },
+              { step: 3, title: "Upload Content", desc: "Encrypted file (minus critical bytes) to Filebase IPFS" },
+              { step: 4, title: "Upload Proof", desc: "ZK proof package to Cloudflare R2" },
+              { step: 5, title: "Register PDA", desc: "FileRecord PDA created on Solana with commitments and CIDs" }
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {item.step}
+                </div>
+                <div>
+                  <h4 className="font-medium">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Multi-PDA Sharding</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              To overcome Solana's account size limits, BlockDrive uses a sharding system where vault data
+              is distributed across multiple shard PDAs. This supports 1,000+ files per user without hitting
+              on-chain storage limits.
+            </p>
+            <CodeBlock id="sharding">
+{`// Sharding architecture
+// Seeds: ["shard", vault_pubkey, shard_index]
+pub struct UserVaultShard {
+    pub vault: Pubkey,           // Parent vault
+    pub shard_index: u16,        // Shard number
+    pub file_records: Vec<Pubkey>, // File record references
+    pub file_count: u16,
+}
+
+// ShardingClient handles auto-allocation
+const client = new ShardingClient(connection, programId);
+await client.registerFile(vault, fileRecord);`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'user-vault') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">UserVault PDA</h1>
+          <p className="text-lg text-muted-foreground">
+            The root on-chain account for each user, storing their master key commitment and vault configuration.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Structure</CardTitle>
+            <CardDescription>Seeds: ["vault", owner_pubkey] &middot; Size: 170 bytes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="uservault-struct">
+{`pub struct UserVault {
+    pub bump: u8,                          // PDA bump seed
+    pub owner: Pubkey,                     // Owner's wallet address
+    pub master_key_commitment: [u8; 32],   // SHA256(master_key)
+    pub file_count: u64,                   // Total files in vault
+    pub total_storage: u64,                // Total bytes stored
+    pub created_at: i64,                   // Creation timestamp
+    pub updated_at: i64,                   // Last activity
+    pub status: VaultStatus,               // Active | Frozen | Deleted
+    pub reserved: [u8; 64],                // Future use
+}`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Vault Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                <h4 className="font-medium">Active</h4>
+                <p className="text-xs text-muted-foreground mt-1">Normal operations allowed</p>
+              </div>
+              <div className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                <h4 className="font-medium">Frozen</h4>
+                <p className="text-xs text-muted-foreground mt-1">Read-only, no new uploads</p>
+              </div>
+              <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                <h4 className="font-medium">Deleted</h4>
+                <p className="text-xs text-muted-foreground mt-1">Soft-deleted, data retained</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Key Operations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><code>initialize_vault</code> &mdash; Creates vault PDA with master key commitment</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><code>add_file</code> &mdash; Increments file_count and total_storage</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><code>remove_file</code> &mdash; Decrements counters (saturating)</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><code>is_active</code> / <code>is_frozen</code> &mdash; Status checks</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'file-record') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">FileRecord PDA</h1>
+          <p className="text-lg text-muted-foreground">
+            On-chain record for each encrypted file, storing commitments, CIDs, and delegation metadata.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Structure</CardTitle>
+            <CardDescription>Seeds: ["file", vault_pubkey, file_id] &middot; Size: 406 bytes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="filerecord-struct">
+{`pub struct FileRecord {
+    pub bump: u8,
+    pub vault: Pubkey,                      // Parent vault
+    pub owner: Pubkey,                      // Owner wallet
+    pub file_id: [u8; 16],                  // UUID bytes
+    pub filename_hash: [u8; 32],            // SHA256(filename) for privacy
+    pub file_size: u64,                     // Original size
+    pub encrypted_size: u64,                // Encrypted size
+    pub mime_type_hash: [u8; 32],           // SHA256(mime_type)
+    pub security_level: SecurityLevel,      // Standard | Enhanced | Maximum
+    pub encryption_commitment: [u8; 32],    // SHA256(encrypted_content)
+    pub critical_bytes_commitment: [u8; 32],// SHA256(critical_bytes)
+    pub primary_cid: [u8; 64],             // Filebase IPFS CID
+    pub redundancy_cid: [u8; 64],          // Backup storage CID
+    pub provider_count: u8,                 // Number of storage providers
+    pub created_at: i64,
+    pub accessed_at: i64,
+    pub status: FileStatus,                 // Active | Archived | Deleted
+    pub is_shared: bool,
+    pub delegation_count: u8,
+    pub reserved: [u8; 32],
+}`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Security Levels</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium">Standard</h4>
+                <p className="text-xs text-muted-foreground mt-1">AES-256-GCM, 1KB critical bytes</p>
+              </div>
+              <div className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                <h4 className="font-medium">Enhanced</h4>
+                <p className="text-xs text-muted-foreground mt-1">+ additional verification, 3KB critical bytes</p>
+              </div>
+              <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                <h4 className="font-medium">Maximum</h4>
+                <p className="text-xs text-muted-foreground mt-1">+ multi-layer encryption, 5KB critical bytes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'delegation') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Delegation PDA</h1>
+          <p className="text-lg text-muted-foreground">
+            On-chain file access delegation with ECDH-encrypted keys, permission levels, and expiration.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Structure</CardTitle>
+            <CardDescription>Seeds: ["delegation", file_record_pubkey, grantee_pubkey] &middot; Size: 302 bytes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="delegation-struct">
+{`pub struct Delegation {
+    pub bump: u8,
+    pub file_record: Pubkey,               // Target file
+    pub grantor: Pubkey,                    // File owner
+    pub grantee: Pubkey,                    // Recipient
+    pub encrypted_file_key: [u8; 128],     // ECDH-encrypted file key
+    pub permission_level: PermissionLevel, // View | Download | Reshare
+    pub expires_at: i64,                   // 0 = no expiry
+    pub created_at: i64,
+    pub is_active: bool,
+    pub is_accepted: bool,
+    pub access_count: u64,
+    pub last_accessed_at: i64,
+    pub reserved: [u8; 32],
+}`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Permission Levels</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium">View</h4>
+                <p className="text-xs text-muted-foreground mt-1">Can view file metadata only</p>
+              </div>
+              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <h4 className="font-medium">Download</h4>
+                <p className="text-xs text-muted-foreground mt-1">Can download and decrypt file</p>
+              </div>
+              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                <h4 className="font-medium">Reshare</h4>
+                <p className="text-xs text-muted-foreground mt-1">Can create sub-delegations</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ECDH Key Exchange</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              The file encryption key is re-encrypted for the recipient using ECDH (P-256) key exchange.
+              An ephemeral key pair is generated, a shared secret derived, then AES-GCM encrypts the
+              critical bytes + IV for the grantee. Only the grantee's private key can decrypt.
+            </p>
+            <CodeBlock id="ecdh-delegation">
+{`// Encrypt critical bytes for a recipient
+const pkg = await ecdhKeyExchange.encryptCriticalBytesForRecipient(
+  criticalBytes, fileIv, recipientPublicKey
+);
+// Returns: { encryptedCriticalBytes, ephemeralPublicKey, iv }
+
+// Recipient decrypts
+const { criticalBytes, fileIv } = await ecdhKeyExchange
+  .decryptCriticalBytesFromDelegation(pkg, recipientPrivateKey);`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'session-delegation') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Session Delegation</h1>
+          <p className="text-lg text-muted-foreground">
+            Gasless operations via a trusted relayer with time-limited, permission-scoped session keys.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Structure</CardTitle>
+            <CardDescription>Seeds: ["session", owner_pubkey, relayer_pubkey]</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="session-struct">
+{`pub struct SessionDelegation {
+    pub owner: Pubkey,              // User's wallet
+    pub relayer: Pubkey,            // Trusted backend relayer
+    pub nonce: u64,                 // Replay attack protection
+    pub allowed_operations: u8,     // Bitmap of permissions
+    pub expires_at: i64,            // Max 7 days from creation
+    pub is_active: bool,
+    pub max_operations: u32,        // 0 = unlimited
+    pub operations_used: u32,
+}`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Operation Permissions (Bitmap)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg font-mono text-sm">
+                <p>UPLOAD &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0b00000001</p>
+                <p>UPDATE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 0b00000010</p>
+                <p>CREATE_SHARD = 0b00000100</p>
+                <p>ARCHIVE &nbsp;&nbsp;&nbsp;&nbsp;= 0b00001000</p>
+              </div>
+              <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                <h4 className="font-medium mb-2">Security Note</h4>
+                <p className="text-xs text-muted-foreground">
+                  DELETE (hard delete) is intentionally NOT delegatable. Self-delegation is prevented.
+                  Nonce verification prevents replay attacks.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'file-sharing') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">File Sharing</h1>
+          <p className="text-lg text-muted-foreground">
+            Cryptographically secure file sharing using ECDH key exchange and on-chain delegation PDAs.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sharing Flow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { step: 1, title: "Select File", desc: "Owner selects file and recipient" },
+              { step: 2, title: "ECDH Key Exchange", desc: "File key re-encrypted for recipient using P-256 ECDH" },
+              { step: 3, title: "Create Delegation PDA", desc: "On-chain record with encrypted key, permission level, and optional expiry" },
+              { step: 4, title: "Recipient Decrypts", desc: "Recipient derives shared secret, decrypts critical bytes + IV" },
+              { step: 5, title: "Download & Reassemble", desc: "Critical bytes + encrypted content merged and decrypted" }
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{item.step}</div>
+                <div>
+                  <h4 className="font-medium">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Share Modalities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Direct Share</h4>
+                <p className="text-sm text-muted-foreground">Share to a specific wallet address with on-chain delegation</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Team Share</h4>
+                <p className="text-sm text-muted-foreground">Move files to team storage within a Clerk Organization</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Send to Teammate</h4>
+                <p className="text-sm text-muted-foreground">Share with org members by email or wallet</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Instant Revoke</h4>
+                <p className="text-sm text-muted-foreground">Delete delegation PDA to permanently revoke access</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'access-control') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Access Control</h1>
+          <p className="text-lg text-muted-foreground">
+            Multi-layered access control combining Clerk auth, on-chain delegations, and cryptographic enforcement.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Control Layers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium">Layer 1: Clerk Authentication</h4>
+                <p className="text-sm text-muted-foreground">Session-based auth with Clerk. ClerkProtectedRoute guards all app pages. Supabase client authenticated via Clerk JWT.</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium">Layer 2: Organization Membership</h4>
+                <p className="text-sm text-muted-foreground">Clerk Organizations control team-level access. Admin vs member roles determine who can invite, manage settings, and access team files.</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium">Layer 3: On-Chain Delegation</h4>
+                <p className="text-sm text-muted-foreground">Solana Delegation PDAs enforce file-level permissions (View, Download, Reshare) with optional time-based expiration.</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium">Layer 4: Cryptographic Enforcement</h4>
+                <p className="text-sm text-muted-foreground">Files are mathematically unreadable without both critical bytes and the encrypted content. ECDH ensures only authorized recipients can decrypt.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription-Based Gating</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              The SubscriptionGate component checks the user's active subscription tier before allowing
+              access to premium features like team creation, advanced sharing, and increased storage quotas.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'stripe-atlas') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Stripe Atlas</h1>
+          <p className="text-lg text-muted-foreground">
+            Form a Delaware C-Corp with integrated Stripe payments, directly from BlockDrive.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>What's Included</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Globe className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Delaware C-Corp</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Shield className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Banking Ready</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Settings className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Tax & Legal</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Registered agent for one year</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />IRS EIN filing and 83(b) election</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Customizable legal documents and cap table</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />$100K+ in partner perks</li>
+            </ul>
+            <div className="mt-4 p-4 bg-violet-500/10 rounded-lg border border-violet-500/20">
+              <p className="text-sm"><span className="font-medium">One-time fee:</span> $500</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'clerky') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Clerky</h1>
+          <p className="text-lg text-muted-foreground">
+            VC-standard legal paperwork for startups, built by lawyers. Used by Y Combinator companies.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Services Available</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <FileText className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Legal Docs</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Hiring</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <Zap className="w-6 h-6 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-sm">Fundraising</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Delaware incorporation with standard startup docs</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Employee and contractor agreements with equity</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />SAFE notes and convertible instruments</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Series A financing documents</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Board consents and corporate housekeeping</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'box-integration') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Box Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Connect your Box account to import files into BlockDrive's encrypted storage.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">OAuth Connection</h4>
+                <p className="text-sm text-muted-foreground">Secure Box OAuth 2.0 authentication</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">File Browsing</h4>
+                <p className="text-sm text-muted-foreground">Browse and select Box files for import</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Import to IPFS</h4>
+                <p className="text-sm text-muted-foreground">Import Box files into BlockDrive's encrypted IPFS storage</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Sync Status</h4>
+                <p className="text-sm text-muted-foreground">Real-time connection status monitoring</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'google-drive') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Google Drive Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Import files from Google Drive and re-encrypt them with BlockDrive's security architecture.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Google OAuth</h4>
+                <p className="text-sm text-muted-foreground">Secure Google OAuth 2.0 connection</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">File Browser</h4>
+                <p className="text-sm text-muted-foreground">Browse Google Drive files and folders</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Selective Import</h4>
+                <p className="text-sm text-muted-foreground">Choose specific files to import</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Encrypted Migration</h4>
+                <p className="text-sm text-muted-foreground">Files re-encrypted with wallet-derived keys</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'onedrive') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">OneDrive Integration</h1>
+          <p className="text-lg text-muted-foreground">
+            Import files from Microsoft OneDrive into BlockDrive's decentralized storage.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Microsoft OAuth</h4>
+                <p className="text-sm text-muted-foreground">Microsoft Graph API authentication</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">File Browser</h4>
+                <p className="text-sm text-muted-foreground">Browse OneDrive files and folders</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Selective Import</h4>
+                <p className="text-sm text-muted-foreground">Choose specific files to import</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Encrypted Migration</h4>
+                <p className="text-sm text-muted-foreground">Files re-encrypted with BlockDrive security</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'recovery-sdk') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Recovery SDK</h1>
+          <p className="text-lg text-muted-foreground">
+            Open-source Python SDK for recovering files encrypted with BlockDrive, ensuring users are never locked in.
+          </p>
+        </div>
+
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-foreground mb-2">No Vendor Lock-In</h3>
+            <p className="text-muted-foreground">
+              Even if BlockDrive's services go offline, users can independently recover their files using this
+              open-source SDK with their wallet signature and the on-chain records.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Installation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="sdk-install">
+{`# Basic installation
+pip install blockdrive-recovery
+
+# With Solana verification support
+pip install blockdrive-recovery[solana]
+
+# With Filebase enterprise gateway
+pip install blockdrive-recovery[filebase]`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="sdk-usage">
+{`from blockdrive_recovery import BlockDriveRecovery, SecurityLevel
+
+# Initialize recovery
+recovery = BlockDriveRecovery()
+
+# Derive key from wallet signature
+recovery.derive_key_from_signature(signature_bytes, SecurityLevel.STANDARD)
+
+# Recover file using content CID and proof CID
+result = recovery.recover_file(content_cid, proof_cid, SecurityLevel.STANDARD)
+
+# With Solana on-chain verification
+from blockdrive_recovery.solana import SolanaVerifier
+verifier = SolanaVerifier(network="devnet")
+
+# With enterprise Filebase gateway
+from blockdrive_recovery import FilebaseClient
+filebase = FilebaseClient(dedicated_gateway="https://your-gateway.filebase.io")
+recovery = BlockDriveRecovery(filebase_client=filebase)`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>SDK Components</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-mono font-medium text-sm mb-2">KeyDerivation</h4>
+                <p className="text-xs text-muted-foreground">Derive encryption keys from wallet signatures</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-mono font-medium text-sm mb-2">AESDecryptor</h4>
+                <p className="text-xs text-muted-foreground">AES-256-GCM decryption with critical bytes reassembly</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-mono font-medium text-sm mb-2">IPFSClient / FilebaseClient</h4>
+                <p className="text-xs text-muted-foreground">Retrieve encrypted content from IPFS/Filebase</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-mono font-medium text-sm mb-2">SolanaVerifier</h4>
+                <p className="text-xs text-muted-foreground">Verify on-chain file records and commitments</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'zk-circuits') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">ZK Circuit Compilation</h1>
+          <p className="text-lg text-muted-foreground">
+            Building and deploying the Groth16 circuits that power BlockDrive's zero-knowledge proofs.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Circuit: CriticalBytesCommitment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CodeBlock id="circuit-code">
+{`// criticalBytesCommitment.circom
+template CriticalBytesCommitment() {
+    signal input criticalBytes[128];   // 16 bytes as 128 bits (private)
+    signal input commitment[256];      // SHA-256 hash (public)
+
+    // Binary constraint for each bit
+    for (var i = 0; i < 128; i++) {
+        criticalBytes[i] * (1 - criticalBytes[i]) === 0;
+    }
+
+    // Compute SHA-256 and constrain to public commitment
+    component sha256Hasher = Sha256(128);
+    for (var i = 0; i < 128; i++) {
+        sha256Hasher.in[i] <== criticalBytes[i];
+    }
+    for (var i = 0; i < 256; i++) {
+        sha256Hasher.out[i] === commitment[i];
+    }
+}
+
+component main {public [commitment]} = CriticalBytesCommitment();`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Build Pipeline</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { step: 1, title: "Install circomlib", desc: "npm install circomlib" },
+              { step: 2, title: "Compile circuit", desc: "circom → R1CS + WASM + symbols" },
+              { step: 3, title: "Powers of Tau", desc: "Download Hermez ceremony (2^14 constraints)" },
+              { step: 4, title: "Generate proving key", desc: "Groth16 setup + contribution + beacon" },
+              { step: 5, title: "Export verification key", desc: "JSON verification key for client-side verification" },
+              { step: 6, title: "Generate Solidity verifier", desc: "Optional on-chain verification contract" }
+            ].map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{item.step}</div>
+                <div>
+                  <h4 className="font-medium">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">
+                For production, a multi-party trusted setup ceremony is required. See scripts/trusted-setup-ceremony.md
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Build Artifacts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-mono text-sm">.wasm</p>
+                <p className="text-xs text-muted-foreground mt-1">Circuit for browser proving</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-mono text-sm">.zkey</p>
+                <p className="text-xs text-muted-foreground mt-1">Proving key</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-mono text-sm">verification_key.json</p>
+                <p className="text-xs text-muted-foreground mt-1">Public verification key</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'billing') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Payments & Billing</h1>
+          <p className="text-lg text-muted-foreground">
+            Dual-rail payment system supporting both fiat (Stripe) and crypto (Crossmint) with automatic recurring billing.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fiat Payments (Stripe)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Stripe Checkout for card/bank payments</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />2.9% processing fee</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Automatic recurring billing</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Customer portal for self-service</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Webhook-driven subscription management</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Crypto Payments (Crossmint)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />USDC, SOL, ETH accepted</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />~1.3% processing fee</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Auto-debit via pg_cron scheduler</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Crossmint embedded wallet integration</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />On-ramp support for fiat-to-crypto</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Billing Periods</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Monthly</p>
+                <p className="text-xs text-muted-foreground mt-1">Standard pricing</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Quarterly</p>
+                <p className="text-xs text-muted-foreground mt-1">Save 9-11%</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-medium">Annual</p>
+                <p className="text-xs text-muted-foreground mt-1">Save 14-17%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Treasury</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Crypto payments are routed to the BlockDrive treasury wallet:
+            </p>
+            <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+              <code className="text-sm text-primary">neo.blockdrive.sol</code>
+              <p className="text-xs text-muted-foreground mt-1">GABYjW8LgkLBTFzkJSzTFZGnuZbZaw36xcDv6cVFRg2y</p>
+            </div>
           </CardContent>
         </Card>
       </div>

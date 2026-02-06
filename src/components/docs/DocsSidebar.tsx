@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe, Lock, Building2, Database } from 'lucide-react';
+import { ChevronRight, FileText, Users, Shield, Zap, Settings, Code, Globe, Lock, Building2, Database, CreditCard, MessageSquare } from 'lucide-react';
 
 interface SidebarSection {
   title: string;
@@ -39,11 +39,12 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       title: "Authentication",
       icon: <Shield className="w-4 h-4" />,
       items: [
+        { title: "Clerk + Crossmint", id: "clerk-crossmint-integration" },
+        { title: "Embedded Wallets", id: "wallet-auth" },
+        { title: "Authentication Flow", id: "auth-flow" },
         { title: "Multichain Auth (MCA)", id: "mca-auth" },
         { title: "SNS Domain Verification", id: "sns-verification" },
-        { title: "Basenames Verification", id: "basenames-verification" },
-        { title: "Wallet Connection", id: "wallet-auth" },
-        { title: "Clerk + Crossmint Integration", id: "clerk-crossmint-integration" }
+        { title: "Basenames Verification", id: "basenames-verification" }
       ]
     },
     {
@@ -51,9 +52,10 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       icon: <FileText className="w-4 h-4" />,
       items: [
         { title: "Multi-Provider Storage", id: "multi-provider" },
-        { title: "IPFS Integration", id: "ipfs-integration" },
+        { title: "Filebase IPFS", id: "ipfs-integration" },
         { title: "On-Chain Registry", id: "onchain-registry" },
         { title: "File Management", id: "file-management" },
+        { title: "File Sharing", id: "file-sharing" },
         { title: "Storage Quotas", id: "storage-quotas" }
       ]
     },
@@ -64,15 +66,15 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
         { title: "Program Architecture", id: "solana-architecture" },
         { title: "UserVault PDA", id: "user-vault" },
         { title: "FileRecord PDA", id: "file-record" },
-        { title: "Delegation PDA", id: "delegation" }
+        { title: "Delegation PDA", id: "delegation" },
+        { title: "Session Delegation", id: "session-delegation" }
       ]
     },
     {
-      title: "Team Collaboration",
+      title: "Teams & Organizations",
       icon: <Users className="w-4 h-4" />,
       items: [
-        { title: "Team Management", id: "team-management" },
-        { title: "File Sharing", id: "file-sharing" },
+        { title: "Clerk Organizations", id: "team-management" },
         { title: "Access Control", id: "access-control" }
       ]
     },
@@ -89,9 +91,10 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       title: "Integrations",
       icon: <Globe className="w-4 h-4" />,
       items: [
-        { title: "Cloud Storage", id: "cloud-storage" },
-        { title: "Enterprise Systems", id: "enterprise-systems" },
-        { title: "Financial Tools", id: "financial-tools" }
+        { title: "Slack", id: "slack" },
+        { title: "Box", id: "box-integration" },
+        { title: "Google Drive", id: "google-drive" },
+        { title: "OneDrive", id: "onedrive" }
       ]
     },
     {
@@ -99,16 +102,16 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       icon: <Code className="w-4 h-4" />,
       items: [
         { title: "Edge Functions", id: "edge-functions" },
-        { title: "SDK Integration", id: "sdk-integration" },
+        { title: "Recovery SDK", id: "recovery-sdk" },
         { title: "ZK Circuit Compilation", id: "zk-circuits" }
       ]
     },
     {
-      title: "Subscription & Pricing",
-      icon: <Settings className="w-4 h-4" />,
+      title: "Subscription & Billing",
+      icon: <CreditCard className="w-4 h-4" />,
       items: [
-        { title: "Pricing Tiers", id: "pricing-tiers" },
-        { title: "Billing Features", id: "billing" }
+        { title: "Pricing Plans", id: "pricing-tiers" },
+        { title: "Payments & Billing", id: "billing" }
       ]
     }
   ];
@@ -121,7 +124,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
           Complete guide to BlockDrive platform
         </p>
       </div>
-      
+
       <ScrollArea className="h-[calc(100vh-120px)]">
         <div className="p-4 space-y-6">
           {sections.map((section) => (
