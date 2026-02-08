@@ -67,6 +67,8 @@ export const LandingNavigation = () => {
 
             {/* Mobile menu button */}
             <button
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
               className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
             >

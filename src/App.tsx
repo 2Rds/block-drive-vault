@@ -12,6 +12,7 @@ import { ClerkAuthProvider } from '@/contexts/ClerkAuthContext';
 import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const ClerkProtectedRoute = lazy(() =>
   import("./components/auth/ClerkProtectedRoute").then(m => ({ default: m.ClerkProtectedRoute }))
@@ -88,6 +89,7 @@ function App() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SecurityHeaders />
@@ -177,6 +179,7 @@ function App() {
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

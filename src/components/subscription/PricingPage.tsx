@@ -114,6 +114,7 @@ export const PricingPage = () => {
             {billingPeriods.map((period) => (
               <button
                 key={period.value}
+                aria-pressed={selectedPeriod === period.value}
                 onClick={() => setSelectedPeriod(period.value)}
                 className={`
                   relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200

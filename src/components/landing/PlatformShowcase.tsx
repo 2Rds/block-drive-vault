@@ -55,6 +55,8 @@ export const PlatformShowcase = () => {
             {steps.map((step, i) => (
               <button
                 key={step.number}
+                aria-label={`Step ${step.number}: ${step.title}`}
+                aria-pressed={activeStep === i}
                 onClick={() => setActiveStep(i)}
                 className={`w-full text-left p-5 rounded-xl transition-all duration-300 group border ${
                   activeStep === i
