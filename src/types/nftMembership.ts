@@ -6,7 +6,7 @@
  */
 
 // Subscription tier levels
-export type SubscriptionTier = 'trial' | 'basic' | 'pro' | 'premium' | 'enterprise';
+export type SubscriptionTier = 'trial' | 'pro' | 'scale' | 'enterprise';
 
 // NFT Membership metadata structure (on-chain)
 export interface MembershipMetadata {
@@ -127,29 +127,6 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     nftSymbol: 'BLKD-TRIAL',
     nftUri: 'https://blockdrive.io/nft/trial.json',
   },
-  basic: {
-    tier: 'basic',
-    name: 'Starter',
-    description: 'Perfect for personal use',
-    monthlyPrice: 0,
-    quarterlyPrice: 0,
-    annualPrice: 0,
-    storageGB: 100,
-    bandwidthGB: 100,
-    features: {
-      maxSecurityLevel: 2,
-      maxFileSize: 100 * 1024 * 1024, // 100MB
-      granularSharing: false,
-      instantRevoke: true,
-      teamCollaboration: false,
-      prioritySupport: false,
-      apiAccess: false,
-      customBranding: false,
-      slaGuarantee: false,
-    },
-    nftSymbol: 'BLKD-BASIC',
-    nftUri: 'https://blockdrive.io/nft/basic.json',
-  },
   pro: {
     tier: 'pro',
     name: 'Pro',
@@ -173,15 +150,15 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     nftSymbol: 'BLKD-PRO',
     nftUri: 'https://blockdrive.io/nft/pro.json',
   },
-  premium: {
-    tier: 'premium',
-    name: 'Growth',
-    description: 'For teams and growing businesses',
-    monthlyPrice: 99,
-    quarterlyPrice: 269,
-    annualPrice: 999,
-    storageGB: 1024,
-    bandwidthGB: 1024,
+  scale: {
+    tier: 'scale',
+    name: 'Scale',
+    description: 'Per-seat team pricing — 2 TB/seat',
+    monthlyPrice: 29,
+    quarterlyPrice: 79,
+    annualPrice: 299,
+    storageGB: 2048,
+    bandwidthGB: 2048,
     features: {
       maxSecurityLevel: 3,
       maxFileSize: 1024 * 1024 * 1024, // 1GB
@@ -191,20 +168,20 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       prioritySupport: true,
       apiAccess: true,
       customBranding: false,
-      slaGuarantee: true,
+      slaGuarantee: false,
     },
-    nftSymbol: 'BLKD-GROWTH',
-    nftUri: 'https://blockdrive.io/nft/growth.json',
+    nftSymbol: 'BLKD-SCALE',
+    nftUri: 'https://blockdrive.io/nft/scale.json',
   },
   enterprise: {
     tier: 'enterprise',
-    name: 'Scale',
-    description: 'Per-seat team pricing — 2 TB/seat',
-    monthlyPrice: 29,
-    quarterlyPrice: 79,
-    annualPrice: 299,
-    storageGB: 2048,
-    bandwidthGB: 2048,
+    name: 'Enterprise',
+    description: 'Custom solutions for 100+ seat organizations',
+    monthlyPrice: 0,
+    quarterlyPrice: 0,
+    annualPrice: 0,
+    storageGB: 0,
+    bandwidthGB: 0,
     features: {
       maxSecurityLevel: 3,
       maxFileSize: 5 * 1024 * 1024 * 1024, // 5GB
@@ -216,8 +193,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       customBranding: true,
       slaGuarantee: true,
     },
-    nftSymbol: 'BLKD-SCALE',
-    nftUri: 'https://blockdrive.io/nft/scale.json',
+    nftSymbol: 'BLKD-ENT',
+    nftUri: 'https://blockdrive.io/nft/enterprise.json',
   },
 };
 

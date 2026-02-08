@@ -72,17 +72,15 @@ const NFT_SUPPLY = 1;
 // Tier display configuration
 const TIER_COLORS: Record<SubscriptionTier, string> = {
   trial: 'emerald',
-  basic: 'gray',
   pro: 'blue',
-  premium: 'purple',
+  scale: 'purple',
   enterprise: 'gold',
 };
 
 const TIER_ICONS: Record<SubscriptionTier, string> = {
   trial: '',
-  basic: '',
   pro: '',
-  premium: '',
+  scale: '',
   enterprise: '',
 };
 
@@ -184,7 +182,7 @@ class NFTMembershipService {
         const walletPubkey = new PublicKey(walletAddress);
 
         // Check for each tier's token
-        for (const tier of ['enterprise', 'premium', 'pro', 'basic'] as SubscriptionTier[]) {
+        for (const tier of ['enterprise', 'scale', 'pro'] as SubscriptionTier[]) {
           const mintKeypair = await this.generateDeterministicMintKeypair(walletAddress, tier);
           const ata = getAssociatedTokenAddressSync(
             mintKeypair.publicKey,
@@ -217,15 +215,15 @@ class NFTMembershipService {
         console.warn('[NFTMembership] On-chain verification failed:', onChainError);
       }
 
-      // No membership found - return basic tier (free)
+      // No membership found - return trial tier (free)
       return {
         isValid: true,
-        tier: 'basic',
+        tier: 'trial',
         expiresAt: null,
         daysRemaining: -1, // Unlimited for free tier
-        storageRemaining: gbToBytes(TIER_CONFIGS.basic.storageGB),
-        bandwidthRemaining: gbToBytes(TIER_CONFIGS.basic.bandwidthGB),
-        features: TIER_CONFIGS.basic.features,
+        storageRemaining: gbToBytes(TIER_CONFIGS.trial.storageGB),
+        bandwidthRemaining: gbToBytes(TIER_CONFIGS.trial.bandwidthGB),
+        features: TIER_CONFIGS.trial.features,
         nftMint: null,
       };
 

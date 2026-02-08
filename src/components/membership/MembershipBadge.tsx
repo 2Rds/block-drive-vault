@@ -42,17 +42,12 @@ function normalizeStripeTier(tier: string | null | undefined): SubscriptionTier 
   if (!tier) return null;
   const normalized = tier.toLowerCase();
   const tierMapping: Record<string, SubscriptionTier> = {
-    'scale': 'enterprise',
-    'power': 'premium',
-    'growth': 'premium',
     'pro': 'pro',
-    'starter': 'basic',
+    'scale': 'scale',
+    'enterprise': 'enterprise',
     'free_trial': 'trial',
     'free trial': 'trial',
     'trial': 'trial',
-    'basic': 'basic',
-    'premium': 'premium',
-    'enterprise': 'enterprise',
   };
   return tierMapping[normalized] || null;
 }
@@ -117,9 +112,8 @@ export function MembershipBadge({
 
   const getTierColor = (tier: SubscriptionTier | null) => {
     switch (tier) {
-      case 'basic': return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
       case 'pro': return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-      case 'premium': return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+      case 'scale': return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
       case 'enterprise': return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
       default: return 'bg-muted text-muted-foreground';
     }
@@ -127,9 +121,8 @@ export function MembershipBadge({
 
   const getTierIcon = (tier: SubscriptionTier | null) => {
     switch (tier) {
-      case 'basic': return <Shield className="w-4 h-4" />;
       case 'pro': return <Star className="w-4 h-4" />;
-      case 'premium': return <Crown className="w-4 h-4" />;
+      case 'scale': return <Crown className="w-4 h-4" />;
       case 'enterprise': return <Zap className="w-4 h-4" />;
       default: return <Shield className="w-4 h-4" />;
     }
@@ -227,7 +220,7 @@ export function MembershipBadge({
     <Card className={cn(
       "border-2",
       effectiveTier === 'enterprise' && "border-amber-500/50",
-      effectiveTier === 'premium' && "border-purple-500/50",
+      effectiveTier === 'scale' && "border-purple-500/50",
       effectiveTier === 'pro' && "border-blue-500/50",
     )}>
       <CardHeader className="pb-3">

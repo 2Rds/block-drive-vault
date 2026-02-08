@@ -288,10 +288,10 @@ export function useNFTMembership(): UseNFTMembershipReturn {
 
   // Get display info
   const getDisplayInfo = useCallback((tier: SubscriptionTier) => {
-    const tierDisplayMap = {
-      basic: { name: 'BlockDrive Basic', symbol: 'BDB', color: '#64748b', icon: '🛡️' },
+    const tierDisplayMap: Record<SubscriptionTier, { name: string; symbol: string; color: string; icon: string }> = {
+      trial: { name: 'BlockDrive Trial', symbol: 'BDT', color: '#10b981', icon: '🛡️' },
       pro: { name: 'BlockDrive Pro', symbol: 'BDP', color: '#3b82f6', icon: '⭐' },
-      premium: { name: 'BlockDrive Premium', symbol: 'BDPM', color: '#8b5cf6', icon: '👑' },
+      scale: { name: 'BlockDrive Scale', symbol: 'BDS', color: '#8b5cf6', icon: '👑' },
       enterprise: { name: 'BlockDrive Enterprise', symbol: 'BDE', color: '#f59e0b', icon: '⚡' },
     };
     return tierDisplayMap[tier];

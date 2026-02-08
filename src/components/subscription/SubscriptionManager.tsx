@@ -140,11 +140,11 @@ export function SubscriptionManager(): React.ReactElement {
           <div className="p-4 bg-muted/20 border border-border/50 rounded-lg">
             <h4 className="text-muted-foreground font-medium mb-2">What you'll get with a subscription:</h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Up to 500GB secure cloud storage</li>
-              <li>• IPFS integration for decentralized storage</li>
-              <li>• Blockchain file verification</li>
-              <li>• Advanced team collaboration tools</li>
-              <li>• Priority customer support</li>
+              <li>• Up to 1 TB secure cloud storage</li>
+              <li>• Programmed Incompleteness file splitting</li>
+              <li>• Blockchain authentication & ZK proofs</li>
+              <li>• Instant revoke file sharing</li>
+              <li>• Team collaboration tools (Scale+)</li>
             </ul>
           </div>
         </CardContent>
@@ -208,7 +208,7 @@ export function SubscriptionManager(): React.ReactElement {
                 {subscribed
                   ? `Active until ${new Date(subscription_end!).toLocaleDateString()}`
                   : isFreeTrial
-                    ? 'Enjoying Starter tier benefits during free trial'
+                    ? 'Enjoying full access during your 7-day free trial'
                     : 'No active subscription'
                 }
               </p>
@@ -232,16 +232,16 @@ export function SubscriptionManager(): React.ReactElement {
             <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
               <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
                 <Crown className="w-4 h-4" />
-                Free Trial - Starter Tier Benefits
+                Free Trial Benefits
               </h4>
               <p className="text-sm text-primary/80 mb-3">
-                You're currently enjoying Starter tier benefits during your free trial period.
+                You have full access to your selected plan's features during the 7-day trial.
               </p>
               <ul className="text-sm text-primary/80 space-y-1">
-                <li>• 50 GB storage capacity</li>
-                <li>• 50 GB monthly bandwidth</li>
-                <li>• 1 user seat</li>
-                <li>• Basic blockchain features</li>
+                <li>• Storage: {limits.storage} GB</li>
+                <li>• Bandwidth: {limits.bandwidth} GB/month</li>
+                <li>• {limits.seats > 1 ? `${limits.seats} team seats` : '1 user seat'}</li>
+                <li>• Blockchain auth & ZK proofs</li>
               </ul>
             </div>
           )}
@@ -335,7 +335,7 @@ export function SubscriptionManager(): React.ReactElement {
             <div className="mt-6 p-4 bg-primary/10 border border-primary/30 rounded-lg">
               <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                {subscribed ? 'Active Subscription Benefits' : 'Free Trial Benefits (Starter Tier)'}
+                {subscribed ? 'Active Subscription Benefits' : 'Free Trial Benefits'}
               </h4>
               <ul className="text-sm text-primary/80 space-y-1">
                 <li>• Enhanced storage capacity: {limits.storage} GB</li>
