@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LandingNavigation } from '@/components/landing/LandingNavigation';
 import { LandingHero } from '@/components/landing/LandingHero';
@@ -13,6 +13,9 @@ const StatsSection = lazy(() =>
 const PlatformShowcase = lazy(() =>
   import('@/components/landing/PlatformShowcase').then(m => ({ default: m.PlatformShowcase }))
 );
+const TestimonialsSection = lazy(() =>
+  import('@/components/landing/TestimonialsSection').then(m => ({ default: m.TestimonialsSection }))
+);
 const CTASection = lazy(() =>
   import('@/components/landing/CTASection').then(m => ({ default: m.CTASection }))
 );
@@ -21,14 +24,6 @@ const LAZY_CONTENT_STYLE = {
   contentVisibility: 'auto' as const,
   containIntrinsicSize: '1000px',
 };
-
-function LoadingFallback(): JSX.Element {
-  return (
-    <div className="h-24 flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
 
 function Index(): JSX.Element {
   const navigate = useNavigate();
@@ -41,79 +36,117 @@ function Index(): JSX.Element {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <LandingNavigation />
 
       <div className="pt-16">
         <LandingHero />
-        <Suspense fallback={<LoadingFallback />}>
+        <Suspense fallback={<div className="h-24" />}>
           <div style={LAZY_CONTENT_STYLE}>
-            <FeatureSection />
             <StatsSection />
+            <FeatureSection />
             <PlatformShowcase />
+            <TestimonialsSection />
             <CTASection />
           </div>
         </Suspense>
       </div>
 
-      <footer className="bg-card/50 border-t border-border/50 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-3 mb-4">
+      {/* Footer */}
+      <footer className="border-t border-border/30 py-16 bg-card/20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
+            {/* Brand */}
+            <div className="md:col-span-4">
+              <div className="flex items-center gap-3 mb-4">
                 <img
                   src="/lovable-uploads/566ba4bc-c9e0-45e2-89fc-48df825abc4f.png"
                   alt="BlockDrive Logo"
-                  className="w-8 h-8 object-contain"
+                  className="w-7 h-7 object-contain"
                 />
-                <span className="text-xl font-bold text-foreground">BlockDrive</span>
+                <span className="font-display text-base font-semibold tracking-wider text-foreground">
+                  BLOCKDRIVE
+                </span>
               </div>
-              <p className="text-muted-foreground mb-4 max-w-md">
-                The ultimate data privacy ecosystem. Store, secure, and scale with proprietary enterprise-grade infrastructure.
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-6">
+                Secure data management through Programmed Incompleteness.
+                Even if breached, your data is incomplete and worthless.
               </p>
-              <div className="text-sm text-muted-foreground">2025 BlockDrive. All rights reserved.</div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Product</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>Features</div>
-                <div>Pricing</div>
-                <div>Documentation</div>
-                <div>API Reference</div>
+              <div className="text-xs text-muted-foreground/50">
+                &copy; {new Date().getFullYear()} BlockDrive. All rights reserved.
               </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Company</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="cursor-pointer hover:text-foreground transition-colors">About</div>
-                <div className="cursor-pointer hover:text-foreground transition-colors">Blog</div>
-                <div className="cursor-pointer hover:text-foreground transition-colors">Careers</div>
-                <div className="cursor-pointer hover:text-foreground transition-colors">Contact</div>
+            {/* Links */}
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-foreground mb-4">Product</h4>
+              <div className="space-y-2.5">
+                <FooterLink label="Features" href="#features" />
+                <FooterLink label="Pricing" to="/pricing" />
+                <FooterLink label="Documentation" to="/docs" />
               </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div
-                  className="cursor-pointer hover:text-foreground transition-colors"
-                  onClick={() => navigate('/terms-of-service')}
-                >
-                  Terms of Service
-                </div>
-                <div
-                  className="cursor-pointer hover:text-foreground transition-colors"
-                  onClick={() => navigate('/privacy-policy')}
-                >
-                  Privacy Policy
-                </div>
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-foreground mb-4">Security</h4>
+              <div className="space-y-2.5">
+                <FooterLink label="Architecture" to="/docs" />
+                <FooterLink label="ZK Proofs" to="/docs" />
+                <FooterLink label="Recovery SDK" to="/docs" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-foreground mb-4">Company</h4>
+              <div className="space-y-2.5">
+                <FooterLink label="About" href="#" />
+                <FooterLink label="Blog" href="#" />
+                <FooterLink label="Careers" href="#" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-foreground mb-4">Legal</h4>
+              <div className="space-y-2.5">
+                <FooterLink label="Terms of Service" to="/terms-of-service" />
+                <FooterLink label="Privacy Policy" to="/privacy-policy" />
               </div>
             </div>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function FooterLink({ label, to, href }: { label: string; to?: string; href?: string }) {
+  if (to) {
+    return (
+      <div>
+        <Link
+          to={to}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+        >
+          {label}
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <a
+        href={href || '#'}
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+        onClick={(e) => {
+          if (href?.startsWith('#')) {
+            e.preventDefault();
+            document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      >
+        {label}
+      </a>
     </div>
   );
 }

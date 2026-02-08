@@ -1,7 +1,7 @@
 ---
 name: cloudflare-expert
 description: "Full-spectrum Cloudflare engineer for Workers, R2, WAF, Zero Trust, Agents SDK, and MCP servers. Use for troubleshooting, optimization, security operations, and building AI agents on Cloudflare."
-model: sonnet
+model: opus
 color: orange
 ---
 

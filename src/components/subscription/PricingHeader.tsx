@@ -14,7 +14,7 @@ export const PricingHeader: React.FC = () => {
           variant="ghost"
           size="sm"
           onClick={() => navigate(-1)}
-          className="text-gray-400 hover:text-white"
+          className="text-zinc-500 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -22,12 +22,20 @@ export const PricingHeader: React.FC = () => {
       </div>
 
       <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold text-white mb-4">
-          Choose Your BlockDrive Plan
+        {/* Overline */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-700/50 bg-zinc-900/50 backdrop-blur-sm mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+          <span className="text-xs font-medium text-zinc-400 tracking-wider uppercase">
+            Simple, transparent pricing
+          </span>
+        </div>
+
+        <h1 className="text-5xl md:text-6xl font-bold text-white mb-5 tracking-tight">
+          One plan. <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">Infinite security.</span>
         </h1>
-        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-          Secure, decentralized storage with blockchain authentication. 
-          Pick the plan that fits your needs.
+        <p className="text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
+          Every plan includes Programmed Incompleteness, blockchain authentication,
+          and storage where breached data is worthless. Pick your scale.
         </p>
       </div>
     </>

@@ -12,7 +12,7 @@ I need your help transforming markdown investor documents into professionally fo
 
 **Tagline:** "Enterprise Cloud Storage for the New Internet"
 
-**One-Liner:** The first breach-proof cloud storage platform where files never exist in complete form—anywhere. Bridging Web2 reliability with Web3 sovereignty.
+**One-Liner:** The first cloud storage platform where breached data is worthless—files never exist in complete form at any single point. Bridging Web2 reliability with Web3 sovereignty.
 
 **The Core Innovation: Programmed Incompleteness**
 
@@ -110,7 +110,7 @@ Transform the provided markdown document into a professionally formatted investo
 
 2. **"Enterprise cloud storage for the new internet."** Bridging Web2 reliability with Web3 sovereignty.
 
-3. **"Breach-proof by architecture, not by promise."** Traditional security says "we won't access your files." We say "no one CAN access your files."
+3. **"Breached data is worthless by architecture."** Breaches can happen—but what attackers find is incomplete, useless data. No complete file exists at any single point of failure.
 
 4. **"True deletion is possible."** Invalidate the commitment = file is permanently irreconstructible.
 

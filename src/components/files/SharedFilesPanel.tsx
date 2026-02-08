@@ -202,7 +202,7 @@ export function SharedFilesPanel({
             Files You've Shared
           </CardTitle>
           <CardDescription>
-            Share encrypted files with instant revoke capability
+            Share encrypted files internally with instant revoke capability
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -230,7 +230,7 @@ export function SharedFilesPanel({
               </CardTitle>
               <CardDescription className="flex items-center gap-2 mt-1">
                 <Zap className="w-4 h-4 text-amber-400" />
-                Instant revoke deletes critical bytes, making files permanently unreadable
+                Instant revoke (internal sharing only) deletes critical bytes, making files permanently unreadable
               </CardDescription>
             </div>
             <Button
@@ -259,9 +259,9 @@ export function SharedFilesPanel({
                   </Badge>
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Unlike traditional file sharing, you maintain complete control. When you revoke access, 
-                  the critical 16 bytes are deleted, turning the shared file into permanent garbage data. 
-                  <strong className="text-foreground"> Even if they downloaded it, they can never decrypt it again.</strong>
+                  When sharing internally with other BlockDrive users, you maintain complete control. When you revoke access,
+                  the critical 16 bytes are deleted, turning the shared file into permanent garbage data.
+                  <strong className="text-foreground"> Note: External sharing requires file reconstruction, and Instant Revoke does not apply to files shared outside BlockDrive.</strong>
                 </p>
               </div>
             </div>

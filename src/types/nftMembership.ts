@@ -153,12 +153,12 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   pro: {
     tier: 'pro',
     name: 'Pro',
-    description: 'For professionals and power users',
-    monthlyPrice: 49,
-    quarterlyPrice: 134,
-    annualPrice: 499,
-    storageGB: 500,
-    bandwidthGB: 500,
+    description: 'Everything you need — 1 TB included',
+    monthlyPrice: 15,
+    quarterlyPrice: 40,
+    annualPrice: 149,
+    storageGB: 1024,
+    bandwidthGB: 1024,
     features: {
       maxSecurityLevel: 3,
       maxFileSize: 500 * 1024 * 1024, // 500MB
@@ -199,10 +199,10 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   enterprise: {
     tier: 'enterprise',
     name: 'Scale',
-    description: 'For enterprises with advanced needs',
-    monthlyPrice: 199,
-    quarterlyPrice: 549,
-    annualPrice: 1999,
+    description: 'Per-seat team pricing — 2 TB/seat',
+    monthlyPrice: 29,
+    quarterlyPrice: 79,
+    annualPrice: 299,
     storageGB: 2048,
     bandwidthGB: 2048,
     features: {

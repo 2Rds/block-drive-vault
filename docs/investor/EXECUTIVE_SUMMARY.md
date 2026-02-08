@@ -6,7 +6,7 @@
 
 ## One-Liner
 
-The first breach-proof cloud storage platform where files never exist in complete form—anywhere. Bridging Web2 reliability with Web3 sovereignty.
+The first cloud storage platform where breached data is worthless—files never exist in complete form at any single point. Bridging Web2 reliability with Web3 sovereignty.
 
 ---
 
@@ -49,7 +49,7 @@ BlockDrive introduces a fundamentally new architecture where **files never exist
 
 **True Deletion:** Invalidate the on-chain commitment → file becomes permanently irreconstructible.
 
-**Breach-Proof by Design:** No complete file exists anywhere to breach.
+**Breached Data is Worthless:** No complete file exists at any single point—even if breached, attackers get incomplete, useless data.
 
 **Zero Trust on Storage:** Use enterprise-grade centralized storage (R2's 99.99% uptime) without trusting it with data.
 
@@ -89,9 +89,9 @@ This is **enterprise cloud storage for the new internet**—the best of both wor
 
 | Revenue Stream | Description |
 |----------------|-------------|
-| SaaS Subscriptions | Tiered: Basic ($10), Pro ($20), Premium ($50) |
-| Enterprise Licensing | White-label, multi-tenant deployments |
-| Storage Fees | Per-GB on premium tiers |
+| SaaS Subscriptions | Pro ($15/mo, 1 TB), Scale ($29/seat/mo, 2 TB/seat), Enterprise (custom) |
+| Storage Add-ons | $10/mo per additional TB (Pro) or $10/seat/mo per additional TB (Scale) |
+| Enterprise Licensing | 100+ seats, white-label, custom pricing, SLA guarantees |
 | Future: Financial Services | Embedded finance layer (Phase 2) |
 
 ---
@@ -115,7 +115,7 @@ Every other storage solution—centralized or decentralized—stores complete fi
 Raising seed round to:
 1. Complete enterprise features
 2. Launch pilot program with institutional customers
-3. Achieve SOC-2 certification
+3. Begin compliance preparation
 4. Expand engineering team
 
 ---
@@ -124,7 +124,7 @@ Raising seed round to:
 
 Every enterprise needs cloud storage.  
 Every enterprise fears data breaches.  
-We're the first solution where breaches are architecturally impossible.
+We're the first solution where even successful breaches yield nothing of value.
 
 **Enterprise cloud storage for the new internet.**
 

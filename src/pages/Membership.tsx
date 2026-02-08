@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
+import { AppShell } from '@/components/layout';
 import { useNFTMembership } from '@/hooks/useNFTMembership';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,28 +123,23 @@ export default function Membership(): JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-          <div className="animate-pulse text-muted-foreground">Loading membership...</div>
+      <AppShell
+        title="NFT Membership"
+        description="Loading membership..."
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-pulse text-foreground-muted">Loading membership...</div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">NFT Membership</h1>
-          <p className="text-muted-foreground">
-            Manage your BlockDrive subscription powered by SPL tokens on Solana
-          </p>
-        </div>
-
-        <Tabs defaultValue="overview" className="space-y-6">
+    <AppShell
+      title="NFT Membership"
+      description="Manage your BlockDrive subscription powered by SPL tokens on Solana"
+    >
+      <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="bg-muted/50">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="upgrade">Upgrade</TabsTrigger>
@@ -482,8 +477,7 @@ export default function Membership(): JSX.Element {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

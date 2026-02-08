@@ -1,23 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { useSearchParams } from 'react-router-dom';
+import { AppShell } from "@/components/layout";
 import { BlockDriveFileGrid } from "@/components/files/BlockDriveFileGrid";
 import { ShareFileModal } from "@/components/files/ShareFileModal";
-import { SharedFilesPanel } from "@/components/files/SharedFilesPanel";
 import { SharedWithMePanel } from "@/components/files/SharedWithMePanel";
 import { BlockDriveUploadArea } from "@/components/upload/BlockDriveUploadArea";
 import { BlockDriveDownloadModal } from "@/components/files/BlockDriveDownloadModal";
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { CryptoSetupModal } from "@/components/crypto/CryptoSetupModal";
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Settings, Files, Puzzle, Users, Lock, Link2, Globe, Share2, Inbox, FolderOpen } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Files, Users, Link2, Share2, Trash2 } from 'lucide-react';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
-import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useAuth } from '@/hooks/useAuth';
-import { useBlockDriveSolana } from '@/hooks/useBlockDriveSolana';
 import { useSolanaWalletSigning } from '@/hooks/useSolanaWalletSigning';
 import { useSharedFileDownload } from '@/hooks/useSharedFileDownload';
 import { useWalletCrypto } from '@/hooks/useWalletCrypto';
@@ -30,7 +25,7 @@ import { ParsedDelegation, ParsedFileRecord } from '@/services/solana';
 import { IPFSFile } from '@/types/ipfs';
 import { toast } from 'sonner';
 
-type TabValue = 'all' | 'on-chain' | 'shared' | 'inbox' | 'team-files' | 'my-files';
+type TabValue = 'my-files' | 'team-files' | 'on-chain' | 'shared' | 'trash';
 type PendingActionType = 'download' | 'preview';
 
 interface PendingAction {
@@ -38,11 +33,6 @@ interface PendingAction {
   file: ParsedFileRecord;
   delegation: ParsedDelegation;
 }
-
-const NAV_BUTTON_STYLES = {
-  active: "bg-primary hover:bg-primary/90 text-primary-foreground",
-  inactive: "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50",
-} as const;
 
 function isFileEncrypted(file: any, ipfsFile: any): boolean {
   return Boolean(
@@ -53,30 +43,34 @@ function isFileEncrypted(file: any, ipfsFile: any): boolean {
 }
 
 function IPFSFiles(): JSX.Element {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isTrashView = searchParams.get('view') === 'trash';
+  const searchQuery = searchParams.get('search') || '';
+
   const { walletData } = useAuth();
-  const { getUserFiles } = useBlockDriveSolana();
   const { signTransaction } = useSolanaWalletSigning();
   const { downloadAndSave, previewSharedFile } = useSharedFileDownload();
-  const { subscriptionStatus } = useSubscriptionStatus();
   const { state: cryptoState, isSessionValid } = useWalletCrypto();
   const { supabase, userId } = useClerkAuth();
   const { organization } = useOrganization();
   const {
     currentPath,
-    openFolders,
     selectedFile,
     showFileViewer,
-    toggleFolder,
     selectFile,
     closeFileViewer,
     goBack
   } = useFolderNavigation();
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
 
+  // Determine default tab based on org context
+  const getDefaultTab = (): TabValue => {
+    if (isTrashView) return 'trash';
+    return organization ? 'team-files' : 'my-files';
+  };
+
+  const [activeTab, setActiveTab] = useState<TabValue>(getDefaultTab);
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [cryptoSetupOpen, setCryptoSetupOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
@@ -89,8 +83,25 @@ function IPFSFiles(): JSX.Element {
   const [myOrgFiles, setMyOrgFiles] = useState<IPFSFile[]>([]);
   const [loadingOrgFiles, setLoadingOrgFiles] = useState(false);
 
-  const isOnIPFSFiles = location.pathname === '/files' || location.pathname === '/index';
   const isInOrganization = !!organization;
+
+  // Update tab when trash view changes
+  useEffect(() => {
+    if (isTrashView) {
+      setActiveTab('trash');
+    } else if (activeTab === 'trash') {
+      setActiveTab(getDefaultTab());
+    }
+  }, [isTrashView]);
+
+  // Switch to team files when entering an org
+  useEffect(() => {
+    if (isInOrganization && activeTab === 'my-files') {
+      setActiveTab('team-files');
+    } else if (!isInOrganization && activeTab === 'team-files') {
+      setActiveTab('my-files');
+    }
+  }, [isInOrganization]);
 
   // Load organization-specific files when org changes
   const loadOrgFiles = useCallback(async () => {
@@ -115,19 +126,11 @@ function IPFSFiles(): JSX.Element {
   useEffect(() => {
     if (isInOrganization) {
       loadOrgFiles();
-      // Switch to team files tab when entering an org
-      if (activeTab === 'all') {
-        setActiveTab('team-files');
-      }
     } else {
-      // Clear org files when leaving org
       setTeamFiles([]);
       setMyOrgFiles([]);
-      if (activeTab === 'team-files' || activeTab === 'my-files') {
-        setActiveTab('all');
-      }
     }
-  }, [organization?.id, isInOrganization]);
+  }, [organization?.id, isInOrganization, loadOrgFiles]);
 
   // Convert IPFS files to BlockDrive format for the grid
   const blockDriveFiles = useMemo(() => {
@@ -141,22 +144,59 @@ function IPFSFiles(): JSX.Element {
       securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
       encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
       folderPath: file.folderPath,
-      onChain: undefined // Will be populated by BlockDriveFileGrid
+      onChain: undefined
     }));
   }, [userFiles]);
 
+  // Convert team files to display format
+  const teamFilesForDisplay = useMemo(() => {
+    return teamFiles.map(file => ({
+      id: file.id,
+      filename: file.filename,
+      size: file.size,
+      mimeType: file.contentType || 'application/octet-stream',
+      cid: file.cid,
+      uploadedAt: new Date(file.uploadedAt),
+      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
+      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
+      folderPath: file.folderPath,
+    }));
+  }, [teamFiles]);
+
+  // Convert my org files to display format
+  const myOrgFilesForDisplay = useMemo(() => {
+    return myOrgFiles.map(file => ({
+      id: file.id,
+      filename: file.filename,
+      size: file.size,
+      mimeType: file.contentType || 'application/octet-stream',
+      cid: file.cid,
+      uploadedAt: new Date(file.uploadedAt),
+      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
+      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
+      folderPath: file.folderPath,
+    }));
+  }, [myOrgFiles]);
+
+  // Filter files by search query
+  const filterBySearch = useCallback((files: any[]) => {
+    if (!searchQuery) return files;
+    const query = searchQuery.toLowerCase();
+    return files.filter(f => f.filename.toLowerCase().includes(query));
+  }, [searchQuery]);
+
   const handleUploadComplete = useCallback(() => {
     loadUserFiles();
-  }, [loadUserFiles]);
+    if (isInOrganization) {
+      loadOrgFiles();
+    }
+  }, [loadUserFiles, isInOrganization, loadOrgFiles]);
 
   const handleFileSelect = (file: any) => {
-    console.log('File selected:', file);
-    // Find original IPFS file or construct a compatible object
     const ipfsFile = userFiles.find(f => f.id === file.id);
     if (ipfsFile) {
       selectFile(ipfsFile);
     } else {
-      // For files not in userFiles, create a minimal compatible object
       selectFile({
         id: file.id,
         cid: file.cid,
@@ -181,7 +221,6 @@ function IPFSFiles(): JSX.Element {
     const encrypted = isFileEncrypted(file, ipfsFile);
 
     if (encrypted && ipfsFile?.metadata) {
-      // Open download modal for encrypted files
       const fileRecord: FileRecordData = {
         contentCID: file.cid,
         metadataCID: ipfsFile.metadata.metadataCID,
@@ -191,7 +230,6 @@ function IPFSFiles(): JSX.Element {
         fileIv: ipfsFile.metadata.fileIv || '',
         securityLevel: ipfsFile.metadata.securityLevel || SecurityLevel.STANDARD,
         storageProvider: ipfsFile.metadata.storageProvider || 'filebase',
-        // Extended fields for display in modal
         fileName: file.filename,
         fileSize: file.size,
         mimeType: file.mimeType,
@@ -200,21 +238,17 @@ function IPFSFiles(): JSX.Element {
       setFileForDownload(fileRecord);
       setDownloadModalOpen(true);
     } else {
-      // Direct IPFS download for non-encrypted files
       await downloadFromIPFS(file.cid, file.filename);
     }
   };
 
   const handleDeleteFile = async (file: any) => {
     if (confirm(`Are you sure you want to delete ${file.filename}?`)) {
-      // Delete logic here
       loadUserFiles();
     }
   };
 
   const handleShareFile = (file: any) => {
-    console.log('Share file:', file);
-    // Find original IPFS file to get proofCid and commitment
     const ipfsFile = userFiles.find(f => f.id === file.id);
     const fileToShareData = {
       id: file.id,
@@ -234,10 +268,8 @@ function IPFSFiles(): JSX.Element {
     loadUserFiles();
   };
 
-  // Check if keys are initialized before downloading shared files
   const handleSharedFileDownload = useCallback((file: ParsedFileRecord, delegation: ParsedDelegation) => {
     if (!cryptoState.isInitialized || !isSessionValid) {
-      // Keys not ready, prompt setup and store pending action
       setPendingAction({ type: 'download', file, delegation });
       setCryptoSetupOpen(true);
       toast.info('Please set up your encryption keys first');
@@ -248,7 +280,6 @@ function IPFSFiles(): JSX.Element {
 
   const handleSharedFilePreview = useCallback(async (file: ParsedFileRecord, delegation: ParsedDelegation) => {
     if (!cryptoState.isInitialized || !isSessionValid) {
-      // Keys not ready, prompt setup and store pending action
       setPendingAction({ type: 'preview', file, delegation });
       setCryptoSetupOpen(true);
       toast.info('Please set up your encryption keys first');
@@ -262,11 +293,10 @@ function IPFSFiles(): JSX.Element {
 
   const handleCryptoSetupComplete = useCallback(async () => {
     setCryptoSetupOpen(false);
-    
-    // Execute pending action after keys are initialized
+
     if (pendingAction) {
       toast.success('Keys initialized! Processing your request...');
-      
+
       if (pendingAction.type === 'download') {
         downloadAndSave(pendingAction.file, pendingAction.delegation);
       } else if (pendingAction.type === 'preview') {
@@ -279,239 +309,142 @@ function IPFSFiles(): JSX.Element {
     }
   }, [pendingAction, downloadAndSave, previewSharedFile]);
 
-  // signTransaction is now provided by useSolanaWalletSigning hook
-
-  // Wrapper component for SharedFilesPanel to fetch on-chain files
-  const SharedFilesPanelWrapper = ({ 
-    walletAddress, 
-    signTransaction: signTx, 
-    onRevoke 
-  }: { 
-    walletAddress: string; 
-    signTransaction: (tx: any) => Promise<any>; 
-    onRevoke?: () => void;
-  }) => {
-    const [onChainFiles, setOnChainFiles] = useState<any[]>([]);
-    
-    useEffect(() => {
-      const fetchFiles = async () => {
-        if (walletAddress) {
-          const files = await getUserFiles(walletAddress);
-          setOnChainFiles(files);
-        }
-      };
-      fetchFiles();
-    }, [walletAddress]);
-
-    return (
-      <SharedFilesPanel
-        walletAddress={walletAddress}
-        files={onChainFiles}
-        signTransaction={signTx}
-        onRevoke={onRevoke}
-      />
-    );
-  };
+  // File grid component for reuse
+  const FileGridContent = ({
+    files,
+    isTeam = false,
+    isPrivate = false,
+    onRefresh
+  }: {
+    files: any[];
+    isTeam?: boolean;
+    isPrivate?: boolean;
+    onRefresh: () => void;
+  }) => (
+    <BlockDriveFileGrid
+      files={filterBySearch(files)}
+      selectedFolder={selectedFolder}
+      currentPath={currentPath}
+      onGoBack={goBack}
+      onFileSelect={handleFileSelect}
+      onFileDownload={handleDownloadFile}
+      onFileDelete={handleDeleteFile}
+      onFileShare={handleShareFile}
+      onRefresh={onRefresh}
+      loading={isTeam ? loadingOrgFiles : false}
+      showTeamActions={isInOrganization && (isTeam || isPrivate)}
+      isPrivateFile={isPrivate}
+      onActionComplete={onRefresh}
+    />
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
-      <Header />
-      <div className="flex">
-        <Sidebar
-          selectedFolder={selectedFolder}
-          onFolderSelect={setSelectedFolder}
-          onFolderClick={toggleFolder}
-          openFolders={openFolders}
-        />
-        <main className="flex-1 p-6 ml-64">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
-                  <Lock className="w-7 h-7 text-primary" />
-                  BlockDrive Encrypted Storage
-                </h1>
-                <p className="text-muted-foreground">Upload, encrypt, and store your files across decentralized providers</p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Button
-                  onClick={() => navigate('/dashboard')}
-                  variant="outline"
-                  className={NAV_BUTTON_STYLES.inactive}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button
-                  variant={isOnIPFSFiles ? "default" : "outline"}
-                  className={isOnIPFSFiles ? NAV_BUTTON_STYLES.active : NAV_BUTTON_STYLES.inactive}
-                >
-                  <Files className="w-4 h-4 mr-2" />
-                  IPFS Files
-                </Button>
-                <Button
-                  onClick={() => navigate('/integrations')}
-                  variant="outline"
-                  className={NAV_BUTTON_STYLES.inactive}
-                >
-                  <Puzzle className="w-4 h-4 mr-2" />
-                  Integrations
-                </Button>
-                <Button
-                  onClick={() => navigate('/account')}
-                  variant="outline"
-                  className={NAV_BUTTON_STYLES.inactive}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Account
-                </Button>
-              </div>
-            </div>
-            
-            <BlockDriveUploadArea 
-              selectedFolder={selectedFolder}
-              onUploadComplete={handleUploadComplete}
+    <AppShell
+      title="Files"
+      description="Manage your encrypted files and documents"
+    >
+      <div className="space-y-6">
+        {/* Upload area - hide on shared and trash views */}
+        {activeTab !== 'shared' && activeTab !== 'trash' && (
+          <BlockDriveUploadArea
+            selectedFolder={selectedFolder}
+            onUploadComplete={handleUploadComplete}
+          />
+        )}
+
+        {/* Tabs for different file views */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+          <TabsList className="bg-background-secondary">
+            {/* Show Team Files first when in org, otherwise My Files */}
+            {isInOrganization ? (
+              <>
+                <TabsTrigger value="team-files" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  Team Files
+                </TabsTrigger>
+                <TabsTrigger value="my-files" className="gap-2">
+                  <Files className="w-4 h-4" />
+                  My Files
+                </TabsTrigger>
+              </>
+            ) : (
+              <TabsTrigger value="my-files" className="gap-2">
+                <Files className="w-4 h-4" />
+                My Files
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="on-chain" className="gap-2">
+              <Link2 className="w-4 h-4" />
+              On-Chain
+            </TabsTrigger>
+            <TabsTrigger value="shared" className="gap-2">
+              <Share2 className="w-4 h-4" />
+              Shared With Me
+            </TabsTrigger>
+            {isTrashView && (
+              <TabsTrigger value="trash" className="gap-2">
+                <Trash2 className="w-4 h-4" />
+                Trash
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Team Files Tab */}
+          {isInOrganization && (
+            <TabsContent value="team-files" className="mt-6">
+              <FileGridContent
+                files={teamFilesForDisplay}
+                isTeam={true}
+                onRefresh={loadOrgFiles}
+              />
+            </TabsContent>
+          )}
+
+          {/* My Files Tab */}
+          <TabsContent value="my-files" className="mt-6">
+            <FileGridContent
+              files={isInOrganization ? myOrgFilesForDisplay : blockDriveFiles}
+              isPrivate={isInOrganization}
+              onRefresh={isInOrganization ? loadOrgFiles : loadUserFiles}
             />
-            
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-              <TabsList className="mb-4">
-                {/* Organization-specific tabs when in an org */}
-                {isInOrganization ? (
-                  <>
-                    <TabsTrigger value="team-files" className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Team Files
-                    </TabsTrigger>
-                    <TabsTrigger value="my-files" className="flex items-center gap-2">
-                      <FolderOpen className="w-4 h-4" />
-                      My Files
-                    </TabsTrigger>
-                  </>
-                ) : (
-                  <TabsTrigger value="all" className="flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    All Files
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="on-chain" className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4" />
-                  On-Chain Files
-                </TabsTrigger>
-                <TabsTrigger value="shared" className="flex items-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  Shared by You
-                </TabsTrigger>
-                <TabsTrigger value="inbox" className="flex items-center gap-2">
-                  <Inbox className="w-4 h-4" />
-                  Shared With Me
-                </TabsTrigger>
-              </TabsList>
+          </TabsContent>
 
-              {/* Team Files tab - visible to all org members */}
-              <TabsContent value="team-files">
-                <BlockDriveFileGrid
-                  files={teamFiles.map(file => ({
-                    id: file.id,
-                    filename: file.filename,
-                    size: file.size,
-                    mimeType: file.contentType || 'application/octet-stream',
-                    cid: file.cid,
-                    uploadedAt: new Date(file.uploadedAt),
-                    securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
-                    encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
-                    folderPath: file.folderPath,
-                  }))}
-                  selectedFolder={selectedFolder}
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                  onFileDownload={handleDownloadFile}
-                  onFileDelete={handleDeleteFile}
-                  onFileShare={handleShareFile}
-                  onRefresh={loadOrgFiles}
-                  loading={loadingOrgFiles}
-                  showTeamActions={true}
-                  isPrivateFile={false}
-                  onActionComplete={loadOrgFiles}
-                />
-              </TabsContent>
+          {/* On-Chain Tab */}
+          <TabsContent value="on-chain" className="mt-6">
+            <BlockDriveFileGrid
+              files={filterBySearch(blockDriveFiles)}
+              selectedFolder="on-chain"
+              currentPath={currentPath}
+              onGoBack={goBack}
+              onFileSelect={handleFileSelect}
+              onFileDownload={handleDownloadFile}
+              onFileDelete={handleDeleteFile}
+              onFileShare={handleShareFile}
+              onRefresh={loadUserFiles}
+            />
+          </TabsContent>
 
-              {/* My Files tab - user's private files within the org */}
-              <TabsContent value="my-files">
-                <BlockDriveFileGrid
-                  files={myOrgFiles.map(file => ({
-                    id: file.id,
-                    filename: file.filename,
-                    size: file.size,
-                    mimeType: file.contentType || 'application/octet-stream',
-                    cid: file.cid,
-                    uploadedAt: new Date(file.uploadedAt),
-                    securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
-                    encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
-                    folderPath: file.folderPath,
-                  }))}
-                  selectedFolder={selectedFolder}
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                  onFileDownload={handleDownloadFile}
-                  onFileDelete={handleDeleteFile}
-                  onFileShare={handleShareFile}
-                  onRefresh={loadOrgFiles}
-                  loading={loadingOrgFiles}
-                  showTeamActions={true}
-                  isPrivateFile={true}
-                  onActionComplete={loadOrgFiles}
-                />
-              </TabsContent>
+          {/* Shared With Me Tab */}
+          <TabsContent value="shared" className="mt-6">
+            <SharedWithMePanel
+              walletAddress={walletData?.address || ''}
+              signTransaction={signTransaction}
+              onDownload={handleSharedFileDownload}
+              onPreview={handleSharedFilePreview}
+            />
+          </TabsContent>
 
-              <TabsContent value="all">
-                <BlockDriveFileGrid
-                  files={blockDriveFiles}
-                  selectedFolder={selectedFolder}
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                  onFileDownload={handleDownloadFile}
-                  onFileDelete={handleDeleteFile}
-                  onFileShare={handleShareFile}
-                  onRefresh={loadUserFiles}
-                />
-              </TabsContent>
-
-              <TabsContent value="on-chain">
-                <BlockDriveFileGrid
-                  files={blockDriveFiles}
-                  selectedFolder="on-chain"
-                  currentPath={currentPath}
-                  onGoBack={goBack}
-                  onFileSelect={handleFileSelect}
-                  onFileDownload={handleDownloadFile}
-                  onFileDelete={handleDeleteFile}
-                  onFileShare={handleShareFile}
-                  onRefresh={loadUserFiles}
-                />
-              </TabsContent>
-
-              <TabsContent value="shared">
-                <SharedFilesPanelWrapper 
-                  walletAddress={walletData?.address || ''}
-                  signTransaction={signTransaction}
-                  onRevoke={loadUserFiles}
-                />
-              </TabsContent>
-
-              <TabsContent value="inbox">
-                <SharedWithMePanel 
-                  walletAddress={walletData?.address || ''}
-                  signTransaction={signTransaction}
-                  onDownload={handleSharedFileDownload}
-                  onPreview={handleSharedFilePreview}
-                />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
+          {/* Trash Tab */}
+          <TabsContent value="trash" className="mt-6">
+            <div className="bg-card rounded-lg border border-border p-16 text-center">
+              <Trash2 className="w-12 h-12 mx-auto mb-4 text-foreground-muted opacity-50" />
+              <p className="text-foreground-muted font-medium">Trash is empty</p>
+              <p className="text-sm text-foreground-muted mt-2">
+                Deleted files will appear here for 30 days before permanent removal.
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Encrypted File Viewer Modal */}
@@ -544,7 +477,7 @@ function IPFSFiles(): JSX.Element {
         onShareComplete={handleShareComplete}
       />
 
-      {/* Crypto Setup Modal - triggered before downloading shared files */}
+      {/* Crypto Setup Modal */}
       <CryptoSetupModal
         isOpen={cryptoSetupOpen}
         onClose={() => {
@@ -554,7 +487,7 @@ function IPFSFiles(): JSX.Element {
         onComplete={handleCryptoSetupComplete}
       />
 
-      {/* BlockDrive Download Modal - for encrypted file downloads */}
+      {/* BlockDrive Download Modal */}
       <BlockDriveDownloadModal
         isOpen={downloadModalOpen}
         onClose={() => {
@@ -563,7 +496,7 @@ function IPFSFiles(): JSX.Element {
         }}
         fileRecord={fileForDownload}
       />
-    </div>
+    </AppShell>
   );
 }
 

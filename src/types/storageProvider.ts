@@ -71,34 +71,40 @@ export interface StorageConfig {
   encryptionRequired: boolean;
 }
 
-// Default storage configurations
+// Default storage configuration - Programmed Incompleteness architecture
+// Bulk encrypted content → IPFS via Filebase (without critical 16 bytes)
+// ZK proofs with 16 critical bytes → Cloudflare R2 (zero egress)
 export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
   primaryProvider: 'filebase',
-  backupProviders: ['s3'],
+  backupProviders: ['r2'],
   redundancyLevel: 2,
   preferPermanent: false,
   encryptionRequired: true
 };
 
+// High reliability with permanent backup
+// Same as default + Arweave for permanent redundancy
+// Note: Deleting the 16 critical bytes makes permanent copies useless garbage
 export const HIGH_RELIABILITY_CONFIG: StorageConfig = {
   primaryProvider: 'filebase',
-  backupProviders: ['s3', 'arweave'],
+  backupProviders: ['r2', 'arweave'],
   redundancyLevel: 3,
   preferPermanent: true,
   encryptionRequired: true
 };
 
-// R2-primary configuration (recommended for cost savings)
+// R2-primary configuration (for ZK proof storage)
 // Zero egress fees with Cloudflare R2
 export const R2_PRIMARY_CONFIG: StorageConfig = {
   primaryProvider: 'r2',
-  backupProviders: ['filebase', 's3'],
+  backupProviders: ['filebase'],
   redundancyLevel: 2,
   preferPermanent: false,
   encryptionRequired: true
 };
 
 // R2 with permanent backup on Arweave
+// For critical proofs that need permanent redundancy
 export const R2_PERMANENT_CONFIG: StorageConfig = {
   primaryProvider: 'r2',
   backupProviders: ['arweave'],

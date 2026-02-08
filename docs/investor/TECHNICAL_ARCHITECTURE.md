@@ -565,6 +565,6 @@ BlockDrive's Programmed Incompleteness is not an incremental improvement to encr
 
 **The key insight:** Instead of protecting complete files, ensure complete files never exist.
 
-This creates the first truly breach-proof storage platform—not through better locks, but by ensuring there's nothing complete to steal.
+This creates the first storage platform where breached data is worthless—not through better locks, but by ensuring there's nothing complete at any single point. Breaches can happen, but what attackers find is incomplete, useless data. Arweave provides permanent redundancy for data recovery.
 
 **Enterprise cloud storage for the new internet.**

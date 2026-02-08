@@ -47,61 +47,52 @@ interface StripePricingState {
 // Tier metadata mapping for features and descriptions
 const TIER_METADATA: Record<string, Partial<PricingTier>> = {
   Pro: {
-    description: 'Perfect for personal use with 7-day free trial',
-    storage: '200 GB',
-    bandwidth: '200 GB',
+    description: 'Everything you need for personal use with 7-day free trial',
+    storage: '1 TB',
+    bandwidth: '1 TB',
     seats: '1 user',
     hasTrial: true,
     features: [
-      '200 GB secure storage',
-      '200 GB bandwidth',
+      '1 TB secure storage',
+      '1 TB bandwidth',
+      '$10/month per additional TB',
       'Blockchain authentication',
-      'File encryption',
-      'Basic support',
+      'File encryption & ZK proofs',
+      'Instant revoke sharing (internal)',
       '7-day free trial'
     ]
   },
-  Power: {
-    description: 'Enhanced storage for power users',
+  Scale: {
+    description: 'Per-seat pricing for teams (2–99 seats)',
     storage: '2 TB',
     bandwidth: '2 TB',
-    seats: '1 user',
-    features: [
-      '2 TB secure storage',
-      '2 TB bandwidth',
-      'Advanced blockchain features',
-      'Priority support',
-      'Enhanced file encryption',
-      'Advanced sharing options'
-    ]
-  },
-  Scale: {
-    description: 'Per-seat pricing for teams (2 seat minimum)',
-    storage: '1 TB',
-    bandwidth: '1 TB',
-    seats: '2+ users',
+    seats: '2–99 users',
     popular: true,
     features: [
-      '1 TB storage per seat',
-      '1 TB bandwidth per seat',
-      '2 seat minimum required',
+      '2 TB storage per seat',
+      '2 TB bandwidth per seat',
+      '$10/seat/month per additional TB',
+      '2 seat minimum, up to 99 seats',
       'Team collaboration tools',
-      'Advanced blockchain features',
+      'Clerk Organizations + SSO',
       '24/7 priority support',
       'Advanced integrations'
     ]
   },
   Enterprise: {
-    description: 'Custom solutions for large organizations',
-    storage: 'Unlimited',
-    bandwidth: 'Unlimited',
-    seats: 'Unlimited',
+    description: 'Custom solutions for 100+ seat organizations',
+    storage: 'Custom',
+    bandwidth: 'Custom',
+    seats: '100+ users',
     isEnterprise: true,
     features: [
-      'Unlimited storage',
-      'Unlimited bandwidth',
-      'Dedicated support',
-      'Custom integrations',
+      'Everything in Scale',
+      'Custom storage allocation',
+      'SSO & SAML authentication',
+      'Whitelisted solutions',
+      'Custom branding',
+      'Dedicated account manager',
+      'Priority 24/7 support',
       'SLA guarantees',
       'On-premise options'
     ]

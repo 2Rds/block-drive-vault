@@ -1,76 +1,91 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Star } from 'lucide-react';
+/** Comparison section showing how BlockDrive differs from traditional cloud storage */
 
-const testimonials = [
+const comparisons = [
   {
-    name: "Sarah Chen",
-    role: "CTO at DefiLabs",
-    content: "BlockDrive revolutionized how we handle data storage. The multi-chain wallet integration saved us months of development time.",
-    rating: 5,
-    avatar: "SC"
+    category: 'Encryption',
+    traditional: 'Provider holds your keys. They can read your files.',
+    blockdrive: 'Wallet-derived keys. Only you can decrypt. Provider never sees plaintext.',
   },
   {
-    name: "Marcus Rodriguez", 
-    role: "Lead Developer at NFT Studio",
-    content: "The IPFS integration is seamless and the security features give us complete confidence in our data protection.",
-    rating: 5,
-    avatar: "MR"
+    category: 'Data Integrity',
+    traditional: 'Single provider. Single point of failure.',
+    blockdrive: '4 providers with automatic failover. On-chain registry for immutable audit trail.',
   },
   {
-    name: "Elena Vasquez",
-    role: "Founder of Web3 Startup",
-    content: "From prototype to production, BlockDrive scaled with us. The analytics dashboard provides insights we never had before.",
-    rating: 5,
-    avatar: "EV"
-  }
+    category: 'Access Revocation',
+    traditional: 'Remove permission flag. Data still readable by provider.',
+    blockdrive: 'Delete 16 critical bytes. File becomes permanent garbage data everywhere.',
+  },
+  {
+    category: 'Authentication',
+    traditional: 'Email + password. Phishable. Provider controls access.',
+    blockdrive: 'Clerk SSO + Crossmint MPC wallets. Cryptographic identity. No passwords.',
+  },
+  {
+    category: 'Compliance',
+    traditional: 'Trust the provider\'s word. Opaque infrastructure.',
+    blockdrive: 'ZK proofs on Solana. Cryptographically verifiable. Open-source recovery SDK.',
+  },
 ];
 
 export const TestimonialsSection = () => {
   return (
-    <section className="py-24 bg-card/30">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="py-32 relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-card/20 to-background pointer-events-none" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+        {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-foreground mb-4">
-            Loved by developers worldwide
+          <span className="inline-block font-mono text-xs uppercase tracking-[0.2em] text-primary mb-4">
+            Comparison
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
+            Not just another{' '}
+            <span className="text-muted-foreground line-through decoration-destructive/40">cloud drive</span>
           </h2>
-          <p className="text-xl text-muted-foreground">
-            Join thousands of developers building the future of Web3
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Traditional cloud storage trusts the provider with your keys. BlockDrive makes it
+            architecturally impossible for anyone to access your data.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <Card key={index} className="border-border/50 hover:border-primary/50 transition-all duration-300">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
+        {/* Comparison table */}
+        <div className="max-w-4xl mx-auto">
+          {/* Header row */}
+          <div className="grid grid-cols-12 gap-4 mb-6 px-5">
+            <div className="col-span-3" />
+            <div className="col-span-4">
+              <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground/60">
+                Traditional Cloud
+              </span>
+            </div>
+            <div className="col-span-5">
+              <span className="text-xs font-mono uppercase tracking-wider text-primary">
+                BlockDrive
+              </span>
+            </div>
+          </div>
+
+          {/* Rows */}
+          <div className="space-y-2">
+            {comparisons.map((row) => (
+              <div
+                key={row.category}
+                className="grid grid-cols-12 gap-4 rounded-xl border border-border/20 hover:border-border/40 bg-card/20 hover:bg-card/40 transition-all duration-300 p-5 group"
+              >
+                <div className="col-span-3 flex items-start">
+                  <span className="text-sm font-semibold text-foreground">{row.category}</span>
                 </div>
-                
-                <blockquote className="text-muted-foreground mb-6 leading-relaxed">
-                  "{testimonial.content}"
-                </blockquote>
-                
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">
-                      {testimonial.avatar}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {testimonial.name}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {testimonial.role}
-                    </div>
-                  </div>
+                <div className="col-span-4 flex items-start">
+                  <p className="text-sm text-muted-foreground/60 leading-relaxed">{row.traditional}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                <div className="col-span-5 flex items-start gap-2.5">
+                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  <p className="text-sm text-foreground/80 leading-relaxed">{row.blockdrive}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

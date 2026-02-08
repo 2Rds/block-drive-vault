@@ -384,7 +384,7 @@ const uploadFile = async (file: File) => {
               </ul>
               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                 <p className="text-xs text-green-700 dark:text-green-300 font-medium">
-                  🔒 SOC 2 Compliant • 99.9% Uptime SLA
+                  🔒 99.9% Uptime SLA • Multi-Provider Redundancy
                 </p>
               </div>
             </CardContent>
@@ -434,34 +434,34 @@ const uploadFile = async (file: File) => {
             <Card className="border-2">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Pro</CardTitle>
-                <p className="text-sm text-muted-foreground">From $9/month</p>
+                <p className="text-sm text-muted-foreground">$15/month</p>
               </CardHeader>
               <CardContent>
-                <p className="font-semibold text-sm">200 GB</p>
-                <p className="text-xs text-muted-foreground">Storage + Bandwidth &middot; 7-day trial</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Power</CardTitle>
-                <p className="text-sm text-muted-foreground">From $49/month</p>
-              </CardHeader>
-              <CardContent>
-                <p className="font-semibold text-sm">2 TB</p>
-                <p className="text-xs text-muted-foreground">Storage + Bandwidth</p>
+                <p className="font-semibold text-sm">1 TB</p>
+                <p className="text-xs text-muted-foreground">Storage + Bandwidth &middot; +$10/mo per additional TB &middot; 7-day trial</p>
               </CardContent>
             </Card>
 
             <Card className="border-2 border-primary">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Scale</CardTitle>
-                <p className="text-sm text-muted-foreground">From $29/seat/month</p>
+                <p className="text-sm text-muted-foreground">$29/seat/month</p>
                 <Badge variant="secondary" className="w-fit">Most Popular</Badge>
               </CardHeader>
               <CardContent>
-                <p className="font-semibold text-sm">1 TB per seat</p>
-                <p className="text-xs text-muted-foreground">2 seat minimum</p>
+                <p className="font-semibold text-sm">2 TB per seat</p>
+                <p className="text-xs text-muted-foreground">2–99 seats &middot; +$10/seat/mo per additional TB</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Enterprise</CardTitle>
+                <p className="text-sm text-muted-foreground">Custom pricing</p>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-sm">100+ seats</p>
+                <p className="text-xs text-muted-foreground">SSO &middot; Whitelabeling &middot; Dedicated support &middot; SLA</p>
               </CardContent>
             </Card>
           </div>
@@ -774,9 +774,9 @@ const shareFile = async (fileId: string) => {
           <CardContent>
             <div className="grid gap-4">
               {[
-                { plan: "Pro", storage: "200 GB", bandwidth: "200 GB", price: "From $9/month", note: "7-day free trial" },
-                { plan: "Power", storage: "2 TB", bandwidth: "2 TB", price: "From $49/month", note: "Single user" },
-                { plan: "Scale", storage: "1 TB/seat", bandwidth: "1 TB/seat", price: "From $29/seat/month", note: "2 seat minimum" }
+                { plan: "Pro", storage: "1 TB", bandwidth: "1 TB", price: "$15/month", note: "7-day free trial · +$10/mo per additional TB" },
+                { plan: "Scale", storage: "2 TB/seat", bandwidth: "2 TB/seat", price: "$29/seat/month", note: "2–99 seats · +$10/seat/mo per additional TB" },
+                { plan: "Enterprise", storage: "Custom", bandwidth: "Custom", price: "Custom", note: "100+ seats · SSO · Whitelabeling · SLA" }
               ].map((tier) => (
                 <div key={tier.plan} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-center">
@@ -884,7 +884,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Scale Plan</h4>
-                  <p className="text-sm text-muted-foreground">$29/seat/month (2 seat min) &middot; 1 TB/seat &middot; Team collaboration &middot; Clerk Organizations</p>
+                  <p className="text-sm text-muted-foreground">$29/seat/month (2–99 seats) &middot; 2 TB/seat &middot; Team collaboration &middot; Clerk Organizations</p>
                 </div>
               </div>
             </CardContent>
@@ -944,30 +944,30 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
           {[
             {
               name: "Pro",
-              prices: { monthly: "$9", quarterly: "$24", annual: "$89" },
+              prices: { monthly: "$15", quarterly: "$40", annual: "$149" },
               savings: { quarterly: "Save 11%", annual: "Save 17%" },
-              storage: "200 GB storage & bandwidth",
+              storage: "1 TB storage & bandwidth (+$10/mo per additional TB)",
               users: "1 user",
-              features: ["Blockchain authentication", "File encryption", "Basic support", "7-day free trial"],
-              popular: false
-            },
-            {
-              name: "Power",
-              prices: { monthly: "$49", quarterly: "$134", annual: "$499" },
-              savings: { quarterly: "Save 9%", annual: "Save 15%" },
-              storage: "2 TB storage & bandwidth",
-              users: "1 user",
-              features: ["Advanced blockchain features", "Priority support", "Enhanced file encryption", "Advanced sharing options"],
+              features: ["Blockchain authentication", "File encryption & ZK proofs", "Instant revoke sharing (internal)", "7-day free trial"],
               popular: false
             },
             {
               name: "Scale",
               prices: { monthly: "$29/seat", quarterly: "$79/seat", annual: "$299/seat" },
               savings: { quarterly: "Save 9%", annual: "Save 14%" },
-              storage: "1 TB storage & bandwidth per seat",
-              users: "2+ users (2 seat minimum)",
-              features: ["Team collaboration tools", "Clerk Organizations", "24/7 priority support", "Advanced integrations"],
+              storage: "2 TB storage & bandwidth per seat (+$10/seat/mo per additional TB)",
+              users: "2–99 users (2 seat minimum)",
+              features: ["Team collaboration tools", "Clerk Organizations + SSO", "24/7 priority support", "Advanced integrations"],
               popular: true
+            },
+            {
+              name: "Enterprise",
+              prices: { monthly: "Custom", quarterly: "Custom", annual: "Custom" },
+              savings: {},
+              storage: "Custom storage allocation",
+              users: "100+ users",
+              features: ["Everything in Scale", "SSO & SAML", "Whitelisted solutions", "Custom branding", "Dedicated account manager", "SLA guarantees"],
+              popular: false
             }
           ].map((plan) => (
             <Card key={plan.name} className={plan.popular ? "border-primary" : ""}>
@@ -1266,7 +1266,8 @@ const isValid = await snarkjsService.verifyProof(
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Instant Revoke</h1>
           <p className="text-lg text-muted-foreground">
-            Unique to BlockDrive: share files while retaining the ability to permanently revoke access.
+            Unique to BlockDrive: share files internally with other BlockDrive users while retaining the ability to permanently revoke access.
+            Note: External sharing (outside BlockDrive) requires file reconstruction, and Instant Revoke does not apply.
           </p>
         </div>
 
@@ -2112,8 +2113,8 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
                 <p className="text-sm text-muted-foreground">Share with org members by email or wallet</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Instant Revoke</h4>
-                <p className="text-sm text-muted-foreground">Delete delegation PDA to permanently revoke access</p>
+                <h4 className="font-medium mb-2">Instant Revoke (Internal Only)</h4>
+                <p className="text-sm text-muted-foreground">Delete delegation PDA to permanently revoke access for internal BlockDrive recipients. External sharing requires file reconstruction.</p>
               </div>
             </div>
           </CardContent>

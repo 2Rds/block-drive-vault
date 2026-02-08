@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/layout";
 import { Button } from '@/components/ui/button';
 import {
   Slack, Cloud, HardDrive, Box, Anchor, MessageSquare, Database,
   CloudCog, Server, Building2, FileText, CheckSquare, Briefcase,
-  DollarSign, Calculator, Users, TrendingUp, Heart, BarChart3,
-  Files, Puzzle, Settings, LucideIcon
+  DollarSign, Calculator, Users, TrendingUp, Heart,
+  Files, LucideIcon
 } from 'lucide-react';
 import { SlackIntegration } from '@/components/SlackIntegration';
 import { OneDriveIntegration } from '@/components/integrations/OneDriveIntegration';
@@ -16,9 +14,7 @@ import { BoxIntegration } from '@/components/integrations/BoxIntegration';
 import { OtoCoIntegration } from '@/components/integrations/OtoCoIntegration';
 import { StripeAtlasIntegration } from '@/components/integrations/StripeAtlasIntegration';
 import { ClerkyIntegration } from '@/components/integrations/ClerkyIntegration';
-import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
-import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 type IntegrationKey = 'slack' | 'onedrive' | 'googledrive' | 'box' | 'otoco' | 'stripe-atlas' | 'clerky';
 
@@ -30,13 +26,6 @@ interface IntegrationConfig {
   description: string;
   modalKey?: IntegrationKey;
 }
-
-const TEAM_TIERS = ['growth', 'scale'] as const;
-
-const NAV_BUTTON_STYLES = {
-  active: "bg-primary hover:bg-primary/90 text-primary-foreground",
-  inactive: "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50",
-} as const;
 
 const INTEGRATIONS: IntegrationConfig[] = [
   { id: 'slack', name: 'Slack', icon: Slack, color: 'text-purple-400', description: 'Connect your Slack workspace to share files and collaborate with your team.', modalKey: 'slack' },
@@ -64,24 +53,9 @@ const INTEGRATIONS: IntegrationConfig[] = [
   { id: 'clerky', name: 'Clerky', icon: Files, color: 'text-blue-500', description: 'VC-standard legal paperwork for startups, built by lawyers.', modalKey: 'clerky' },
 ];
 
-function canAccessTeamsFeature(subscriptionStatus: { subscribed?: boolean; subscription_tier?: string } | null): boolean {
-  if (!subscriptionStatus?.subscribed) return false;
-  const tier = subscriptionStatus.subscription_tier || 'free';
-  return TEAM_TIERS.includes(tier as typeof TEAM_TIERS[number]);
-}
-
 function Integrations(): JSX.Element {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { openFolders, toggleFolder } = useFolderNavigation();
   useBoxOAuth();
-  const { subscriptionStatus } = useSubscriptionStatus();
-
-  const [selectedFolder, setSelectedFolder] = useState('all');
   const [activeModal, setActiveModal] = useState<IntegrationKey | null>(null);
-
-  const canAccessTeams = canAccessTeamsFeature(subscriptionStatus);
-  const isOnIntegrations = location.pathname === '/integrations';
 
   const handleIntegrationClick = (modalKey?: IntegrationKey) => {
     if (modalKey) {
@@ -90,87 +64,41 @@ function Integrations(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
-      <Header />
-      <div className="flex">
-        <Sidebar
-          selectedFolder={selectedFolder}
-          onFolderSelect={setSelectedFolder}
-          onFolderClick={toggleFolder}
-          openFolders={openFolders}
-        />
-        <main className="flex-1 p-6 ml-64">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Integrations</h1>
-                <p className="text-muted-foreground">Connect BlockDrive with your favorite tools and services</p>
+    <AppShell
+      title="Integrations"
+      description="Connect BlockDrive with your favorite tools and services"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {INTEGRATIONS.map((integration) => (
+          <div
+            key={integration.id}
+            className="bg-card border border-border rounded-lg p-5 hover:border-primary/30 hover:bg-background-secondary transition-all group"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 rounded-lg bg-background-tertiary group-hover:bg-background transition-colors">
+                <integration.icon className={`w-5 h-5 ${integration.color}`} />
               </div>
-              <div className="flex items-center space-x-4">
-                <Button onClick={() => navigate('/dashboard')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button onClick={() => navigate('/files')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
-                  <Files className="w-4 h-4 mr-2" />
-                  IPFS Files
-                </Button>
-                <Button
-                  variant={isOnIntegrations ? "default" : "outline"}
-                  className={isOnIntegrations ? NAV_BUTTON_STYLES.active : NAV_BUTTON_STYLES.inactive}
-                >
-                  <Puzzle className="w-4 h-4 mr-2" />
-                  Integrations
-                </Button>
-                {canAccessTeams && (
-                  <Button
-                    onClick={() => navigate('/teams')}
-                    variant="outline"
-                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/50"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Teams
-                  </Button>
-                )}
-                <Button onClick={() => navigate('/account')} variant="outline" className={NAV_BUTTON_STYLES.inactive}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Account
-                </Button>
-              </div>
+              <h3 className="text-sm font-semibold text-foreground">
+                {integration.name}
+              </h3>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {INTEGRATIONS.map((integration) => (
-                <div
-                  key={integration.id}
-                  className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-5 hover:border-primary/30 hover:bg-card/70 transition-all group"
-                >
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/15 transition-colors">
-                      <integration.icon className={`w-5 h-5 ${integration.color}`} />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">
-                      {integration.name}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                    {integration.description}
-                  </p>
-                  <Button
-                    onClick={() => handleIntegrationClick(integration.modalKey)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50"
-                  >
-                    Connect
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-foreground-muted mb-4 line-clamp-2 min-h-[40px]">
+              {integration.description}
+            </p>
+            <Button
+              onClick={() => handleIntegrationClick(integration.modalKey)}
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={!integration.modalKey}
+            >
+              {integration.modalKey ? 'Connect' : 'Coming Soon'}
+            </Button>
           </div>
-        </main>
+        ))}
       </div>
 
+      {/* Integration Modals */}
       <SlackIntegration isOpen={activeModal === 'slack'} onClose={() => setActiveModal(null)} />
       <OneDriveIntegration isOpen={activeModal === 'onedrive'} onClose={() => setActiveModal(null)} />
       <GoogleDriveIntegration isOpen={activeModal === 'googledrive'} onClose={() => setActiveModal(null)} />
@@ -178,7 +106,7 @@ function Integrations(): JSX.Element {
       <OtoCoIntegration isOpen={activeModal === 'otoco'} onClose={() => setActiveModal(null)} />
       <StripeAtlasIntegration isOpen={activeModal === 'stripe-atlas'} onClose={() => setActiveModal(null)} />
       <ClerkyIntegration isOpen={activeModal === 'clerky'} onClose={() => setActiveModal(null)} />
-    </div>
+    </AppShell>
   );
 }
 

@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type PaymentProvider = 'stripe' | 'crossmint';
 export type BillingPeriod = 'monthly' | 'quarterly' | 'yearly';
-export type SubscriptionTier = 'Pro' | 'Power' | 'Scale' | 'Enterprise';
+export type SubscriptionTier = 'Pro' | 'Scale' | 'Enterprise';
 export type CryptoCurrency = 'USDC' | 'SOL' | 'ETH';
 
 export interface PaymentOptions {

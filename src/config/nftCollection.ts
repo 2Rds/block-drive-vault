@@ -67,8 +67,8 @@ export function isNFTCollectionConfigured(): boolean {
  * NFT Tier Metadata Interface
  */
 export interface NFTTierMetadata {
-  tier: 'trial' | 'pro' | 'power' | 'scale';
-  selectedTier?: 'pro' | 'power' | 'scale';
+  tier: 'trial' | 'pro' | 'scale' | 'enterprise';
+  selectedTier?: 'pro' | 'scale' | 'enterprise';
   billingInterval: 'monthly' | 'quarterly' | 'annual';
   snsUsername: string;
   issuedAt: number;
@@ -83,20 +83,20 @@ export interface NFTTierMetadata {
  * Tier storage quotas in bytes
  */
 export const TIER_STORAGE_QUOTAS = {
-  trial: 200 * 1024 * 1024 * 1024, // 200 GB
-  pro: 200 * 1024 * 1024 * 1024, // 200 GB
-  power: 2 * 1024 * 1024 * 1024 * 1024, // 2 TB
-  scale: 1024 * 1024 * 1024 * 1024, // 1 TB per seat
+  trial: 10 * 1024 * 1024 * 1024, // 10 GB
+  pro: 1024 * 1024 * 1024 * 1024, // 1 TB
+  scale: 2 * 1024 * 1024 * 1024 * 1024, // 2 TB per seat
+  enterprise: 0, // Custom
 } as const;
 
 /**
  * Tier bandwidth quotas in bytes
  */
 export const TIER_BANDWIDTH_QUOTAS = {
-  trial: 200 * 1024 * 1024 * 1024, // 200 GB
-  pro: 200 * 1024 * 1024 * 1024, // 200 GB
-  power: 2 * 1024 * 1024 * 1024 * 1024, // 2 TB
-  scale: 1024 * 1024 * 1024 * 1024, // 1 TB per seat
+  trial: 10 * 1024 * 1024 * 1024, // 10 GB
+  pro: 1024 * 1024 * 1024 * 1024, // 1 TB
+  scale: 2 * 1024 * 1024 * 1024 * 1024, // 2 TB per seat
+  enterprise: 0, // Custom
 } as const;
 
 /**
@@ -112,67 +112,73 @@ export const SUBSCRIPTION_TIERS = {
 
   pro: {
     name: 'Pro',
-    description: 'Perfect for personal use with 7-day free trial',
+    description: 'Everything you need for personal use with 7-day free trial',
     pricing: {
-      monthly: 9,
-      quarterly: 24, // ~11% discount
-      annual: 89, // ~17% discount
+      monthly: 15,
+      quarterly: 40, // ~11% discount
+      annual: 149, // ~17% discount
     },
-    storage: '200 GB',
-    bandwidth: '200 GB',
+    storage: '1 TB',
+    bandwidth: '1 TB',
     teamSize: '1 user',
     features: [
-      '200 GB secure storage',
-      '200 GB bandwidth',
+      '1 TB secure storage',
+      '1 TB bandwidth',
+      '$10/month per additional TB',
       'Blockchain authentication',
-      'File encryption',
-      'Basic support',
+      'File encryption & ZK proofs',
+      'Instant revoke sharing (internal)',
       '7-day free trial',
-    ],
-  },
-
-  power: {
-    name: 'Power',
-    description: 'Enhanced storage for power users',
-    pricing: {
-      monthly: 49,
-      quarterly: 134, // ~11% discount
-      annual: 499, // ~15% discount
-    },
-    storage: '2 TB',
-    bandwidth: '2 TB',
-    teamSize: '1 user',
-    features: [
-      '2 TB secure storage',
-      '2 TB bandwidth',
-      'Advanced blockchain features',
-      'Priority support',
-      'Enhanced file encryption',
-      'Advanced sharing options',
     ],
   },
 
   scale: {
     name: 'Scale',
     isMostPopular: true,
-    description: 'Per-seat pricing for teams (2 seat minimum)',
+    description: 'Per-seat pricing for teams (2–99 seats)',
     pricing: {
       monthly: 29,
       quarterly: 79, // ~9% discount
       annual: 299, // ~14% discount
     },
-    storage: '1 TB',
-    bandwidth: '1 TB',
-    teamSize: '2+ users',
+    storage: '2 TB',
+    bandwidth: '2 TB',
+    teamSize: '2–99 users',
     minimumSeats: 2,
+    maximumSeats: 99,
     features: [
-      '1 TB storage per seat',
-      '1 TB bandwidth per seat',
-      '2 seat minimum required',
+      '2 TB storage per seat',
+      '2 TB bandwidth per seat',
+      '$10/seat/month per additional TB',
+      '2 seat minimum, up to 99 seats',
       'Team collaboration tools',
-      'Advanced blockchain features',
+      'Clerk Organizations + SSO',
       '24/7 priority support',
       'Advanced integrations',
+    ],
+  },
+
+  enterprise: {
+    name: 'Enterprise',
+    description: 'Custom solutions for 100+ seat organizations',
+    pricing: {
+      monthly: 0, // Custom pricing
+      quarterly: 0,
+      annual: 0,
+    },
+    storage: 'Custom',
+    bandwidth: 'Custom',
+    teamSize: '100+ users',
+    minimumSeats: 100,
+    features: [
+      'Everything in Scale',
+      'Custom storage allocation',
+      'SSO & SAML authentication',
+      'Whitelisted solutions',
+      'Custom branding',
+      'Dedicated account manager',
+      'Priority 24/7 support',
+      'SLA guarantees',
     ],
   },
 } as const;

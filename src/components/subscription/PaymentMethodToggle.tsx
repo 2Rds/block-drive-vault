@@ -50,7 +50,7 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
             'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md transition-all',
             'text-sm font-medium',
             selected === 'crypto'
-              ? 'bg-purple-600 text-white shadow-lg'
+              ? 'bg-blue-600 text-white shadow-lg'
               : 'text-gray-400 hover:text-white hover:bg-gray-700/50',
             disabled && 'opacity-50 cursor-not-allowed'
           )}
@@ -75,11 +75,11 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
         )}
       </p>
 
-      {/* Crypto savings badge */}
+      {/* Crypto info */}
       {selected === 'crypto' && (
-        <div className="flex items-center gap-2 text-xs text-green-400">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400" />
-          Save ~1.6% on transaction fees with crypto
+        <div className="flex items-center gap-2 text-xs text-zinc-400">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
+          Pay directly from your embedded Solana wallet
         </div>
       )}
     </div>

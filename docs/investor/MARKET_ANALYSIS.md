@@ -8,7 +8,7 @@
 
 BlockDrive addresses a fundamental gap in the $100B+ cloud storage market: **no existing solution eliminates the possibility of breach**. 
 
-Every platform—centralized or decentralized—stores complete files somewhere. BlockDrive's Programmed Incompleteness architecture is the first where complete files never exist, making breaches architecturally impossible.
+Every platform—centralized or decentralized—stores complete files somewhere. BlockDrive's Programmed Incompleteness architecture is the first where complete files never exist at any single point—even if breached, attackers get incomplete, useless data.
 
 This positions BlockDrive to capture the security-conscious segment of enterprise storage, growing at 25%+ annually.
 
@@ -83,14 +83,14 @@ This positions BlockDrive to capture the security-conscious segment of enterpris
 | **Healthcare** | $12B | HIPAA compliance, patient data | True deletion, access control |
 | **Legal** | $8B | Client confidentiality, privilege | Mathematical privacy guarantee |
 | **Government/Defense** | $10B | National security, sovereignty | No access even under subpoena |
-| **Tech/IP-Heavy** | $20B | Trade secrets, source code | Breach-proof by architecture |
+| **Tech/IP-Heavy** | $20B | Trade secrets, source code | Breached data is worthless by architecture |
 
 ### 3.2 Buyer Personas
 
 **CISO / Security Leadership**
 - Primary concern: Breach prevention, compliance
 - Decision factor: Can prove security architecture to auditors
-- BlockDrive appeal: "Breach-proof by design" is a defensible position
+- BlockDrive appeal: "Breached data is worthless" is a defensible position
 
 **CTO / Technical Leadership**
 - Primary concern: Integration, performance, reliability
@@ -128,7 +128,7 @@ This positions BlockDrive to capture the security-conscious segment of enterpris
                    ┌───────────┼───────────┐
                    │           │           │
                    │    [BLOCKDRIVE]       │
-                   │     Breach-proof +    │
+                   │   Breach-resilient +  │
                    │     Enterprise-ready  │
                    │           │           │
     DECENTRALIZED ─┼───────────┼───────────┼─ CENTRALIZED
@@ -196,18 +196,20 @@ Enterprises where security is a primary buying criterion:
 
 | Stream | Model | % of Revenue (Y3) |
 |--------|-------|-------------------|
-| **SaaS Subscriptions** | Tiered monthly/annual | 70% |
-| **Enterprise Licensing** | Custom deployments | 25% |
-| **Storage Overage** | Per-GB above tier | 5% |
+| **SaaS Subscriptions** | Tiered (Pro/Scale/Enterprise) | 70% |
+| **Enterprise Licensing** | 100+ seat custom deployments | 25% |
+| **Storage Add-ons** | $10/mo per additional TB | 5% |
 
 ### 6.2 Pricing Strategy
 
 | Tier | Monthly Price | Storage | Target Customer |
 |------|---------------|---------|-----------------|
-| Basic | $10 | 50 GB | Individual professionals |
-| Pro | $20 | 200 GB | Power users, small teams |
-| Premium | $50 | Unlimited | Businesses, compliance needs |
-| Enterprise | Custom | Custom | Organizations, white-label |
+| Pro | $15 | 1 TB | Individual professionals |
+| Scale | $29/seat | 2 TB/seat | Teams (2–99 seats) |
+| Enterprise | Custom | Custom | Organizations (100+ seats), SSO, SLA |
+
+**Billing Discounts:** Quarterly (~11% off), Annual (~17% off)
+**Storage Add-ons:** $10/mo per additional TB (Pro), $10/seat/mo per additional TB (Scale)
 
 ### 6.3 Unit Economics
 
@@ -246,7 +248,7 @@ Enterprises where security is a primary buying criterion:
 - Partnership with compliance platforms
 - Founder network in financial services
 
-**Goal:** Enterprise pilots, SOC-2 certification, case studies
+**Goal:** Enterprise pilots, compliance preparation, case studies
 
 **Metrics:** 10 enterprise pilots, $3M ARR
 
@@ -339,7 +341,7 @@ This becomes the Series A/B growth story—expanding from storage to financial s
 
 ### The Opportunity
 
-1. **$100B+ market** with no breach-proof solution
+1. **$100B+ market** where no solution makes breached data worthless
 2. **Rising breach costs** and regulatory pressure create urgency
 3. **First architecture** where complete files never exist
 4. **Hybrid approach** bridges Web2 reliability and Web3 sovereignty
@@ -359,8 +361,8 @@ This becomes the Series A/B growth story—expanding from storage to financial s
 
 ### The Outcome
 
-BlockDrive becomes the category leader in "breach-proof" enterprise storage—a new segment we're creating.
+BlockDrive becomes the category leader in "breach-resilient" enterprise storage—a new segment we're creating.
 
 ---
 
-*"Every enterprise needs storage. Every enterprise fears breaches. We're the first where breaches are impossible."*
+*"Every enterprise needs storage. Every enterprise fears breaches. We're the first where breached data is worthless."*

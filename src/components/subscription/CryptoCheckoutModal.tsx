@@ -274,7 +274,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
 
         {/* Fee info */}
         <p className="text-xs text-gray-500 text-center mt-2">
-          Transaction fees (~1.3%) are lower than card payments (~2.9%)
+          Pay directly from your embedded Solana wallet with USDC
         </p>
       </DialogContent>
     </Dialog>

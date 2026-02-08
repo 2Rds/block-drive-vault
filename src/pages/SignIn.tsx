@@ -37,7 +37,7 @@ export default function SignIn(): JSX.Element | null {
             Welcome to <span className="text-primary">BlockDrive</span>
           </h1>
           <p className="text-lg text-muted-foreground mb-12">
-            The private data management platform with theft-proof architecture and zero-knowledge encryption.
+            The private data management platform where breached data is worthless—files never exist complete at any single point.
           </p>
           
           <div className="space-y-6 text-left">
@@ -46,9 +46,9 @@ export default function SignIn(): JSX.Element | null {
                 <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Theft-Proof Storage</h3>
+                <h3 className="font-semibold text-foreground">Programmed Incompleteness</h3>
                 <p className="text-sm text-muted-foreground">
-                  Files are split across providers and can never be stolen—even by us.
+                  Files are split across providers—even if breached, the data is incomplete and useless.
                 </p>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function SignIn(): JSX.Element | null {
               <div>
                 <h3 className="font-semibold text-foreground">Instant-Revoke Sharing</h3>
                 <p className="text-sm text-muted-foreground">
-                  Share files securely with instant access revocation.
+                  Share files internally with other BlockDrive users and revoke access instantly.
                 </p>
               </div>
             </div>

@@ -15,34 +15,30 @@ import {
   CheckCircle,
   Key,
   Lock,
-  Settings,
   AlertCircle,
   Link2,
-  Users
+  Users,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { CreateFolderModal } from '../CreateFolderModal';
 import { SubscriptionGate } from '../SubscriptionGate';
 import { CryptoSetupModal } from '../crypto/CryptoSetupModal';
-import { SecurityLevelSelector } from '../crypto/SecurityLevelSelector';
-import { StorageConfigSelector } from '../storage/StorageConfigSelector';
-import { StorageHealthIndicator } from '../storage/StorageHealthIndicator';
 import { useBlockDriveUpload } from '@/hooks/useBlockDriveUpload';
-import { useStorageOrchestrator } from '@/hooks/useStorageOrchestrator';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@clerk/clerk-react';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
-import { DEFAULT_STORAGE_CONFIG, StorageConfig } from '@/types/storageProvider';
+import { DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
 import { cn } from '@/lib/utils';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 
 interface BlockDriveUploadAreaProps {
@@ -52,39 +48,41 @@ interface BlockDriveUploadAreaProps {
   signTransaction?: (tx: any) => Promise<any>;
 }
 
-export function BlockDriveUploadArea({ 
-  onCreateFolder, 
-  selectedFolder, 
+export function BlockDriveUploadArea({
+  onCreateFolder,
+  selectedFolder,
   onUploadComplete,
-  signTransaction 
+  signTransaction
 }: BlockDriveUploadAreaProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [showCryptoSetup, setShowCryptoSetup] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDestinationModal, setShowDestinationModal] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  
-  // Upload settings
-  const [securityLevel, setSecurityLevel] = useState<SecurityLevel>(SecurityLevel.STANDARD);
-  const [storageConfig, setStorageConfig] = useState<StorageConfig>(DEFAULT_STORAGE_CONFIG);
-  const [enableOnChain, setEnableOnChain] = useState(true);
+
+  // Upload settings - simplified, defaults only
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [initializingVault, setInitializingVault] = useState(false);
   const [shareWithTeam, setShareWithTeam] = useState(true);
 
+  // Fixed settings: Level 2 (Programmed Incompleteness) and default storage config
+  const securityLevel = SecurityLevel.SENSITIVE; // Level 2 - Programmed Incompleteness
+  const storageConfig = DEFAULT_STORAGE_CONFIG;
+  const enableOnChain = true; // Always enabled
+
   const { user, walletData } = useAuth();
   const { organization } = useOrganization();
   const isInOrganization = !!organization;
-  const { 
-    isUploading, 
-    progress, 
+  const {
+    isUploading,
+    progress,
     hasKeys,
     uploadFiles,
     initializeVault,
     checkVaultExists,
     solanaLoading
   } = useBlockDriveUpload({ enableOnChainRegistration: enableOnChain });
-  const { healthStatus, refreshHealth } = useStorageOrchestrator();
 
   // Check vault status on mount
   useEffect(() => {
@@ -113,12 +111,27 @@ export function BlockDriveUploadArea({
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    
+
     // Check if keys are initialized
     if (!hasKeys) {
       setShowCryptoSetup(true);
       return;
     }
+
+    // If in organization, show destination modal
+    if (isInOrganization) {
+      setPendingFiles(files);
+      setShowDestinationModal(true);
+      return;
+    }
+
+    // Not in organization - upload directly to personal files
+    await processUpload(files, false);
+  };
+
+  const processUpload = async (files: FileList, toTeam: boolean) => {
+    setShareWithTeam(toTeam);
+    setShowDestinationModal(false);
 
     // Check if vault needs initialization for on-chain
     if (enableOnChain && !vaultExists && signTransaction) {
@@ -130,19 +143,27 @@ export function BlockDriveUploadArea({
         setVaultExists(true);
       }
     }
-    
+
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
-    
+
     const results = await uploadFiles(
-      files, 
-      securityLevel, 
-      storageConfig, 
+      files,
+      securityLevel,
+      storageConfig,
       folderPath,
       enableOnChain && signTransaction ? signTransaction : undefined
     );
-    
+
     if (results.length > 0 && onUploadComplete) {
       onUploadComplete();
+    }
+
+    setPendingFiles(null);
+  };
+
+  const handleDestinationSelect = (toTeam: boolean) => {
+    if (pendingFiles) {
+      processUpload(pendingFiles, toTeam);
     }
   };
 
@@ -276,25 +297,13 @@ export function BlockDriveUploadArea({
           </div>
         )}
 
-        {/* Team Upload Indicator */}
+        {/* Organization indicator - simplified, no toggle here */}
         {isInOrganization && (
-          <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-300">
-                Uploading to <strong>{organization.name}</strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {shareWithTeam ? 'Team Files' : 'My Files'}
-              </span>
-              <Switch
-                checked={shareWithTeam}
-                onCheckedChange={setShareWithTeam}
-                disabled={isUploading}
-              />
-            </div>
+          <div className="flex items-center gap-2 p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+            <Users className="w-4 h-4 text-purple-400" />
+            <span className="text-sm text-purple-300">
+              Organization: <strong>{organization.name}</strong>
+            </span>
           </div>
         )}
 
@@ -387,8 +396,8 @@ export function BlockDriveUploadArea({
                   className="bg-primary hover:bg-primary/90"
                   size="lg"
                 >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Choose Files
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload Files
                 </Button>
                 <Button
                   onClick={() => setShowCreateFolderModal(true)}
@@ -418,88 +427,45 @@ export function BlockDriveUploadArea({
           </div>
         </div>
 
-        {/* Advanced Settings */}
-        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Advanced Settings
-              </span>
-              <span className="text-muted-foreground">
-                {showAdvanced ? '▲' : '▼'}
-              </span>
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-4">
-            {/* Share with Team Toggle - Only shown when in organization */}
-            {isInOrganization && (
-              <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                <div className="space-y-0.5">
-                  <Label htmlFor="share-team" className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-purple-400" />
-                    Share with Team
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {shareWithTeam
-                      ? `Files will be visible to all ${organization.name} members`
-                      : 'Files will be private to you within the team'}
-                  </p>
+        {/* Upload Destination Modal - shown when in organization */}
+        <Dialog open={showDestinationModal} onOpenChange={setShowDestinationModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Where would you like to upload?</DialogTitle>
+              <DialogDescription>
+                Choose whether to share files with your team or keep them private.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <Button
+                variant="outline"
+                className="h-auto flex-col gap-3 p-6 hover:bg-purple-500/10 hover:border-purple-500/50"
+                onClick={() => handleDestinationSelect(true)}
+              >
+                <Users className="w-8 h-8 text-purple-400" />
+                <div className="text-center">
+                  <div className="font-semibold">Team Files</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Visible to {organization?.name} members
+                  </div>
                 </div>
-                <Switch
-                  id="share-team"
-                  checked={shareWithTeam}
-                  onCheckedChange={setShareWithTeam}
-                  disabled={isUploading}
-                />
-              </div>
-            )}
-
-            {/* On-Chain Registration Toggle */}
-            <div className="flex items-center justify-between p-4 bg-card/60 rounded-lg border border-border">
-              <div className="space-y-0.5">
-                <Label htmlFor="on-chain" className="flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-primary" />
-                  Solana On-Chain Registration
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Register file commitments on Solana for verifiable ownership
-                </p>
-              </div>
-              <Switch
-                id="on-chain"
-                checked={enableOnChain}
-                onCheckedChange={setEnableOnChain}
-                disabled={isUploading || !signTransaction}
-              />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto flex-col gap-3 p-6 hover:bg-primary/10 hover:border-primary/50"
+                onClick={() => handleDestinationSelect(false)}
+              >
+                <User className="w-8 h-8 text-primary" />
+                <div className="text-center">
+                  <div className="font-semibold">My Files</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Private to you only
+                  </div>
+                </div>
+              </Button>
             </div>
-
-            {/* Security Level */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Security Level
-              </label>
-              <SecurityLevelSelector
-                value={securityLevel}
-                onChange={setSecurityLevel}
-                disabled={isUploading}
-              />
-            </div>
-
-            {/* Storage Config */}
-            <StorageConfigSelector
-              value={storageConfig}
-              onChange={setStorageConfig}
-              disabled={isUploading}
-            />
-
-            {/* Provider Health */}
-            <StorageHealthIndicator
-              healthStatus={healthStatus}
-              onRefresh={refreshHealth}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+          </DialogContent>
+        </Dialog>
 
         {/* Modals */}
         <CreateFolderModal

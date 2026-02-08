@@ -1,40 +1,28 @@
 import { OrganizationProfile, useOrganization } from '@clerk/clerk-react';
-import { Header } from '@/components/Header';
+import { AppShell } from '@/components/layout';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
-// Loading state component
-function LoadingState(): JSX.Element {
-  return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
-      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-        <div className="text-gray-400">Loading...</div>
-      </div>
-    </div>
-  );
-}
-
-// Clerk OrganizationProfile appearance configuration
+// Clerk OrganizationProfile appearance configuration for dark theme
 const ORG_PROFILE_APPEARANCE = {
   elements: {
     rootBox: "w-full",
     card: "bg-transparent shadow-none border-0",
-    navbar: "bg-gray-800/50 rounded-lg",
-    navbarButton: "text-gray-300 hover:text-white hover:bg-gray-700",
-    navbarButtonActive: "text-white bg-gray-700",
+    navbar: "bg-background-secondary rounded-lg",
+    navbarButton: "text-foreground-muted hover:text-foreground hover:bg-background-tertiary",
+    navbarButtonActive: "text-foreground bg-background-tertiary",
     pageScrollBox: "p-0",
     page: "p-0",
-    profileSection: "border-gray-700",
-    profileSectionTitle: "text-white",
-    profileSectionContent: "text-gray-300",
-    formFieldLabel: "text-gray-300",
-    formFieldInput: "bg-gray-700 border-gray-600 text-white",
-    formButtonPrimary: "bg-blue-600 hover:bg-blue-700",
-    membersPageInviteButton: "bg-blue-600 hover:bg-blue-700",
-    tableHead: "text-gray-400",
-    tableCell: "text-gray-300",
-    badge: "bg-gray-700 text-gray-300",
+    profileSection: "border-border",
+    profileSectionTitle: "text-foreground",
+    profileSectionContent: "text-foreground-muted",
+    formFieldLabel: "text-foreground-muted",
+    formFieldInput: "bg-background-tertiary border-border text-foreground",
+    formButtonPrimary: "bg-primary hover:bg-primary/90",
+    membersPageInviteButton: "bg-primary hover:bg-primary/90",
+    tableHead: "text-foreground-muted",
+    tableCell: "text-foreground-muted",
+    badge: "bg-background-tertiary text-foreground-muted",
   },
 };
 
@@ -50,7 +38,13 @@ export default function TeamSettings(): JSX.Element | null {
   }, [isLoaded, organization, navigate]);
 
   if (!isLoaded) {
-    return <LoadingState />;
+    return (
+      <AppShell title="Team Settings" description="Loading...">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-foreground-muted">Loading...</div>
+        </div>
+      </AppShell>
+    );
   }
 
   if (!organization) {
@@ -58,20 +52,13 @@ export default function TeamSettings(): JSX.Element | null {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Team Settings</h1>
-          <p className="text-gray-400 mt-1">
-            Manage your team members, invitations, and organization settings
-          </p>
-        </div>
-
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-          <OrganizationProfile appearance={ORG_PROFILE_APPEARANCE} />
-        </div>
+    <AppShell
+      title="Team Settings"
+      description="Manage your team members, invitations, and organization settings"
+    >
+      <div className="bg-card rounded-lg border border-border p-6">
+        <OrganizationProfile appearance={ORG_PROFILE_APPEARANCE} />
       </div>
-    </div>
+    </AppShell>
   );
 }

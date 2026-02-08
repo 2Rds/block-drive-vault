@@ -198,8 +198,7 @@ export function mapPeriodToBillingPeriod(period: string): BillingPeriod {
  */
 export function getTierPrice(tier: string, period: string): number {
   const pricing: Record<string, Record<string, number>> = {
-    Pro: { monthly: 9, quarterly: 24, yearly: 89, annual: 89 },
-    Power: { monthly: 49, quarterly: 134, yearly: 499, annual: 499 },
+    Pro: { monthly: 15, quarterly: 40, yearly: 149, annual: 149 },
     Scale: { monthly: 29, quarterly: 79, yearly: 299, annual: 299 },
   };
   return pricing[tier]?.[period] || 0;

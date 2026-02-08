@@ -23,7 +23,7 @@ import {
   TIER_BANDWIDTH_QUOTAS,
 } from '@/config/nftCollection';
 
-export type MembershipTier = 'trial' | 'pro' | 'power' | 'scale';
+export type MembershipTier = 'trial' | 'pro' | 'scale' | 'enterprise';
 export type BillingInterval = 'monthly' | 'quarterly' | 'annual';
 
 export interface OnboardingRequest {
@@ -150,7 +150,7 @@ class MembershipOnboardingService {
     request: OnboardingRequest
   ): Promise<{ valid: boolean; error?: string }> {
     // Validate tier
-    if (!['trial', 'pro', 'power', 'scale'].includes(request.selectedTier)) {
+    if (!['trial', 'pro', 'scale', 'enterprise'].includes(request.selectedTier)) {
       return { valid: false, error: 'Invalid membership tier' };
     }
 

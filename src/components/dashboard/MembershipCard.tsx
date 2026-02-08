@@ -36,10 +36,9 @@ interface MembershipCardProps {
   compact?: boolean;
 }
 
-// Premium lead-genius dark mode gradient - SAME for ALL tiers
-// Deep navy background with bright teal accent and glow effect
-// Based on lead-genius design system: hsl(230 12% 10%) background, hsl(166 76% 46%) teal
-const PREMIUM_GRADIENT = 'bg-[hsl(230_12%_10%)] border-[hsl(230_10%_18%)] hover:border-[hsl(166_76%_46%)]/30 shadow-[0_0_40px_hsl(166_76%_46%/0.15)]';
+// Premium dark mode card styling - matches dashboard color scheme
+// Uses primary blue accent to match the rest of the app
+const PREMIUM_GRADIENT = 'bg-card border-border hover:border-primary/30';
 
 // Tier badge colors
 const TIER_BADGE_COLORS = {
@@ -75,7 +74,7 @@ function normalizeTierKey(tier: string | null | undefined): keyof typeof TIER_CO
   // Map display names to internal keys
   const tierMapping: Record<string, keyof typeof TIER_CONFIGS> = {
     'scale': 'enterprise',
-    'power': 'premium',
+    'power': 'premium', // legacy mapping
     'growth': 'premium',
     'starter': 'basic',
     'free': 'basic',
@@ -165,7 +164,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
             {/* User name */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[hsl(166_76%_46%)] to-[hsl(166_76%_42%)] rounded-full flex items-center justify-center text-white font-bold text-sm shadow-[0_0_12px_hsl(166_76%_46%/0.25)]">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {displayName[0].toUpperCase()}
                 </div>
                 <div>
@@ -206,8 +205,8 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
           {/* Header: User info and tier badge */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              {/* Avatar with teal gradient matching lead-genius aesthetic */}
-              <div className="w-16 h-16 bg-gradient-to-br from-[hsl(166_76%_46%)] to-[hsl(166_76%_42%)] rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-[0_0_20px_hsl(166_76%_46%/0.3)]">
+              {/* Avatar with blue gradient matching app color scheme */}
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white font-bold text-2xl">
                 {displayName[0].toUpperCase()}
               </div>
 
@@ -295,7 +294,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
           <div className="flex gap-3">
             <Button
               onClick={() => navigate('/pricing')}
-              className="flex-1 bg-gradient-to-r from-[hsl(166_76%_46%)] to-[hsl(166_76%_42%)] hover:from-[hsl(166_76%_48%)] hover:to-[hsl(166_76%_44%)] text-white shadow-[0_0_16px_hsl(166_76%_46%/0.2)] hover:shadow-[0_0_24px_hsl(166_76%_46%/0.3)] transition-all"
+              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground transition-all"
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               Upgrade Plan

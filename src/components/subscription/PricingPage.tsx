@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { pricingTiers as staticPricingTiers } from '@/data/pricingTiers';
 import { PricingHeader } from './PricingHeader';
 import { PricingCard } from './PricingCard';
@@ -10,6 +10,8 @@ import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 // import { useStripePricing } from '@/hooks/useStripePricing'; // TODO: Re-enable when sync is configured
 import { BillingPeriod, PricingTier, PricingOption } from '@/types/pricing';
 import { Button } from '@/components/ui/button';
+import { GradientOrbs } from '@/components/effects/GradientOrb';
+import { GridPattern } from '@/components/effects/GridPattern';
 
 export const PricingPage = () => {
   const { loading, handleSubscribe, handleSubscribeCrypto } = usePricingSubscription();
@@ -31,10 +33,10 @@ export const PricingPage = () => {
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const [selectedOption, setSelectedOption] = useState<PricingOption | null>(null);
 
-  const billingPeriods: { value: BillingPeriod; label: string }[] = [
+  const billingPeriods: { value: BillingPeriod; label: string; discount?: string }[] = [
     { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'annual', label: 'Annual' }
+    { value: 'quarterly', label: 'Quarterly', discount: 'Save 11%' },
+    { value: 'annual', label: 'Annual', discount: 'Save 17%' },
   ];
 
   // Fetch wallet balance when wallet is connected
@@ -57,10 +59,8 @@ export const PricingPage = () => {
   // Handle subscription based on payment method
   const handleTierSubscribe = useCallback(async (tier: PricingTier, option: PricingOption) => {
     if (paymentMethod === 'fiat') {
-      // Direct Stripe checkout
       await handleSubscribe(tier, option);
     } else {
-      // Open crypto checkout modal
       setSelectedTier(tier);
       setSelectedOption(option);
       setCryptoModalOpen(true);
@@ -73,8 +73,6 @@ export const PricingPage = () => {
 
     const result = await handleSubscribeCrypto(selectedTier, selectedOption);
 
-    // If successful, modal will show success state
-    // If insufficient balance, modal shows funding instructions
     if (result?.success) {
       setCryptoModalOpen(false);
     }
@@ -87,14 +85,22 @@ export const PricingPage = () => {
   }, [selectedTier, selectedPeriod]);
 
   return (
-    <div className="min-h-screen bg-[hsl(230_15%_6%)] py-16">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-[#0a0a0b] py-16 relative overflow-hidden">
+      {/* Ambient background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <GradientOrbs />
+        <GridPattern fadeEdges />
+        {/* Subtle radial glow behind cards */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/[0.03] rounded-full blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10 max-w-6xl">
         <PricingHeader />
 
-        {/* Payment method and billing period selectors */}
-        <div className="flex flex-col items-center gap-6 mb-12">
+        {/* Controls row: Payment method + billing period */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-14">
           {/* Payment Method Toggle */}
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-xs">
             <PaymentMethodToggle
               selected={paymentMethod}
               onSelect={setPaymentMethod}
@@ -104,34 +110,39 @@ export const PricingPage = () => {
           </div>
 
           {/* Billing period selector */}
-          <div className="bg-[hsl(230_12%_10%)] border border-[hsl(230_10%_18%)] rounded-xl p-1">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-sm">
             {billingPeriods.map((period) => (
-              <Button
+              <button
                 key={period.value}
-                variant={selectedPeriod === period.value ? 'default' : 'ghost'}
-                size="sm"
                 onClick={() => setSelectedPeriod(period.value)}
-                className={`${
-                  selectedPeriod === period.value
-                    ? 'bg-gradient-to-r from-[hsl(166_76%_46%)] to-[hsl(166_76%_42%)] text-white shadow-[0_0_16px_hsl(166_76%_46%/0.2)]'
-                    : 'text-gray-300 hover:text-white hover:bg-[hsl(230_10%_15%)]'
-                }`}
+                className={`
+                  relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  ${selectedPeriod === period.value
+                    ? 'bg-zinc-800 text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                  }
+                `}
               >
                 {period.label}
-              </Button>
+                {period.discount && selectedPeriod === period.value && (
+                  <span className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/30 text-[10px] text-green-400 font-semibold">
+                    {period.discount}
+                  </span>
+                )}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Centered pricing tiers grid */}
-        <div className="flex justify-center mb-16">
+        {/* Pricing cards */}
+        <div className="flex justify-center mb-20">
           {pricingLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(166_76%_46%)]" />
-              <span className="ml-3 text-gray-400">Loading pricing...</span>
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-zinc-700 border-t-blue-500 rounded-full animate-spin" />
+              <span className="ml-3 text-zinc-500 text-sm">Loading plans...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl w-full mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
               {pricingTiers.map((tier) => (
                 <PricingCard
                   key={tier.name}

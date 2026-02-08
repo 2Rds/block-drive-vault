@@ -10,7 +10,7 @@ Cloud storage is a solved problem—except for the one thing that matters most: 
 
 Every existing solution, centralized or decentralized, stores complete files somewhere. This creates an unavoidable attack surface. Breaches are not a question of if, but when.
 
-BlockDrive introduces **Programmed Incompleteness**—the first architecture where files never exist in complete, usable form on any system. Breaches become architecturally impossible because there's nothing complete to breach.
+BlockDrive introduces **Programmed Incompleteness**—the first architecture where files never exist in complete, usable form at any single point. Even if every provider is breached, attackers get incomplete, useless data fragments—there's nothing complete to exploit.
 
 This is enterprise cloud storage for the new internet.
 
@@ -181,7 +181,7 @@ This hybrid approach delivers:
 | **Architectural Innovation** | Programmed Incompleteness is novel, patentable |
 | **Hybrid Infrastructure** | First to bridge Web2 reliability + Web3 sovereignty |
 | **True Zero-Knowledge** | Not marketing—mathematical proof |
-| **Breach Immunity** | Only solution where breaches are architecturally impossible |
+| **Breach Resilience** | Only solution where breached data is incomplete and worthless |
 | **Recovery Guarantee** | Open-source SDK eliminates vendor lock-in |
 
 ### Why Competitors Can't Replicate
@@ -201,18 +201,20 @@ This hybrid approach delivers:
 
 | Stream | Model | Margin |
 |--------|-------|--------|
-| **SaaS Subscriptions** | Tiered (Basic/Pro/Premium/Enterprise) | 80%+ |
-| **Enterprise Licensing** | White-label deployments | 90%+ |
-| **Storage Overage** | Per-GB beyond tier limits | 70%+ |
+| **SaaS Subscriptions** | Tiered (Pro/Scale/Enterprise) | 80%+ |
+| **Storage Add-ons** | $10/mo per additional TB | 70%+ |
+| **Enterprise Licensing** | 100+ seat custom deployments | 90%+ |
 
 ### Pricing
 
-| Tier | Price | Storage | Features |
-|------|-------|---------|----------|
-| Basic | $10/mo | 50 GB | Standard encryption |
-| Pro | $20/mo | 200 GB | All security levels, priority |
-| Premium | $50/mo | Unlimited | Premium features |
-| Enterprise | Custom | Custom | White-label, multi-tenant, SLA |
+| Tier | Price | Storage | Target |
+|------|-------|---------|--------|
+| Pro | $15/mo | 1 TB | Individual professionals |
+| Scale | $29/seat/mo | 2 TB/seat | Teams (2–99 seats) |
+| Enterprise | Custom | Custom | Organizations (100+ seats), SSO, SLA |
+
+**Billing Discounts:** Quarterly (~11% off), Annual (~17% off)
+**Storage Add-ons:** $10/mo per additional TB (Pro), $10/seat/mo per additional TB (Scale)
 
 ### Unit Economics
 
@@ -237,7 +239,7 @@ Solana's economics make blockchain costs negligible. The real variable is storag
 ### Phase 2: Professional Services (Q2-Q3 2026)
 - **Target:** Law firms, healthcare, financial advisors
 - **Channel:** Compliance-focused marketing, industry conferences
-- **Goal:** Enterprise pilots, case studies, SOC-2 certification
+- **Goal:** Enterprise pilots, case studies, compliance preparation
 
 ### Phase 3: Enterprise (Q4 2026+)
 - **Target:** Enterprises with regulatory requirements, data sensitivity
@@ -290,7 +292,7 @@ This becomes the Series A/B growth story.
 | Milestone | Timeline |
 |-----------|----------|
 | Enterprise feature completion | Q1 2026 |
-| SOC-2 certification initiation | Q2 2026 |
+| Compliance preparation | Q2 2026 |
 | Enterprise pilot launch | Q2 2026 |
 | First enterprise customers | Q3 2026 |
 | Series A readiness | Q4 2026 |
@@ -304,7 +306,7 @@ This becomes the Series A/B growth story.
 | Category | Allocation | Purpose |
 |----------|------------|---------|
 | **Engineering** | 50% | Enterprise features, security audits |
-| **Compliance** | 20% | SOC-2, penetration testing, legal |
+| **Compliance** | 20% | Security audits, penetration testing, legal |
 | **Go-to-Market** | 20% | Enterprise sales, marketing |
 | **Operations** | 10% | Infrastructure, tools |
 
@@ -331,18 +333,18 @@ This becomes the Series A/B growth story.
 ### Competitive Window
 - No one else building Programmed Incompleteness
 - 18+ month head start on any follower
-- First-mover in "breach-proof" category
+- First-mover in "breach-resilient" storage category
 
 ---
 
 ## The Ask
 
 **Raising:** Seed round  
-**Use:** Complete enterprise features, achieve SOC-2, launch pilots
+**Use:** Complete enterprise features, security audits, launch pilots
 
 **What we offer investors:**
 - Novel, defensible architecture (patentable)
-- First-mover in "breach-proof" storage category
+- First-mover in "breach-resilient" storage category
 - Founder with institutional network and technical depth
 - Clear path to enterprise revenue
 - Future expansion into embedded finance
@@ -357,7 +359,7 @@ Every existing solution stores complete files somewhere.
 
 BlockDrive is the first architecture where complete files never exist.
 
-**Breaches are not prevented. They're architecturally impossible.**
+**Breaches may happen. But what attackers find is incomplete, useless data—files never exist in complete form at any single point.**
 
 This is enterprise cloud storage for the new internet.
 
