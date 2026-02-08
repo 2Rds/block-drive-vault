@@ -9,7 +9,7 @@ import { BlockDriveDownloadModal } from "@/components/files/BlockDriveDownloadMo
 import { EncryptedFileViewer } from "@/components/viewer/EncryptedFileViewer";
 import { CryptoSetupModal } from "@/components/crypto/CryptoSetupModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Files, Users, Link2, Share2, Trash2 } from 'lucide-react';
+import { Files, Users, Share2, Trash2 } from 'lucide-react';
 import { useFolderNavigation } from "@/hooks/useFolderNavigation";
 import { useIPFSUpload } from "@/hooks/useIPFSUpload";
 import { useAuth } from '@/hooks/useAuth';
@@ -25,7 +25,7 @@ import { ParsedDelegation, ParsedFileRecord } from '@/services/solana';
 import { IPFSFile } from '@/types/ipfs';
 import { toast } from 'sonner';
 
-type TabValue = 'my-files' | 'team-files' | 'on-chain' | 'shared' | 'trash';
+type TabValue = 'my-files' | 'team-files' | 'shared' | 'trash';
 type PendingActionType = 'download' | 'preview';
 
 interface PendingAction {
@@ -373,10 +373,6 @@ function IPFSFiles(): JSX.Element {
                 My Files
               </TabsTrigger>
             )}
-            <TabsTrigger value="on-chain" className="gap-2">
-              <Link2 className="w-4 h-4" />
-              On-Chain
-            </TabsTrigger>
             <TabsTrigger value="shared" className="gap-2">
               <Share2 className="w-4 h-4" />
               Shared With Me
@@ -406,21 +402,6 @@ function IPFSFiles(): JSX.Element {
               files={isInOrganization ? myOrgFilesForDisplay : blockDriveFiles}
               isPrivate={isInOrganization}
               onRefresh={isInOrganization ? loadOrgFiles : loadUserFiles}
-            />
-          </TabsContent>
-
-          {/* On-Chain Tab */}
-          <TabsContent value="on-chain" className="mt-6">
-            <BlockDriveFileGrid
-              files={filterBySearch(blockDriveFiles)}
-              selectedFolder="on-chain"
-              currentPath={currentPath}
-              onGoBack={goBack}
-              onFileSelect={handleFileSelect}
-              onFileDownload={handleDownloadFile}
-              onFileDelete={handleDeleteFile}
-              onFileShare={handleShareFile}
-              onRefresh={loadUserFiles}
             />
           </TabsContent>
 

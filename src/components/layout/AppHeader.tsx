@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@clerk/clerk-react';
 import { toast } from 'sonner';
-import { Search, Bell, User, LogOut, Settings, Crown } from 'lucide-react';
+import { Search, Bell, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -129,14 +129,6 @@ export function AppHeader() {
                   <span>Team Settings</span>
                 </DropdownMenuItem>
               )}
-
-              <DropdownMenuItem
-                className="px-3 py-2 cursor-pointer hover:bg-background-secondary"
-                onClick={() => navigate('/membership')}
-              >
-                <Crown className="mr-2 h-4 w-4" />
-                <span>Membership</span>
-              </DropdownMenuItem>
 
               <DropdownMenuItem
                 className="px-3 py-2 cursor-pointer hover:bg-background-secondary"

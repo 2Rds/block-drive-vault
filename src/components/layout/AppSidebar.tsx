@@ -9,6 +9,7 @@ import {
   Puzzle,
   Trash2,
   HardDrive,
+  UserCog,
 } from 'lucide-react';
 
 // Tiers that support team features
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
   { id: 'files', label: 'Files', icon: Files, path: '/files' },
   { id: 'integrations', label: 'Integrations', icon: Puzzle, path: '/integrations' },
+  { id: 'account', label: 'Account', icon: UserCog, path: '/account' },
 ];
 
 // Secondary navigation items

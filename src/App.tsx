@@ -38,7 +38,6 @@ const Teams = lazy(() => import("./pages/Teams"));
 const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
 const TeamAdmin = lazy(() => import("./pages/TeamAdmin"));
 const TeamSettings = lazy(() => import("./pages/TeamSettings"));
-const Membership = lazy(() => import("./pages/Membership"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CreateTeamOnboarding = lazy(() => import("./pages/CreateTeamOnboarding"));
 
@@ -198,14 +197,6 @@ const App = () => {
                   element={
                     <ClerkProtectedRoute>
                       <TeamSettings />
-                    </ClerkProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/membership"
-                  element={
-                    <ClerkProtectedRoute>
-                      <Membership />
                     </ClerkProtectedRoute>
                   }
                 />

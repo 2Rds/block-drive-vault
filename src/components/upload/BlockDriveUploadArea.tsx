@@ -288,22 +288,20 @@ export function BlockDriveUploadArea({
           </div>
         )}
 
-        {vaultExists && enableOnChain && (
+        {(vaultExists && enableOnChain || isInOrganization) && (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Solana Vault Active
-            </Badge>
-          </div>
-        )}
-
-        {/* Organization indicator - simplified, no toggle here */}
-        {isInOrganization && (
-          <div className="flex items-center gap-2 p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
-            <Users className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-300">
-              Organization: <strong>{organization.name}</strong>
-            </span>
+            {vaultExists && enableOnChain && (
+              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Solana Vault Active
+              </Badge>
+            )}
+            {isInOrganization && (
+              <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                <Users className="w-3 h-3 mr-1" />
+                {organization.name}
+              </Badge>
+            )}
           </div>
         )}
 
