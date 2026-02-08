@@ -66,7 +66,6 @@ const renderConfigError = (message: string) => {
   );
 };
 
-// Optimize TBT by chunking React initialization and using scheduler
 const initializeApp = async () => {
   const publishableKey = await getClerkPublishableKey();
 
@@ -74,43 +73,18 @@ const initializeApp = async () => {
     identifierPrefix: 'blockdrive-',
   });
 
-  const renderApp = () => {
-    root.render(
-      <React.StrictMode>
-        <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
-          <CrossmintProvider>
-            <App />
-          </CrossmintProvider>
-        </ClerkProvider>
-      </React.StrictMode>
-    );
-  };
-
-  if ('scheduler' in window && (window as any).scheduler?.postTask) {
-    (window as any).scheduler.postTask(renderApp, { priority: 'user-visible' });
-  } else if ('MessageChannel' in window) {
-    const channel = new MessageChannel();
-    channel.port2.onmessage = renderApp;
-    channel.port1.postMessage(null);
-  } else {
-    renderApp();
-  }
+  root.render(
+    <React.StrictMode>
+      <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
+        <CrossmintProvider>
+          <App />
+        </CrossmintProvider>
+      </ClerkProvider>
+    </React.StrictMode>
+  );
 };
 
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => {
-    requestIdleCallback(() => {
-      initializeApp().catch((e) => {
-        const msg = e instanceof Error ? e.message : 'Unknown error';
-        renderConfigError(msg);
-      });
-    }, { timeout: 200 });
-  }, { timeout: 100 });
-} else {
-  setTimeout(() => {
-    initializeApp().catch((e) => {
-      const msg = e instanceof Error ? e.message : 'Unknown error';
-      renderConfigError(msg);
-    });
-  }, 150);
-}
+initializeApp().catch((e) => {
+  const msg = e instanceof Error ? e.message : 'Unknown error';
+  renderConfigError(msg);
+});
