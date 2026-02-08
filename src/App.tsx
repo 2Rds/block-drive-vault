@@ -13,16 +13,11 @@ import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 
-// Protected route component
-const ClerkProtectedRoute = lazy(() => 
+const ClerkProtectedRoute = lazy(() =>
   import("./components/auth/ClerkProtectedRoute").then(m => ({ default: m.ClerkProtectedRoute }))
 );
-
-// Auth pages
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
-
-// Lazy load all non-landing pages to reduce initial bundle size
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const IPFSFiles = lazy(() => import("./pages/IPFSFiles"));
 const Integrations = lazy(() => import("./pages/Integrations"));
@@ -41,7 +36,6 @@ const TeamSettings = lazy(() => import("./pages/TeamSettings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CreateTeamOnboarding = lazy(() => import("./pages/CreateTeamOnboarding"));
 
-// Optimize QueryClient for better TBT performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -57,7 +51,7 @@ const queryClient = new QueryClient({
   }
 });
 
-const App = () => {
+function App() {
   useEffect(() => {
     const initSecurityInChunks = () => {
       const initBasicSecurity = () => {
@@ -112,7 +106,6 @@ const App = () => {
           >
             <ClerkAuthProvider>
               <Routes>
-                {/* Public pages */}
                 <Route path="/" element={<Index />} />
                 <Route path="/sign-in/*" element={<SignIn />} />
                 <Route path="/sign-up/*" element={<SignUp />} />
@@ -123,7 +116,6 @@ const App = () => {
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
 
-                {/* Onboarding - protected but separate flow */}
                 <Route
                   path="/onboarding"
                   element={
@@ -141,7 +133,6 @@ const App = () => {
                   }
                 />
 
-                {/* Protected pages */}
                 <Route
                   path="/dashboard"
                   element={
@@ -208,6 +199,6 @@ const App = () => {
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

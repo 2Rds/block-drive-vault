@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { AppShell } from "@/components/layout";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
-import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { useCrossmintWallet } from "@/hooks/useCrossmintWallet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,7 +34,6 @@ function BillingTab() {
 
   return (
     <div className="space-y-6">
-      {/* Billing Period Selector */}
       <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
@@ -48,8 +46,9 @@ function BillingTab() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            {(Object.entries(PERIOD_LABELS) as [BillingPeriod, { label: string; discount?: string }][]).map(
-              ([period, { label, discount }]) => (
+            {(Object.keys(PERIOD_LABELS) as BillingPeriod[]).map((period) => {
+              const { label, discount } = PERIOD_LABELS[period];
+              return (
                 <Button
                   key={period}
                   variant={billingPeriod === period ? 'default' : 'outline'}
@@ -63,13 +62,12 @@ function BillingTab() {
                     </Badge>
                   )}
                 </Button>
-              )
-            )}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Current Plan Summary */}
       <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
           <CardTitle className="text-foreground">Current Plan</CardTitle>
@@ -103,7 +101,6 @@ function BillingTab() {
         </CardContent>
       </Card>
 
-      {/* Crypto Wallet Reference */}
       {isInitialized && walletAddress && (
         <Card className="bg-card border border-border/50 rounded-xl">
           <CardHeader>
@@ -127,8 +124,6 @@ function BillingTab() {
 }
 
 function Account(): JSX.Element {
-  useBoxOAuth();
-
   return (
     <AppShell
       title="Account"

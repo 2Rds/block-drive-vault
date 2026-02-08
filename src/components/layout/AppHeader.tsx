@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-// Get display name with fallbacks
 function getDisplayName(user: any): string {
   if (!user) return 'User';
   const metadata = user.user_metadata;
@@ -56,7 +55,6 @@ export function AppHeader() {
   return (
     <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border/40 fixed top-0 left-sidebar right-0 z-30">
       <div className="flex items-center justify-between h-full px-6">
-        {/* Search */}
         <form onSubmit={handleSearch} className="flex-1 max-w-xl">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-muted" />
@@ -76,9 +74,7 @@ export function AppHeader() {
           </div>
         </form>
 
-        {/* Right Side */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
           <Button
             variant="ghost"
             size="icon"
@@ -87,7 +83,6 @@ export function AppHeader() {
             <Bell className="w-5 h-5" />
           </Button>
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -119,7 +114,6 @@ export function AppHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
 
-              {/* Team Settings - only when in org and user is admin */}
               {organization && canManageOrganization && (
                 <DropdownMenuItem
                   className="px-3 py-2 cursor-pointer hover:bg-background-secondary"

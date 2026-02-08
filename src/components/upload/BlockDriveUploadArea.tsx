@@ -1,10 +1,3 @@
-/**
- * BlockDrive Upload Area
- * 
- * Enhanced upload component that uses the unified BlockDrive encryption
- * and multi-provider storage system with Solana on-chain registration.
- */
-
 import React, { useRef, useState, useEffect } from 'react';
 import {
   Upload,
@@ -61,15 +54,10 @@ export function BlockDriveUploadArea({
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  // Upload settings - simplified, defaults only
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [initializingVault, setInitializingVault] = useState(false);
-  const [shareWithTeam, setShareWithTeam] = useState(true);
-
-  // Fixed settings: Level 2 (Programmed Incompleteness) and default storage config
-  const securityLevel = SecurityLevel.SENSITIVE; // Level 2 - Programmed Incompleteness
+  const securityLevel = SecurityLevel.SENSITIVE;
   const storageConfig = DEFAULT_STORAGE_CONFIG;
-  const enableOnChain = true; // Always enabled
 
   const { user, walletData } = useAuth();
   const { organization } = useOrganization();
@@ -82,9 +70,8 @@ export function BlockDriveUploadArea({
     initializeVault,
     checkVaultExists,
     solanaLoading
-  } = useBlockDriveUpload({ enableOnChainRegistration: enableOnChain });
+  } = useBlockDriveUpload({ enableOnChainRegistration: true });
 
-  // Check vault status on mount
   useEffect(() => {
     if (walletData?.connected && hasKeys) {
       checkVaultExists().then(setVaultExists);
@@ -112,29 +99,24 @@ export function BlockDriveUploadArea({
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    // Check if keys are initialized
     if (!hasKeys) {
       setShowCryptoSetup(true);
       return;
     }
 
-    // If in organization, show destination modal
     if (isInOrganization) {
       setPendingFiles(files);
       setShowDestinationModal(true);
       return;
     }
 
-    // Not in organization - upload directly to personal files
     await processUpload(files, false);
   };
 
-  const processUpload = async (files: FileList, toTeam: boolean) => {
-    setShareWithTeam(toTeam);
+  const processUpload = async (files: FileList, _toTeam: boolean) => {
     setShowDestinationModal(false);
 
-    // Check if vault needs initialization for on-chain
-    if (enableOnChain && !vaultExists && signTransaction) {
+    if (!vaultExists && signTransaction) {
       toast.info('Initializing your vault first...');
       const success = await initializeVault(signTransaction);
       if (!success) {
@@ -151,7 +133,7 @@ export function BlockDriveUploadArea({
       securityLevel,
       storageConfig,
       folderPath,
-      enableOnChain && signTransaction ? signTransaction : undefined
+      signTransaction || undefined
     );
 
     if (results.length > 0 && onUploadComplete) {
@@ -187,7 +169,6 @@ export function BlockDriveUploadArea({
     setShowCryptoSetup(false);
   };
 
-  // Not logged in state
   if (!user) {
     return (
       <div className="bg-card rounded-xl border-2 border-dashed border-border/50 p-8 text-center">
@@ -210,7 +191,6 @@ export function BlockDriveUploadArea({
     );
   }
 
-  // Need to initialize crypto
   if (!hasKeys && walletData?.connected) {
     return (
       <>
@@ -265,11 +245,26 @@ export function BlockDriveUploadArea({
     }
   };
 
+  function getUploadIcon(): JSX.Element {
+    if (progress?.phase === 'error') return <AlertCircle className="w-8 h-8 text-destructive" />;
+    if (progress?.phase === 'complete') return <CheckCircle className="w-8 h-8 text-green-500" />;
+    if (progress?.phase === 'registering') return <Link2 className="w-8 h-8 text-primary animate-pulse" />;
+    if (isUploading) return <Zap className="w-8 h-8 text-primary animate-pulse" />;
+    return <Upload className="w-8 h-8 text-primary" />;
+  }
+
+  function getUploadTitle(): string {
+    if (progress?.phase === 'complete') return 'Upload Complete!';
+    if (progress?.phase === 'error') return 'Upload Failed';
+    if (progress?.phase === 'registering') return 'Registering On-Chain...';
+    if (isUploading) return 'Encrypting & Uploading...';
+    return 'Encrypted BlockDrive Upload';
+  }
+
   return (
     <SubscriptionGate>
       <div className="space-y-4">
-        {/* Vault Status Banner */}
-        {enableOnChain && vaultExists === false && signTransaction && (
+        {vaultExists === false && signTransaction && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link2 className="w-5 h-5 text-amber-500" />
@@ -288,9 +283,9 @@ export function BlockDriveUploadArea({
           </div>
         )}
 
-        {(vaultExists && enableOnChain || isInOrganization) && (
+        {(vaultExists || isInOrganization) && (
           <div className="flex items-center gap-2">
-            {vaultExists && enableOnChain && (
+            {vaultExists && (
               <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Solana Vault Active
@@ -305,7 +300,6 @@ export function BlockDriveUploadArea({
           </div>
         )}
 
-        {/* Main Upload Area */}
         <div
           className={cn(
             "bg-card rounded-xl border-2 border-dashed transition-all duration-300 p-8",
@@ -316,7 +310,6 @@ export function BlockDriveUploadArea({
           onDragLeave={handleDragLeave}
         >
           <div className="space-y-6 text-center">
-            {/* Icon */}
             <div className="flex justify-center">
               <div className={cn(
                 "p-4 rounded-full transition-all",
@@ -325,36 +318,20 @@ export function BlockDriveUploadArea({
                 isUploading ? 'bg-primary/20 animate-pulse' :
                 'bg-primary/10'
               )}>
-                {progress?.phase === 'error' ? (
-                  <AlertCircle className="w-8 h-8 text-destructive" />
-                ) : progress?.phase === 'complete' ? (
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                ) : progress?.phase === 'registering' ? (
-                  <Link2 className="w-8 h-8 text-primary animate-pulse" />
-                ) : isUploading ? (
-                  <Zap className="w-8 h-8 text-primary animate-pulse" />
-                ) : (
-                  <Upload className="w-8 h-8 text-primary" />
-                )}
+                {getUploadIcon()}
               </div>
             </div>
 
-            {/* Title & Description */}
             <div>
               <h3 className="text-2xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
                 <Lock className="w-5 h-5 text-primary" />
-                {progress?.phase === 'complete' ? 'Upload Complete!' :
-                 progress?.phase === 'error' ? 'Upload Failed' :
-                 progress?.phase === 'registering' ? 'Registering On-Chain...' :
-                 isUploading ? 'Encrypting & Uploading...' :
-                 'Encrypted BlockDrive Upload'}
+                {getUploadTitle()}
               </h3>
               <p className="text-muted-foreground">
                 {progress?.message || 'Files are encrypted with your wallet and stored across multiple providers'}
               </p>
             </div>
 
-            {/* Features */}
             <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
                 <Shield className="w-4 h-4 text-primary" />
@@ -368,15 +345,12 @@ export function BlockDriveUploadArea({
                 <Key className="w-4 h-4 text-primary" />
                 Wallet-Derived Keys
               </span>
-              {enableOnChain && (
-                <span className="flex items-center gap-1">
-                  <Link2 className="w-4 h-4 text-primary" />
-                  Solana Registered
-                </span>
-              )}
+              <span className="flex items-center gap-1">
+                <Link2 className="w-4 h-4 text-primary" />
+                Solana Registered
+              </span>
             </div>
 
-            {/* Progress */}
             {isUploading && progress && (
               <div className="space-y-3 max-w-md mx-auto">
                 <Progress value={progress.progress} className="h-2" />
@@ -386,7 +360,6 @@ export function BlockDriveUploadArea({
               </div>
             )}
 
-            {/* Actions */}
             {!isUploading && (
               <div className="flex justify-center gap-3">
                 <Button
@@ -425,7 +398,6 @@ export function BlockDriveUploadArea({
           </div>
         </div>
 
-        {/* Upload Destination Modal - shown when in organization */}
         <Dialog open={showDestinationModal} onOpenChange={setShowDestinationModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -465,7 +437,6 @@ export function BlockDriveUploadArea({
           </DialogContent>
         </Dialog>
 
-        {/* Modals */}
         <CreateFolderModal
           isOpen={showCreateFolderModal}
           onClose={() => setShowCreateFolderModal(false)}

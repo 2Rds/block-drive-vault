@@ -12,7 +12,6 @@ import {
   UserCog,
 } from 'lucide-react';
 
-// Tiers that support team features
 const TEAM_ENABLED_TIERS = ['scale', 'growth', 'business', 'enterprise'];
 
 interface NavItem {
@@ -22,7 +21,6 @@ interface NavItem {
   path: string;
 }
 
-// Main navigation items - simplified
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
   { id: 'files', label: 'Files', icon: Files, path: '/files' },
@@ -30,7 +28,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'account', label: 'Account', icon: UserCog, path: '/account' },
 ];
 
-// Secondary navigation items
 const SECONDARY_NAV_ITEMS: NavItem[] = [
   { id: 'trash', label: 'Trash', icon: Trash2, path: '/files?view=trash' },
 ];
@@ -96,28 +93,19 @@ export function AppSidebar() {
   const hasTeamTier = TEAM_ENABLED_TIERS.includes(subscriptionTier);
 
   const isItemActive = (item: NavItem) => {
-    // Files page - active when on /files (ignoring query params)
-    if (item.id === 'files') {
-      return location.pathname === '/files';
-    }
-    // Trash - active when on /files with view=trash
-    if (item.id === 'trash') {
-      return location.pathname === '/files' && location.search.includes('view=trash');
-    }
-    // Exact path match for other items
+    if (item.id === 'files') return location.pathname === '/files';
+    if (item.id === 'trash') return location.pathname === '/files' && location.search.includes('view=trash');
     return location.pathname === item.path;
   };
 
   return (
     <aside className="w-sidebar h-screen fixed left-0 top-0 border-r border-sidebar-border flex flex-col z-40 sidebar-gradient">
-      {/* Logo */}
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
         <span className="text-[15px] font-semibold tracking-wide text-sidebar-foreground">
           BlockDrive
         </span>
       </div>
 
-      {/* Organization Switcher */}
       {hasTeamTier && (
         <div className="px-3 py-3 border-b border-sidebar-border">
           <OrganizationSwitcher
@@ -143,7 +131,6 @@ export function AppSidebar() {
         </div>
       )}
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3">
         <div className="space-y-1">
           {NAV_ITEMS.map((item) => (
@@ -155,7 +142,6 @@ export function AppSidebar() {
           ))}
         </div>
 
-        {/* Secondary navigation */}
         <div className="mt-6 pt-4 border-t border-sidebar-border space-y-1">
           {SECONDARY_NAV_ITEMS.map((item) => (
             <NavItemButton
@@ -167,7 +153,6 @@ export function AppSidebar() {
         </div>
       </nav>
 
-      {/* Storage Usage */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-2 mb-3">
           <HardDrive className="w-4 h-4 text-foreground-muted" />

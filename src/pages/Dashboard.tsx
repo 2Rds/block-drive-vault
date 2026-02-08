@@ -3,7 +3,6 @@ import { DataDashboard } from "@/components/DataDashboard";
 import { useBoxOAuth } from "@/hooks/useBoxOAuth";
 
 function Dashboard(): JSX.Element {
-  // Handle Box OAuth callback
   useBoxOAuth();
 
   return (

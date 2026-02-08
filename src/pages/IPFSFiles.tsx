@@ -42,6 +42,20 @@ function isFileEncrypted(file: any, ipfsFile: any): boolean {
   );
 }
 
+function toDisplayFile(file: IPFSFile) {
+  return {
+    id: file.id,
+    filename: file.filename,
+    size: file.size,
+    mimeType: file.contentType || 'application/octet-stream',
+    cid: file.cid,
+    uploadedAt: new Date(file.uploadedAt),
+    securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
+    encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
+    folderPath: file.folderPath,
+  };
+}
+
 function IPFSFiles(): JSX.Element {
   const [searchParams] = useSearchParams();
   const isTrashView = searchParams.get('view') === 'trash';
@@ -63,7 +77,6 @@ function IPFSFiles(): JSX.Element {
   } = useFolderNavigation();
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
 
-  // Determine default tab based on org context
   const getDefaultTab = (): TabValue => {
     if (isTrashView) return 'trash';
     return organization ? 'team-files' : 'my-files';
@@ -78,14 +91,12 @@ function IPFSFiles(): JSX.Element {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [fileToShare, setFileToShare] = useState<any>(null);
 
-  // Organization-specific file states
   const [teamFiles, setTeamFiles] = useState<IPFSFile[]>([]);
   const [myOrgFiles, setMyOrgFiles] = useState<IPFSFile[]>([]);
   const [loadingOrgFiles, setLoadingOrgFiles] = useState(false);
 
   const isInOrganization = !!organization;
 
-  // Update tab when trash view changes
   useEffect(() => {
     if (isTrashView) {
       setActiveTab('trash');
@@ -94,7 +105,6 @@ function IPFSFiles(): JSX.Element {
     }
   }, [isTrashView]);
 
-  // Switch to team files when entering an org
   useEffect(() => {
     if (isInOrganization && activeTab === 'my-files') {
       setActiveTab('team-files');
@@ -103,7 +113,6 @@ function IPFSFiles(): JSX.Element {
     }
   }, [isInOrganization]);
 
-  // Load organization-specific files when org changes
   const loadOrgFiles = useCallback(async () => {
     if (!organization || !userId || !supabase) return;
 
@@ -132,53 +141,10 @@ function IPFSFiles(): JSX.Element {
     }
   }, [organization?.id, isInOrganization, loadOrgFiles]);
 
-  // Convert IPFS files to BlockDrive format for the grid
-  const blockDriveFiles = useMemo(() => {
-    return userFiles.map(file => ({
-      id: file.id,
-      filename: file.filename,
-      size: file.size,
-      mimeType: file.contentType || 'application/octet-stream',
-      cid: file.cid,
-      uploadedAt: new Date(file.uploadedAt),
-      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
-      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
-      folderPath: file.folderPath,
-      onChain: undefined
-    }));
-  }, [userFiles]);
+  const blockDriveFiles = useMemo(() => userFiles.map(toDisplayFile), [userFiles]);
+  const teamFilesForDisplay = useMemo(() => teamFiles.map(toDisplayFile), [teamFiles]);
+  const myOrgFilesForDisplay = useMemo(() => myOrgFiles.map(toDisplayFile), [myOrgFiles]);
 
-  // Convert team files to display format
-  const teamFilesForDisplay = useMemo(() => {
-    return teamFiles.map(file => ({
-      id: file.id,
-      filename: file.filename,
-      size: file.size,
-      mimeType: file.contentType || 'application/octet-stream',
-      cid: file.cid,
-      uploadedAt: new Date(file.uploadedAt),
-      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
-      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
-      folderPath: file.folderPath,
-    }));
-  }, [teamFiles]);
-
-  // Convert my org files to display format
-  const myOrgFilesForDisplay = useMemo(() => {
-    return myOrgFiles.map(file => ({
-      id: file.id,
-      filename: file.filename,
-      size: file.size,
-      mimeType: file.contentType || 'application/octet-stream',
-      cid: file.cid,
-      uploadedAt: new Date(file.uploadedAt),
-      securityLevel: (file.metadata?.securityLevel as 'standard' | 'enhanced' | 'maximum') || 'standard',
-      encrypted: file.metadata?.encrypted === 'true' || file.metadata?.blockdrive === 'true',
-      folderPath: file.folderPath,
-    }));
-  }, [myOrgFiles]);
-
-  // Filter files by search query
   const filterBySearch = useCallback((files: any[]) => {
     if (!searchQuery) return files;
     const query = searchQuery.toLowerCase();
@@ -309,7 +275,6 @@ function IPFSFiles(): JSX.Element {
     }
   }, [pendingAction, downloadAndSave, previewSharedFile]);
 
-  // File grid component for reuse
   const FileGridContent = ({
     files,
     isTeam = false,
@@ -344,7 +309,6 @@ function IPFSFiles(): JSX.Element {
       description="Manage your encrypted files and documents"
     >
       <div className="space-y-6">
-        {/* Upload area - hide on shared and trash views */}
         {activeTab !== 'shared' && activeTab !== 'trash' && (
           <BlockDriveUploadArea
             selectedFolder={selectedFolder}
@@ -352,10 +316,8 @@ function IPFSFiles(): JSX.Element {
           />
         )}
 
-        {/* Tabs for different file views */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
           <TabsList className="bg-muted/50 rounded-lg p-1">
-            {/* Show Team Files first when in org, otherwise My Files */}
             {isInOrganization ? (
               <>
                 <TabsTrigger value="team-files" className="gap-2">
@@ -385,7 +347,6 @@ function IPFSFiles(): JSX.Element {
             )}
           </TabsList>
 
-          {/* Team Files Tab */}
           {isInOrganization && (
             <TabsContent value="team-files" className="mt-6">
               <FileGridContent
@@ -396,7 +357,6 @@ function IPFSFiles(): JSX.Element {
             </TabsContent>
           )}
 
-          {/* My Files Tab */}
           <TabsContent value="my-files" className="mt-6">
             <FileGridContent
               files={isInOrganization ? myOrgFilesForDisplay : blockDriveFiles}
@@ -405,7 +365,6 @@ function IPFSFiles(): JSX.Element {
             />
           </TabsContent>
 
-          {/* Shared With Me Tab */}
           <TabsContent value="shared" className="mt-6">
             <SharedWithMePanel
               walletAddress={walletData?.address || ''}
@@ -415,7 +374,6 @@ function IPFSFiles(): JSX.Element {
             />
           </TabsContent>
 
-          {/* Trash Tab */}
           <TabsContent value="trash" className="mt-6">
             <div className="bg-card rounded-lg border border-border p-16 text-center">
               <Trash2 className="w-12 h-12 mx-auto mb-4 text-foreground-muted opacity-50" />
@@ -428,7 +386,6 @@ function IPFSFiles(): JSX.Element {
         </Tabs>
       </div>
 
-      {/* Encrypted File Viewer Modal */}
       {showFileViewer && selectedFile && (
         <EncryptedFileViewer
           file={selectedFile}
@@ -445,7 +402,6 @@ function IPFSFiles(): JSX.Element {
         />
       )}
 
-      {/* Share File Modal */}
       <ShareFileModal
         isOpen={shareModalOpen}
         onClose={() => {
@@ -458,7 +414,6 @@ function IPFSFiles(): JSX.Element {
         onShareComplete={handleShareComplete}
       />
 
-      {/* Crypto Setup Modal */}
       <CryptoSetupModal
         isOpen={cryptoSetupOpen}
         onClose={() => {
@@ -468,7 +423,6 @@ function IPFSFiles(): JSX.Element {
         onComplete={handleCryptoSetupComplete}
       />
 
-      {/* BlockDrive Download Modal */}
       <BlockDriveDownloadModal
         isOpen={downloadModalOpen}
         onClose={() => {
