@@ -2,18 +2,18 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
   CartesianGrid
 } from 'recharts';
 
@@ -24,6 +24,9 @@ interface ChartsSectionProps {
     blockchainActivityData: { day: string; transactions: number; confirmations: number; failed: number }[];
   };
 }
+
+const GRID_STROKE = 'hsl(220, 26%, 20%)';
+const AXIS_STROKE = 'hsl(215, 16%, 45%)';
 
 export const ChartsSection = ({ stats }: ChartsSectionProps) => {
   const chartConfig = {
@@ -36,7 +39,7 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
       color: "#06B6D4",
     },
     downloads: {
-      label: "Downloads", 
+      label: "Downloads",
       color: "#10B981",
     },
     transactions: {
@@ -56,25 +59,25 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Storage Usage Over Time */}
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white">Storage Usage Trends</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Storage Usage Trends</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Your storage consumption over time
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-80 w-full">
             <AreaChart data={stats.storageUsageData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="month" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+              <XAxis dataKey="month" stroke={AXIS_STROKE} />
+              <YAxis stroke={AXIS_STROKE} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Area 
-                type="monotone" 
-                dataKey="storage" 
-                stroke="#8B5CF6" 
-                fill="#8B5CF6" 
+              <Area
+                type="monotone"
+                dataKey="storage"
+                stroke="#8B5CF6"
+                fill="#8B5CF6"
                 fillOpacity={0.3}
               />
             </AreaChart>
@@ -83,10 +86,10 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
       </Card>
 
       {/* File Type Distribution */}
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white">File Type Distribution</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-sm font-medium text-muted-foreground">File Type Distribution</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Breakdown of your stored file types
           </CardDescription>
         </CardHeader>
@@ -111,7 +114,7 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
                 </PieChart>
               </ChartContainer>
             ) : (
-              <div className="flex items-center justify-center h-80 text-gray-400">
+              <div className="flex items-center justify-center h-80 text-muted-foreground">
                 No files uploaded yet
               </div>
             )}
@@ -120,31 +123,31 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
       </Card>
 
       {/* Upload/Download Activity */}
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white">Upload & Download Activity</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Upload & Download Activity</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Your file transfer activity over time
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-80 w-full">
             <LineChart data={stats.storageUsageData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="month" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+              <XAxis dataKey="month" stroke={AXIS_STROKE} />
+              <YAxis stroke={AXIS_STROKE} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Line 
-                type="monotone" 
-                dataKey="uploads" 
-                stroke="#06B6D4" 
+              <Line
+                type="monotone"
+                dataKey="uploads"
+                stroke="#06B6D4"
                 strokeWidth={3}
                 dot={{ fill: '#06B6D4', strokeWidth: 2, r: 4 }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="downloads" 
-                stroke="#10B981" 
+              <Line
+                type="monotone"
+                dataKey="downloads"
+                stroke="#10B981"
                 strokeWidth={3}
                 dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
               />
@@ -154,19 +157,19 @@ export const ChartsSection = ({ stats }: ChartsSectionProps) => {
       </Card>
 
       {/* Blockchain Activity */}
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white">Blockchain Transaction Activity</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Blockchain Transaction Activity</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Your blockchain transaction status
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-80 w-full">
             <BarChart data={stats.blockchainActivityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="day" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+              <XAxis dataKey="day" stroke={AXIS_STROKE} />
+              <YAxis stroke={AXIS_STROKE} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="confirmations" fill="#10B981" />
               <Bar dataKey="failed" fill="#EF4444" />

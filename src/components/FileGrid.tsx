@@ -17,30 +17,30 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
   // Generate mock files based on real user data
   const generateFilesFromUserData = () => {
     if (loading || !userStats.totalFiles) return [];
-    
+
     const files = [];
     const fileTypes = userStats.filesByType || [];
-    
+
     // Add user-created folders first
     userFolders.forEach((folderName, index) => {
       files.push({
         id: `user_folder_${index}`,
         name: folderName,
         type: 'folder',
-        size: '—',
+        size: '\u2014',
         modified: 'Just now',
         category: 'folder'
       });
     });
-    
+
     // Generate files based on file type distribution
     fileTypes.forEach((fileType, index) => {
       const count = Math.round((fileType.value / 100) * userStats.totalFiles);
-      
+
       for (let i = 0; i < count; i++) {
         const fileId = `${fileType.name.toLowerCase()}_${i + 1}`;
         let fileName, fileExtension, category, size;
-        
+
         switch (fileType.name) {
           case 'Documents':
             fileName = `Document_${i + 1}`;
@@ -72,7 +72,7 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
             category = 'other';
             size = `${(Math.random() * 3 + 0.1).toFixed(1)} MB`;
         }
-        
+
         files.push({
           id: fileId,
           name: fileName + fileExtension,
@@ -83,14 +83,14 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
         });
       }
     });
-    
+
     return files;
   };
 
   const files = generateFilesFromUserData();
-  
-  const filteredFiles = selectedFolder === 'all' 
-    ? files 
+
+  const filteredFiles = selectedFolder === 'all'
+    ? files
     : files.filter(file => {
         switch (selectedFolder) {
           case 'documents':
@@ -116,18 +116,18 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
 
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+      <div className="bg-card rounded-xl p-6 border border-border/50">
         <div className="flex items-center justify-between mb-6">
-          <div className="h-6 bg-gray-600 rounded w-32 animate-pulse"></div>
-          <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
+          <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
+          <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
-            <div key={i} className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse">
-              <div className="h-8 w-8 bg-gray-600 rounded mb-3"></div>
-              <div className="h-4 bg-gray-600 rounded mb-2"></div>
-              <div className="h-3 bg-gray-600 rounded w-16 mb-1"></div>
-              <div className="h-3 bg-gray-600 rounded w-20"></div>
+            <div key={i} className="bg-muted/20 rounded-lg p-4 border border-border/30 animate-pulse">
+              <div className="h-8 w-8 bg-muted rounded mb-3"></div>
+              <div className="h-4 bg-muted rounded mb-2"></div>
+              <div className="h-3 bg-muted rounded w-16 mb-1"></div>
+              <div className="h-3 bg-muted rounded w-20"></div>
             </div>
           ))}
         </div>
@@ -136,12 +136,12 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+    <div className="bg-card rounded-xl p-6 border border-border/50">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">
+        <h2 className="text-xl font-semibold text-foreground">
           {selectedFolder === 'all' ? 'All Files' : selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)}
         </h2>
-        <div className="flex items-center space-x-2 text-sm text-gray-400">
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <span>{filteredFiles.length} items</span>
         </div>
       </div>
@@ -153,7 +153,7 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
           return (
             <div
               key={file.id}
-              className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 cursor-pointer group"
+              className="bg-muted/20 rounded-lg p-4 border border-border/30 hover:bg-muted/30 hover:border-border transition-all duration-300 cursor-pointer group"
             >
               <div className="flex items-start justify-between mb-3">
                 <IconComponent className={`w-8 h-8 ${DEFAULT_FILE_COLOR}`} />
@@ -163,19 +163,19 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
                   </button>
                 )}
               </div>
-              
+
               <div className="space-y-1">
-                <h3 className="font-medium text-white text-sm truncate" title={file.name}>
+                <h3 className="font-medium text-foreground text-sm truncate" title={file.name}>
                   {file.name}
                 </h3>
-                <p className="text-xs text-gray-400">{file.size}</p>
-                <p className="text-xs text-gray-500">Modified {file.modified}</p>
+                <p className="text-xs text-muted-foreground">{file.size}</p>
+                <p className="text-xs text-muted-foreground/70">Modified {file.modified}</p>
               </div>
-              
-              <div className="mt-3 pt-3 border-t border-white/10">
+
+              <div className="mt-3 pt-3 border-t border-border/30">
                 <div className="flex items-center space-x-1">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-xs text-gray-400">On-chain</span>
+                  <span className="text-xs text-muted-foreground">On-chain</span>
                 </div>
               </div>
             </div>
@@ -186,9 +186,9 @@ export const FileGrid = ({ selectedFolder, userFolders = [] }: FileGridProps) =>
       {filteredFiles.length === 0 && (
         <div className="text-center py-12">
           <Archive className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No files found</h3>
-          <p className="text-gray-500">
-            {selectedFolder === 'all' 
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">No files found</h3>
+          <p className="text-muted-foreground/70">
+            {selectedFolder === 'all'
               ? 'Upload some files to get started with BlockDrive'
               : `No ${selectedFolder} files found`
             }

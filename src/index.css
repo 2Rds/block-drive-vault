@@ -12,31 +12,31 @@
        Blue-tinted dark theme with gradient sidebar
        ============================================ */
 
-    /* Background colors - warm charcoal */
-    --background: 240 8% 10%;         /* Main content: warm charcoal */
-    --background-secondary: 220 26% 14%;
-    --background-tertiary: 220 26% 18%;
+    /* Background colors — true dark base (#0a0a0b) */
+    --background: 240 6% 4%;            /* #0a0a0b - near-black base */
+    --background-secondary: 220 16% 10%;
+    --background-tertiary: 220 16% 14%;
     --foreground: 210 40% 98%;
-    --foreground-muted: 215 16% 65%;
+    --foreground-muted: 215 16% 55%;
 
-    /* Card/Container colors */
-    --card: 220 26% 14%;
+    /* Card/Container colors — lifted off background for clear separation */
+    --card: 220 16% 11%;               /* Noticeably lighter than bg */
     --card-foreground: 210 40% 98%;
 
-    --popover: 220 26% 14%;
+    --popover: 220 16% 13%;
     --popover-foreground: 210 40% 98%;
 
     /* Primary - clean blue accent */
-    --primary: 210 100% 50%;
+    --primary: 213 94% 56%;            /* Slightly softer blue */
     --primary-foreground: 210 40% 98%;
 
     /* Secondary */
-    --secondary: 220 26% 18%;
+    --secondary: 220 16% 15%;
     --secondary-foreground: 210 40% 98%;
 
     /* Muted */
-    --muted: 220 26% 16%;
-    --muted-foreground: 215 16% 65%;
+    --muted: 220 14% 14%;
+    --muted-foreground: 215 14% 50%;
 
     /* Accent - green for success states */
     --accent: 142 76% 36%;
@@ -46,25 +46,25 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    /* Borders and inputs */
-    --border: 220 26% 22%;
-    --input: 220 26% 20%;
-    --ring: 210 100% 50%;
+    /* Borders and inputs — visible but subtle */
+    --border: 220 14% 20%;             /* Crisp enough to see card edges */
+    --input: 220 14% 16%;
+    --ring: 213 94% 56%;
 
     --radius: 0.5rem;
 
     /* Sidebar - Gradient from dark to lighter for visual depth
        Top: near-black, Bottom: dark gunmetal */
-    --sidebar-background-start: 220 20% 4%;   /* Top: near-black */
-    --sidebar-background-end: 220 18% 14%;    /* Bottom: dark gunmetal */
-    --sidebar-background: 220 20% 9%;         /* Fallback flat color */
+    --sidebar-background-start: 220 16% 3%;   /* Top: near-black */
+    --sidebar-background-end: 220 16% 10%;    /* Bottom: dark gunmetal */
+    --sidebar-background: 220 16% 7%;         /* Fallback flat color */
     --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary: 213 94% 56%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 26% 16%;
+    --sidebar-accent: 220 14% 14%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 26% 18%;
-    --sidebar-ring: 210 100% 50%;
+    --sidebar-border: 220 14% 16%;
+    --sidebar-ring: 213 94% 56%;
 
     /* ============================================
        SPACING SCALE (4px base)

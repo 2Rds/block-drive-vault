@@ -7,23 +7,23 @@ function SubscriptionCancel(): JSX.Element {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="bg-gray-800/40 border-gray-700/50 max-w-md w-full">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="bg-card border-border/50 max-w-md w-full">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mb-4">
             <XCircle className="w-8 h-8 text-red-400" />
           </div>
-          <CardTitle className="text-2xl text-white">
+          <CardTitle className="text-2xl text-foreground">
             Subscription Cancelled
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-6 text-center">
           <div className="space-y-2">
-            <p className="text-gray-300">
+            <p className="text-muted-foreground">
               Your subscription process was cancelled. No charges were made to your account.
             </p>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground/70">
               You can still explore our plans and subscribe whenever you're ready.
             </p>
           </div>
@@ -44,14 +44,14 @@ function SubscriptionCancel(): JSX.Element {
             <Button
               onClick={() => navigate('/dashboard')}
               variant="outline"
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="w-full border-border text-muted-foreground hover:bg-muted"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
           </div>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground/70">
             Questions? Contact our support team for assistance.
           </p>
         </CardContent>

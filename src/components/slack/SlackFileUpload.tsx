@@ -26,16 +26,16 @@ export const SlackFileUpload = ({ channels, loading, onFileUpload }: SlackFileUp
   };
 
   return (
-    <Card className="p-6 bg-gray-800 border-gray-700">
-      <h3 className="text-lg font-semibold text-white mb-4">Upload File to Slack</h3>
+    <Card className="p-6 bg-card border-border">
+      <h3 className="text-lg font-semibold text-foreground mb-4">Upload File to Slack</h3>
       <div className="space-y-4">
         <div>
-          <Label className="text-white">Select Channel</Label>
+          <Label className="text-foreground">Select Channel</Label>
           <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-            <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="bg-muted border-border text-foreground">
               <SelectValue placeholder="Choose a channel" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
+            <SelectContent className="bg-muted border-border">
               {channels.map((channel) => (
                 <SelectItem key={channel.id} value={channel.id}>
                   #{channel.name}
@@ -44,17 +44,17 @@ export const SlackFileUpload = ({ channels, loading, onFileUpload }: SlackFileUp
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
-          <Label className="text-white">Select File</Label>
+          <Label className="text-foreground">Select File</Label>
           <Input
             type="file"
             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-            className="bg-gray-700 border-gray-600 text-white"
+            className="bg-muted border-border text-foreground"
           />
         </div>
-        
-        <Button 
+
+        <Button
           onClick={handleUpload}
           disabled={!selectedFile || !selectedChannel || loading}
           className="bg-blue-600 hover:bg-blue-700 text-white"

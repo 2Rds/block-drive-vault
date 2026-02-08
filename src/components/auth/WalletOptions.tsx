@@ -22,12 +22,12 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
   const walletOptions: WalletOption[] = [{
     id: 'phantom',
     name: 'Phantom',
-    icon: '👻',
+    icon: '\u{1F47B}',
     blockchain: 'solana'
   }, {
     id: 'solflare',
     name: 'Solflare',
-    icon: '🔥',
+    icon: '\u{1F525}',
     blockchain: 'solana'
   }];
 
@@ -50,28 +50,28 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
           {connectedWallet ? 'Reconnect Wallet' : 'Connect Wallet'}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80 bg-gray-800 border border-gray-600 shadow-xl rounded-xl z-50" align="end">
-        <DropdownMenuLabel className="text-white text-center py-3">
+      <DropdownMenuContent className="w-80 bg-card border border-border shadow-xl rounded-xl z-50" align="end">
+        <DropdownMenuLabel className="text-foreground text-center py-3">
           Choose Your Solana Wallet
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-gray-600" />
-        
+        <DropdownMenuSeparator className="bg-border" />
+
         {walletOptions.map(wallet => {
           const isDetected = detectWallet(wallet.id);
           const isConnectingWallet = isConnecting === wallet.id;
           return (
-            <DropdownMenuItem 
-              key={wallet.id} 
-              className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" 
-              onClick={() => onWalletConnect(wallet)} 
+            <DropdownMenuItem
+              key={wallet.id}
+              className="text-muted-foreground hover:bg-muted cursor-pointer p-3 m-1 rounded-lg"
+              onClick={() => onWalletConnect(wallet)}
               disabled={isConnectingWallet}
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center space-x-3">
                   <span className="text-lg">{wallet.icon}</span>
                   <div>
-                    <p className="font-medium text-white">{wallet.name}</p>
-                    <p className="text-xs text-gray-400 capitalize">{wallet.blockchain}</p>
+                    <p className="font-medium text-foreground">{wallet.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{wallet.blockchain}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -90,10 +90,10 @@ export const WalletOptions = ({ connectedWallet, isConnecting, onWalletConnect, 
             </DropdownMenuItem>
           );
         })}
-        
-        <DropdownMenuSeparator className="bg-gray-600" />
-        <DropdownMenuItem 
-          className="text-gray-300 hover:bg-gray-700 cursor-pointer p-3 m-1 rounded-lg" 
+
+        <DropdownMenuSeparator className="bg-border" />
+        <DropdownMenuItem
+          className="text-muted-foreground hover:bg-muted cursor-pointer p-3 m-1 rounded-lg"
           onClick={onShowQRCode}
         >
           <QrCode className="w-4 h-4 mr-3" />

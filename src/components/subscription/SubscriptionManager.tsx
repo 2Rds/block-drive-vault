@@ -66,12 +66,12 @@ export function SubscriptionManager(): React.ReactElement {
 
   if (loading && !subscriptionStatus) {
     return (
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-700 rounded w-1/3"></div>
-            <div className="h-8 bg-gray-700 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+            <div className="h-4 bg-muted rounded w-1/3"></div>
+            <div className="h-8 bg-muted rounded w-1/2"></div>
+            <div className="h-4 bg-muted rounded w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -81,15 +81,15 @@ export function SubscriptionManager(): React.ReactElement {
   // Handle case where user has no subscription data at all
   if (!subscriptionStatus) {
     return (
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Crown className="w-5 h-5" />
                 Subscription Status
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Manage your BlockDrive subscription and billing
               </CardDescription>
             </div>
@@ -98,7 +98,7 @@ export function SubscriptionManager(): React.ReactElement {
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-border text-muted-foreground hover:bg-muted/30"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -109,14 +109,14 @@ export function SubscriptionManager(): React.ReactElement {
           {/* No Subscription Status */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 No Active Subscription
               </h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 You don't have an active subscription or trial
               </p>
             </div>
-            <Badge variant="outline" className="bg-gray-600 text-gray-300">
+            <Badge variant="outline" className="bg-muted text-muted-foreground">
               No Subscription
             </Badge>
           </div>
@@ -140,9 +140,9 @@ export function SubscriptionManager(): React.ReactElement {
           </div>
 
           {/* Features Preview */}
-          <div className="p-4 bg-gray-700/20 border border-gray-600/50 rounded-lg">
-            <h4 className="text-gray-300 font-medium mb-2">What you'll get with a subscription:</h4>
-            <ul className="text-sm text-gray-400 space-y-1">
+          <div className="p-4 bg-muted/20 border border-border/50 rounded-lg">
+            <h4 className="text-muted-foreground font-medium mb-2">What you'll get with a subscription:</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• Up to 500GB secure cloud storage</li>
               <li>• IPFS integration for decentralized storage</li>
               <li>• Blockchain file verification</li>
@@ -174,15 +174,15 @@ export function SubscriptionManager(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-800/40 border-gray-700/50">
+      <Card className="bg-card border border-border/50 rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Crown className="w-5 h-5" />
                 Subscription Status
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Manage your BlockDrive subscription and billing
               </CardDescription>
             </div>
@@ -191,7 +191,7 @@ export function SubscriptionManager(): React.ReactElement {
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-border text-muted-foreground hover:bg-muted/30"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -202,28 +202,28 @@ export function SubscriptionManager(): React.ReactElement {
           {/* Subscription Status */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 {subscription_tier || 'No Subscription'}
                 {subscribed && <CheckCircle className="w-5 h-5 text-green-500" />}
                 {isFreeTrial && <CheckCircle className="w-5 h-5 text-blue-500" />}
               </h3>
-              <p className="text-sm text-gray-400">
-                {subscribed 
+              <p className="text-sm text-muted-foreground">
+                {subscribed
                   ? `Active until ${new Date(subscription_end!).toLocaleDateString()}`
-                  : isFreeTrial 
+                  : isFreeTrial
                     ? 'Enjoying Starter tier benefits during free trial'
                     : 'No active subscription'
                 }
               </p>
             </div>
-            <Badge 
+            <Badge
               variant={subscribed ? "default" : isFreeTrial ? "secondary" : "outline"}
               className={
-                subscribed 
-                  ? "bg-green-600 hover:bg-green-700" 
-                  : isFreeTrial 
-                    ? "bg-blue-600 hover:bg-blue-700" 
-                    : "bg-gray-600"
+                subscribed
+                  ? "bg-green-600 hover:bg-green-700"
+                  : isFreeTrial
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-muted"
               }
             >
               {subscribed ? 'Active' : isFreeTrial ? 'Free Trial' : 'Inactive'}
@@ -253,34 +253,34 @@ export function SubscriptionManager(): React.ReactElement {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Storage</span>
-                <span className="text-white">{limits.storage} GB</span>
+                <span className="text-muted-foreground">Storage</span>
+                <span className="font-mono text-foreground">{limits.storage} GB</span>
               </div>
               <Progress value={storageUsagePercent} className="h-2" />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs font-mono text-muted-foreground/70">
                 {(userStats.totalStorage / (1024 * 1024 * 1024)).toFixed(2)} GB used ({storageUsagePercent}%)
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Bandwidth</span>
-                <span className="text-white">{limits.bandwidth} GB</span>
+                <span className="text-muted-foreground">Bandwidth</span>
+                <span className="font-mono text-foreground">{limits.bandwidth} GB</span>
               </div>
               <Progress value={bandwidthUsagePercent} className="h-2" />
-              <p className="text-xs text-gray-500">{bandwidthUsagePercent}% used this month</p>
+              <p className="text-xs font-mono text-muted-foreground/70">{bandwidthUsagePercent}% used this month</p>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Team Size</span>
-                <span className="text-white">
+                <span className="text-muted-foreground">Team Size</span>
+                <span className="font-mono text-foreground">
                   {isUnlimitedSeats ? 'Unlimited' : limits.seats} users
-                  {isScaleTier && <span className="text-gray-500 ml-1">(min {SCALE_MIN_SEATS})</span>}
+                  {isScaleTier && <span className="text-muted-foreground/70 ml-1">(min {SCALE_MIN_SEATS})</span>}
                 </span>
               </div>
               <Progress value={seatsUsedPercent} className="h-2" />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs font-mono text-muted-foreground/70">
                 {displaySeatsUsed} of {isUnlimitedSeats ? 'unlimited' : limits.seats} seats used
               </p>
             </div>
@@ -296,7 +296,7 @@ export function SubscriptionManager(): React.ReactElement {
               Manage Subscription
               <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
-            
+
             {!subscribed && (
               <Button
                 onClick={() => window.location.href = '/pricing'}
@@ -306,11 +306,11 @@ export function SubscriptionManager(): React.ReactElement {
                 {isFreeTrial ? 'Upgrade to Keep Benefits' : 'Start Free Trial'}
               </Button>
             )}
-            
+
             <Button
               variant="outline"
               onClick={() => window.location.href = '/pricing'}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-border text-muted-foreground hover:bg-muted/30"
             >
               View All Plans
             </Button>

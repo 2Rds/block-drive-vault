@@ -121,13 +121,13 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
   if (status === 'success') {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-md">
+        <DialogContent className="bg-background border-border max-w-md">
           <div className="flex flex-col items-center py-6 text-center">
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-400" />
             </div>
-            <DialogTitle className="text-xl text-white mb-2">Payment Successful!</DialogTitle>
-            <DialogDescription className="text-gray-400 mb-6">
+            <DialogTitle className="text-xl text-foreground mb-2">Payment Successful!</DialogTitle>
+            <DialogDescription className="text-muted-foreground mb-6">
               Your {tier.name} subscription is now active. You have access to all {tier.name} features.
             </DialogDescription>
             <Button onClick={onClose} className="w-full">
@@ -141,44 +141,44 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 max-w-md">
+      <DialogContent className="bg-background border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Wallet className="w-5 h-5 text-purple-400" />
             Pay with USDC
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Complete your {tier.name} subscription payment
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Subscription Summary */}
-          <div className="bg-gray-800/50 rounded-lg p-4 space-y-2">
+          <div className="bg-card/80 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Plan</span>
-              <span className="text-white font-medium">{tier.name}</span>
+              <span className="text-muted-foreground">Plan</span>
+              <span className="text-foreground font-medium">{tier.name}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Billing</span>
-              <span className="text-white capitalize">{billingPeriod}</span>
+              <span className="text-muted-foreground">Billing</span>
+              <span className="text-foreground capitalize">{billingPeriod}</span>
             </div>
-            <div className="flex justify-between text-sm border-t border-gray-700 pt-2 mt-2">
-              <span className="text-gray-400">Amount Due</span>
-              <span className="text-white font-bold text-lg">${requiredAmount.toFixed(2)} USDC</span>
+            <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
+              <span className="text-muted-foreground">Amount Due</span>
+              <span className="text-foreground font-bold text-lg">${requiredAmount.toFixed(2)} USDC</span>
             </div>
           </div>
 
           {/* Wallet Balance */}
-          <div className="bg-gray-800/50 rounded-lg p-4">
+          <div className="bg-card/80 rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-400">Your Wallet Balance</span>
+              <span className="text-sm text-muted-foreground">Your Wallet Balance</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefreshBalance}
                 disabled={refreshing}
-                className="h-7 px-2 text-gray-400 hover:text-white"
+                className="h-7 px-2 text-muted-foreground hover:text-foreground"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
@@ -187,7 +187,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
               <span className={`text-2xl font-bold ${hasSufficientBalance ? 'text-green-400' : 'text-yellow-400'}`}>
                 ${walletBalance.toFixed(2)}
               </span>
-              <span className="text-gray-500 text-sm">USDC</span>
+              <span className="text-muted-foreground/70 text-sm">USDC</span>
             </div>
 
             {!hasSufficientBalance && (
@@ -204,10 +204,10 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
 
           {/* Wallet Address */}
           {walletAddress && (
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <div className="text-sm text-gray-400 mb-2">Your Wallet Address</div>
+            <div className="bg-card/80 rounded-lg p-4">
+              <div className="text-sm text-muted-foreground mb-2">Your Wallet Address</div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs text-gray-300 bg-gray-900 px-2 py-1.5 rounded truncate">
+                <code className="flex-1 text-xs text-muted-foreground bg-background px-2 py-1.5 rounded truncate">
                   {walletAddress}
                 </code>
                 <Button
@@ -219,7 +219,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
                   {copied ? (
                     <Check className="w-4 h-4 text-green-400" />
                   ) : (
-                    <Copy className="w-4 h-4 text-gray-400" />
+                    <Copy className="w-4 h-4 text-muted-foreground" />
                   )}
                 </Button>
               </div>
@@ -273,7 +273,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
         </div>
 
         {/* Fee info */}
-        <p className="text-xs text-gray-500 text-center mt-2">
+        <p className="text-xs text-muted-foreground/70 text-center mt-2">
           Pay directly from your embedded Solana wallet with USDC
         </p>
       </DialogContent>

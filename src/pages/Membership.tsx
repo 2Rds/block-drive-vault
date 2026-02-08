@@ -149,7 +149,7 @@ export default function Membership(): JSX.Element {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Current Membership Card */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur">
+            <Card className="bg-card border border-border/50 rounded-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -300,7 +300,7 @@ export default function Membership(): JSX.Element {
           {/* Upgrade Tab */}
           <TabsContent value="upgrade" className="space-y-6">
             {/* Billing Period Selector */}
-            <Card className="border-border/50 bg-card/50">
+            <Card className="bg-card border border-border/50 rounded-xl">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-center gap-2">
                   <Button 
@@ -340,7 +340,7 @@ export default function Membership(): JSX.Element {
                 return (
                   <Card
                     key={tier}
-                    className={`border-border/50 bg-card/50 relative ${isCurrent ? 'ring-2 ring-primary' : ''}`}
+                    className={`bg-card border border-border/50 rounded-xl hover:border-border transition-colors relative ${isCurrent ? 'ring-2 ring-primary' : ''}`}
                   >
                     {isCurrent && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -356,7 +356,7 @@ export default function Membership(): JSX.Element {
                     </CardHeader>
                     <CardContent className="text-center space-y-4">
                       <div>
-                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-3xl font-mono font-semibold">${price}</span>
                         <span className="text-muted-foreground text-sm">/{BILLING_LABELS[billingPeriod]}</span>
                       </div>
 
@@ -400,7 +400,7 @@ export default function Membership(): JSX.Element {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <Card className="border-border/50 bg-card/50">
+            <Card className="bg-card border border-border/50 rounded-xl">
               <CardHeader>
                 <CardTitle>Renewal Settings</CardTitle>
                 <CardDescription>

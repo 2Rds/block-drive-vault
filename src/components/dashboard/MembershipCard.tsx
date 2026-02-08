@@ -168,10 +168,10 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
                   {displayName[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white truncate max-w-[120px]">
+                  <p className="text-sm font-medium text-foreground truncate max-w-[120px]">
                     {displayName}
                   </p>
-                  <p className="text-xs text-gray-400">{tierConfig.name}</p>
+                  <p className="text-xs text-muted-foreground">{tierConfig.name}</p>
                 </div>
               </div>
               <span className="text-lg">{TIER_ICONS[tier]}</span>
@@ -180,14 +180,14 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
             {/* Quick stats */}
             <div className="space-y-2">
               <div>
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span>Storage</span>
                   <span>{storagePercent.toFixed(1)}%</span>
                 </div>
                 <Progress value={storagePercent} className="h-1" />
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{daysRemaining} days left</span>
+                <span className="text-muted-foreground">{daysRemaining} days left</span>
                 {getStatusBadge()}
               </div>
             </div>
@@ -212,12 +212,12 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
 
               {/* User details */}
               <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
                   {displayName}
                   {tier === 'premium' && <Crown className="w-5 h-5 text-yellow-400" />}
                   {tier === 'enterprise' && <Sparkles className="w-5 h-5 text-amber-400" />}
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   {/* Placeholder for Phase 2 SNS subdomain */}
                   {displayName.toLowerCase()}.blockdrive.sol
                 </p>
@@ -232,19 +232,19 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
           </div>
 
           {/* Membership status */}
-          <div className="flex items-center justify-between p-4 bg-gray-800/40 rounded-lg border border-gray-700/50">
+          <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border border-border/50">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gray-400" />
+              <Calendar className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-gray-400">Membership Status</p>
-                <p className="text-base font-medium text-white">
+                <p className="text-sm text-muted-foreground">Membership Status</p>
+                <p className="text-base font-medium text-foreground">
                   {isActive ? `Active until ${formatExpiration(expiresAt)}` : 'Expired'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-400">Days Remaining</p>
-              <p className="text-2xl font-bold text-white">{daysRemaining}</p>
+              <p className="text-sm text-muted-foreground">Days Remaining</p>
+              <p className="text-2xl font-mono font-semibold text-foreground">{daysRemaining}</p>
             </div>
           </div>
 
@@ -256,35 +256,35 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
           {/* Usage quotas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Storage usage */}
-            <div className="p-4 bg-gray-800/40 rounded-lg border border-gray-700/50">
+            <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <HardDrive className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-400">Storage</span>
+                  <HardDrive className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Storage</span>
                 </div>
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-mono font-medium text-foreground">
                   {storagePercent.toFixed(1)}% used
                 </span>
               </div>
               <Progress value={storagePercent} className="h-2 mb-2" />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground/70">
                 {storageUsedGB} GB of {tierConfig.storageGB} GB used
               </p>
             </div>
 
             {/* Bandwidth usage */}
-            <div className="p-4 bg-gray-800/40 rounded-lg border border-gray-700/50">
+            <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Radio className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm text-gray-400">Bandwidth</span>
+                  <span className="text-sm text-muted-foreground">Bandwidth</span>
                 </div>
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-mono font-medium text-foreground">
                   {bandwidthPercent.toFixed(1)}% used
                 </span>
               </div>
               <Progress value={bandwidthPercent} className="h-2 mb-2" />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground/70">
                 {bandwidthUsedGB} GB of {tierConfig.bandwidthGB} GB used
               </p>
             </div>
@@ -302,7 +302,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({ compact = false 
             <Button
               onClick={() => navigate('/account')}
               variant="outline"
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="flex-1 border-border text-muted-foreground hover:bg-muted/30"
             >
               Manage Subscription
             </Button>

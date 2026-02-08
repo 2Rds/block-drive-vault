@@ -229,7 +229,7 @@ export function BlockDriveFileGrid({
 
   if (!user) {
     return (
-      <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border">
+      <div className="bg-card border border-border/50 rounded-xl p-6">
         <div className="text-center py-12">
           <Archive className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground mb-2">Connect Your Wallet</h3>
@@ -243,14 +243,14 @@ export function BlockDriveFileGrid({
 
   if (loading) {
     return (
-      <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border">
+      <div className="bg-card border border-border/50 rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
           <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
-            <div key={i} className="bg-card/60 rounded-lg p-4 border border-border animate-pulse">
+            <div key={i} className="bg-card rounded-xl p-4 border border-border/50 animate-pulse">
               <div className="h-8 w-8 bg-muted rounded mb-3"></div>
               <div className="h-4 bg-muted rounded mb-2"></div>
               <div className="h-3 bg-muted rounded w-16 mb-1"></div>
@@ -264,7 +264,7 @@ export function BlockDriveFileGrid({
 
   return (
     <TooltipProvider>
-      <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border">
+      <div className="bg-card border border-border/50 rounded-xl p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -421,10 +421,10 @@ function FileCard({
   return (
     <div
       className={cn(
-        "bg-card/60 backdrop-blur-sm rounded-lg p-4 border transition-all duration-300 group cursor-pointer",
+        "bg-card rounded-xl p-4 border transition-colors group cursor-pointer",
         file.onChain?.registered
-          ? "border-green-500/30 hover:border-green-500/50 hover:bg-card/80"
-          : "border-border hover:border-primary/30 hover:bg-card/80"
+          ? "border-green-500/30 hover:border-green-500/50"
+          : "border-border/50 hover:border-border"
       )}
       onClick={onSelect}
     >

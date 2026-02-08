@@ -25,7 +25,7 @@ export function PageHeader({
     <div className="mb-6">
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-1 text-sm text-foreground-muted mb-2">
+        <nav className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={index}>
               {index > 0 && <ChevronRight className="w-4 h-4" />}
@@ -49,7 +49,7 @@ export function PageHeader({
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
           {description && (
-            <p className="mt-1 text-foreground-muted">{description}</p>
+            <p className="mt-1 text-muted-foreground">{description}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

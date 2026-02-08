@@ -33,7 +33,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-        <span className="ml-3 text-gray-400">Checking permissions...</span>
+        <span className="ml-3 text-muted-foreground">Checking permissions...</span>
       </div>
     );
   }
@@ -49,14 +49,14 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
   // Check if this is a wallet user who needs to link their email for Stripe access
   const isWalletUser = user?.email?.endsWith('@blockdrive.wallet');
   const hasSignupData = !!signupData;
-  
+
   if (showEmailMatcher) {
     return (
       <div className="space-y-6">
         <EmailWalletMatcher onSuccess={handleLinkSuccess} />
         <div className="text-center">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowEmailMatcher(false)}
             className="text-muted-foreground"
           >
@@ -70,7 +70,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
   // Default blocked state UI
   if (needsSignup) {
     return (
-      <Card className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-gray-600 p-8 text-center">
+      <Card className="bg-card rounded-xl border-2 border-dashed border-border p-8 text-center">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <div className="p-4 bg-yellow-600/20 rounded-full">
@@ -82,7 +82,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             Please complete your registration to access file upload features and IPFS storage.
           </p>
           <Button
@@ -100,7 +100,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
     // Check if this is a wallet user who might need to link their email
     if (isWalletUser && !hasSignupData) {
       return (
-        <Card className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-blue-600 p-8 text-center">
+        <Card className="bg-card rounded-xl border-2 border-dashed border-blue-600 p-8 text-center">
           <CardHeader>
             <div className="flex justify-center mb-4">
               <div className="p-4 bg-blue-600/20 rounded-full">
@@ -112,7 +112,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-400 mb-6">
+            <p className="text-muted-foreground mb-6">
               Link your wallet to the email address you used for your Stripe subscription to access your file upload features.
             </p>
             <div className="flex justify-center space-x-4">
@@ -126,7 +126,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
               <Button
                 onClick={() => navigate('/pricing')}
                 variant="outline"
-                className="border-gray-600 text-gray-300"
+                className="border-border text-muted-foreground"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
                 View Pricing
@@ -136,9 +136,9 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
         </Card>
       );
     }
-    
+
     return (
-      <Card className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-red-600 p-8 text-center">
+      <Card className="bg-card rounded-xl border-2 border-dashed border-red-600 p-8 text-center">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <div className="p-4 bg-red-600/20 rounded-full">
@@ -150,7 +150,7 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             Please choose a subscription plan to access file upload features and IPFS storage.
           </p>
           <div className="flex justify-center space-x-4">
@@ -168,17 +168,17 @@ export const SubscriptionGate = ({ children, fallback }: SubscriptionGateProps) 
   }
 
   return (
-    <Card className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-gray-600 p-8 text-center">
+    <Card className="bg-card rounded-xl border-2 border-dashed border-border p-8 text-center">
       <CardContent>
         <div className="flex justify-center mb-4">
-          <div className="p-4 bg-gray-600/20 rounded-full">
-            <Upload className="w-8 h-8 text-gray-500" />
+          <div className="p-4 bg-muted/30 rounded-full">
+            <Upload className="w-8 h-8 text-muted-foreground/70" />
           </div>
         </div>
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">
+        <h3 className="text-xl font-semibold text-muted-foreground mb-2">
           Upload Restricted
         </h3>
-        <p className="text-gray-500">
+        <p className="text-muted-foreground/70">
           File upload is currently restricted. Please check your subscription status.
         </p>
       </CardContent>

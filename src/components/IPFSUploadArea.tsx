@@ -19,7 +19,7 @@ interface IPFSUploadAreaProps {
 }
 
 function getUploadAreaClasses(dragOver: boolean, uploading: boolean, uploadStatus: UploadStatus): string {
-  const baseClasses = 'bg-gradient-to-br backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center';
+  const baseClasses = 'bg-gradient-to-br rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center';
 
   if (dragOver) {
     return `${baseClasses} border-blue-400/70 bg-blue-900/30 scale-105 from-blue-900/30 to-purple-900/30`;
@@ -33,7 +33,7 @@ function getUploadAreaClasses(dragOver: boolean, uploading: boolean, uploadStatu
   if (uploadStatus === 'error') {
     return `${baseClasses} border-red-400/70 bg-red-900/30 from-red-900/30 to-orange-900/30`;
   }
-  return `${baseClasses} border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-900/25 from-blue-900/20 to-purple-900/20`;
+  return `${baseClasses} border-border hover:border-primary/50 hover:bg-blue-900/25 from-blue-900/20 to-purple-900/20`;
 }
 
 function getIconContainerClasses(uploading: boolean, uploadStatus: UploadStatus): string {
@@ -88,10 +88,10 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    
+
     setUploadStatus('idle');
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
-    
+
     try {
       const result = await uploadToIPFS(files, folderPath);
       if (result && result.length > 0) {
@@ -112,7 +112,7 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    
+
     const files = e.dataTransfer.files;
     handleFileSelect(files);
   };
@@ -136,18 +136,18 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
 
   if (!user) {
     return (
-      <div className="bg-gray-800/40 backdrop-blur-md rounded-xl border-2 border-dashed border-gray-600 p-8 text-center">
+      <div className="bg-card rounded-xl border-2 border-dashed border-border p-8 text-center">
         <div className="space-y-4">
           <div className="flex justify-center">
-            <div className="p-4 bg-gray-600/20 rounded-full">
-              <Shield className="w-8 h-8 text-gray-500" />
+            <div className="p-4 bg-muted/30 rounded-full">
+              <Shield className="w-8 h-8 text-muted-foreground/70" />
             </div>
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-gray-300 mb-2">
+            <h3 className="text-xl font-semibold text-muted-foreground mb-2">
               Connect Your Wallet
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground/70">
               Please connect your Web3 wallet to start uploading files to BlockDrive IPFS via Filebase
             </p>
           </div>
@@ -158,7 +158,7 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
 
   if (!hasValidSession) {
     return (
-      <div className="bg-red-900/20 backdrop-blur-md rounded-xl border-2 border-dashed border-red-600 p-8 text-center">
+      <div className="bg-red-900/20 rounded-xl border-2 border-dashed border-red-600 p-8 text-center">
         <div className="space-y-4">
           <div className="flex justify-center">
             <div className="p-4 bg-red-600/20 rounded-full">
@@ -199,14 +199,14 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
         </div>
 
         <div>
-          <h3 className="text-2xl font-bold text-white mb-3 flex items-center justify-center gap-2">
+          <h3 className="text-2xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
             <Globe className="w-6 h-6 text-blue-400" />
             {getHeadingText(uploading, uploadStatus)}
           </h3>
-          <p className="text-gray-300 mb-2">
+          <p className="text-muted-foreground mb-2">
             {getDescriptionText(uploadStatus)}
           </p>
-          
+
           <div className="flex items-center justify-center gap-4 text-sm text-blue-300 mb-6">
             <span className="flex items-center gap-1">
               <Shield className="w-4 h-4" />
@@ -221,14 +221,14 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
               Filebase Gateway
             </span>
           </div>
-          
+
           {uploading ? (
             <div className="space-y-4">
               <div className="text-lg font-semibold text-green-400">
                 Processing files...
               </div>
               <Progress value={uploadProgress} className="w-full max-w-md mx-auto h-2" />
-              <div className="text-sm text-gray-400">
+              <div className="text-sm font-mono text-muted-foreground">
                 {uploadProgress.toFixed(0)}% complete
               </div>
             </div>
@@ -242,7 +242,7 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
                 <Plus className="w-5 h-5 mr-2" />
                 Choose Files
               </Button>
-              <Button 
+              <Button
                 onClick={() => setShowCreateFolderModal(true)}
                 className="bg-blue-600/20 border-blue-600/50 text-blue-300 hover:bg-blue-600/30 hover:border-blue-600/70 hover:text-blue-200 font-semibold px-6 py-3 rounded-lg transition-all duration-300"
                 variant="outline"
@@ -266,7 +266,7 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
             </div>
           )}
         </div>
-        
+
         <input
           ref={fileInputRef}
           type="file"
@@ -275,13 +275,13 @@ export function IPFSUploadArea({ onCreateFolder, selectedFolder, onUploadComplet
           onChange={(e) => handleFileSelect(e.target.files)}
           accept="*/*"
         />
-        
+
         {!uploading && uploadStatus === 'idle' && (
-          <div className="border-t border-gray-600/30 pt-4 mt-6">
-            <p className="text-sm text-gray-400">
+          <div className="border-t border-border/30 pt-4 mt-6">
+            <p className="text-sm text-muted-foreground">
               Drag and drop files here, or click "Choose Files" to browse
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground/70 mt-1">
               Files will be uploaded to BlockDrive IPFS via Filebase
             </p>
           </div>

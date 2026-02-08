@@ -59,15 +59,15 @@ export const AdvancedSettings: React.FC = () => {
   };
 
   return (
-    <Card className="bg-gray-800/40 border-gray-700/50">
+    <Card className="bg-card border border-border/50 rounded-xl">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-yellow-400" />
               Advanced Settings
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Technical information for troubleshooting and support
             </CardDescription>
           </div>
@@ -75,7 +75,7 @@ export const AdvancedSettings: React.FC = () => {
             onClick={() => setIsExpanded(!isExpanded)}
             variant="ghost"
             size="sm"
-            className="text-gray-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
           >
             {isExpanded ? (
               <>
@@ -111,22 +111,22 @@ export const AdvancedSettings: React.FC = () => {
           {/* Wallet Address Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-white font-medium flex items-center gap-2">
-                <Info className="w-4 h-4 text-blue-400" />
+              <h4 className="text-foreground font-medium flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
                 Embedded Wallet Address
               </h4>
-              <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+              <Badge variant="secondary" className="bg-muted text-muted-foreground">
                 {isInitialized ? 'Active' : 'Initializing'}
               </Badge>
             </div>
 
-            <div className="p-4 bg-gray-900/50 border border-gray-700/50 rounded-lg">
+            <div className="p-4 bg-background border border-border/50 rounded-lg">
               {/* Wallet address */}
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-400 mb-2">Solana Address (Devnet)</p>
+                  <p className="text-xs text-muted-foreground mb-2">Solana Address (Devnet)</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 bg-gray-800/50 text-gray-300 font-mono text-sm rounded border border-gray-700/50">
+                    <code className="flex-1 px-3 py-2 bg-muted/50 text-muted-foreground font-mono text-sm rounded border border-border/50">
                       {isInitialized ? truncateAddress(walletAddress) : 'Initializing...'}
                     </code>
                     <Button
@@ -134,7 +134,7 @@ export const AdvancedSettings: React.FC = () => {
                       size="sm"
                       onClick={handleCopyAddress}
                       disabled={!isInitialized}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-border text-muted-foreground hover:bg-muted/30"
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -143,7 +143,7 @@ export const AdvancedSettings: React.FC = () => {
                       size="sm"
                       onClick={handleOpenExplorer}
                       disabled={!isInitialized}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-border text-muted-foreground hover:bg-muted/30"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
@@ -153,8 +153,8 @@ export const AdvancedSettings: React.FC = () => {
                 {/* Full address (for copying) */}
                 {isInitialized && walletAddress && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">Full Address</p>
-                    <code className="block px-3 py-2 bg-gray-800/50 text-gray-300 font-mono text-xs rounded border border-gray-700/50 break-all">
+                    <p className="text-xs text-muted-foreground mb-2">Full Address</p>
+                    <code className="block px-3 py-2 bg-muted/50 text-muted-foreground font-mono text-xs rounded border border-border/50 break-all">
                       {walletAddress}
                     </code>
                   </div>
@@ -190,9 +190,9 @@ export const AdvancedSettings: React.FC = () => {
           </div>
 
           {/* Important Note */}
-          <div className="p-4 bg-gray-700/20 border border-gray-600/50 rounded-lg">
-            <h4 className="text-gray-300 font-medium mb-2">Important Notes</h4>
-            <ul className="text-sm text-gray-400 space-y-1">
+          <div className="p-4 bg-muted/20 border border-border/50 rounded-lg">
+            <h4 className="text-muted-foreground font-medium mb-2">Important Notes</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• This wallet is NOT used for subscription payments</li>
               <li>• Gas fees are automatically sponsored (no SOL needed)</li>
               <li>• Your membership NFT is non-transferable (soulbound)</li>

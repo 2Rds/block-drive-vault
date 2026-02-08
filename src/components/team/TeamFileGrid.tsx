@@ -143,11 +143,11 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
 
   if (!teamId) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+      <div className="bg-card rounded-xl p-6 border border-border/50">
         <div className="text-center py-12">
           <Archive className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No team selected</h3>
-          <p className="text-gray-500">Select a team to view team files</p>
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">No team selected</h3>
+          <p className="text-muted-foreground/70">Select a team to view team files</p>
         </div>
       </div>
     );
@@ -155,18 +155,18 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
 
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+      <div className="bg-card rounded-xl p-6 border border-border/50">
         <div className="flex items-center justify-between mb-6">
-          <div className="h-6 bg-gray-600 rounded w-32 animate-pulse"></div>
-          <div className="h-8 bg-gray-600 rounded w-24 animate-pulse"></div>
+          <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
+          <div className="h-8 bg-muted rounded w-24 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            <div key={i} className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse">
-              <div className="h-8 w-8 bg-gray-600 rounded mb-3"></div>
-              <div className="h-4 bg-gray-600 rounded mb-2"></div>
-              <div className="h-3 bg-gray-600 rounded w-16 mb-1"></div>
-              <div className="h-3 bg-gray-600 rounded w-20"></div>
+            <div key={i} className="bg-muted/20 rounded-lg p-4 border border-border/30 animate-pulse">
+              <div className="h-8 w-8 bg-muted rounded mb-3"></div>
+              <div className="h-4 bg-muted rounded mb-2"></div>
+              <div className="h-3 bg-muted rounded w-16 mb-1"></div>
+              <div className="h-3 bg-muted rounded w-20"></div>
             </div>
           ))}
         </div>
@@ -175,9 +175,9 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+    <div className="bg-card rounded-xl p-6 border border-border/50">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">Team Files</h2>
+        <h2 className="text-xl font-semibold text-foreground">Team Files</h2>
         <div className="flex items-center gap-4">
           <Select value={visibilityFilter} onValueChange={(value: 'all' | 'private' | 'team') => setVisibilityFilter(value)}>
             <SelectTrigger className="w-32">
@@ -189,7 +189,7 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
               <SelectItem value="team">Team Files</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-sm text-gray-400">{filteredFiles.length} files</span>
+          <span className="text-sm text-muted-foreground">{filteredFiles.length} files</span>
         </div>
       </div>
 
@@ -197,11 +197,11 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
         {filteredFiles.map((file) => {
           const iconColor = getFileColor(file.content_type, file.filename);
           const isOwner = file.clerk_user_id === userId;
-          
+
           return (
             <div
               key={file.id}
-              className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group"
+              className="bg-muted/20 rounded-lg p-4 border border-border/30 hover:bg-muted/30 hover:border-border transition-all duration-300 group"
             >
               <div className="flex items-start justify-between mb-3">
                 <File className={`w-8 h-8 ${iconColor}`} />
@@ -216,31 +216,31 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
                   </Button>
                 )}
               </div>
-              
+
               <div className="space-y-2">
-                <h3 className="font-medium text-white text-sm truncate" title={file.filename}>
+                <h3 className="font-medium text-foreground text-sm truncate" title={file.filename}>
                   {file.filename}
                 </h3>
-                <p className="text-xs text-gray-400">{formatFileSize(file.file_size)}</p>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
                   <Calendar className="h-3 w-3" />
                   <span>{formatDate(file.created_at)}</span>
                 </div>
-                
+
                 {!isOwner && file.profiles && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground/70">
                     by {file.profiles.first_name || file.profiles.email}
                   </p>
                 )}
               </div>
-              
-              <div className="mt-4 pt-3 border-t border-white/10">
+
+              <div className="mt-4 pt-3 border-t border-border/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-xs text-gray-400">On-chain</span>
+                    <span className="text-xs text-muted-foreground">On-chain</span>
                   </div>
-                  
+
                   {isOwner && (
                     <FileVisibilityToggle
                       fileId={file.id}
@@ -258,9 +258,9 @@ export function TeamFileGrid({ selectedTeamId }: TeamFileGridProps): JSX.Element
       {filteredFiles.length === 0 && (
         <div className="text-center py-12">
           <Archive className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No files found</h3>
-          <p className="text-gray-500">
-            {visibilityFilter === 'private' 
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">No files found</h3>
+          <p className="text-muted-foreground/70">
+            {visibilityFilter === 'private'
               ? 'No private files found'
               : visibilityFilter === 'team'
               ? 'No team files found'

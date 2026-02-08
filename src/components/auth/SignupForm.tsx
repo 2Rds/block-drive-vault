@@ -15,76 +15,76 @@ interface SignupFormProps {
 
 export const SignupForm = ({ form, onSubmit, isSubmitting }: SignupFormProps) => {
   return (
-    <Card className="bg-gray-900/60 backdrop-blur-sm border-gray-800">
+    <Card className="bg-background/60 backdrop-blur-sm border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center">
+        <CardTitle className="text-foreground flex items-center">
           <UserPlus className="w-5 h-5 mr-2" />
           Request Authentication Token
         </CardTitle>
-        <CardDescription className="text-gray-300">
+        <CardDescription className="text-muted-foreground">
           Complete your details to receive your authentication token
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField 
-              control={form.control} 
-              name="fullName" 
+            <FormField
+              control={form.control}
+              name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-300">Full Name</FormLabel>
+                  <FormLabel className="text-muted-foreground">Full Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter your full name" 
-                      className="bg-gray-800 border-gray-700 text-white" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter your full name"
+                      className="bg-card border-border text-foreground"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )} 
-            />
-            
-            <FormField 
-              control={form.control} 
-              name="email" 
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-300">Email Address</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="email" 
-                      placeholder="Enter your email" 
-                      className="bg-gray-800 border-gray-700 text-white" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} 
+              )}
             />
 
-            <FormField 
-              control={form.control} 
-              name="organization" 
+            <FormField
+              control={form.control}
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-300">Organization (Optional)</FormLabel>
+                  <FormLabel className="text-muted-foreground">Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Company or organization" 
-                      className="bg-gray-800 border-gray-700 text-white" 
-                      {...field} 
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      className="bg-card border-border text-foreground"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )} 
+              )}
             />
 
-            <Button 
-              type="submit" 
+            <FormField
+              control={form.control}
+              name="organization"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground">Organization (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Company or organization"
+                      className="bg-card border-border text-foreground"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
               disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white border-0"
             >

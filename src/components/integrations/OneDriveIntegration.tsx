@@ -33,7 +33,7 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
 
   const initializeConnection = async () => {
     const storedToken = localStorage.getItem('onedrive_access_token');
-    
+
     if (storedToken) {
       setLoading(true);
       try {
@@ -68,7 +68,7 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
-    
+
     if (error) {
       console.error('OneDrive OAuth error:', error);
       toast.error(`OneDrive connection failed: ${error}`);
@@ -83,14 +83,14 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
   const processOAuthCode = async (code: string) => {
     try {
       setLoading(true);
-      
+
       // In a real implementation, you would exchange the code for a token
       // This would typically be done through your backend to keep client secrets secure
       toast.info('OneDrive OAuth flow would be completed here. This requires backend implementation for security.');
-      
+
       // For demo purposes, we'll simulate a successful connection
       // In production, implement proper OAuth flow with your backend
-      
+
     } catch (error) {
       console.error('OneDrive OAuth callback error:', error);
       toast.error(`Failed to connect to OneDrive: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -102,19 +102,19 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
   const connectToOneDrive = async () => {
     try {
       setLoading(true);
-      
+
       // Microsoft Graph OAuth URL
       const clientId = 'your-client-id'; // This should be configured in your app settings
       const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
       const scopes = encodeURIComponent('Files.ReadWrite offline_access User.Read');
-      
+
       const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}&response_mode=query`;
-      
+
       toast.info('To connect OneDrive, you need to configure your Microsoft App Registration with the proper client ID and redirect URI.');
-      
+
       // In production, redirect to the auth URL:
       // window.location.href = authUrl;
-      
+
     } catch (error) {
       console.error('Error connecting to OneDrive:', error);
       toast.error(`Failed to initiate OneDrive connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -157,7 +157,7 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
   const migrateFile = async (file: OneDriveFile) => {
     try {
       setLoading(true);
-      
+
       if (!file.downloadUrl) {
         throw new Error('No download URL available for this file');
       }
@@ -174,9 +174,9 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
       // Here you would upload to your IPFS/BlockDrive storage
       // For now, we'll simulate the upload
       console.log('Migrating file to BlockDrive:', file.name);
-      
+
       toast.success(`File "${file.name}" migrated to BlockDrive successfully!`);
-      
+
     } catch (error) {
       console.error('Error migrating file:', error);
       toast.error(`Failed to migrate file: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -204,13 +204,13 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Cloud className="w-6 h-6 text-blue-600" />
             OneDrive Integration
             {userInfo && (
-              <span className="text-sm font-normal text-gray-400">
+              <span className="text-sm font-normal text-muted-foreground">
                 - {userInfo.displayName}
               </span>
             )}
@@ -219,11 +219,11 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
 
         <div className="space-y-6">
           {!isConnected ? (
-            <Card className="p-6 bg-gray-800 border-gray-700">
+            <Card className="p-6 bg-card border-border">
               <div className="text-center space-y-4">
                 <Cloud className="w-16 h-16 text-blue-600 mx-auto" />
-                <h3 className="text-xl font-semibold text-white">Connect to OneDrive</h3>
-                <p className="text-gray-400">
+                <h3 className="text-xl font-semibold text-foreground">Connect to OneDrive</h3>
+                <p className="text-muted-foreground">
                   Connect your Microsoft OneDrive account to migrate your files to BlockDrive's decentralized storage.
                 </p>
                 <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-lg p-4 mb-4">
@@ -235,14 +235,14 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
                       </p>
                       <ul className="text-yellow-400/80 text-xs mt-2 space-y-1 list-disc list-inside">
                         <li>Register your app in Microsoft Azure App Registration</li>
-                        <li>Configure the redirect URI: <code className="bg-gray-800 px-1 rounded">{window.location.origin + window.location.pathname}</code></li>
+                        <li>Configure the redirect URI: <code className="bg-card px-1 rounded">{window.location.origin + window.location.pathname}</code></li>
                         <li>Add your Client ID to the application configuration</li>
                         <li>Request proper Microsoft Graph API permissions</li>
                       </ul>
                     </div>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={connectToOneDrive}
                   disabled={loading}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -253,15 +253,15 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
             </Card>
           ) : (
             <div className="space-y-6">
-              <Card className="bg-gray-800 border-gray-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-white flex items-center gap-2">
+                      <CardTitle className="text-foreground flex items-center gap-2">
                         <Cloud className="w-5 h-5 text-blue-600" />
                         OneDrive Connected
                       </CardTitle>
-                      <CardDescription className="text-gray-400">
+                      <CardDescription className="text-muted-foreground">
                         Account: {userInfo?.displayName || 'Connected'}
                       </CardDescription>
                     </div>
@@ -276,15 +276,15 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
                 </CardHeader>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">Your OneDrive Files</CardTitle>
+                    <CardTitle className="text-foreground">Your OneDrive Files</CardTitle>
                     <Button
                       onClick={() => loadFiles(accessToken)}
                       disabled={loading}
                       variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-border text-muted-foreground hover:bg-muted"
                     >
                       <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                       Refresh
@@ -295,19 +295,19 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
                   {loading ? (
                     <div className="text-center py-8">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-500 mb-2" />
-                      <p className="text-gray-400">Loading files...</p>
+                      <p className="text-muted-foreground">Loading files...</p>
                     </div>
                   ) : files.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-400">No files found in your OneDrive.</p>
+                      <p className="text-muted-foreground">No files found in your OneDrive.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {files.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                        <div key={file.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                           <div className="flex-1">
-                            <h4 className="text-white font-medium">{file.name}</h4>
-                            <p className="text-gray-400 text-sm">
+                            <h4 className="text-foreground font-medium">{file.name}</h4>
+                            <p className="text-muted-foreground text-sm">
                               {formatFileSize(file.size)} • Modified: {new Date(file.lastModified).toLocaleDateString()}
                             </p>
                           </div>
@@ -316,7 +316,7 @@ export const OneDriveIntegration = ({ isOpen, onClose }: OneDriveIntegrationProp
                               onClick={() => window.open(file.webUrl, '_blank')}
                               variant="outline"
                               size="sm"
-                              className="border-gray-600 text-gray-300 hover:bg-gray-600"
+                              className="border-border text-muted-foreground hover:bg-muted"
                             >
                               <Download className="w-4 h-4 mr-1" />
                               View

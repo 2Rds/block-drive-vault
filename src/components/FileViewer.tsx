@@ -45,10 +45,10 @@ function ImageWithFallback({ src, fallbackUrls, alt, className }: ImageWithFallb
   if (hasError) {
     return (
       <div className="text-center py-8">
-        <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-400">Unable to display image preview</p>
-        <p className="text-sm text-gray-500 mt-2">All IPFS gateways failed to load the image</p>
-        <p className="text-sm text-gray-500">Click "View on IPFS" to try viewing in a new tab</p>
+        <File className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <p className="text-muted-foreground">Unable to display image preview</p>
+        <p className="text-sm text-muted-foreground/70 mt-2">All IPFS gateways failed to load the image</p>
+        <p className="text-sm text-muted-foreground/70">Click "View on IPFS" to try viewing in a new tab</p>
       </div>
     );
   }
@@ -104,14 +104,14 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-xl max-w-4xl max-h-[90vh] w-full overflow-hidden border border-gray-700">
+      <div className="bg-card rounded-xl max-w-4xl max-h-[90vh] w-full overflow-hidden border border-border">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center space-x-3">
             <File className="w-5 h-5 text-blue-400" />
             <div>
-              <h3 className="text-lg font-semibold text-white">{file.filename}</h3>
-              <p className="text-sm text-gray-400">
+              <h3 className="text-lg font-semibold text-foreground">{file.filename}</h3>
+              <p className="text-sm text-muted-foreground">
                 {formatFileSize(file.size)} • {file.contentType}
               </p>
             </div>
@@ -139,7 +139,7 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
               onClick={onClose}
               variant="outline"
               size="sm"
-              className="bg-gray-600/20 border-gray-600/50 text-gray-400 hover:bg-gray-600/30"
+              className="bg-muted/30 border-border text-muted-foreground hover:bg-muted/50"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -173,9 +173,9 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
                 Your browser does not support the video tag.
               </video>
               <div style={{ display: 'none' }} className="text-center py-8">
-                <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Unable to display video preview</p>
-                <p className="text-sm text-gray-500 mt-2">Click "View on IPFS" to see the file</p>
+                <File className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Unable to display video preview</p>
+                <p className="text-sm text-muted-foreground/70 mt-2">Click "View on IPFS" to see the file</p>
               </div>
             </div>
           )}
@@ -194,9 +194,9 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
                 Your browser does not support the audio tag.
               </audio>
               <div style={{ display: 'none' }} className="text-center py-8">
-                <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Unable to play audio file</p>
-                <p className="text-sm text-gray-500 mt-2">Click "View on IPFS" to access the file</p>
+                <File className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Unable to play audio file</p>
+                <p className="text-sm text-muted-foreground/70 mt-2">Click "View on IPFS" to access the file</p>
               </div>
             </div>
           )}
@@ -205,7 +205,7 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
             <div className="w-full h-96">
               <iframe
                 src={getFileDisplayUrl()}
-                className="w-full h-full rounded-lg border border-gray-600"
+                className="w-full h-full rounded-lg border border-border"
                 title={file.filename}
                 onError={(e) => {
                   (e.target as HTMLIFrameElement).style.display = 'none';
@@ -213,26 +213,26 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
                 }}
               />
               <div style={{ display: 'none' }} className="text-center py-8">
-                <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Unable to display PDF preview</p>
-                <p className="text-sm text-gray-500 mt-2">Click "View on IPFS" to see the document</p>
+                <File className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Unable to display PDF preview</p>
+                <p className="text-sm text-muted-foreground/70 mt-2">Click "View on IPFS" to see the document</p>
               </div>
             </div>
           )}
 
           {fileType === 'other' && (
             <div className="text-center py-12">
-              <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400 mb-2">Preview not available for this file type</p>
-              <p className="text-sm text-gray-500">
+              <File className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-2">Preview not available for this file type</p>
+              <p className="text-sm text-muted-foreground/70">
                 Use the buttons above to view on IPFS or download the file
               </p>
-              <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
+              <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
                 <div className="text-left space-y-2">
-                  <p className="text-sm text-gray-300"><strong>Filename:</strong> {file.filename}</p>
-                  <p className="text-sm text-gray-300"><strong>Size:</strong> {formatFileSize(file.size)}</p>
-                  <p className="text-sm text-gray-300"><strong>Type:</strong> {file.contentType}</p>
-                  <p className="text-sm text-gray-300"><strong>IPFS CID:</strong> {file.cid}</p>
+                  <p className="text-sm text-muted-foreground"><strong>Filename:</strong> {file.filename}</p>
+                  <p className="text-sm text-muted-foreground"><strong>Size:</strong> {formatFileSize(file.size)}</p>
+                  <p className="text-sm text-muted-foreground"><strong>Type:</strong> {file.contentType}</p>
+                  <p className="text-sm text-muted-foreground"><strong>IPFS CID:</strong> {file.cid}</p>
                 </div>
               </div>
             </div>

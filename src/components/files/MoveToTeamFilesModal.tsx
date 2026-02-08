@@ -55,24 +55,24 @@ export function MoveToTeamFilesModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+      <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <FolderInput className="w-5 h-5 text-purple-400" />
             Move to Team Files
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Make this file visible to all members of{' '}
             <span className="text-purple-400 font-medium">{organization.name}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-            <p className="text-sm text-gray-300 mb-2">
+          <div className="bg-muted/50 rounded-lg p-4 border border-border">
+            <p className="text-sm text-muted-foreground mb-2">
               <span className="font-medium">File:</span> {file.filename}
             </p>
-            <div className="flex items-center gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Lock className="w-3 h-3" />
                 <span>Currently: Private</span>
@@ -85,7 +85,7 @@ export function MoveToTeamFilesModal({
             </div>
           </div>
 
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Once moved, all team members will be able to see and download this file.
             You can move it back to "My Files" at any time.
           </p>

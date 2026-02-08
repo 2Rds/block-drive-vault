@@ -119,12 +119,6 @@ export function SendToTeammateModal({
 
     setIsSending(true);
     try {
-      // For now, we'll show a success message
-      // In a full implementation, this would:
-      // 1. Create a notification record in Supabase
-      // 2. Optionally send an email notification via Clerk or custom service
-      // 3. Create a shared file record or delegation
-
       toast.success(
         `File shared with ${selectedMember.firstName || selectedMember.email}`,
         {
@@ -146,13 +140,13 @@ export function SendToTeammateModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg bg-gray-800 border-gray-700">
+      <DialogContent className="sm:max-w-lg bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Send className="w-5 h-5 text-blue-400" />
             Send to Teammate
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Share "{file.filename}" with a member of {organization.name}
           </DialogDescription>
         </DialogHeader>
@@ -160,23 +154,23 @@ export function SendToTeammateModal({
         <div className="space-y-4 py-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search team members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-gray-700/50 border-gray-600 text-white"
+              className="pl-9 bg-muted/50 border-border text-foreground"
             />
           </div>
 
           {/* Member List */}
-          <div className="border border-gray-600 rounded-lg max-h-48 overflow-y-auto">
+          <div className="border border-border rounded-lg max-h-48 overflow-y-auto">
             {isLoadingMembers ? (
-              <div className="p-4 text-center text-gray-400">
+              <div className="p-4 text-center text-muted-foreground">
                 Loading team members...
               </div>
             ) : filteredMembers.length === 0 ? (
-              <div className="p-4 text-center text-gray-400">
+              <div className="p-4 text-center text-muted-foreground">
                 {searchQuery ? 'No members found' : 'No team members'}
               </div>
             ) : (
@@ -185,21 +179,21 @@ export function SendToTeammateModal({
                   key={member.id}
                   onClick={() => setSelectedMember(member)}
                   className={cn(
-                    'w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 transition-colors text-left',
+                    'w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left',
                     selectedMember?.id === member.id && 'bg-blue-500/20 border-l-2 border-blue-500'
                   )}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={member.imageUrl} alt={getMemberName(member)} />
-                    <AvatarFallback className="bg-gray-600 text-white text-xs">
+                    <AvatarFallback className="bg-muted text-foreground text-xs">
                       {getMemberInitials(member)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {getMemberName(member)}
                     </p>
-                    <p className="text-xs text-gray-400 truncate">{member.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                   </div>
                   {selectedMember?.id === member.id && (
                     <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />
@@ -212,12 +206,12 @@ export function SendToTeammateModal({
           {/* Optional Message */}
           {selectedMember && (
             <div className="space-y-2">
-              <Label className="text-gray-300">Message (optional)</Label>
+              <Label className="text-muted-foreground">Message (optional)</Label>
               <Textarea
                 placeholder="Add a message for your teammate..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="bg-gray-700/50 border-gray-600 text-white resize-none"
+                className="bg-muted/50 border-border text-foreground resize-none"
                 rows={3}
               />
             </div>

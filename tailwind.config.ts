@@ -26,7 +26,7 @@ export default {
 			spacing: {
 				'18': '4.5rem',
 				'88': '22rem',
-				'sidebar': '16rem',  /* 256px sidebar width */
+				'sidebar': '13.5rem',  /* 216px sidebar width — compact enterprise style */
 			},
 			colors: {
 				border: 'hsl(var(--border))',

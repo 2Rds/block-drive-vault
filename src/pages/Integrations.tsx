@@ -40,7 +40,7 @@ const INTEGRATIONS: IntegrationConfig[] = [
   { id: 'azure', name: 'Microsoft Azure', icon: CloudCog, color: 'text-blue-600', description: 'Connect Microsoft Azure for enterprise-grade cloud services and data management.' },
   { id: 'ibm', name: 'IBM Cloud', icon: Server, color: 'text-blue-700', description: 'Leverage IBM Cloud for AI-powered insights and secure data storage.' },
   { id: 'salesforce', name: 'Salesforce', icon: Building2, color: 'text-cyan-500', description: 'Sync customer data and documents with Salesforce CRM platform.' },
-  { id: 'notion', name: 'Notion', icon: FileText, color: 'text-gray-400', description: 'Connect Notion workspaces to sync documents and collaborative content.' },
+  { id: 'notion', name: 'Notion', icon: FileText, color: 'text-muted-foreground', description: 'Connect Notion workspaces to sync documents and collaborative content.' },
   { id: 'asana', name: 'Asana', icon: CheckSquare, color: 'text-pink-500', description: 'Integrate project management workflows and attach files to Asana tasks.' },
   { id: 'mercury', name: 'Mercury', icon: DollarSign, color: 'text-purple-500', description: 'Connect your Mercury banking for automated financial document storage.' },
   { id: 'xero', name: 'Xero', icon: Calculator, color: 'text-teal-500', description: 'Sync accounting data and financial documents with Xero platform.' },
@@ -72,10 +72,10 @@ function Integrations(): JSX.Element {
         {INTEGRATIONS.map((integration) => (
           <div
             key={integration.id}
-            className="bg-card border border-border rounded-lg p-5 hover:border-primary/30 hover:bg-background-secondary transition-all group"
+            className="bg-card border border-border/50 rounded-xl p-5 hover:border-border transition-colors group"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2.5 rounded-lg bg-background-tertiary group-hover:bg-background transition-colors">
+              <div className="p-2.5 rounded-lg bg-muted/30">
                 <integration.icon className={`w-5 h-5 ${integration.color}`} />
               </div>
               <h3 className="text-sm font-semibold text-foreground">

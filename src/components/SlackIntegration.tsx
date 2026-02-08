@@ -30,14 +30,14 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
   const initializeConnection = async () => {
     console.log('Checking for stored Slack token...');
     const storedToken = localStorage.getItem('slack_access_token');
-    
+
     if (storedToken) {
       console.log('Found stored token, verifying validity...');
       setLoading(true);
       try {
         const isValid = await blockdriveSlack.isTokenValid(storedToken);
         console.log('Token validation result:', isValid);
-        
+
         if (isValid) {
           console.log('Token is valid, setting up connection...');
           setAccessToken(storedToken);
@@ -70,9 +70,9 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
     const code = urlParams.get('code');
     const error = urlParams.get('error');
     const state = urlParams.get('state');
-    
+
     console.log('URL params:', { code: !!code, error, state });
-    
+
     if (error) {
       console.error('OAuth error received:', error);
       toast.error(`Slack connection failed: ${error}`);
@@ -90,28 +90,28 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       const redirectUri = window.location.origin + window.location.pathname;
       console.log('Processing OAuth with:', { code: code.substring(0, 10) + '...', redirectUri });
-      
+
       const tokenData = await blockdriveSlack.exchangeCodeForToken(code, redirectUri);
-      console.log('Token exchange result:', { 
-        ok: tokenData.ok, 
+      console.log('Token exchange result:', {
+        ok: tokenData.ok,
         hasAccessToken: !!tokenData.access_token,
-        error: tokenData.error 
+        error: tokenData.error
       });
-      
+
       if (tokenData.ok && tokenData.access_token) {
         console.log('Token exchange successful, setting up connection...');
         setAccessToken(tokenData.access_token);
         localStorage.setItem('slack_access_token', tokenData.access_token);
         setIsConnected(true);
-        
+
         await Promise.all([
           loadTeamInfo(tokenData.access_token),
           loadChannels(tokenData.access_token),
           loadSlackFiles(tokenData.access_token)
         ]);
-        
+
         toast.success('Successfully connected to Slack workspace!');
-        
+
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
@@ -132,10 +132,10 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       const redirectUri = window.location.origin + window.location.pathname;
       console.log('Using redirect URI:', redirectUri);
-      
+
       const authUrl = await blockdriveSlack.getAuthUrl(redirectUri, 'blockdrive-integration');
       console.log('Generated auth URL:', authUrl);
-      
+
       console.log('Redirecting to Slack OAuth...');
       window.location.href = authUrl;
     } catch (error) {
@@ -221,7 +221,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       setLoading(true);
       console.log('Downloading file from Slack:', file.name);
       const blob = await blockdriveSlack.downloadFileFromSlack(accessToken, file.url_private);
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -230,7 +230,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       console.log('File download successful');
       toast.success('File downloaded successfully!');
     } catch (error) {
@@ -243,7 +243,7 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
 
   const syncFiles = async () => {
     if (!accessToken) return;
-    
+
     try {
       setLoading(true);
       console.log('Syncing files with Supabase...');
@@ -272,13 +272,13 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Slack className="w-6 h-6 text-blue-500" />
             Slack Integration
             {teamInfo && (
-              <span className="text-sm font-normal text-gray-400">
+              <span className="text-sm font-normal text-muted-foreground">
                 - {teamInfo.name}
               </span>
             )}
@@ -291,16 +291,16 @@ export const SlackIntegration = ({ isOpen, onClose }: SlackIntegrationProps) => 
           ) : (
             <div className="space-y-6">
               <SlackConnectionStatus isConnected={isConnected} onDisconnect={disconnect} />
-              <SlackFileUpload 
-                channels={channels} 
-                loading={loading} 
-                onFileUpload={handleFileUpload} 
+              <SlackFileUpload
+                channels={channels}
+                loading={loading}
+                onFileUpload={handleFileUpload}
               />
-              <SlackFileList 
-                files={slackFiles} 
-                loading={loading} 
-                onFileDownload={handleFileDownload} 
-                onSyncFiles={syncFiles} 
+              <SlackFileList
+                files={slackFiles}
+                loading={loading}
+                onFileDownload={handleFileDownload}
+                onSyncFiles={syncFiles}
               />
             </div>
           )}

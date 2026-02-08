@@ -34,7 +34,7 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
 
   const initializeConnection = async () => {
     const storedToken = localStorage.getItem('googledrive_access_token');
-    
+
     if (storedToken) {
       setLoading(true);
       try {
@@ -69,7 +69,7 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
-    
+
     if (error) {
       console.error('Google Drive OAuth error:', error);
       toast.error(`Google Drive connection failed: ${error}`);
@@ -84,14 +84,14 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
   const processOAuthCode = async (code: string) => {
     try {
       setLoading(true);
-      
+
       // In a real implementation, you would exchange the code for a token
       // This would typically be done through your backend to keep client secrets secure
       toast.info('Google Drive OAuth flow would be completed here. This requires backend implementation for security.');
-      
+
       // For demo purposes, we'll simulate a successful connection
       // In production, implement proper OAuth flow with your backend
-      
+
     } catch (error) {
       console.error('Google Drive OAuth callback error:', error);
       toast.error(`Failed to connect to Google Drive: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -103,19 +103,19 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
   const connectToGoogleDrive = async () => {
     try {
       setLoading(true);
-      
+
       // Google Drive OAuth URL
       const clientId = 'your-client-id'; // This should be configured in your Google Cloud Console
       const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
       const scopes = encodeURIComponent('https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.profile');
-      
+
       const authUrl = `https://accounts.google.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&access_type=offline`;
-      
+
       toast.info('To connect Google Drive, you need to configure your Google Cloud Console project with the proper client ID and redirect URI.');
-      
+
       // In production, redirect to the auth URL:
       // window.location.href = authUrl;
-      
+
     } catch (error) {
       console.error('Error connecting to Google Drive:', error);
       toast.error(`Failed to initiate Google Drive connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -158,7 +158,7 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
   const migrateFile = async (file: GoogleDriveFile) => {
     try {
       setLoading(true);
-      
+
       // Download the file from Google Drive
       const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
         headers: {
@@ -176,9 +176,9 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
       // Here you would upload to your IPFS/BlockDrive storage
       // For now, we'll simulate the upload
       console.log('Migrating file to BlockDrive:', file.name);
-      
+
       toast.success(`File "${file.name}" migrated to BlockDrive successfully!`);
-      
+
     } catch (error) {
       console.error('Error migrating file:', error);
       toast.error(`Failed to migrate file: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -218,13 +218,13 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <HardDrive className="w-6 h-6 text-green-500" />
             Google Drive Integration
             {userInfo && (
-              <span className="text-sm font-normal text-gray-400">
+              <span className="text-sm font-normal text-muted-foreground">
                 - {userInfo.name}
               </span>
             )}
@@ -233,11 +233,11 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
 
         <div className="space-y-6">
           {!isConnected ? (
-            <Card className="p-6 bg-gray-800 border-gray-700">
+            <Card className="p-6 bg-card border-border">
               <div className="text-center space-y-4">
                 <HardDrive className="w-16 h-16 text-green-500 mx-auto" />
-                <h3 className="text-xl font-semibold text-white">Connect to Google Drive</h3>
-                <p className="text-gray-400">
+                <h3 className="text-xl font-semibold text-foreground">Connect to Google Drive</h3>
+                <p className="text-muted-foreground">
                   Connect your Google Drive account to migrate your files to BlockDrive's decentralized storage.
                 </p>
                 <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-lg p-4 mb-4">
@@ -251,13 +251,13 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
                         <li>Create a project in Google Cloud Console</li>
                         <li>Enable the Google Drive API</li>
                         <li>Configure OAuth consent screen</li>
-                        <li>Add redirect URI: <code className="bg-gray-800 px-1 rounded">{window.location.origin + window.location.pathname}</code></li>
+                        <li>Add redirect URI: <code className="bg-card px-1 rounded">{window.location.origin + window.location.pathname}</code></li>
                         <li>Add your Client ID to the application configuration</li>
                       </ul>
                     </div>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={connectToGoogleDrive}
                   disabled={loading}
                   className="bg-green-600 hover:bg-green-700 text-white"
@@ -268,15 +268,15 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
             </Card>
           ) : (
             <div className="space-y-6">
-              <Card className="bg-gray-800 border-gray-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-white flex items-center gap-2">
+                      <CardTitle className="text-foreground flex items-center gap-2">
                         <HardDrive className="w-5 h-5 text-green-500" />
                         Google Drive Connected
                       </CardTitle>
-                      <CardDescription className="text-gray-400">
+                      <CardDescription className="text-muted-foreground">
                         Account: {userInfo?.name || 'Connected'}
                       </CardDescription>
                     </div>
@@ -291,15 +291,15 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
                 </CardHeader>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">Your Google Drive Files</CardTitle>
+                    <CardTitle className="text-foreground">Your Google Drive Files</CardTitle>
                     <Button
                       onClick={() => loadFiles(accessToken)}
                       disabled={loading}
                       variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-border text-muted-foreground hover:bg-muted"
                     >
                       <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                       Refresh
@@ -310,21 +310,21 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
                   {loading ? (
                     <div className="text-center py-8">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto text-green-500 mb-2" />
-                      <p className="text-gray-400">Loading files...</p>
+                      <p className="text-muted-foreground">Loading files...</p>
                     </div>
                   ) : files.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-400">No files found in your Google Drive.</p>
+                      <p className="text-muted-foreground">No files found in your Google Drive.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {files.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                        <div key={file.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                           <div className="flex items-center space-x-3 flex-1">
                             <span className="text-2xl">{getFileIcon(file.mimeType)}</span>
                             <div>
-                              <h4 className="text-white font-medium">{file.name}</h4>
-                              <p className="text-gray-400 text-sm">
+                              <h4 className="text-foreground font-medium">{file.name}</h4>
+                              <p className="text-muted-foreground text-sm">
                                 {formatFileSize(file.size)} • Modified: {new Date(file.modifiedTime).toLocaleDateString()}
                               </p>
                             </div>
@@ -334,7 +334,7 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
                               onClick={() => window.open(file.webViewLink, '_blank')}
                               variant="outline"
                               size="sm"
-                              className="border-gray-600 text-gray-300 hover:bg-gray-600"
+                              className="border-border text-muted-foreground hover:bg-muted"
                             >
                               <Download className="w-4 h-4 mr-1" />
                               View

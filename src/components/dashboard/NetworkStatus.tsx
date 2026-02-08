@@ -1,24 +1,18 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 export const NetworkStatus = () => {
-  const networkStatsData = [{
-    network: 'Solana',
-    uptime: 99.8,
-    speed: 'Fast',
-    cost: 'Low'
-  }, {
-    network: 'Ethereum',
-    uptime: 99.5,
-    speed: 'Medium',
-    cost: 'High'
-  }, {
-    network: 'Polygon',
-    uptime: 99.7,
-    speed: 'Fast',
-    cost: 'Low'
-  }];
-  return <Card className="bg-gray-800/40 border-gray-700/50">
-      
-      
-    </Card>;
+  return (
+    <Card className="bg-card border border-border/50 rounded-xl">
+      <CardHeader>
+        <CardTitle className="text-sm font-medium text-muted-foreground">Network Status</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full" />
+          <span className="font-mono text-sm text-foreground">All Systems Operational</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };

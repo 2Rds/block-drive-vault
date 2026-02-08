@@ -354,7 +354,7 @@ function IPFSFiles(): JSX.Element {
 
         {/* Tabs for different file views */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <TabsList className="bg-background-secondary">
+          <TabsList className="bg-muted/50 rounded-lg p-1">
             {/* Show Team Files first when in org, otherwise My Files */}
             {isInOrganization ? (
               <>

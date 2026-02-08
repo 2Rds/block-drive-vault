@@ -45,14 +45,14 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
     }
 
     setIsUploading(true);
-    
+
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        
+
         // Upload to Supabase storage
         const fileName = `${userId}/${currentTeam.id}/${Date.now()}-${file.name}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('ipfs-files')
           .upload(fileName, file);
@@ -97,18 +97,18 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
 
   if (!currentTeam) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl border-2 border-dashed border-white/30 p-8 text-center">
+      <div className="bg-card rounded-xl border-2 border-dashed border-border/50 p-8 text-center">
         <div className="text-center py-8">
-          <Upload className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No team selected</h3>
-          <p className="text-gray-500">Select a team to upload files</p>
+          <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">No team selected</h3>
+          <p className="text-muted-foreground/70">Select a team to upload files</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl border-2 border-dashed border-white/30 p-6 hover:border-blue-500/50 transition-colors">
+    <div className="bg-card rounded-xl border-2 border-dashed border-border/50 p-6 hover:border-blue-500/50 transition-colors">
       <div
         className="space-y-4"
         onDrop={handleDrop}
@@ -119,21 +119,21 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
             <Upload className="w-8 h-8 text-blue-600" />
           </div>
         </div>
-        
+
         <div className="text-center">
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-xl font-semibold text-foreground mb-2">
             Upload to {currentTeam.name}
           </h3>
-          <p className="text-gray-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             Drag and drop your files here, or click to browse
           </p>
         </div>
 
         {/* Visibility Settings */}
         <div className="max-w-xs mx-auto space-y-2">
-          <Label className="text-sm text-gray-300">File Visibility</Label>
+          <Label className="text-sm text-muted-foreground">File Visibility</Label>
           <Select value={visibility} onValueChange={(value: 'private' | 'team') => setVisibility(value)}>
-            <SelectTrigger className="bg-white/5 border-white/20">
+            <SelectTrigger className="bg-muted/20 border-border/50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -151,8 +151,8 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
               </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-500">
-            {visibility === 'private' 
+          <p className="text-xs text-muted-foreground/70">
+            {visibility === 'private'
               ? 'Only you can see these files'
               : 'All team members can view and download these files'
             }
@@ -161,11 +161,11 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
 
         {/* Selected Files Display */}
         {selectedFiles && (
-          <div className="max-w-md mx-auto bg-white/5 rounded-lg p-4 border border-white/10">
-            <h4 className="text-sm font-medium text-white mb-2">Selected Files:</h4>
+          <div className="max-w-md mx-auto bg-muted/20 rounded-lg p-4 border border-border/30">
+            <h4 className="text-sm font-medium text-foreground mb-2">Selected Files:</h4>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {Array.from(selectedFiles).map((file, index) => (
-                <div key={index} className="text-xs text-gray-400 truncate">
+                <div key={index} className="text-xs text-muted-foreground truncate">
                   {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)
                 </div>
               ))}
@@ -182,7 +182,7 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
             <Plus className="w-4 h-4 mr-2" />
             {selectedFiles ? 'Choose Different Files' : 'Choose Files'}
           </Button>
-          
+
           {selectedFiles && (
             <Button
               onClick={uploadFiles}
@@ -204,10 +204,10 @@ export const TeamUploadArea = ({ currentTeam, onFileUploaded }: TeamUploadAreaPr
 
         {isUploading && (
           <div className="mt-4">
-            <div className="w-full bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-muted rounded-full h-2">
               <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full animate-pulse w-1/2"></div>
             </div>
-            <p className="text-sm text-gray-400 mt-2">Uploading to team storage...</p>
+            <p className="text-sm text-muted-foreground mt-2">Uploading to team storage...</p>
           </div>
         )}
       </div>

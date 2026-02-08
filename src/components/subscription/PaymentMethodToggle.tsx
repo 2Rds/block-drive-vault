@@ -21,8 +21,8 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-gray-400">Payment Method</label>
-      <div className="flex gap-2 p-1 bg-gray-800/60 rounded-lg">
+      <label className="text-sm font-medium text-muted-foreground">Payment Method</label>
+      <div className="flex gap-2 p-1 bg-card rounded-lg">
         {/* Fiat Option */}
         <button
           type="button"
@@ -33,7 +33,7 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
             'text-sm font-medium',
             selected === 'fiat'
               ? 'bg-blue-600 text-white shadow-lg'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50',
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         >
@@ -51,7 +51,7 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
             'text-sm font-medium',
             selected === 'crypto'
               ? 'bg-blue-600 text-white shadow-lg'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50',
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         >
@@ -64,7 +64,7 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
       </div>
 
       {/* Info text */}
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-muted-foreground/70">
         {selected === 'fiat' ? (
           'Pay with credit card, debit card, or bank transfer via Stripe'
         ) : (
@@ -77,7 +77,7 @@ export const PaymentMethodToggle: React.FC<PaymentMethodToggleProps> = ({
 
       {/* Crypto info */}
       {selected === 'crypto' && (
-        <div className="flex items-center gap-2 text-xs text-zinc-400">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
           Pay directly from your embedded Solana wallet
         </div>

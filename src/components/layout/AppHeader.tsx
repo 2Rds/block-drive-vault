@@ -54,7 +54,7 @@ export function AppHeader() {
   };
 
   return (
-    <header className="h-16 bg-background border-b border-border fixed top-0 left-sidebar right-0 z-30">
+    <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border/40 fixed top-0 left-sidebar right-0 z-30">
       <div className="flex items-center justify-between h-full px-6">
         {/* Search */}
         <form onSubmit={handleSearch} className="flex-1 max-w-xl">
@@ -66,10 +66,10 @@ export function AppHeader() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search files and folders..."
               className={cn(
-                'w-full pl-10 pr-4 py-2 rounded-lg',
-                'bg-background-secondary border border-border',
+                'w-full pl-10 pr-4 py-2 rounded-lg text-sm',
+                'bg-card/50 border border-border/40',
                 'text-foreground placeholder:text-foreground-muted',
-                'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
+                'focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary',
                 'transition-colors'
               )}
             />
@@ -97,14 +97,14 @@ export function AppHeader() {
                   'text-foreground hover:bg-background-secondary'
                 )}
               >
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <span className="font-medium text-sm">{displayName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-56 bg-card border border-border shadow-lg rounded-lg"
+              className="w-56 bg-card border border-border/50 shadow-xl rounded-lg"
               align="end"
             >
               <DropdownMenuLabel className="px-3 py-2">

@@ -10,7 +10,6 @@ import {
   Trash2,
   HardDrive,
 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 
 // Tiers that support team features
 const TEAM_ENABLED_TIERS = ['scale', 'growth', 'business', 'enterprise'];
@@ -42,11 +41,11 @@ function NavItemButton({ item, isActive }: { item: NavItem; isActive: boolean })
     <button
       onClick={() => navigate(item.path)}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+        'w-full flex items-center gap-3 px-3 py-2 border-l-2 text-sm font-medium transition-colors',
         'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         isActive
-          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-          : 'text-sidebar-foreground/70'
+          ? 'border-l-2 border-primary bg-primary/[0.06] text-sidebar-accent-foreground'
+          : 'border-transparent text-sidebar-foreground/70'
       )}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />
@@ -73,8 +72,13 @@ function StorageUsage() {
 
   return (
     <div className="space-y-2">
-      <Progress value={percentage} className="h-1.5" />
-      <p className="text-xs text-foreground-muted">
+      <div className="h-1 w-full bg-muted/30 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <p className="text-xs font-mono text-foreground-muted">
         {usedGB.toFixed(1)} GB of {totalGB} GB used
       </p>
     </div>
@@ -106,16 +110,9 @@ export function AppSidebar() {
     <aside className="w-sidebar h-screen fixed left-0 top-0 border-r border-sidebar-border flex flex-col z-40 sidebar-gradient">
       {/* Logo */}
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <img
-            src="/lovable-uploads/fc6d6b40-71e3-4c10-9f7f-febcee140cc8.png"
-            alt="BlockDrive"
-            className="w-8 h-8 object-contain"
-          />
-          <span className="text-lg font-semibold text-sidebar-foreground">
-            BlockDrive
-          </span>
-        </div>
+        <span className="text-[15px] font-semibold tracking-wide text-sidebar-foreground">
+          BlockDrive
+        </span>
       </div>
 
       {/* Organization Switcher */}

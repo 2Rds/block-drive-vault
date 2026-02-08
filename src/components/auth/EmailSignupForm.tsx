@@ -16,18 +16,18 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
   }, []);
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-gray-900/60 backdrop-blur-sm border-gray-800">
+    <Card className="w-full max-w-md mx-auto bg-background/60 backdrop-blur-sm border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center">
+        <CardTitle className="text-foreground flex items-center">
           <Mail className="w-5 h-5 mr-2" />
           Sign Up
         </CardTitle>
-        <CardDescription className="text-gray-300">
+        <CardDescription className="text-muted-foreground">
           Please use the Clerk sign-up flow instead.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-gray-400 mb-4">
+        <p className="text-muted-foreground mb-4">
           This signup form has been deprecated. Please use the new authentication system.
         </p>
         <div className="flex space-x-3">
@@ -42,7 +42,7 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="flex-1 border-border text-muted-foreground hover:bg-card"
             >
               Cancel
             </Button>

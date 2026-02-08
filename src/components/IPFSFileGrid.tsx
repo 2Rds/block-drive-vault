@@ -18,9 +18,9 @@ interface IPFSFileGridProps {
   onFileSelect?: (file: IPFSFile) => void;
 }
 
-export const IPFSFileGrid = ({ 
-  selectedFolder, 
-  userFolders = [], 
+export const IPFSFileGrid = ({
+  selectedFolder,
+  userFolders = [],
   currentPath = '/',
   onGoBack,
   onFileSelect
@@ -77,7 +77,7 @@ export const IPFSFileGrid = ({
     if (file.contentType?.startsWith('video/')) return 'text-red-400';
     if (file.contentType?.startsWith('audio/')) return 'text-purple-400';
     if (file.contentType?.includes('pdf') || file.contentType?.includes('document')) return 'text-blue-400';
-    return 'text-gray-400';
+    return 'text-muted-foreground';
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -110,11 +110,11 @@ export const IPFSFileGrid = ({
 
   if (!user) {
     return (
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+      <div className="bg-card rounded-xl p-6 border border-border/50">
         <div className="text-center py-12">
-          <Archive className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">Connect Your Wallet</h3>
-          <p className="text-gray-500">
+          <Archive className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">Connect Your Wallet</h3>
+          <p className="text-muted-foreground/70">
             Please connect your wallet to view your BlockDrive IPFS files
           </p>
         </div>
@@ -123,7 +123,7 @@ export const IPFSFileGrid = ({
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+    <div className="bg-card rounded-xl p-6 border border-border/50">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           {currentPath !== '/' && onGoBack && (
@@ -131,23 +131,23 @@ export const IPFSFileGrid = ({
               onClick={onGoBack}
               variant="outline"
               size="sm"
-              className="bg-gray-600/20 border-gray-600/50 text-gray-400 hover:bg-gray-600/30"
+              className="bg-muted/20 border-border text-muted-foreground hover:bg-muted/30"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
           )}
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Globe className="w-5 h-5 text-blue-400" />
             {selectedFolder === 'all' ? 'BlockDrive IPFS Storage' : `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
             {currentPath !== '/' && (
-              <span className="text-sm text-gray-400 font-normal">
+              <span className="text-sm text-muted-foreground font-normal">
                 {currentPath}
               </span>
             )}
           </h2>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-400">
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <span>{filteredFiles.length} files</span>
           <Button
             onClick={loadUserFiles}
@@ -165,42 +165,42 @@ export const IPFSFileGrid = ({
           {filteredFiles.map((file) => {
             const IconComponent = getFileIcon(file);
             const iconColor = getFileColor(file);
-            
+
             return (
               <div
                 key={file.id}
-                className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 group cursor-pointer"
+                className="bg-muted/20 rounded-lg p-4 border border-border/30 hover:bg-muted/30 hover:border-border transition-all duration-300 group cursor-pointer"
                 onClick={() => handleFileClick(file)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <IconComponent className={`w-8 h-8 ${iconColor}`} />
                   <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleFileClick(file);
                       }}
-                      className="p-1 rounded hover:bg-white/10"
+                      className="p-1 rounded hover:bg-muted/50"
                       title="View File"
                     >
                       <Eye className="w-4 h-4 text-blue-400" />
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewOnIPFS(file);
                       }}
-                      className="p-1 rounded hover:bg-white/10"
+                      className="p-1 rounded hover:bg-muted/50"
                       title="View on IPFS"
                     >
                       <ExternalLink className="w-4 h-4 text-blue-400" />
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(file);
                       }}
-                      className="p-1 rounded hover:bg-white/10"
+                      className="p-1 rounded hover:bg-muted/50"
                       title="Download from IPFS"
                       disabled={downloading}
                     >
@@ -208,20 +208,20 @@ export const IPFSFileGrid = ({
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-1">
-                  <h3 className="font-medium text-white text-sm truncate" title={file.filename}>
+                  <h3 className="font-medium text-foreground text-sm truncate" title={file.filename}>
                     {file.filename}
                   </h3>
-                  <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
-                  <p className="text-xs text-gray-500">Uploaded {formatDate(file.uploadedAt)}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                  <p className="text-xs text-muted-foreground/70">Uploaded {formatDate(file.uploadedAt)}</p>
                 </div>
-                
-                <div className="mt-3 pt-3 border-t border-white/10">
+
+                <div className="mt-3 pt-3 border-t border-border/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-gray-400">IPFS Pinned</span>
+                      <span className="text-xs text-muted-foreground">IPFS Pinned</span>
                     </div>
                     <button
                       onClick={(e) => {
@@ -234,7 +234,7 @@ export const IPFSFileGrid = ({
                     </button>
                   </div>
                   <div className="mt-1">
-                    <p className="text-xs text-gray-500 truncate" title={file.cid}>
+                    <p className="text-xs text-muted-foreground/70 truncate font-mono" title={file.cid}>
                       CID: {file.cid.substring(0, CID_PREVIEW_LENGTH)}...
                     </p>
                   </div>
@@ -246,9 +246,9 @@ export const IPFSFileGrid = ({
       ) : (
         <div className="text-center py-12">
           <Globe className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-400 mb-2">No files in IPFS storage</h3>
-          <p className="text-gray-500">
-            {selectedFolder === 'all' 
+          <h3 className="text-lg font-medium text-muted-foreground mb-2">No files in IPFS storage</h3>
+          <p className="text-muted-foreground/70">
+            {selectedFolder === 'all'
               ? 'Upload some files to your BlockDrive IPFS storage to get started'
               : `No ${selectedFolder} files found in your IPFS storage`
             }

@@ -56,7 +56,7 @@ export default function TeamSettings(): JSX.Element | null {
       title="Team Settings"
       description="Manage your team members, invitations, and organization settings"
     >
-      <div className="bg-card rounded-lg border border-border p-6">
+      <div className="bg-card border border-border/50 rounded-xl p-6">
         <OrganizationProfile appearance={ORG_PROFILE_APPEARANCE} />
       </div>
     </AppShell>

@@ -190,7 +190,7 @@ export function BlockDriveUploadArea({
   // Not logged in state
   if (!user) {
     return (
-      <div className="bg-card/40 backdrop-blur-md rounded-xl border-2 border-dashed border-border p-8 text-center">
+      <div className="bg-card rounded-xl border-2 border-dashed border-border/50 p-8 text-center">
         <div className="space-y-4">
           <div className="flex justify-center">
             <div className="p-4 bg-muted rounded-full">
@@ -214,7 +214,7 @@ export function BlockDriveUploadArea({
   if (!hasKeys && walletData?.connected) {
     return (
       <>
-        <div className="bg-primary/5 backdrop-blur-md rounded-xl border-2 border-dashed border-primary/30 p-8 text-center">
+        <div className="bg-primary/5 rounded-xl border-2 border-dashed border-primary/30 p-8 text-center">
           <div className="space-y-4">
             <div className="flex justify-center">
               <div className="p-4 bg-primary/10 rounded-full">
@@ -310,7 +310,7 @@ export function BlockDriveUploadArea({
         {/* Main Upload Area */}
         <div
           className={cn(
-            "bg-card/40 backdrop-blur-md rounded-xl border-2 border-dashed transition-all duration-300 p-8",
+            "bg-card rounded-xl border-2 border-dashed transition-all duration-300 p-8",
             getUploadPhaseColor()
           )}
           onDrop={handleDrop}
@@ -383,7 +383,7 @@ export function BlockDriveUploadArea({
               <div className="space-y-3 max-w-md mx-auto">
                 <Progress value={progress.progress} className="h-2" />
                 <p className="text-sm text-muted-foreground">
-                  {getProgressLabel()} {Math.round(progress.progress)}%
+                  {getProgressLabel()} <span className="font-mono">{Math.round(progress.progress)}%</span>
                 </p>
               </div>
             )}
