@@ -93,7 +93,7 @@ function BillingTab() {
             </Badge>
           </div>
 
-          <Button onClick={handleOpenPortal} className="bg-blue-600 hover:bg-blue-700 gap-2">
+          <Button onClick={handleOpenPortal} className="bg-primary hover:bg-primary/90 gap-2">
             <CreditCard className="w-4 h-4" />
             Manage Billing in Stripe
             <ExternalLink className="w-4 h-4" />

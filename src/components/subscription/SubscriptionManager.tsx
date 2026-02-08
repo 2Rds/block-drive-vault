@@ -122,17 +122,17 @@ export function SubscriptionManager(): React.ReactElement {
           </div>
 
           {/* Call to Action */}
-          <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-            <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+          <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
+            <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
               <Crown className="w-4 h-4" />
               Get Started with BlockDrive
             </h4>
-            <p className="text-sm text-blue-300 mb-3">
+            <p className="text-sm text-primary/80 mb-3">
               Choose a plan to access file storage, IPFS integration, and blockchain features.
             </p>
             <Button
               onClick={() => window.location.href = '/pricing'}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <Crown className="w-4 h-4 mr-2" />
               View Plans & Start Free Trial
@@ -222,7 +222,7 @@ export function SubscriptionManager(): React.ReactElement {
                 subscribed
                   ? "bg-green-600 hover:bg-green-700"
                   : isFreeTrial
-                    ? "bg-blue-600 hover:bg-blue-700"
+                    ? "bg-primary hover:bg-primary/90"
                     : "bg-muted"
               }
             >
@@ -232,15 +232,15 @@ export function SubscriptionManager(): React.ReactElement {
 
           {/* Free Trial Benefits Notice */}
           {isFreeTrial && (
-            <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-              <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+            <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
+              <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
                 <Crown className="w-4 h-4" />
                 Free Trial - Starter Tier Benefits
               </h4>
-              <p className="text-sm text-blue-300 mb-3">
+              <p className="text-sm text-primary/80 mb-3">
                 You're currently enjoying Starter tier benefits during your free trial period.
               </p>
-              <ul className="text-sm text-blue-300 space-y-1">
+              <ul className="text-sm text-primary/80 space-y-1">
                 <li>• 50 GB storage capacity</li>
                 <li>• 50 GB monthly bandwidth</li>
                 <li>• 1 user seat</li>
@@ -290,7 +290,7 @@ export function SubscriptionManager(): React.ReactElement {
           <div className="flex gap-3 flex-wrap">
             <Button
               onClick={handleManageSubscription}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <Settings className="w-4 h-4 mr-2" />
               Manage Subscription
@@ -300,7 +300,7 @@ export function SubscriptionManager(): React.ReactElement {
             {!subscribed && (
               <Button
                 onClick={() => window.location.href = '/pricing'}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 <Crown className="w-4 h-4 mr-2" />
                 {isFreeTrial ? 'Upgrade to Keep Benefits' : 'Start Free Trial'}
@@ -317,15 +317,15 @@ export function SubscriptionManager(): React.ReactElement {
           </div>
 
           {/* Portal Information */}
-          <div className="mt-6 p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-            <h4 className="text-blue-400 font-medium mb-2 flex items-center gap-2">
+          <div className="mt-6 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+            <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Subscription Management Portal
             </h4>
-            <p className="text-sm text-blue-300 mb-3">
+            <p className="text-sm text-primary/80 mb-3">
               Use the Stripe Customer Portal to manage your subscription, update payment methods, view invoices, and change your plan.
             </p>
-            <ul className="text-sm text-blue-300 space-y-1">
+            <ul className="text-sm text-primary/80 space-y-1">
               <li>• Update payment methods and billing information</li>
               <li>• Download invoices and payment history</li>
               <li>• Change or cancel your subscription</li>
@@ -335,12 +335,12 @@ export function SubscriptionManager(): React.ReactElement {
 
           {/* Subscription Features */}
           {(subscribed || isFreeTrial) && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
-              <h4 className="text-green-400 font-medium mb-2 flex items-center gap-2">
+            <div className="mt-6 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+              <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 {subscribed ? 'Active Subscription Benefits' : 'Free Trial Benefits (Starter Tier)'}
               </h4>
-              <ul className="text-sm text-green-300 space-y-1">
+              <ul className="text-sm text-primary/80 space-y-1">
                 <li>• Enhanced storage capacity: {limits.storage} GB</li>
                 <li>• Bandwidth allowance: {limits.bandwidth} GB/month</li>
                 <li>• Team seats: {isUnlimitedSeats ? 'Unlimited' : limits.seats}</li>

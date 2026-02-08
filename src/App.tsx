@@ -29,9 +29,6 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy").then(m => ({ de
 const Pricing = lazy(() => import("./pages/Pricing"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
-const Teams = lazy(() => import("./pages/Teams"));
-const TeamInvitation = lazy(() => import("./pages/TeamInvitation"));
-const TeamAdmin = lazy(() => import("./pages/TeamAdmin"));
 const TeamSettings = lazy(() => import("./pages/TeamSettings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CreateTeamOnboarding = lazy(() => import("./pages/CreateTeamOnboarding"));
@@ -170,16 +167,6 @@ function App() {
                   element={
                     <ClerkProtectedRoute>
                       <Account />
-                    </ClerkProtectedRoute>
-                  }
-                />
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/team-invitation" element={<TeamInvitation />} />
-                <Route
-                  path="/team-admin"
-                  element={
-                    <ClerkProtectedRoute>
-                      <TeamAdmin />
                     </ClerkProtectedRoute>
                   }
                 />
