@@ -84,7 +84,6 @@ export default function Onboarding() {
 
       // Username is valid and available
       setConfirmedUsername(inputUsername.toLowerCase());
-      console.log('[Onboarding] Username confirmed:', inputUsername.toLowerCase());
     } catch (err) {
       console.error('[Onboarding] Error checking username:', err);
       setUsernameError('Failed to check username availability');
@@ -108,11 +107,6 @@ export default function Onboarding() {
     setMintAttempted(true);
     setCurrentStep('minting');
 
-    console.log('[Onboarding] Auto-minting NFT for username:', effectiveUsername);
-    if (organizationContext) {
-      console.log('[Onboarding] With organization context:', organizationContext.subdomain);
-    }
-
     // Pass organization context to mint function
     const result = await mintUsername(effectiveUsername, {
       organizationId: organizationContext?.id,
@@ -135,14 +129,12 @@ export default function Onboarding() {
   const handleOrgComplete = useCallback((orgContext: OrganizationContext | null) => {
     setOrganizationContext(orgContext);
     setOrgStepCompleted(true);
-    console.log('[Onboarding] Organization step complete:', orgContext?.name || 'skipped');
   }, []);
 
   // Handle organization step skip
   const handleOrgSkip = useCallback(() => {
     setOrganizationContext(null);
     setOrgStepCompleted(true);
-    console.log('[Onboarding] Organization step skipped');
   }, []);
 
   // Determine current step based on state

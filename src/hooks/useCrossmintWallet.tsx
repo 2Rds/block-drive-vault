@@ -68,7 +68,6 @@ export function useCrossmintWallet(): CrossmintWalletState {
         setWalletAddress(effectiveAddress);
         setChainAddresses({ solana: effectiveAddress });
         setIsInitialized(true);
-        console.log('[useCrossmintWallet] Initialized:', effectiveAddress, wallet ? '(SDK)' : '(Server)');
       } catch (err) {
         console.error('[useCrossmintWallet] Init error:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
@@ -101,7 +100,6 @@ export function useCrossmintWallet(): CrossmintWalletState {
 
     try {
       const signature = await wallet.sendTransaction(transaction);
-      console.log('[useCrossmintWallet] Transaction sent:', signature);
       return signature;
     } catch (err) {
       console.error('[useCrossmintWallet] Send error:', err);
@@ -146,11 +144,9 @@ export function useCrossmintWallet(): CrossmintWalletState {
       try {
         const tokenAccount = await getAccount(connection, tokenAccountAddress);
         const balance = Number(tokenAccount.amount) / USDC_DECIMALS;
-        console.log('[useCrossmintWallet] USDC balance:', balance);
         return balance;
       } catch (err) {
         if (err instanceof TokenAccountNotFoundError) {
-          console.log('[useCrossmintWallet] No USDC token account, balance: 0');
           return 0;
         }
         throw err;
@@ -167,7 +163,6 @@ export function useCrossmintWallet(): CrossmintWalletState {
     try {
       await wallet.switchChain(chain);
       setCurrentChain(chain);
-      console.log('[useCrossmintWallet] Switched to chain:', chain);
     } catch (err) {
       console.error('[useCrossmintWallet] Switch chain error:', err);
       throw err;

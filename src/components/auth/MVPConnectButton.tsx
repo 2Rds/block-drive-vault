@@ -35,7 +35,6 @@ export const MVPConnectButton: React.FC<MVPConnectButtonProps> = ({
         isMVP: true
       });
       
-      console.log('✅ MVP Quick Access granted');
       navigate('/dashboard');
     } catch (error) {
       console.error('MVP connection error:', error);

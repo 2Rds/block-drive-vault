@@ -50,7 +50,6 @@ export const UploadArea = ({
   }, []);
 
   const handleCreateFolder = (folderName: string) => {
-    console.log('Creating folder:', folderName);
     toast.success(`Folder "${folderName}" created successfully!`);
 
     if (onCreateFolder) {

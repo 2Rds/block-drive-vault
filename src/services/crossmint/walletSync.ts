@@ -45,8 +45,7 @@ export async function syncCrossmintWallet(params: SyncWalletParams): Promise<voi
       throw new Error(`Wallet sync failed: ${error.message}`);
     }
 
-    const data = await response.json();
-    console.log('[syncCrossmintWallet] Success:', data);
+    await response.json();
   } catch (error) {
     console.error('[syncCrossmintWallet] Error:', error);
     throw error;

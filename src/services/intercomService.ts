@@ -35,7 +35,6 @@ class IntercomService {
       }
       
       this.isInitialized = true;
-      console.log('Intercom initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Intercom:', error);
     }

@@ -4,8 +4,6 @@ import { IPFSConfig } from './ipfsConfig';
 export class IPFSRetrievalService {
   static async retrieveFile(cid: string): Promise<Blob | null> {
     try {
-      console.log(`Retrieving file from IPFS via Filebase gateway: ${cid}`);
-      
       // Try Filebase gateway first, then fallback gateways
       const gateways = [
         IPFSConfig.getFilebaseIPFSUrl(cid),
@@ -14,7 +12,6 @@ export class IPFSRetrievalService {
       
       for (const gateway of gateways) {
         try {
-          console.log(`Trying gateway: ${gateway}`);
           const response = await fetch(gateway, {
             headers: {
               'Accept': '*/*',
@@ -23,7 +20,6 @@ export class IPFSRetrievalService {
           
           if (response.ok) {
             const blob = await response.blob();
-            console.log('File retrieved successfully from IPFS');
             return blob;
           }
         } catch (gatewayError) {

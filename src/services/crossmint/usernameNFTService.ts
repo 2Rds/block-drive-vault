@@ -144,11 +144,6 @@ export async function mintUsernameNFT(params: MintUsernameNFTParams): Promise<Mi
       ? `${normalized}.${organizationSubdomain.toLowerCase()}.${DOMAIN_SUFFIX}`
       : `${normalized}.${DOMAIN_SUFFIX}`;
 
-    console.log(`[usernameNFT] Minting ${fullDomain} for user ${clerkUserId}`);
-    if (isOrgDomain) {
-      console.log(`[usernameNFT] Organization context: ${organizationId} (${organizationSubdomain})`);
-    }
-
     // Call edge function to mint NFT
     const response = await supabase.functions.invoke('mint-username-nft', {
       body: {
@@ -175,8 +170,6 @@ export async function mintUsernameNFT(params: MintUsernameNFTParams): Promise<Mi
     if (!data.success) {
       return { success: false, error: data.error || 'Minting failed' };
     }
-
-    console.log('[usernameNFT] Mint successful:', data);
 
     return {
       success: true,

@@ -68,8 +68,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     // If wallet is still initializing, provide MVP fallback
     const isWalletReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
     if (!isWalletReady) {
-      console.log('[useNFTMembership] Wallet not ready, using MVP fallback');
-
       // Provide pro tier access while wallet initializes
       const mvpMembership: MembershipVerification = {
         isValid: true,
@@ -90,8 +88,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     setIsVerifying(true);
 
     try {
-      console.log('[useNFTMembership] Verifying with Crossmint wallet:', crossmintWallet.walletAddress);
-
       // Use the membership service with the Crossmint wallet address
       const verification = await nftMembershipService.verifyMembership(crossmintWallet.walletAddress!);
 

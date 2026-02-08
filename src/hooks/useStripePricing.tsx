@@ -192,7 +192,6 @@ export function useStripePricing(): StripePricingState {
       const fetchedPrices = pricesData || [];
 
       if (fetchedProducts.length === 0 || fetchedPrices.length === 0) {
-        console.log('[useStripePricing] No products/prices in sync tables, using fallback');
         // Return empty - caller should use static fallback
         setPricingTiers([]);
         return;
@@ -244,7 +243,6 @@ export function useStripePricing(): StripePricingState {
         });
 
       setPricingTiers(tiers);
-      console.log('[useStripePricing] Loaded dynamic pricing:', tiers.length, 'tiers');
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch pricing';

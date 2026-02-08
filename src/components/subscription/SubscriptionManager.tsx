@@ -34,7 +34,6 @@ export function SubscriptionManager(): React.ReactElement {
   const handleManageSubscription = () => {
     if (!user) return;
 
-    console.log('Opening Stripe customer portal for user:', user.id);
     window.open(STRIPE_PORTAL_URL, '_blank');
     toast.success('Opening subscription management portal...');
     setTimeout(handleRefresh, PORTAL_REFRESH_DELAY_MS);
@@ -43,14 +42,12 @@ export function SubscriptionManager(): React.ReactElement {
   React.useEffect(() => {
     const handleFocus = () => {
       if (user && document.hasFocus()) {
-        console.log('Window focused, refreshing subscription status');
         handleRefresh();
       }
     };
 
     const handleVisibilityChange = () => {
       if (user && !document.hidden) {
-        console.log('Page became visible, refreshing subscription status');
         setTimeout(handleRefresh, VISIBILITY_REFRESH_DELAY_MS);
       }
     };

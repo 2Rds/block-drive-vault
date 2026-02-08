@@ -153,8 +153,6 @@ class BlockDriveUploadService {
       );
       proofGenerationTime = performance.now() - proofStart;
       
-      console.log('[BlockDriveUpload] ZK proof generated');
-      
       // Step 4: Create and encrypt file metadata
       const metadata = createFileMetadata(
         file.name,
@@ -201,8 +199,6 @@ class BlockDriveUploadService {
         console.error('[BlockDriveUpload] Failed to upload ZK proof');
         throw new Error('Failed to upload ZK proof: ' + proofUploadResult.error);
       }
-      
-      console.log('[BlockDriveUpload] ZK proof uploaded with CID:', proofUploadResult.proofCid);
       
       // Upload encrypted metadata
       const metadataBlob = new TextEncoder().encode(JSON.stringify({
@@ -526,7 +522,6 @@ class BlockDriveUploadService {
     const initTx = await shardingClient.ensureVaultMasterExists(ownerPubkey);
     if (initTx) {
       transactions.push(initTx);
-      console.log('[OnChain] VaultMaster initialization transaction prepared');
     }
 
     // Step 2: Ensure shard has capacity (creates new shard if needed)
@@ -535,7 +530,6 @@ class BlockDriveUploadService {
     
     if (needsNewShard && shardTx) {
       transactions.push(shardTx);
-      console.log(`[OnChain] Shard ${shardIndex} creation transaction prepared`);
     }
 
     // Step 3: Prepare file registration transaction
@@ -563,8 +557,6 @@ class BlockDriveUploadService {
     );
 
     transactions.push(registrationResult.transaction);
-    console.log(`[OnChain] File registration transaction prepared (shard ${shardIndex}, slot ${registrationResult.slotIndex})`);
-
     return {
       transactions,
       fileId: registrationResult.fileId,
@@ -595,7 +587,6 @@ class BlockDriveUploadService {
     folderPath: string = '/'
   ): Promise<BlockDriveUploadResult> {
     // Step 1: Upload to storage providers
-    console.log('[BlockDrive] Starting encrypted upload...');
     const uploadResult = await this.uploadFile(
       file,
       encryptionKey,
@@ -606,11 +597,8 @@ class BlockDriveUploadService {
     );
 
     if (!uploadResult.success) {
-      console.error('[BlockDrive] Storage upload failed');
       return uploadResult;
     }
-
-    console.log('[BlockDrive] Storage upload complete, preparing on-chain registration...');
 
     // Step 2: Prepare on-chain transactions
     const ownerPubkey = new PublicKey(walletAddress);
@@ -618,7 +606,6 @@ class BlockDriveUploadService {
       await this.prepareOnChainRegistration(connection, ownerPubkey, uploadResult);
 
     // Step 3: Sign and send transactions
-    console.log(`[BlockDrive] Signing ${transactions.length} transaction(s)...`);
     const signatures = await signAndSend(transactions);
 
     // Return enriched result
@@ -796,8 +783,6 @@ class BlockDriveUploadService {
         clerkUserId,
         folderPath
       );
-
-      console.log('[BlockDrive] File saved to Supabase with privacy-enhanced metadata');
 
       return {
         ...uploadResult,

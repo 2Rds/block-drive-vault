@@ -35,8 +35,6 @@ export async function createWalletServerSide(
 ): Promise<CreateWalletResult> {
   const { clerkUserId, email, token } = params;
 
-  console.log('[serverWalletService] Creating wallet for:', clerkUserId);
-
   try {
     const response = await fetch(
       `${crossmintConfig.supabaseUrl}/functions/v1/create-crossmint-wallet`,
@@ -56,14 +54,12 @@ export async function createWalletServerSide(
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('[serverWalletService] API error:', data);
+      console.error('[serverWalletService] API error:', data.error || 'Unknown error');
       return {
         success: false,
         error: data.error || 'Failed to create wallet',
       };
     }
-
-    console.log('[serverWalletService] Wallet created:', data);
 
     return {
       success: true,

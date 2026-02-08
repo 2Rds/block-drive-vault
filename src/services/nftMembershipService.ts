@@ -145,8 +145,6 @@ class NFTMembershipService {
    */
   async verifyMembership(walletAddress: string): Promise<MembershipVerification> {
     try {
-      console.log('[NFTMembership] Verifying membership for Crossmint wallet:', walletAddress);
-
       // Check cached membership first
       const cachedMembership = this.getCachedMembership(walletAddress);
 
@@ -198,7 +196,6 @@ class NFTMembershipService {
           try {
             const tokenAccount = await this.connection.getTokenAccountBalance(ata);
             if (tokenAccount.value.uiAmount && tokenAccount.value.uiAmount > 0) {
-              console.log('[NFTMembership] Found on-chain Token-2022 membership:', tier);
               // Found a membership token - return basic verification
               const tierConfig = TIER_CONFIGS[tier];
               return {
@@ -257,9 +254,6 @@ class NFTMembershipService {
     crossmintSigner: CrossmintTransactionSigner
   ): Promise<MembershipPurchaseResult> {
     try {
-      console.log('[NFTMembership] Creating Token-2022 membership NFT:', request);
-      console.log('[NFTMembership] Environment:', crossmintConfig.environment);
-
       if (!crossmintSigner.walletAddress) {
         throw new Error('Crossmint wallet not initialized');
       }
@@ -292,8 +286,6 @@ class NFTMembershipService {
         request.tier
       );
 
-      console.log('[NFTMembership] Mint address:', mintKeypair.publicKey.toBase58());
-
       // Create the Token-2022 metadata
       const tokenMetadata: TokenMetadata = {
         mint: mintKeypair.publicKey,
@@ -316,9 +308,6 @@ class NFTMembershipService {
       const lamports = await this.connection.getMinimumBalanceForRentExemption(
         mintLen + metadataExtension + metadataLen
       );
-
-      console.log('[NFTMembership] Rent-exempt lamports:', lamports);
-      console.log('[NFTMembership] Mint account size:', mintLen + metadataExtension + metadataLen);
 
       // Build the transaction with Token-2022 instructions
       const transaction = new Transaction();
@@ -422,12 +411,7 @@ class NFTMembershipService {
       transaction.partialSign(mintKeypair);
 
       // Sign and send with Crossmint gas sponsorship
-      console.log('[NFTMembership] Signing Token-2022 mint transaction with Crossmint...');
-
       const transactionSignature = await crossmintSigner.signAndSendTransaction(transaction);
-
-      console.log('[NFTMembership] Transaction submitted:', transactionSignature);
-      console.log('[NFTMembership] Explorer: https://explorer.solana.com/tx/' + transactionSignature + '?cluster=devnet');
 
       // Wait for confirmation
       const confirmation = await this.connection.confirmTransaction({
@@ -439,10 +423,6 @@ class NFTMembershipService {
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
       }
-
-      console.log('[NFTMembership] Token-2022 NFT minted successfully!');
-      console.log('[NFTMembership] Mint:', mintKeypair.publicKey.toBase58());
-      console.log('[NFTMembership] ATA:', ata.toBase58());
 
       // Create membership metadata
       const metadata: MembershipMetadata = {
@@ -471,10 +451,6 @@ class NFTMembershipService {
 
       // Cache the membership locally
       this.cacheMembership(crossmintSigner.walletAddress, membershipNFT);
-
-      console.log('[NFTMembership] Membership created successfully with Token-2022');
-      console.log('[NFTMembership] NFT Mint:', mintKeypair.publicKey.toBase58());
-      console.log('[NFTMembership] Token Account:', ata.toBase58());
 
       return {
         success: true,

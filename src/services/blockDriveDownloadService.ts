@@ -337,8 +337,6 @@ class BlockDriveDownloadService {
         throw new Error(contentResult.error || 'Failed to download encrypted content');
       }
       
-      console.log('[BlockDriveDownload] Encrypted content downloaded from IPFS');
-      
       // Step 2: Download and extract critical bytes from ZK proof (R2)
       const zkProofResult = await zkProofStorageService.downloadProof(
         fileRecord.proofCid
@@ -347,8 +345,6 @@ class BlockDriveDownloadService {
       if (!zkProofResult.success || !zkProofResult.proofPackage) {
         throw new Error(zkProofResult.error || 'Failed to download ZK proof');
       }
-
-      console.log('[BlockDriveDownload] ZK proof downloaded from R2');
 
       const proofPackage = zkProofResult.proofPackage;
 
@@ -383,8 +379,6 @@ class BlockDriveDownloadService {
       );
       
       decryptionTime = performance.now() - decryptStart;
-      
-      console.log('[BlockDriveDownload] File decrypted successfully');
       
       return {
         success: true,
@@ -491,9 +485,7 @@ class BlockDriveDownloadService {
         expectedCommitment
       );
 
-      if (result.verified) {
-        console.log(`[Verify] Commitment verified for file ${fileId}`);
-      } else {
+      if (!result.verified) {
         console.warn(`[Verify] Commitment verification failed: ${result.error}`);
       }
 

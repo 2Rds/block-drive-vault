@@ -98,7 +98,6 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     // This handles Web3 wallet sign-ins without email
     if (user.id) {
       const fallbackEmail = `${user.id}@blockdrive.clerk`;
-      console.log('[Crossmint] Using fallback identifier for user without email:', fallbackEmail);
       return fallbackEmail;
     }
 
@@ -118,10 +117,8 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        console.log('[Crossmint] Setting JWT for user:', user.id);
         setJwt(clerkToken);
         setHasSetJwt(true);
-        console.log('[Crossmint] JWT set successfully');
       } catch (error) {
         console.error('[Crossmint] Error setting JWT:', error);
       }
@@ -135,10 +132,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   // All users get a Crossmint wallet (even Web3 wallet sign-ins - Web3 wallet is just for auth)
   useEffect(() => {
     if (!hasSetJwt || !jwt || isCreatingWallet || walletCreationAttempted.current) return;
-    if (wallet) {
-      console.log('[Crossmint] Wallet already exists:', wallet);
-      return;
-    }
+    if (wallet) return;
 
     const identifier = getUserIdentifier();
     if (!identifier) {
@@ -151,17 +145,11 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
       walletCreationAttempted.current = true;
 
       try {
-        console.log('[Crossmint] Creating embedded wallet for:', identifier);
-        console.log('[Crossmint] Current wallet status:', status);
-        console.log('[Crossmint] JWT available:', !!jwt);
-
         // Crossmint docs pattern: pass signer with email type
         // The JWT authenticates the user, signer identifies the wallet
-        const newWallet = await getOrCreateWallet({
+        await getOrCreateWallet({
           signer: { type: 'email', email: identifier },
         });
-
-        console.log('[Crossmint] Wallet created successfully:', newWallet);
       } catch (error) {
         console.error('[Crossmint] Error creating wallet:', error);
         walletCreationAttempted.current = false; // Allow retry on error
@@ -172,11 +160,6 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
 
     createWallet();
   }, [hasSetJwt, jwt, wallet, status, getUserIdentifier, getOrCreateWallet, isCreatingWallet]);
-
-  // Log wallet status changes
-  useEffect(() => {
-    console.log('[Crossmint] Wallet status:', status, 'Wallet:', wallet?.address || 'none', 'Server wallet:', serverWalletAddress || 'none');
-  }, [wallet, status, serverWalletAddress]);
 
   // Fallback: Server-side wallet creation when SDK fails
   // If status stays "not-loaded" for 5 seconds after JWT is set, use server-side API
@@ -191,12 +174,8 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     // Wait 5 seconds for SDK to create wallet
     const timeoutId = setTimeout(async () => {
       // Re-check conditions after timeout
-      if (wallet || serverWalletAddress || status !== 'not-loaded') {
-        console.log('[Crossmint] SDK wallet creation succeeded, skipping server fallback');
-        return;
-      }
+      if (wallet || serverWalletAddress || status !== 'not-loaded') return;
 
-      console.log('[Crossmint] SDK wallet creation timeout, falling back to server-side API');
       serverWalletAttempted.current = true;
       setIsCreatingServerWallet(true);
 
@@ -214,7 +193,6 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
         });
 
         if (result.success && result.wallet) {
-          console.log('[Crossmint] Server-side wallet created:', result.wallet.address);
           setServerWalletAddress(result.wallet.address);
         } else {
           console.error('[Crossmint] Server-side wallet creation failed:', result.error);
@@ -247,8 +225,6 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
           },
           token,
         });
-
-        console.log('[Crossmint] Wallet synced to database');
       } catch (error) {
         console.error('[Crossmint] Wallet sync error:', error);
       }
@@ -260,7 +236,6 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   // Clear JWT and wallet state when user signs out
   useEffect(() => {
     if (!isSignedIn && hasSetJwt) {
-      console.log('[Crossmint] User signed out, clearing state');
       setJwt(null as any);
       setHasSetJwt(false);
       walletCreationAttempted.current = false;
@@ -286,7 +261,6 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
 
   // Use "solana" for Solana Smart Wallets (not "solana:devnet")
   const defaultChain = 'solana';
-  console.log('[Crossmint] Provider mounting - API Key:', !!crossmintConfig.apiKey, 'Env:', crossmintConfig.environment, 'Chain:', defaultChain);
 
   return (
     <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>

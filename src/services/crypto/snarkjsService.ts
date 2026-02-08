@@ -149,9 +149,6 @@ class SnarkjsService {
       commitment: this.hashToBits(commitment),
     };
 
-    console.log('[Snarkjs] Generating Groth16 proof...');
-    const startTime = performance.now();
-
     try {
       // Generate the proof using snarkjs
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
@@ -159,9 +156,6 @@ class SnarkjsService {
         CIRCUIT_ARTIFACTS.wasm,
         CIRCUIT_ARTIFACTS.zkey
       );
-
-      const proofTime = performance.now() - startTime;
-      console.log(`[Snarkjs] Proof generated in ${proofTime.toFixed(0)}ms`);
 
       // Create proof hash for integrity
       const proofJson = JSON.stringify({ proof, publicSignals });
@@ -192,17 +186,11 @@ class SnarkjsService {
     try {
       const verificationKey = await this.loadVerificationKey();
 
-      console.log('[Snarkjs] Verifying Groth16 proof...');
-      const startTime = performance.now();
-
       const isValid = await snarkjs.groth16.verify(
         verificationKey,
         proofPackage.publicSignals,
         proofPackage.proof
       );
-
-      const verifyTime = performance.now() - startTime;
-      console.log(`[Snarkjs] Proof verified in ${verifyTime.toFixed(0)}ms: ${isValid}`);
 
       return isValid;
     } catch (error) {

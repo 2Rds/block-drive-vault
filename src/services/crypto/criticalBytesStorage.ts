@@ -43,7 +43,6 @@ class CriticalBytesStorage {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[CriticalBytesStorage] Database initialized');
         resolve(this.db);
       };
 
@@ -94,7 +93,6 @@ class CriticalBytesStorage {
       const request = store.put(record);
 
       request.onsuccess = () => {
-        console.log('[CriticalBytesStorage] Stored critical bytes for:', params.fileId);
         resolve();
       };
 
@@ -257,7 +255,6 @@ class CriticalBytesStorage {
       const request = store.delete(fileId);
 
       request.onsuccess = () => {
-        console.log('[CriticalBytesStorage] Deleted critical bytes for:', fileId);
         resolve();
       };
 

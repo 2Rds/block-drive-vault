@@ -175,8 +175,6 @@ export const GoogleDriveIntegration = ({ isOpen, onClose }: GoogleDriveIntegrati
 
       // Here you would upload to your IPFS/BlockDrive storage
       // For now, we'll simulate the upload
-      console.log('Migrating file to BlockDrive:', file.name);
-
       toast.success(`File "${file.name}" migrated to BlockDrive successfully!`);
 
     } catch (error) {

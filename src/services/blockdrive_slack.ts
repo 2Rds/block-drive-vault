@@ -38,8 +38,6 @@ export class BlockDriveSlack {
   }
 
   async getAuthUrl(redirectUri: string, state?: string): Promise<string> {
-    console.log('Generating OAuth URL with:', { redirectUri, state });
-    
     const scopes = [
       "channels:read",
       "files:read",
@@ -58,7 +56,6 @@ export class BlockDriveSlack {
     });
 
     const authUrl = `https://slack.com/oauth/v2/authorize?${params.toString()}`;
-    console.log('Generated OAuth URL:', authUrl);
     return authUrl;
   }
 
@@ -98,11 +95,8 @@ export class BlockDriveSlack {
   }
 
   async syncSlackFiles(accessToken: string, userId: string): Promise<void> {
-    console.log('Syncing Slack files to Supabase...');
-    
     try {
       const files = await this.getFiles(accessToken);
-      console.log('Files to sync:', files.length);
       
       for (const file of files) {
         const { error } = await supabase
@@ -123,7 +117,6 @@ export class BlockDriveSlack {
         }
       }
       
-      console.log('File sync completed');
     } catch (error) {
       console.error("Error syncing Slack files:", error);
       throw error;
@@ -139,7 +132,6 @@ export class BlockDriveSlack {
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After');
       const delay = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
-      console.log(`Rate limited. Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

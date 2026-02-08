@@ -92,7 +92,6 @@ class SNSSubdomainService {
       // Get the blockdrive.sol domain key
       const { pubkey } = getDomainKeySync('blockdrive');
       this.parentDomainKey = pubkey;
-      console.log('[SNS] Parent domain key:', pubkey.toBase58());
       return pubkey;
     } catch (error) {
       console.error('[SNS] Failed to get parent domain key:', error);
@@ -247,9 +246,6 @@ class SNSSubdomainService {
     const fullDomain = `${subdomain}.${BLOCKDRIVE_PARENT_DOMAIN}`;
 
     try {
-      console.log('[SNS] Registering subdomain:', fullDomain);
-      console.log('[SNS] For wallet:', walletAddress);
-
       // Validate subdomain format
       const validation = this.validateSubdomain(subdomain);
       if (!validation.valid) {
@@ -281,7 +277,6 @@ class SNSSubdomainService {
         } else {
           // In production, we'd verify the user owns a BlockDrive membership NFT
           // For now, we trust the frontend verification
-          console.log('[SNS] NFT verification delegated to frontend');
         }
       }
 
@@ -299,8 +294,6 @@ class SNSSubdomainService {
         undefined, // No class
         this.parentDomainKey! // Parent is blockdrive.sol
       );
-
-      console.log('[SNS] Subdomain key:', subdomainKey.toBase58());
 
       // Space for the name registry (wallet address + extra data)
       const space = 32 + 100; // 32 bytes for owner + buffer for data
@@ -333,10 +326,7 @@ class SNSSubdomainService {
       transaction.feePayer = walletPubkey;
 
       // Sign and send with Crossmint
-      console.log('[SNS] Signing transaction...');
       const signature = await crossmintSigner.signAndSendTransaction(transaction);
-
-      console.log('[SNS] Transaction submitted:', signature);
 
       // Wait for confirmation
       const confirmation = await this.connection.confirmTransaction({
@@ -350,10 +340,6 @@ class SNSSubdomainService {
           `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
         );
       }
-
-      console.log('[SNS] Subdomain registered successfully!');
-      console.log('[SNS] Full domain:', fullDomain);
-      console.log('[SNS] Registry key:', subdomainKey.toBase58());
 
       return {
         success: true,

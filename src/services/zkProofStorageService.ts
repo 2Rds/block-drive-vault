@@ -73,8 +73,6 @@ class ZKProofStorageService {
         };
       }
 
-      console.log('[ZKProofStorage] Uploaded proof with CID:', result.primaryResult.identifier);
-
       return {
         success: true,
         proofCid: result.primaryResult.identifier,
@@ -144,8 +142,6 @@ class ZKProofStorageService {
         };
       }
 
-      console.log('[ZKProofStorage] Downloaded and verified proof');
-
       return {
         success: true,
         proofPackage,
@@ -202,8 +198,6 @@ class ZKProofStorageService {
     const startTime = performance.now();
 
     try {
-      console.log('[ZKProofStorage] Invalidating proof:', proofCid);
-
       // Step 1: Download the original proof
       const downloadResult = await this.downloadProof(proofCid, primaryProvider);
       
@@ -273,9 +267,6 @@ class ZKProofStorageService {
           error: 'Failed to upload invalidated proof'
         };
       }
-
-      console.log('[ZKProofStorage] Proof invalidated successfully in', Math.round(elapsedTime), 'ms');
-      console.log('[ZKProofStorage] Invalidated proof CID:', uploadResult.primaryResult.identifier);
 
       return { success: true };
 

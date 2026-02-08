@@ -122,14 +122,11 @@ export function SharedFilesPanel({
       
       if (proofCid && proofCid.length > 10) {
         // Step 2: Invalidate the ZK proof on storage
-        console.log('[SharedFilesPanel] Invalidating ZK proof:', proofCid);
         const invalidateResult = await zkProofStorageService.invalidateProof(proofCid);
-        
+
         if (!invalidateResult.success) {
-          console.warn('[SharedFilesPanel] ZK proof invalidation failed:', invalidateResult.error);
+          console.warn('[SharedFilesPanel] ZK proof invalidation failed');
           // Continue with on-chain revocation anyway
-        } else {
-          console.log('[SharedFilesPanel] ZK proof invalidated successfully');
         }
       }
 

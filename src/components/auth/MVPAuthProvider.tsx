@@ -30,7 +30,6 @@ export const MVPAuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(parsed.user);
           setSession(parsed.session);
           setWalletData(parsed.walletData);
-          console.log('✅ MVP Auth restored from storage');
         }
       } catch (error) {
         console.error('Failed to restore MVP auth:', error);
@@ -41,8 +40,6 @@ export const MVPAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const connectWallet = useCallback(async (incomingWalletData: MVPWalletData) => {
-    console.log('🔄 MVP Connect wallet called:', incomingWalletData);
-    
     try {
       const userId = `mvp-user-${incomingWalletData.address}`;
       const userEmail = `${incomingWalletData.address}@blockdrive.demo`;
@@ -106,7 +103,6 @@ export const MVPAuthProvider = ({ children }: { children: ReactNode }) => {
         walletData: walletInfo
       }));
 
-      console.log('✅ MVP Authentication successful');
       toast.success('Welcome to BlockDrive!');
       
       return { error: null, data: authenticatedUser };
@@ -118,8 +114,6 @@ export const MVPAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const disconnectWallet = useCallback(async () => {
-    console.log('🔓 MVP Disconnecting wallet...');
-    
     // Clear state
     setWalletData(null);
     setUser(null);
@@ -128,7 +122,6 @@ export const MVPAuthProvider = ({ children }: { children: ReactNode }) => {
     // Clear storage
     localStorage.removeItem(MVP_AUTH_KEY);
     
-    console.log('✅ MVP Wallet disconnected');
     toast.success('Signed out successfully');
     
     navigate('/');

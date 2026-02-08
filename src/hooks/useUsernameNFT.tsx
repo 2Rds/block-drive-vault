@@ -111,10 +111,6 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
           throw new Error('No authentication token available');
         }
 
-        if (orgContext?.organizationId) {
-          console.log(`[useUsernameNFT] Minting with org context: ${orgContext.organizationSubdomain}`);
-        }
-
         const result = await mintUsernameNFT({
           clerkUserId: userId,
           username: usernameToMint,

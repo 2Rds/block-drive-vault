@@ -28,7 +28,6 @@ function ImageWithFallback({ src, fallbackUrls, alt, className }: ImageWithFallb
   const handleError = () => {
     const nextIndex = fallbackIndex + 1;
     if (nextIndex < fallbackUrls.length) {
-      console.log(`Trying fallback URL ${nextIndex + 1}:`, fallbackUrls[nextIndex]);
       setCurrentSrc(fallbackUrls[nextIndex]);
       setFallbackIndex(nextIndex);
     } else {
@@ -38,7 +37,6 @@ function ImageWithFallback({ src, fallbackUrls, alt, className }: ImageWithFallb
   };
 
   const handleLoad = () => {
-    console.log('Image loaded successfully from:', currentSrc);
     setHasError(false);
   };
 
@@ -93,8 +91,6 @@ export function FileViewer({ file, onClose, onDownload }: FileViewerProps): Reac
 
   const getFileDisplayUrl = (): string => {
     const url = file.ipfsUrl || `${IPFS_GATEWAYS[0]}/${file.cid}`;
-    console.log('FileViewer - Displaying file:', file);
-    console.log('FileViewer - Using URL:', url);
     return url;
   };
 

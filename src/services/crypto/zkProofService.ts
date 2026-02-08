@@ -130,8 +130,6 @@ class ZKProofService {
     }
 
     // Generate Groth16 proof
-    console.log('[ZKProof] Generating Groth16 proof for commitment:', commitment.slice(0, 16) + '...');
-    
     let groth16Package: Groth16ProofPackage;
     let proofType: 'BlockDrive-ZK-v2-Groth16' | 'BlockDrive-ZK-v2-Simulated';
     
@@ -186,8 +184,6 @@ class ZKProofService {
       new TextEncoder().encode(this.buildProofHashContent(proofPackage))
     );
 
-    console.log(`[ZKProof] Generated ${proofType} proof with commitment:`, commitment.slice(0, 16) + '...');
-
     return proofPackage;
   }
 
@@ -202,7 +198,6 @@ class ZKProofService {
 
     if (proofPackage.verificationData.proofType === 'BlockDrive-ZK-v2-Simulated') {
       // Simulated proofs can't be cryptographically verified
-      console.log('[ZKProof] Simulated proof - skipping cryptographic verification');
       return true;
     }
 
@@ -279,8 +274,6 @@ class ZKProofService {
       if (extractedCommitment !== expectedCommitment) {
         throw new Error('Extracted bytes do not match commitment - proof invalid');
       }
-
-      console.log('[ZKProof] Successfully verified and extracted critical bytes');
 
       return {
         criticalBytes,

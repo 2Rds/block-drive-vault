@@ -24,7 +24,6 @@ export const ClerkProtectedRoute = ({ children }: ClerkProtectedRouteProps) => {
 
   // Redirect to sign-in if not authenticated
   if (!isSignedIn) {
-    console.log('🛡️ ClerkProtectedRoute - Not authenticated, redirecting to sign-in');
     return <Navigate to="/sign-in" state={{ from: location }} replace />;
   }
 

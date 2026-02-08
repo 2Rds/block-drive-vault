@@ -201,8 +201,6 @@ export function ShareFileModal({
 
       // Step 1: Download the original ZK proof
       setSharingStep('Downloading ZK proof...');
-      console.log('[ShareFileModal] Downloading original ZK proof:', file.proofCid);
-      
       const proofDownload = await zkProofStorageService.downloadProof(file.proofCid);
       
       if (!proofDownload.success || !proofDownload.proofPackage) {
@@ -229,8 +227,6 @@ export function ShareFileModal({
 
       // Step 3: Extract critical bytes from proof
       setSharingStep('Extracting critical bytes...');
-      console.log('[ShareFileModal] Extracting critical bytes from ZK proof');
-      
       const extracted = await zkProofService.verifyAndExtract(
         proofDownload.proofPackage,
         ownerKey,
@@ -248,8 +244,6 @@ export function ShareFileModal({
       // For now, we re-encrypt with the owner's key and the recipient will need
       // the delegation's encryptedFileKey to access
       setSharingStep('Generating delegation proof...');
-      console.log('[ShareFileModal] Generating new ZK proof for delegation');
-      
       const delegationProof = await zkProofService.generateProof(
         extracted.criticalBytes,
         extracted.fileIv,
@@ -269,8 +263,6 @@ export function ShareFileModal({
         setIsSharing(false);
         return;
       }
-
-      console.log('[ShareFileModal] Delegation proof uploaded:', delegationProofUpload.proofCid);
 
       // Step 6: Create the on-chain delegation with proof CID as encrypted file key
       setSharingStep('Creating on-chain delegation...');

@@ -41,8 +41,6 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
 
   const handleConnect = async () => {
     setLoading(true);
-    console.log('Initiating Box OAuth connection...');
-    
     try {
       // Initiate Box OAuth flow
       const clientId = 't3pgad8ucoxzrolvf4ljngfgpvb9ov5y';
@@ -81,8 +79,6 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
 
   const syncFiles = async () => {
     setLoading(true);
-    console.log('Syncing Box files...');
-    
     try {
       const accessToken = localStorage.getItem('box_access_token');
       if (!accessToken) {
@@ -116,8 +112,6 @@ export const BoxIntegration: React.FC<BoxIntegrationProps> = ({ isOpen, onClose 
   };
 
   const handleFileDownload = async (file: BoxFile) => {
-    console.log('Downloading file from Box:', file.name);
-    
     try {
       const accessToken = localStorage.getItem('box_access_token');
       if (!accessToken) {

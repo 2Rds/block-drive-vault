@@ -31,8 +31,6 @@ export const useSubscriptionStatus = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Checking subscription for user:', user.id, 'email:', user.email);
-
       // Determine auth token based on user type:
       // 1. Wallet users (@blockdrive.wallet) - use user ID
       // 2. Clerk users (have email, app_metadata.provider === 'clerk') - use email
@@ -42,12 +40,10 @@ export const useSubscriptionStatus = () => {
       // Check if this is a wallet user (email ends with @blockdrive.wallet)
       if (user.email?.endsWith('@blockdrive.wallet')) {
         authToken = user.id;
-        console.log('Using wallet auth with user ID:', user.id);
       } else if (user.app_metadata?.provider === 'clerk') {
         // Clerk users: pass user ID (check-subscription looks up by clerk_user_id first)
         // This handles cases where Stripe checkout email differs from Clerk auth email
         authToken = user.id;
-        console.log('Using Clerk user ID for subscription check:', user.id);
       } else {
         // Supabase users: get auth token from current session
         const { data: { session } } = await supabase.auth.getSession();
@@ -55,7 +51,6 @@ export const useSubscriptionStatus = () => {
           // Fallback: if user has email, try that
           if (user.email) {
             authToken = user.email;
-            console.log('No session, falling back to email:', user.email);
           } else {
             console.error('No valid session or email found for user');
             setSubscriptionStatus(null);
@@ -64,7 +59,6 @@ export const useSubscriptionStatus = () => {
           }
         } else {
           authToken = session.access_token;
-          console.log('Using Supabase session token for regular user');
         }
       }
       
@@ -82,7 +76,6 @@ export const useSubscriptionStatus = () => {
         return;
       }
       
-      console.log('Subscription data received:', data);
       setSubscriptionStatus(data);
       
     } catch (err: any) {
@@ -98,7 +91,6 @@ export const useSubscriptionStatus = () => {
   // Check subscription on mount and when user changes
   useEffect(() => {
     if (user?.id) {
-      console.log('useSubscriptionStatus: User changed, checking subscription');
       checkSubscription();
     } else {
       // Clear subscription status when user logs out
@@ -112,7 +104,6 @@ export const useSubscriptionStatus = () => {
     if (!user) return;
     
     const interval = setInterval(() => {
-      console.log('useSubscriptionStatus: Periodic refresh');
       checkSubscription();
     }, 2 * 60 * 1000); // 2 minutes for more responsive updates
 
@@ -124,7 +115,6 @@ export const useSubscriptionStatus = () => {
   useEffect(() => {
     const handleFocus = () => {
       if (user && document.hasFocus()) {
-        console.log('Window focused - checking for subscription updates');
         checkSubscription();
       }
     };
@@ -132,7 +122,6 @@ export const useSubscriptionStatus = () => {
     // Listen for visibility change as well (more reliable than focus)
     const handleVisibilityChange = () => {
       if (user && !document.hidden) {
-        console.log('Page became visible - checking for subscription updates');
         setTimeout(() => {
           checkSubscription();
         }, 1000); // Small delay to ensure any Stripe updates have propagated

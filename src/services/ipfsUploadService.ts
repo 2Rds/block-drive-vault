@@ -20,8 +20,6 @@ export class IPFSUploadService {
 
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
-      console.log(`Processing file ${i + 1}/${totalFiles} for IPFS via Filebase: ${file.name}`);
-      
       try {
         const uploadResult = await IPFSService.uploadFile(file);
 
@@ -62,7 +60,6 @@ export class IPFSUploadService {
           };
           
           uploadedFiles.push(ipfsFile);
-          console.log(`File ${i + 1}/${totalFiles} uploaded successfully:`, ipfsFile);
         }
 
         const progress = ((i + 1) / totalFiles) * 100;
@@ -123,7 +120,6 @@ export class IPFSUploadService {
   static async deleteFile(fileId: string, cid: string, userId: string): Promise<void> {
     try {
       await FileDatabaseService.deleteFile(fileId, userId);
-      console.log(`File deleted: ${fileId} (CID: ${cid})`);
     } catch (error) {
       console.error('Failed to delete file:', error);
       throw error;

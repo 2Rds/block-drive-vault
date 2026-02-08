@@ -28,7 +28,6 @@ export class IPFSUploadService {
         contentType: result.file.contentType
       };
       
-      console.log('IPFS upload successful via secure service:', uploadResult);
       toast.success(`File uploaded to IPFS: ${result.file.cid}`);
       return uploadResult;
       
@@ -44,14 +43,12 @@ export class IPFSUploadService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`Uploading file ${i + 1}/${files.length} to IPFS via secure service...`);
       const result = await this.uploadFile(file);
       if (result) {
         results.push(result);
       }
     }
     
-    console.log(`Successfully uploaded ${results.length}/${files.length} files to IPFS via secure service`);
     return results;
   }
 }

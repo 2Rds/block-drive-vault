@@ -29,7 +29,6 @@ export const useIPFSUpload = () => {
 
       for (let i = 0; i < totalFiles; i++) {
         const file = files[i];
-        console.log(`Uploading file ${i + 1}/${totalFiles}: ${file.name}`);
 
         // Create form data for the file
         const formData = new FormData();
@@ -133,9 +132,7 @@ export const useIPFSUpload = () => {
     
     setLoading(true);
     try {
-      console.log('Loading IPFS files for user:', user.id);
       const ipfsFiles = await FileDatabaseService.loadUserFiles(user.id);
-      console.log('Loaded IPFS files:', ipfsFiles);
       setUserFiles(ipfsFiles);
     } catch (error) {
       console.error('Failed to load user files:', error);

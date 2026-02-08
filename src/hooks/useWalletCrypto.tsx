@@ -91,12 +91,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     const messageBytes = stringToBytes(message);
 
     if (crossmintWallet.isInitialized && crossmintWallet.signMessage) {
-      console.log(`[useWalletCrypto] Requesting signature from Crossmint wallet for level ${level}`);
       return crossmintWallet.signMessage(messageBytes);
     }
 
     if (walletData?.adapter?.signMessage) {
-      console.log(`[useWalletCrypto] Requesting signature from external wallet for level ${level}`);
       return walletData.adapter.signMessage(messageBytes);
     }
 

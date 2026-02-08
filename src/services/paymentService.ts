@@ -98,8 +98,6 @@ class PaymentService {
    * Supports credit/debit cards and bank transfers
    */
   async subscribeFiat(options: PaymentOptions): Promise<CheckoutResult> {
-    console.log('[PaymentService] Starting fiat subscription', options);
-
     try {
       // Build request body - include Clerk user ID if available
       const requestBody: Record<string, unknown> = {
@@ -112,7 +110,6 @@ class PaymentService {
       // This is more reliable than custom Authorization header which can conflict with Supabase auth
       if (options.authToken) {
         requestBody.clerkUserId = options.authToken;
-        console.log('[PaymentService] Including Clerk user ID:', options.authToken.substring(0, 10) + '...');
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', { body: requestBody });
@@ -134,7 +131,6 @@ class PaymentService {
         };
       }
 
-      console.log('[PaymentService] Fiat checkout created:', data.url);
       return {
         success: true,
         url: data.url,
@@ -162,8 +158,6 @@ class PaymentService {
    * 4. Once funded, pg_cron scheduler processes recurring payments
    */
   async subscribeCrypto(options: PaymentOptions): Promise<CryptoCheckoutResult> {
-    console.log('[PaymentService] Starting crypto subscription via Crossmint', options);
-
     try {
       // Get current user (try Clerk first, then Supabase auth)
       const { data: { user } } = await supabase.auth.getUser();
@@ -212,7 +206,6 @@ class PaymentService {
 
       // Handle insufficient balance (402 Payment Required)
       if (data?.error === 'insufficient_balance') {
-        console.log('[PaymentService] Insufficient balance:', data);
         return {
           success: false,
           error: data.message || 'Insufficient USDC balance',
@@ -234,7 +227,6 @@ class PaymentService {
         };
       }
 
-      console.log('[PaymentService] Crypto checkout successful:', data);
       return {
         success: true,
         subscriptionId: data.subscriptionId,
@@ -283,7 +275,6 @@ class PaymentService {
         .single();
 
       if (error || !subscriber) {
-        console.log('[PaymentService] No subscription found');
         return {
           isSubscribed: false,
           tier: null,

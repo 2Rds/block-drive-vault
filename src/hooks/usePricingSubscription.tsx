@@ -15,12 +15,6 @@ export const usePricingSubscription = () => {
    * Handle fiat subscription (Stripe)
    */
   const handleSubscribe = useCallback(async (tier: PricingTier, option: PricingOption) => {
-    console.log('handleSubscribe called with tier:', tier.name, 'period:', option.period);
-    console.log('Current auth state:', {
-      hasUser: !!user,
-      userId: user?.id
-    });
-
     if (tier.isEnterprise) {
       // Handle enterprise contact
       window.open('mailto:sales@blockdrive.com?subject=Enterprise Plan Inquiry', '_blank');
@@ -30,8 +24,6 @@ export const usePricingSubscription = () => {
     setLoading(tier.name);
 
     try {
-      console.log('Creating checkout session for tier:', tier.name);
-
       // Pass Clerk user ID as auth token for Clerk users
       // This ensures the edge function can identify the user and store clerk_user_id
       const result = await paymentService.subscribeFiat({
@@ -44,8 +36,6 @@ export const usePricingSubscription = () => {
       if (!result.success || !result.url) {
         throw new Error(result.error || 'Failed to create checkout session');
       }
-
-      console.log('Checkout session created, redirecting to:', result.url);
 
       // Show success message
       toast.success('Redirecting to checkout...');
@@ -69,8 +59,6 @@ export const usePricingSubscription = () => {
     tier: PricingTier,
     option: PricingOption
   ): Promise<CryptoCheckoutResult | null> => {
-    console.log('handleSubscribeCrypto called with tier:', tier.name, 'period:', option.period);
-
     if (!user) {
       toast.error('Please log in to subscribe with crypto');
       navigate('/login');
@@ -85,14 +73,10 @@ export const usePricingSubscription = () => {
     setLoading(`${tier.name}-crypto`);
 
     try {
-      console.log('Creating crypto checkout for tier:', tier.name);
-
       const result = await paymentService.subscribeCrypto({
         tier: tier.name as SubscriptionTier,
         billingPeriod: mapPeriodToBillingPeriod(option.period),
       });
-
-      console.log('Crypto checkout result:', result);
 
       // Handle successful payment
       if (result.success) {
@@ -102,7 +86,7 @@ export const usePricingSubscription = () => {
       }
       // Handle insufficient balance - don't show toast, let UI handle it
       else if (result.errorType === 'insufficient_balance') {
-        console.log('Insufficient balance, returning result for UI handling');
+        // Insufficient balance - let UI handle it
       }
       // Handle other errors
       else {
@@ -144,9 +128,7 @@ export const usePricingSubscription = () => {
     if (!user) return null;
     
     try {
-      console.log('Checking subscription status for user:', user.id);
       const status = await paymentService.checkSubscriptionStatus();
-      console.log('Subscription status:', status);
       return status;
     } catch (error) {
       console.error('Failed to check subscription:', error);

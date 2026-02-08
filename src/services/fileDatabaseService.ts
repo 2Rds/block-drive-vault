@@ -61,8 +61,6 @@ export class FileDatabaseService {
       }
     };
     
-    console.log('Inserting file data:', fileData);
-    
     try {
       const { data: dbFile, error: dbError } = await supabase
         .from('files')
@@ -75,7 +73,6 @@ export class FileDatabaseService {
         throw new Error(`Failed to save ${originalFile.name} metadata: ${dbError.message}`);
       }
       
-      console.log('File saved to database:', dbFile);
       return dbFile;
       
     } catch (error) {
@@ -99,8 +96,6 @@ export class FileDatabaseService {
     visibility?: FileVisibility;
     owner_clerk_id?: string;
   }) {
-    console.log('Saving file with hybrid storage data:', fileData);
-
     try {
       const insertData: Record<string, unknown> = {
         filename: fileData.filename,
@@ -138,7 +133,6 @@ export class FileDatabaseService {
         throw new Error(`Failed to save file: ${dbError.message}`);
       }
 
-      console.log('Hybrid file saved to database:', dbFile);
       return dbFile;
 
     } catch (error) {
@@ -353,11 +347,6 @@ export class FileDatabaseService {
    * The filename is stored as '[encrypted]' placeholder for UI compatibility.
    */
   static async saveFileWithPrivacy(fileData: PrivacyEnhancedFileData) {
-    console.log('Saving file with privacy-enhanced metadata:', {
-      ...fileData,
-      encrypted_metadata: '[ENCRYPTED]' // Don't log actual encrypted data
-    });
-
     try {
       const insertData: Record<string, unknown> = {
         clerk_user_id: fileData.clerk_user_id,
@@ -406,7 +395,6 @@ export class FileDatabaseService {
         throw new Error(`Failed to save file: ${dbError.message}`);
       }
 
-      console.log('Privacy-enhanced file saved to database:', dbFile?.id);
       return dbFile;
 
     } catch (error) {

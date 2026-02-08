@@ -211,10 +211,6 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         }
       }
 
-      if (result.proofCid) {
-        console.log('[BlockDriveUpload] ZK proof stored on S3 with CID:', result.proofCid);
-      }
-
       const isRegistered = result.onChainRegistration?.registered;
       const completeMessage = isRegistered
         ? 'Upload complete & registered on-chain!'

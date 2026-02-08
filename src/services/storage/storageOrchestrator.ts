@@ -46,7 +46,6 @@ class StorageOrchestratorService {
     // Initialize R2 provider if configured (primary storage for cost savings)
     if (isR2Configured()) {
       this.providers.set('r2', new R2Provider());
-      console.log('[StorageOrchestrator] R2 provider initialized (zero egress fees)');
     }
   }
 
@@ -94,7 +93,6 @@ class StorageOrchestratorService {
     for (const backup of config.backupProviders) {
       const backupHealth = this.healthStatus.get(backup);
       if (backupHealth?.status === 'available') {
-        console.log(`[StorageOrchestrator] Falling back from ${config.primaryProvider} to ${backup}`);
         return backup;
       }
     }

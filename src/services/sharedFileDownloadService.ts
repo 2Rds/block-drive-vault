@@ -57,10 +57,6 @@ class SharedFileDownloadService {
     let decryptionTime = 0;
 
     try {
-      console.log('[SharedFileDownload] Starting ZK proof-based download for file:', fileRecord.fileId);
-      console.log('[SharedFileDownload] From:', delegation.grantor);
-      console.log('[SharedFileDownload] Permission:', delegation.permissionLevel);
-
       // Step 1: Verify permission level
       if (delegation.permissionLevel === 'view') {
         throw new Error('View-only permission does not allow downloads');
@@ -68,8 +64,6 @@ class SharedFileDownloadService {
 
       // Step 2: Extract ZK proof CID from delegation
       const proofCid = this.extractProofCidFromDelegation(delegation.encryptedFileKey);
-      console.log('[SharedFileDownload] Extracted ZK proof CID:', proofCid);
-
       // Step 3: Download and verify ZK proof
       const decryptStart = performance.now();
       
@@ -78,8 +72,6 @@ class SharedFileDownloadService {
       if (!proofResult.success || !proofResult.proofPackage) {
         throw new Error('Failed to download ZK proof - access may have been revoked');
       }
-
-      console.log('[SharedFileDownload] ZK proof downloaded successfully');
 
       // Step 4: Extract critical bytes from ZK proof
       // Use the commitment from the proof itself (already verified during download)
@@ -93,8 +85,6 @@ class SharedFileDownloadService {
       if (!extracted.verified) {
         throw new Error('ZK proof verification failed');
       }
-
-      console.log('[SharedFileDownload] Critical bytes extracted from ZK proof');
 
       // Step 5: Download encrypted content from storage
       const identifiers = new Map<StorageProviderType, string>();
@@ -114,7 +104,6 @@ class SharedFileDownloadService {
       }
 
       const downloadTime = performance.now() - downloadStart - (performance.now() - decryptStart);
-      console.log('[SharedFileDownload] Content downloaded, size:', contentResult.data.length);
 
       // Step 6: Reconstruct and decrypt file using extracted critical bytes
       const decryptResult = await decryptFileWithCriticalBytes(
@@ -126,10 +115,6 @@ class SharedFileDownloadService {
       );
 
       decryptionTime = performance.now() - decryptStart;
-
-      console.log('[SharedFileDownload] File decrypted successfully via ZK proof');
-      console.log('[SharedFileDownload] Verified:', decryptResult.verified);
-      console.log('[SharedFileDownload] Commitment valid:', decryptResult.commitmentValid);
 
       // Use file metadata if available, otherwise use defaults
       const fileName = `shared_file_${fileRecord.fileId.slice(0, 8)}`;

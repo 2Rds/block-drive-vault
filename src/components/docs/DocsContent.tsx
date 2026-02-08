@@ -231,7 +231,7 @@ import { IPFSService } from '@/services/ipfsService';
 
 const uploadFile = async (file: File) => {
   const result = await IPFSService.uploadFile(file);
-  console.log('File uploaded:', result.cid);
+  // result.cid contains the IPFS content identifier
   return result;
 };`}
               </CodeBlock>
@@ -673,7 +673,6 @@ import { IPFSService } from '@/services/ipfsService';
 
 const uploadFile = async (file: File) => {
   const result = await IPFSService.uploadFile(file);
-  console.log('File uploaded:', result.cid);
   return result; // Returns CID and metadata
 };
 
