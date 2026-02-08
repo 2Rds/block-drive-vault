@@ -155,14 +155,6 @@ function App() {
                   }
                 />
                 <Route
-                  path="/index"
-                  element={
-                    <ClerkProtectedRoute>
-                      <IPFSFiles />
-                    </ClerkProtectedRoute>
-                  }
-                />
-                <Route
                   path="/account"
                   element={
                     <ClerkProtectedRoute>
