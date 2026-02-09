@@ -123,15 +123,11 @@ export const ClerkConnectButton = ({ variant = 'default' }: ClerkConnectButtonPr
           >
             Dashboard
           </Button>
-          <UserButton 
+          <UserButton
             afterSignOutUrl="/"
             appearance={{
               elements: {
                 avatarBox: 'w-9 h-9',
-                userButtonPopoverCard: 'bg-card border border-border',
-                userButtonPopoverActionButton: 'text-foreground hover:bg-accent',
-                userButtonPopoverActionButtonText: 'text-foreground',
-                userButtonPopoverFooter: 'hidden',
               }
             }}
           />

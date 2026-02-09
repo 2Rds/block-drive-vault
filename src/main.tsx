@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import React from 'react';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { CrossmintProvider } from './providers/CrossmintProvider';
+import { clerkAppearanceDeep as clerkAppearance } from './lib/clerkTheme';
 import App from './App.tsx';
 import './index.css';
 
@@ -75,7 +76,7 @@ const initializeApp = async () => {
 
   root.render(
     <React.StrictMode>
-      <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
+      <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/" appearance={clerkAppearance}>
         <CrossmintProvider>
           <App />
         </CrossmintProvider>

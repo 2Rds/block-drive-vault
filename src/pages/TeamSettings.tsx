@@ -2,27 +2,14 @@ import { OrganizationProfile, useOrganization } from '@clerk/clerk-react';
 import { AppShell } from '@/components/layout';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { clerkAppearanceDeep as clerkAppearance } from '@/lib/clerkTheme';
 
-// Clerk OrganizationProfile appearance configuration for dark theme
-const ORG_PROFILE_APPEARANCE = {
+const LOCAL_APPEARANCE = {
   elements: {
-    rootBox: "w-full",
-    card: "bg-transparent shadow-none border-0",
-    navbar: "bg-background-secondary rounded-lg",
-    navbarButton: "text-foreground-muted hover:text-foreground hover:bg-background-tertiary",
-    navbarButtonActive: "text-foreground bg-background-tertiary",
-    pageScrollBox: "p-0",
-    page: "p-0",
-    profileSection: "border-border",
-    profileSectionTitle: "text-foreground",
-    profileSectionContent: "text-foreground-muted",
-    formFieldLabel: "text-foreground-muted",
-    formFieldInput: "bg-background-tertiary border-border text-foreground",
-    formButtonPrimary: "bg-primary hover:bg-primary/90",
-    membersPageInviteButton: "bg-primary hover:bg-primary/90",
-    tableHead: "text-foreground-muted",
-    tableCell: "text-foreground-muted",
-    badge: "bg-background-tertiary text-foreground-muted",
+    card: 'bg-transparent shadow-none border-0',
+    rootBox: 'w-full',
+    pageScrollBox: 'p-0',
+    page: 'p-0',
   },
 };
 
@@ -57,7 +44,10 @@ export default function TeamSettings(): JSX.Element | null {
       description="Manage your team members, invitations, and organization settings"
     >
       <div className="bg-card border border-border/50 rounded-xl p-6">
-        <OrganizationProfile appearance={ORG_PROFILE_APPEARANCE} />
+        <OrganizationProfile appearance={{
+          ...clerkAppearance,
+          elements: { ...clerkAppearance.elements, ...LOCAL_APPEARANCE.elements },
+        }} />
       </div>
     </AppShell>
   );

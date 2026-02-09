@@ -4,23 +4,6 @@ import { Shield, FileText, Users } from 'lucide-react';
 import { GradientOrb } from '@/components/effects/GradientOrb';
 import { GridPattern } from '@/components/effects/GridPattern';
 
-const CLERK_APPEARANCE = {
-  elements: {
-    rootBox: 'mx-auto w-full',
-    card: 'bg-card/80 backdrop-blur-sm border border-border/50 shadow-2xl rounded-2xl',
-    headerTitle: 'text-foreground',
-    headerSubtitle: 'text-muted-foreground',
-    socialButtonsBlockButton: 'border-border hover:bg-accent/50',
-    socialButtonsBlockButtonText: 'text-foreground',
-    formFieldLabel: 'text-foreground',
-    formFieldInput: 'bg-muted/30 border-border/50 text-foreground rounded-xl',
-    formButtonPrimary: 'bg-primary hover:bg-primary/90',
-    footerActionLink: 'text-primary hover:text-primary/80',
-    dividerLine: 'bg-border',
-    dividerText: 'text-muted-foreground',
-  },
-};
-
 export default function SignUp(): JSX.Element | null {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
@@ -69,9 +52,9 @@ export default function SignUp(): JSX.Element | null {
                 <FileText className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-zinc-200">Unlimited Files</h3>
+                <h3 className="font-semibold text-zinc-200">Any File Type</h3>
                 <p className="text-sm text-zinc-500">
-                  Store any file type with no size restrictions.
+                  Store documents, media, and archives — no per-file size limits.
                 </p>
               </div>
             </div>
@@ -102,7 +85,6 @@ export default function SignUp(): JSX.Element | null {
           </div>
 
           <ClerkSignUp
-            appearance={CLERK_APPEARANCE}
             routing="path"
             path="/sign-up"
             signInUrl="/sign-in"
