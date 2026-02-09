@@ -1,41 +1,55 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   SecurityLevel,
   WalletDerivedKeys,
   DerivedEncryptionKey,
   KeyDerivationSession
 } from '@/types/blockdriveCrypto';
-import {
-  deriveKeyFromSignature,
-  getSignatureMessage,
-} from '@/services/crypto/keyDerivationService';
-import { stringToBytes } from '@/services/crypto/cryptoUtils';
+import { deriveKeyFromMaterial } from '@/services/crypto/keyDerivationService';
+import { hexToBytes } from '@/services/crypto/cryptoUtils';
 import { useAuth } from './useAuth';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import { toast } from 'sonner';
 
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
 const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
+
+// ── Module-level singleton key store (shared across all hook instances) ──
+
+let _keys: WalletDerivedKeys | null = null;
+let _session: KeyDerivationSession | null = null;
+let _answerHash: string | null = null;
+let _version = 0; // bumped on every mutation so subscribers re-render
+
+const _listeners = new Set<() => void>();
+function _notify() {
+  _version++;
+  _listeners.forEach(fn => fn());
+}
+function _subscribe(cb: () => void) {
+  _listeners.add(cb);
+  return () => { _listeners.delete(cb); };
+}
+function _getVersion() { return _version; }
+
+// ── Hook ──
 
 interface WalletCryptoState {
   isInitialized: boolean;
   isInitializing: boolean;
   currentLevel: SecurityLevel | null;
   error: string | null;
+  needsSecurityQuestion: boolean;
 }
 
 interface UseWalletCryptoReturn {
-  // State
   state: WalletCryptoState;
   hasKey: (level: SecurityLevel) => boolean;
-
-  // Actions
-  initializeKeys: () => Promise<boolean>;
+  initializeKeys: (answerHash?: string) => Promise<boolean>;
   getKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   refreshKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   clearKeys: () => void;
-
-  // Session info
   sessionExpiresAt: number | null;
   isSessionValid: boolean;
 }
@@ -43,33 +57,46 @@ interface UseWalletCryptoReturn {
 export function useWalletCrypto(): UseWalletCryptoReturn {
   const { walletData } = useAuth();
   const crossmintWallet = useCrossmintWallet();
+  const { supabase } = useClerkAuth();
+
+  // Re-render whenever the singleton store changes
+  useSyncExternalStore(_subscribe, _getVersion, _getVersion);
 
   const [state, setState] = useState<WalletCryptoState>({
-    isInitialized: false,
+    isInitialized: _keys?.initialized ?? false,
     isInitializing: false,
     currentLevel: null,
-    error: null
+    error: null,
+    needsSecurityQuestion: false
   });
 
-  // Store keys in ref to prevent re-renders and keep them in memory only
-  const keysRef = useRef<WalletDerivedKeys | null>(null);
-  const sessionRef = useRef<KeyDerivationSession | null>(null);
+  // Sync local state with singleton on mount / store change
+  useEffect(() => {
+    const initialized = _keys?.initialized ?? false;
+    setState(prev => {
+      if (prev.isInitialized !== initialized) {
+        return { ...prev, isInitialized: initialized };
+      }
+      return prev;
+    });
+  }, [_version]);
 
-  // Check if session is valid
   const isSessionValid = useCallback(() => {
-    if (!sessionRef.current) return false;
-    return Date.now() < sessionRef.current.expiresAt;
+    if (!_session) return false;
+    return Date.now() < _session.expiresAt;
   }, []);
 
-  // Clear keys from memory
   const clearKeys = useCallback(() => {
-    keysRef.current = null;
-    sessionRef.current = null;
+    _keys = null;
+    _session = null;
+    _answerHash = null;
+    _notify();
     setState({
       isInitialized: false,
       isInitializing: false,
       currentLevel: null,
-      error: null
+      error: null,
+      needsSecurityQuestion: false
     });
   }, []);
 
@@ -81,48 +108,30 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     }
   }, [hasAnyWallet, clearKeys]);
 
-  // Check if we have a key for a specific level
   const hasKey = useCallback((level: SecurityLevel): boolean => {
-    return keysRef.current?.keys.has(level) ?? false;
+    return _keys?.keys.has(level) ?? false;
   }, []);
 
-  const requestSignature = useCallback(async (level: SecurityLevel): Promise<Uint8Array> => {
-    const message = getSignatureMessage(level);
-    const messageBytes = stringToBytes(message);
+  const requestAllKeyMaterials = useCallback(async (
+    answerHash: string
+  ): Promise<Record<string, string>> => {
+    const { data, error } = await supabase.functions.invoke('derive-key-material', {
+      body: { answer_hash: answerHash },
+    });
 
-    if (crossmintWallet.isInitialized && crossmintWallet.signMessage) {
-      return crossmintWallet.signMessage(messageBytes);
+    if (error) throw new Error(error.message || 'Failed to derive key material');
+    if (!data?.success) throw new Error(data?.error || 'Key derivation failed');
+
+    return data.key_materials;
+  }, [supabase]);
+
+  const initializeKeys = useCallback(async (answerHash?: string): Promise<boolean> => {
+    // If keys are already initialized and session is valid, skip
+    if (_keys?.initialized && _session && Date.now() < _session.expiresAt) {
+      setState(prev => ({ ...prev, isInitialized: true, needsSecurityQuestion: false }));
+      return true;
     }
 
-    if (walletData?.adapter?.signMessage) {
-      return walletData.adapter.signMessage(messageBytes);
-    }
-
-    throw new Error('No wallet available for message signing');
-  }, [crossmintWallet, walletData]);
-
-  const deriveKeyForLevel = useCallback(async (level: SecurityLevel): Promise<DerivedEncryptionKey | null> => {
-    try {
-      const signature = await requestSignature(level);
-      const key = await deriveKeyFromSignature(signature, level);
-
-      if (sessionRef.current) {
-        sessionRef.current.signatures.set(level, signature);
-        sessionRef.current.keys.set(level, key.key);
-      }
-
-      if (keysRef.current) {
-        keysRef.current.keys.set(level, key);
-      }
-
-      return key;
-    } catch (error) {
-      console.error(`Failed to derive key for level ${level}:`, error);
-      return null;
-    }
-  }, [requestSignature]);
-
-  const initializeKeys = useCallback(async (): Promise<boolean> => {
     const hasCrossmintWallet = crossmintWallet.isInitialized && crossmintWallet.walletAddress;
     const hasExternalWallet = walletData?.connected && walletData?.address;
 
@@ -131,19 +140,17 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
-    const canSign = hasCrossmintWallet || walletData?.adapter?.signMessage;
-    if (!canSign) {
-      setState(prev => ({ ...prev, error: 'Wallet does not support message signing' }));
-      toast.error('Your wallet does not support message signing');
+    if (!answerHash) {
+      setState(prev => ({ ...prev, needsSecurityQuestion: true }));
       return false;
     }
 
-    setState(prev => ({ ...prev, isInitializing: true, error: null }));
+    setState(prev => ({ ...prev, isInitializing: true, error: null, needsSecurityQuestion: false }));
 
     const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
 
     try {
-      sessionRef.current = {
+      _session = {
         walletAddress,
         signatures: new Map(),
         keys: new Map(),
@@ -151,65 +158,87 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         expiresAt: Date.now() + SESSION_EXPIRY_MS
       };
 
-      keysRef.current = {
+      _keys = {
         walletAddress,
         keys: new Map(),
         initialized: false,
         lastRefreshed: Date.now()
       };
 
-      toast.info('Please sign 3 messages to set up your encryption keys');
+      toast.info('Setting up encryption...');
+
+      const keyMaterials = await requestAllKeyMaterials(answerHash);
 
       for (const level of ALL_SECURITY_LEVELS) {
-        setState(prev => ({ ...prev, currentLevel: level }));
-        const key = await deriveKeyForLevel(level);
-        if (!key) {
-          throw new Error(`Failed to derive key for security level ${level}`);
-        }
+        const materialHex = keyMaterials[String(level)];
+        if (!materialHex) throw new Error(`Missing key material for level ${level}`);
+
+        const material = hexToBytes(materialHex);
+        const key = await deriveKeyFromMaterial(material, level);
+
+        _session.keys.set(level, key.key);
+        _keys.keys.set(level, key);
       }
 
-      if (sessionRef.current) sessionRef.current.isComplete = true;
-      if (keysRef.current) keysRef.current.initialized = true;
+      _answerHash = answerHash;
+      _session.isComplete = true;
+      _keys.initialized = true;
+      _notify();
 
       setState({
         isInitialized: true,
         isInitializing: false,
         currentLevel: null,
-        error: null
+        error: null,
+        needsSecurityQuestion: false
       });
 
       toast.success('Encryption keys initialized successfully');
       return true;
     } catch (error) {
+      _keys = null;
+      _session = null;
+      _notify();
+
       const errorMessage = error instanceof Error ? error.message : 'Key initialization failed';
       setState({
         isInitialized: false,
         isInitializing: false,
         currentLevel: null,
-        error: errorMessage
+        error: errorMessage,
+        needsSecurityQuestion: false
       });
       toast.error(errorMessage);
       return false;
     }
-  }, [crossmintWallet, walletData, deriveKeyForLevel]);
+  }, [crossmintWallet, walletData, requestAllKeyMaterials]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {
-      const success = await initializeKeys();
-      if (!success) return null;
+      if (_answerHash) {
+        const success = await initializeKeys(_answerHash);
+        if (!success) return null;
+      } else {
+        setState(prev => ({ ...prev, needsSecurityQuestion: true }));
+        return null;
+      }
     }
 
-    const cachedKey = keysRef.current?.keys.get(level);
+    const cachedKey = _keys?.keys.get(level);
     if (cachedKey) return cachedKey.key;
 
-    const key = await deriveKeyForLevel(level);
-    return key?.key ?? null;
-  }, [isSessionValid, initializeKeys, deriveKeyForLevel]);
+    return null;
+  }, [isSessionValid, initializeKeys]);
 
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    const key = await deriveKeyForLevel(level);
-    return key?.key ?? null;
-  }, [deriveKeyForLevel]);
+    if (!_answerHash) {
+      setState(prev => ({ ...prev, needsSecurityQuestion: true }));
+      return null;
+    }
+    const success = await initializeKeys(_answerHash);
+    if (!success) return null;
+    return _keys?.keys.get(level)?.key ?? null;
+  }, [initializeKeys]);
 
   return {
     state,
@@ -218,7 +247,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     getKey,
     refreshKey,
     clearKeys,
-    sessionExpiresAt: sessionRef.current?.expiresAt ?? null,
+    sessionExpiresAt: _session?.expiresAt ?? null,
     isSessionValid: isSessionValid()
   };
 }

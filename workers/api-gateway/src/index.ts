@@ -9,6 +9,7 @@
  * All routes get: auth validation, rate limiting, CORS, security headers.
  */
 
+import { AwsClient } from 'aws4fetch';
 import { handleRateLimit } from './rateLimit';
 import { handleCORS, getCORSHeaders } from './cors';
 import { addSecurityHeaders } from './security';
@@ -29,6 +30,9 @@ export interface Env {
   RATE_LIMIT_PER_MINUTE: string;
   RATE_LIMIT_BURST: string;
   FILEBASE_GATEWAY: string;
+  FILEBASE_BUCKET: string;
+  FILEBASE_ACCESS_KEY: string;
+  FILEBASE_SECRET_KEY: string;
 }
 
 // ============================================
@@ -132,6 +136,8 @@ export default {
         response = await handleR2Request(request, env, url);
       } else if (url.pathname.startsWith('/ipfs/')) {
         response = await handleIPFSRequest(request, env, url, ctx);
+      } else if (url.pathname.startsWith('/filebase/')) {
+        response = await handleFilebaseRequest(request, env, url);
       } else if (url.pathname.startsWith('/functions/')) {
         response = await forwardToSupabase(request, env, url);
       } else {
@@ -410,6 +416,127 @@ async function handleR2List(request: Request, env: Env): Promise<Response> {
     truncated: listed.truncated,
     cursor: listed.truncated ? listed.cursor : undefined,
   }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// ============================================
+// Filebase S3 upload — proxied via Worker
+// ============================================
+
+function getFilebaseClient(env: Env): AwsClient {
+  return new AwsClient({
+    accessKeyId: env.FILEBASE_ACCESS_KEY,
+    secretAccessKey: env.FILEBASE_SECRET_KEY,
+    region: 'us-east-1',
+    service: 's3',
+  });
+}
+
+async function handleFilebaseRequest(request: Request, env: Env, url: URL): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!env.FILEBASE_ACCESS_KEY || !env.FILEBASE_SECRET_KEY) {
+    return new Response(JSON.stringify({ error: 'Filebase credentials not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (request.method === 'POST' && url.pathname === '/filebase/upload') {
+    return handleFilebaseUpload(request, env);
+  }
+
+  return new Response(JSON.stringify({ error: 'Not found' }), {
+    status: 404,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleFilebaseUpload(request: Request, env: Env): Promise<Response> {
+  const body = await request.json() as {
+    data: string; // base64-encoded file data
+    objectKey: string; // pre-computed hierarchical key
+    contentType?: string;
+    metadata?: Record<string, string>;
+  };
+
+  if (!body.data || !body.objectKey) {
+    return new Response(JSON.stringify({ error: 'Missing required fields: data, objectKey' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const bucket = env.FILEBASE_BUCKET || 'blockdrive-ipfs';
+  const s3 = getFilebaseClient(env);
+  const contentType = body.contentType || 'application/octet-stream';
+
+  // Decode base64 to binary
+  const binaryString = atob(body.data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Build S3 metadata headers
+  const metadataHeaders: Record<string, string> = {};
+  if (body.metadata) {
+    for (const [k, v] of Object.entries(body.metadata)) {
+      metadataHeaders[`x-amz-meta-${k}`] = v;
+    }
+  }
+
+  // PUT object to Filebase
+  const putUrl = `https://s3.filebase.com/${bucket}/${body.objectKey}`;
+  const putResponse = await s3.fetch(putUrl, {
+    method: 'PUT',
+    body: bytes,
+    headers: {
+      'Content-Type': contentType,
+      'Content-Length': String(bytes.length),
+      ...metadataHeaders,
+    },
+  });
+
+  if (!putResponse.ok) {
+    const errorText = await putResponse.text();
+    console.error(`Filebase PUT failed: ${putResponse.status}`, errorText);
+    return new Response(JSON.stringify({
+      error: 'Filebase upload failed',
+      status: putResponse.status,
+      detail: errorText,
+    }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // HEAD to get the CID from Filebase metadata
+  const headUrl = `https://s3.filebase.com/${bucket}/${body.objectKey}`;
+  const headResponse = await s3.fetch(headUrl, { method: 'HEAD' });
+
+  let cid = '';
+  if (headResponse.ok) {
+    // Filebase returns CID in x-amz-meta-cid header
+    cid = headResponse.headers.get('x-amz-meta-cid')
+      || headResponse.headers.get('etag')?.replace(/"/g, '')
+      || '';
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    objectKey: body.objectKey,
+    cid,
+    bucket,
+  }), {
+    status: 201,
     headers: { 'Content-Type': 'application/json' },
   });
 }

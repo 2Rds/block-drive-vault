@@ -24,6 +24,11 @@ const ALLOWED_HEADERS = [
   'Content-Language',
   'X-Blockdrive-Client-Version',
   'X-Blockdrive-Request-Id',
+  'X-Blockdrive-UserId',
+  'X-Blockdrive-FileName',
+  'X-Blockdrive-OrgSlug',
+  'X-Blockdrive-IsShared',
+  'X-Blockdrive-FolderPath',
 ];
 
 // Exposed response headers

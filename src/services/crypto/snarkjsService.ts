@@ -70,11 +70,23 @@ let artifactsLoaded = false;
 class SnarkjsService {
   /**
    * Check if real circuit artifacts are available
+   * Verifies both the verification key and the WASM binary exist and are valid
    */
   async areCircuitsAvailable(): Promise<boolean> {
     try {
-      const response = await fetch(CIRCUIT_ARTIFACTS.verificationKey, { method: 'HEAD' });
-      return response.ok;
+      // Check verification key exists
+      const vkResponse = await fetch(CIRCUIT_ARTIFACTS.verificationKey, { method: 'HEAD' });
+      if (!vkResponse.ok) return false;
+
+      // Check WASM binary exists and has correct content type (not an HTML 404 page)
+      const wasmResponse = await fetch(CIRCUIT_ARTIFACTS.wasm, { method: 'HEAD' });
+      if (!wasmResponse.ok) return false;
+
+      const contentType = wasmResponse.headers.get('content-type') || '';
+      // Reject if server returned HTML (404 page) instead of WASM
+      if (contentType.includes('text/html')) return false;
+
+      return true;
     } catch {
       return false;
     }

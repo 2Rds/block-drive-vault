@@ -4,6 +4,8 @@ import { StorageConfig, DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
 import { blockDriveUploadService, BlockDriveUploadResult } from '@/services/blockDriveUploadService';
 import { useWalletCrypto } from './useWalletCrypto';
 import { useAuth } from './useAuth';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useOrganization } from '@clerk/clerk-react';
 import { useBlockDriveSolana } from './useBlockDriveSolana';
 import { SecurityLevel as SolanaSecurityLevel } from '@/services/solana';
 import { toast } from 'sonner';
@@ -74,6 +76,8 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
   const { enableOnChainRegistration = true, solanaCluster = 'devnet' } = options;
   
   const { walletData } = useAuth();
+  const { supabase, userId: clerkUserId } = useClerkAuth();
+  const { organization } = useOrganization();
   const walletCrypto = useWalletCrypto();
   const solana = useBlockDriveSolana({ cluster: solanaCluster });
   
@@ -137,17 +141,21 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
     signTransaction?: (tx: any) => Promise<any>
   ): Promise<BlockDriveUploadResult | null> => {
     if (!walletData?.address) {
+      console.error('[useBlockDriveUpload] No wallet address');
       toast.error('Wallet not connected');
       return null;
     }
 
     // Get encryption key for the security level
+    console.log('[useBlockDriveUpload] Getting key for level:', securityLevel);
     const key = await walletCrypto.getKey(securityLevel);
     if (!key) {
+      console.error('[useBlockDriveUpload] No encryption key for level', securityLevel);
       toast.error('Encryption keys not initialized. Please set up your keys first.');
       return null;
     }
 
+    console.log('[useBlockDriveUpload] Starting upload for:', file.name, file.size, 'bytes');
     setIsUploading(true);
     updateProgress('encrypting', 10, file.name, 'Encrypting file...');
 
@@ -161,7 +169,8 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         securityLevel,
         walletData.address,
         storageConfig,
-        folderPath
+        folderPath,
+        organization ? { orgSlug: organization.slug ?? undefined } : undefined
       );
 
       if (!result.success) {
@@ -211,6 +220,42 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         }
       }
 
+      // Save proper file record to Supabase with original filename + org context
+      if (clerkUserId && supabase) {
+        try {
+          const isInOrg = !!organization;
+          const ipfsUrl = `https://ipfs.filebase.io/ipfs/${result.contentCID}`;
+
+          await supabase.from('files').insert({
+            clerk_user_id: clerkUserId,
+            filename: file.name,
+            file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
+            file_size: file.size,
+            content_type: file.type || 'application/octet-stream',
+            folder_path: folderPath,
+            storage_provider: 'ipfs',
+            ipfs_cid: result.contentCID,
+            ipfs_url: ipfsUrl,
+            is_encrypted: true,
+            ...(isInOrg && { clerk_org_id: organization.id }),
+            ...(isInOrg && { visibility: 'private' }),
+            metadata: {
+              blockdrive: 'true',
+              encrypted: 'true',
+              securityLevel: securityLevel.toString(),
+              commitment: result.commitment,
+              proofCid: result.proofCid,
+              metadataCID: result.metadataCID,
+              fileId: result.fileId,
+              provider: 'filebase',
+            },
+          });
+          console.log('[useBlockDriveUpload] File record saved to Supabase');
+        } catch (dbError) {
+          console.error('[useBlockDriveUpload] Failed to save file record:', dbError);
+        }
+      }
+
       const isRegistered = result.onChainRegistration?.registered;
       const completeMessage = isRegistered
         ? 'Upload complete & registered on-chain!'
@@ -233,7 +278,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
       setIsUploading(false);
       setTimeout(() => setProgress(null), PROGRESS_CLEAR_DELAY_MS);
     }
-  }, [walletData, walletCrypto, solana, enableOnChainRegistration]);
+  }, [walletData, walletCrypto, solana, enableOnChainRegistration, clerkUserId, supabase, organization]);
 
   const uploadFiles = useCallback(async (
     files: FileList | File[],

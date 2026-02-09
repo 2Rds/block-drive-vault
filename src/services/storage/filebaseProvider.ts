@@ -13,7 +13,6 @@ import {
   ProviderDownloadResult 
 } from '@/types/storageProvider';
 import { StorageProviderBase } from './storageProviderBase';
-import { supabase } from '@/integrations/supabase/client';
 
 // Worker gateway provides cached IPFS access with auth, rate limiting, and edge caching
 const WORKER_URL = import.meta.env.VITE_WORKER_URL || '';
@@ -75,36 +74,42 @@ export class FilebaseProvider extends StorageProviderBase {
     metadata?: Record<string, string>
   ): Promise<ProviderUploadResult> {
     const start = performance.now();
-    
+    console.log('[FilebaseProvider] upload() called', { fileName, dataSize: data.length, contentType });
+
     try {
       // Create form data for edge function
       const formData = new FormData();
       const blob = new Blob([data.buffer as ArrayBuffer], { type: contentType });
       formData.append('file', blob, fileName);
-      
+
       if (metadata?.folderPath) {
         formData.append('folderPath', metadata.folderPath);
       }
 
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
+      // Skip DB insert — the upload hook creates the proper file record
+      formData.append('skipDbInsert', 'true');
+
+      // Get auth token (try Clerk first, fallback to Supabase)
+      const authToken = await this.getAuthToken();
+      console.log('[FilebaseProvider] authToken result:', authToken ? 'obtained' : 'EMPTY');
 
       if (!authToken) {
-        throw new Error('Not authenticated');
+        throw new Error('Not authenticated — no Clerk or Supabase token available');
       }
 
+      const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-ipfs`;
+      console.log('[FilebaseProvider] POSTing to edge function:', edgeFnUrl);
+
       // Call edge function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-ipfs`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: formData
-        }
-      );
+      const response = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: formData
+      });
+
+      console.log('[FilebaseProvider] edge function response:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -113,6 +118,8 @@ export class FilebaseProvider extends StorageProviderBase {
 
       const result = await response.json();
       const uploadTimeMs = Math.round(performance.now() - start);
+
+      console.log('[FilebaseProvider] upload SUCCESS, CID:', result.file?.cid);
 
       return {
         success: true,
@@ -127,6 +134,7 @@ export class FilebaseProvider extends StorageProviderBase {
       };
     } catch (error) {
       const uploadTimeMs = Math.round(performance.now() - start);
+      console.error('[FilebaseProvider] upload FAILED:', error);
       return this.createErrorResult(
         error instanceof Error ? error.message : 'Upload failed',
         uploadTimeMs
@@ -179,5 +187,29 @@ export class FilebaseProvider extends StorageProviderBase {
    */
   getFilebaseUrl(identifier: string): string {
     return `${FILEBASE_GATEWAY}/ipfs/${identifier}`;
+  }
+
+  /**
+   * Get auth token from Clerk session, fallback to Supabase
+   */
+  private async getAuthToken(): Promise<string> {
+    // Try Clerk's getToken if available
+    if (typeof window !== 'undefined' && (window as any).__clerk_session?.getToken) {
+      const token = await (window as any).__clerk_session.getToken();
+      console.log('[FilebaseProvider] Clerk token obtained:', token ? `${token.slice(0, 20)}...` : 'null');
+      return token || '';
+    }
+    console.log('[FilebaseProvider] No __clerk_session on window, falling back to Supabase');
+    // Fallback to Supabase session token
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      console.log('[FilebaseProvider] Supabase token:', token ? `${token.slice(0, 20)}...` : 'empty');
+      return token;
+    } catch {
+      console.log('[FilebaseProvider] Supabase auth fallback failed');
+      return '';
+    }
   }
 }

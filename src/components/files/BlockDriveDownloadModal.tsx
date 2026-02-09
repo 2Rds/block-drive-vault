@@ -210,7 +210,7 @@ export function BlockDriveDownloadModal({
               <div className="flex-1">
                 <p className="text-sm text-amber-400 font-medium">Decryption Keys Required</p>
                 <p className="text-xs text-muted-foreground">
-                  Sign 3 messages to initialize your keys
+                  Answer your security question to unlock decryption keys
                 </p>
               </div>
               <Button

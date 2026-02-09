@@ -14,14 +14,12 @@
  * - CLERK_WEBHOOK_SECRET: Webhook signing secret from Clerk dashboard
  * - SUPABASE_URL (automatic)
  * - SUPABASE_SERVICE_ROLE_KEY (automatic)
- * - FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY: For Filebase folder provisioning
  * - WORKER_URL: BlockDrive Worker gateway for R2 folder provisioning
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Webhook } from 'https://esm.sh/svix@1.41.0';
-import { S3Client, PutObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.400.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,43 +55,11 @@ function getSupabaseAdmin() {
 }
 
 // ============================================
-// Storage provisioning — create folder structure
+// Storage provisioning — create folder structure in R2
 // ============================================
-
-function getFilebaseClient(): S3Client | null {
-  const accessKey = Deno.env.get('FILEBASE_ACCESS_KEY');
-  const secretKey = Deno.env.get('FILEBASE_SECRET_KEY');
-  if (!accessKey || !secretKey) return null;
-
-  return new S3Client({
-    endpoint: 'https://s3.filebase.com',
-    region: 'us-east-1',
-    credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
-    forcePathStyle: true,
-  });
-}
 
 function getWorkerUrl(): string {
   return Deno.env.get('WORKER_URL') || '';
-}
-
-/**
- * Create a zero-byte "folder" placeholder in Filebase (S3).
- * S3 treats keys with trailing / as folder markers.
- */
-async function createFilebaseFolder(s3: S3Client, folderKey: string): Promise<void> {
-  const bucket = Deno.env.get('FILEBASE_BUCKET') || 'blockdrive-ipfs';
-  const key = folderKey.endsWith('/') ? folderKey : folderKey + '/';
-
-  await s3.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: new Uint8Array(0),
-    ContentType: 'application/x-directory',
-    Metadata: { 'blockdrive-folder': 'true', 'created-by': 'clerk-webhook' },
-  }));
-
-  console.log(`[clerk-webhook] Filebase folder created: ${key}`);
 }
 
 /**
@@ -120,36 +86,22 @@ async function createR2Folder(workerUrl: string, folderKey: string): Promise<voi
 }
 
 /**
- * Provision folder hierarchy in both Filebase and R2.
+ * Provision folder hierarchy in R2 via the Worker gateway.
  * Failures are logged but don't block the webhook response.
  */
 async function provisionFolders(folderKeys: string[]): Promise<void> {
-  const s3 = getFilebaseClient();
   const workerUrl = getWorkerUrl();
 
-  const tasks: Promise<void>[] = [];
-
-  for (const key of folderKeys) {
-    if (s3) {
-      tasks.push(
-        createFilebaseFolder(s3, key).catch(err =>
-          console.error(`[clerk-webhook] Filebase folder error (${key}):`, err.message)
-        )
-      );
-    }
-    if (workerUrl) {
-      tasks.push(
-        createR2Folder(workerUrl, key).catch(err =>
-          console.error(`[clerk-webhook] R2 folder error (${key}):`, err.message)
-        )
-      );
-    }
-  }
-
-  if (tasks.length === 0) {
-    console.log('[clerk-webhook] No storage credentials configured, skipping folder provisioning');
+  if (!workerUrl) {
+    console.log('[clerk-webhook] No WORKER_URL configured, skipping folder provisioning');
     return;
   }
+
+  const tasks = folderKeys.map(key =>
+    createR2Folder(workerUrl, key).catch(err =>
+      console.error(`[clerk-webhook] R2 folder error (${key}):`, err.message)
+    )
+  );
 
   await Promise.allSettled(tasks);
 }
@@ -235,6 +187,7 @@ type ClerkOrganization = {
   name: string;
   slug: string;
   created_at: number;
+  created_by?: string;
   public_metadata?: Record<string, unknown>;
 };
 
@@ -269,6 +222,7 @@ async function handleOrganizationCreated(data: ClerkOrganization) {
       clerk_org_id: data.id,
       name: data.name,
       slug: data.slug,
+      owner_clerk_id: data.created_by || null,
       settings: {
         storage_prefix: `orgs/${data.slug}`,
         storage_provisioned: true,
@@ -408,7 +362,11 @@ serve(async (req) => {
 
     return new Response('OK', { status: 200, headers: corsHeaders });
   } catch (err) {
-    console.error('[clerk-webhook] Unhandled error:', err);
-    return new Response('Internal Server Error', { status: 500, headers: corsHeaders });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[clerk-webhook] Unhandled error:', message, err);
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

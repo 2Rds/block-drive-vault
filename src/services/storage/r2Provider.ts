@@ -251,7 +251,8 @@ export class R2Provider extends StorageProviderBase {
   private async getAuthToken(): Promise<string> {
     // Try Clerk's getToken if available
     if (typeof window !== 'undefined' && (window as any).__clerk_session?.getToken) {
-      return (window as any).__clerk_session.getToken() || '';
+      const token = await (window as any).__clerk_session.getToken();
+      return token || '';
     }
     // Fallback to Supabase session token
     try {

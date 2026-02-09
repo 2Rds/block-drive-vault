@@ -62,7 +62,7 @@ export function useSharedFileDownload(): UseSharedFileDownloadReturn {
     delegation: ParsedDelegation
   ): Promise<SharedFileDownloadResult | null> => {
     // Get the standard key for decryption
-    const derivedKey = await walletCrypto.getKey(SecurityLevel.STANDARD);
+    const derivedKey = await walletCrypto.getKey(SecurityLevel.MAXIMUM);
     
     if (!derivedKey) {
       toast.error('Wallet keys not available. Please initialize encryption keys first.');
@@ -138,7 +138,7 @@ export function useSharedFileDownload(): UseSharedFileDownloadReturn {
     fileRecord: ParsedFileRecord,
     delegation: ParsedDelegation
   ): Promise<{ url: string; type: string; cleanup: () => void } | null> => {
-    const derivedKey = await walletCrypto.getKey(SecurityLevel.STANDARD);
+    const derivedKey = await walletCrypto.getKey(SecurityLevel.MAXIMUM);
     
     if (!derivedKey) {
       toast.error('Wallet keys not available');

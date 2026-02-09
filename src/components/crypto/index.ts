@@ -3,4 +3,5 @@
  */
 
 export { CryptoSetupModal } from './CryptoSetupModal';
-export { SecurityLevelSelector } from './SecurityLevelSelector';
+export { SecurityQuestionSetup } from './SecurityQuestionSetup';
+export { SecurityQuestionVerify } from './SecurityQuestionVerify';

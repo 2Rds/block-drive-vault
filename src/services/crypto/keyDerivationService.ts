@@ -1,16 +1,15 @@
 /**
  * Key Derivation Service
- * 
- * Derives AES-256 encryption keys from wallet signatures using HKDF.
- * Each security level uses a different signature to derive a unique key.
+ *
+ * Derives AES-256 encryption keys from key material using HKDF.
+ * Each security level uses different HKDF info for context separation.
  */
 
-import { 
-  SecurityLevel, 
-  SECURITY_LEVEL_MESSAGES,
-  DerivedEncryptionKey 
+import {
+  SecurityLevel,
+  DerivedEncryptionKey
 } from '@/types/blockdriveCrypto';
-import { sha256, stringToBytes, bytesToHex } from './cryptoUtils';
+import { sha256, stringToBytes } from './cryptoUtils';
 
 // Salt for HKDF - unique to BlockDrive
 const HKDF_SALT = stringToBytes('BlockDrive-HKDF-Salt-v1');
@@ -23,26 +22,23 @@ const HKDF_INFO = {
 };
 
 /**
- * Derive an AES-256-GCM key from a wallet signature using HKDF
- * 
- * @param signature - The wallet signature (Uint8Array)
+ * Derive an AES-256-GCM key from raw key material using HKDF
+ *
+ * @param material - 32 bytes of key material (from server HMAC or wallet signature)
  * @param level - Security level for context separation
- * @returns Promise<DerivedEncryptionKey>
  */
-export async function deriveKeyFromSignature(
-  signature: Uint8Array,
+export async function deriveKeyFromMaterial(
+  material: Uint8Array,
   level: SecurityLevel
 ): Promise<DerivedEncryptionKey> {
-  // Import signature as raw key material for HKDF
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    signature.buffer as ArrayBuffer,
+    material.buffer as ArrayBuffer,
     { name: 'HKDF' },
     false,
     ['deriveKey']
   );
 
-  // Derive AES-256-GCM key using HKDF
   const aesKey = await crypto.subtle.deriveKey(
     {
       name: 'HKDF',
@@ -55,12 +51,11 @@ export async function deriveKeyFromSignature(
       name: 'AES-GCM',
       length: 256
     },
-    false, // Non-extractable for security
+    false,
     ['encrypt', 'decrypt']
   );
 
-  // Generate a hash of the key for verification (not the key itself)
-  const keyHash = await generateKeyHash(signature, level);
+  const keyHash = await generateKeyHash(material, level);
 
   return {
     level,
@@ -70,47 +65,13 @@ export async function deriveKeyFromSignature(
   };
 }
 
-/**
- * Generate a hash of the key for verification purposes
- * This can be stored/compared without exposing the actual key
- */
 async function generateKeyHash(
-  signature: Uint8Array,
+  material: Uint8Array,
   level: SecurityLevel
 ): Promise<string> {
   const hashInput = new Uint8Array([
-    ...signature,
+    ...material,
     ...stringToBytes(`-level-${level}-hash`)
   ]);
   return sha256(hashInput);
-}
-
-/**
- * Get the message to sign for a specific security level
- */
-export function getSignatureMessage(level: SecurityLevel): string {
-  return SECURITY_LEVEL_MESSAGES[level];
-}
-
-/**
- * Get all signature messages for initial setup
- */
-export function getAllSignatureMessages(): Array<{ level: SecurityLevel; message: string }> {
-  return [
-    { level: SecurityLevel.STANDARD, message: SECURITY_LEVEL_MESSAGES[SecurityLevel.STANDARD] },
-    { level: SecurityLevel.SENSITIVE, message: SECURITY_LEVEL_MESSAGES[SecurityLevel.SENSITIVE] },
-    { level: SecurityLevel.MAXIMUM, message: SECURITY_LEVEL_MESSAGES[SecurityLevel.MAXIMUM] }
-  ];
-}
-
-/**
- * Verify a key hash matches (for session validation)
- */
-export async function verifyKeyHash(
-  signature: Uint8Array,
-  level: SecurityLevel,
-  expectedHash: string
-): Promise<boolean> {
-  const actualHash = await generateKeyHash(signature, level);
-  return actualHash === expectedHash;
 }

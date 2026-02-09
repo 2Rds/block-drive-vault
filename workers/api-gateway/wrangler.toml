@@ -10,9 +10,11 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co"
 FILEBASE_GATEWAY = "https://ipfs.filebase.io"
-ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173,http://localhost:8080"
+FILEBASE_BUCKET = "blockdrive-storage"
+ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173,http://localhost:8080,http://localhost:8081,http://localhost:8082"
 RATE_LIMIT_PER_MINUTE = "100"
 RATE_LIMIT_BURST = "20"
+# FILEBASE_ACCESS_KEY and FILEBASE_SECRET_KEY set via `wrangler secret put`
 
 # KV Namespace for rate limiting
 [[kv_namespaces]]
@@ -38,7 +40,7 @@ new_sqlite_classes = ["EncryptionSession"]
 # Development environment
 [env.dev]
 name = "blockdrive-api-gateway-dev"
-vars = { SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co", FILEBASE_GATEWAY = "https://ipfs.filebase.io", ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000,http://localhost:8080" }
+vars = { SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co", FILEBASE_GATEWAY = "https://ipfs.filebase.io", ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000,http://localhost:8080,http://localhost:8081,http://localhost:8082" }
 
 [[env.dev.kv_namespaces]]
 binding = "RATE_LIMITS"

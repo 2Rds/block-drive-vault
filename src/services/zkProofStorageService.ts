@@ -43,14 +43,17 @@ class ZKProofStorageService {
       // Serialize proof for storage
       const proofData = zkProofService.serializeForStorage(proofPackage);
 
-      // Upload to primary storage provider
+      // Upload to storage providers.
+      // ZK proofs MUST land on R2 — they contain the encrypted critical bytes
+      // that are stripped from the content on IPFS. If both end up on the same
+      // provider, Programmed Incompleteness is broken.
       const result = await storageOrchestrator.uploadWithRedundancy(
         proofData,
         `${fileId}_zkproof.json`,
         'application/json',
         {
           ...storageConfig,
-          redundancyLevel: 2 // Proofs are critical, ensure redundancy
+          redundancyLevel: 2
         },
         {
           type: 'zkproof',
@@ -63,7 +66,14 @@ class ZKProofStorageService {
 
       const uploadTime = performance.now() - startTime;
 
-      if (!result.success) {
+      // R2 is the primary for proofs — require it specifically.
+      // Falling back to Filebase would put critical bytes on the same
+      // provider as the content, defeating Programmed Incompleteness.
+      const r2Result = result.primaryResult.provider === 'r2'
+        ? result.primaryResult
+        : result.backupResults.find(r => r.provider === 'r2');
+
+      if (!r2Result?.success) {
         return {
           success: false,
           proofCid: '',
@@ -71,16 +81,16 @@ class ZKProofStorageService {
           proofHash: proofPackage.proofHash,
           provider: storageConfig.primaryProvider,
           uploadTimeMs: Math.round(uploadTime),
-          error: result.primaryResult.error || 'Failed to upload proof'
+          error: r2Result?.error || 'R2 upload failed — ZK proofs require R2 for Programmed Incompleteness'
         };
       }
 
       return {
         success: true,
-        proofCid: result.primaryResult.identifier,
+        proofCid: r2Result.identifier,
         commitment: proofPackage.commitment,
         proofHash: proofPackage.proofHash,
-        provider: storageConfig.primaryProvider,
+        provider: 'r2',
         uploadTimeMs: Math.round(uploadTime)
       };
     } catch (error) {

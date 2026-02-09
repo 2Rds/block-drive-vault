@@ -30,7 +30,6 @@ interface CrossmintWalletState {
   // Operations
   signTransaction: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>;
   signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>;
-  signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   getBalance: () => Promise<number>;
   getUsdcBalance: () => Promise<number>;
 
@@ -107,18 +106,6 @@ export function useCrossmintWallet(): CrossmintWalletState {
     }
   }, [wallet, connection]);
 
-  const signMessage = useCallback(async (message: Uint8Array): Promise<Uint8Array> => {
-    if (!wallet) throw new Error('Wallet not initialized');
-
-    try {
-      const signature = await wallet.signMessage(message);
-      return signature as Uint8Array;
-    } catch (err) {
-      console.error('[useCrossmintWallet] Sign message error:', err);
-      throw err;
-    }
-  }, [wallet]);
-
   const getBalance = useCallback(async (): Promise<number> => {
     if (!walletAddress || !connection) return 0;
 
@@ -180,7 +167,6 @@ export function useCrossmintWallet(): CrossmintWalletState {
     error,
     signTransaction,
     signAndSendTransaction,
-    signMessage,
     getBalance,
     getUsdcBalance,
     switchChain,

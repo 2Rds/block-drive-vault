@@ -56,7 +56,7 @@ export function BlockDriveUploadArea({
 
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [initializingVault, setInitializingVault] = useState(false);
-  const securityLevel = SecurityLevel.SENSITIVE;
+  const securityLevel = SecurityLevel.MAXIMUM;
   const storageConfig = DEFAULT_STORAGE_CONFIG;
 
   const { user, walletData } = useAuth();
@@ -206,7 +206,7 @@ export function BlockDriveUploadArea({
                 Set Up Your Encryption Keys
               </h3>
               <p className="text-muted-foreground mb-4">
-                Sign 3 messages to generate your personal encryption keys. This is a one-time setup that enables secure file storage.
+                Answer your security question to unlock your encryption keys. First time? You'll set one up.
               </p>
               <Button 
                 onClick={() => setShowCryptoSetup(true)}

@@ -1,9 +1,9 @@
 pragma circom 2.1.0;
 
 // Note: circomlib must be installed: npm install circomlib
-// The paths below work with standard npm installation
-include "../node_modules/circomlib/circuits/sha256/sha256.circom";
-include "../node_modules/circomlib/circuits/bitify.circom";
+// Uses -l flag in circom to resolve library paths from node_modules
+include "circomlib/circuits/sha256/sha256.circom";
+include "circomlib/circuits/bitify.circom";
 
 /**
  * CriticalBytesCommitment Circuit
