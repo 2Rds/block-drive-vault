@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 const ClerkProtectedRoute = lazy(() =>
   import("./components/auth/ClerkProtectedRoute").then(m => ({ default: m.ClerkProtectedRoute }))
@@ -96,13 +97,7 @@ function App() {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense
-            fallback={
-              <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-foreground">Loading application...</div>
-              </div>
-            }
-          >
+          <Suspense fallback={<LoadingScreen />}>
             <ClerkAuthProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
