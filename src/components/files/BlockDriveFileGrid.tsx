@@ -17,7 +17,9 @@ import {
   Share2,
   MoreVertical,
   RefreshCw,
-  Users
+  Users,
+  FolderOpen,
+  FolderInput
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +58,7 @@ interface BlockDriveFile {
   securityLevel: 'standard' | 'enhanced' | 'maximum';
   encrypted: boolean;
   folderPath?: string;
-  
+
   // On-chain data (optional, populated from Solana)
   onChain?: {
     registered: boolean;
@@ -72,6 +74,8 @@ interface BlockDriveFile {
   };
 }
 
+export const DRAG_TYPE = 'application/x-blockdrive-file-id';
+
 interface BlockDriveFileGridProps {
   files: BlockDriveFile[];
   selectedFolder?: string;
@@ -81,6 +85,10 @@ interface BlockDriveFileGridProps {
   onFileDownload?: (file: BlockDriveFile) => void;
   onFileDelete?: (file: BlockDriveFile) => void;
   onFileShare?: (file: BlockDriveFile) => void;
+  onFileMove?: (file: BlockDriveFile) => void;
+  onFolderNavigate?: (folderPath: string) => void;
+  onMoveFileToFolder?: (fileId: string, targetFolderPath: string) => void;
+  onDropFilesToFolder?: (files: FileList, targetFolderPath: string) => void;
   onRefresh?: () => void;
   loading?: boolean;
   // Organization context
@@ -98,6 +106,10 @@ export function BlockDriveFileGrid({
   onFileDownload,
   onFileDelete,
   onFileShare,
+  onFileMove,
+  onFolderNavigate,
+  onMoveFileToFolder,
+  onDropFilesToFolder,
   onRefresh,
   loading = false,
   showTeamActions = false,
@@ -112,7 +124,7 @@ export function BlockDriveFileGrid({
   // Fetch on-chain files for the wallet
   const fetchOnChainStatus = useCallback(async () => {
     if (!walletData?.address) return;
-    
+
     setLoadingOnChain(true);
     try {
       const solanaFiles = await getUserFiles(walletData.address);
@@ -132,6 +144,9 @@ export function BlockDriveFileGrid({
 
   // Merge local files with on-chain status
   const enrichedFiles = files.map(file => {
+    // Skip enrichment for folders
+    if (file.mimeType === 'application/x-directory') return file;
+
     const onChainRecord = onChainFiles.find(
       ocf => ocf.primaryCid === file.cid
     );
@@ -141,7 +156,7 @@ export function BlockDriveFileGrid({
         ...file,
         onChain: {
           registered: true,
-          verified: true, // Verified means we found matching commitment on-chain
+          verified: true,
           fileRecordPubkey: onChainRecord.publicKey.toBase58(),
           encryptionCommitment: onChainRecord.encryptionCommitment,
           criticalBytesCommitment: onChainRecord.criticalBytesCommitment,
@@ -157,15 +172,21 @@ export function BlockDriveFileGrid({
     return file;
   });
 
-  // Filter files based on folder
+  // Filter to current directory level first — only show items whose folderPath matches currentPath
+  const pathFiltered = enrichedFiles.filter(file => {
+    const fileFolderPath = file.folderPath || '/';
+    return fileFolderPath === currentPath;
+  });
+
+  // Then apply category filter if set
   const filteredFiles = selectedFolder === 'all'
-    ? enrichedFiles
-    : enrichedFiles.filter(file => {
+    ? pathFiltered
+    : pathFiltered.filter(file => {
         const contentType = file.mimeType?.toLowerCase() || '';
-        
+
         if (selectedFolder === 'documents') {
-          return contentType.includes('pdf') || 
-                 contentType.includes('document') || 
+          return contentType.includes('pdf') ||
+                 contentType.includes('document') ||
                  contentType.includes('text');
         }
         if (selectedFolder === 'images') {
@@ -180,10 +201,21 @@ export function BlockDriveFileGrid({
         if (selectedFolder === 'on-chain') {
           return file.onChain?.registered === true;
         }
-        
-        const folderPath = file.folderPath || '/';
-        return folderPath.includes(`/${selectedFolder}`);
+
+        return true;
       });
+
+  // Sort: folders first, then files by date
+  const sortedFiles = [...filteredFiles].sort((a, b) => {
+    const aIsFolder = a.mimeType === 'application/x-directory';
+    const bIsFolder = b.mimeType === 'application/x-directory';
+    if (aIsFolder && !bIsFolder) return -1;
+    if (!aIsFolder && bIsFolder) return 1;
+    return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+  });
+
+  const folderEntries = sortedFiles.filter(f => f.mimeType === 'application/x-directory');
+  const fileEntries = sortedFiles.filter(f => f.mimeType !== 'application/x-directory');
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -229,28 +261,26 @@ export function BlockDriveFileGrid({
 
   if (!user) {
     return (
-      <div className="bg-card border border-border/50 rounded-xl p-6">
-        <div className="text-center py-12">
-          <Archive className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-muted-foreground mb-2">Connect Your Wallet</h3>
-          <p className="text-muted-foreground/70">
-            Please connect your wallet to view your BlockDrive files
-          </p>
-        </div>
+      <div className="text-center py-12">
+        <Archive className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">Connect Your Wallet</h3>
+        <p className="text-muted-foreground/70">
+          Please connect your wallet to view your BlockDrive files
+        </p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="bg-card border border-border/50 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-5 bg-muted rounded w-32 animate-pulse"></div>
           <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: SKELETON_COUNT }, (_, i) => i + 1).map((i) => (
-            <div key={i} className="bg-card rounded-xl p-4 border border-border/50 animate-pulse">
+            <div key={i} className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800 animate-pulse">
               <div className="h-8 w-8 bg-muted rounded mb-3"></div>
               <div className="h-4 bg-muted rounded mb-2"></div>
               <div className="h-3 bg-muted rounded w-16 mb-1"></div>
@@ -264,42 +294,40 @@ export function BlockDriveFileGrid({
 
   return (
     <TooltipProvider>
-      <div className="bg-card border border-border/50 rounded-xl p-6">
+      <div>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
             {currentPath !== '/' && onGoBack && (
-              <Button
-                onClick={onGoBack}
-                variant="outline"
-                size="sm"
-              >
+              <Button onClick={onGoBack} variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
             )}
-            <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-              <Globe className="w-5 h-5 text-primary" />
-              {selectedFolder === 'all' ? 'BlockDrive Files' : 
-               selectedFolder === 'on-chain' ? 'On-Chain Registered Files' :
-               `${selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)} Files`}
-              {currentPath !== '/' && (
-                <span className="text-sm text-muted-foreground font-normal">
-                  {currentPath}
-                </span>
-              )}
-            </h2>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {filteredFiles.length} files
-              {filteredFiles.filter(f => f.onChain?.registered).length > 0 && (
-                <span className="ml-1 text-primary">
-                  ({filteredFiles.filter(f => f.onChain?.registered).length} on-chain)
+            <span className="text-sm text-zinc-400">
+              {sortedFiles.length} items
+              {fileEntries.filter(f => f.onChain?.registered).length > 0 && (
+                <span className="ml-1 text-blue-400">
+                  ({fileEntries.filter(f => f.onChain?.registered).length} on-chain)
                 </span>
               )}
             </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Compact stats */}
+            {fileEntries.length > 0 && (
+              <div className="hidden md:flex items-center gap-2">
+                <Badge variant="outline" className="bg-transparent border-zinc-700 text-zinc-400 text-xs">
+                  <Lock className="w-3 h-3 mr-1" />
+                  {fileEntries.filter(f => f.encrypted).length} encrypted
+                </Badge>
+                <Badge variant="outline" className="bg-transparent border-zinc-700 text-zinc-400 text-xs">
+                  <Link2 className="w-3 h-3 mr-1" />
+                  {fileEntries.filter(f => f.onChain?.registered).length} on-chain
+                </Badge>
+              </div>
+            )}
             <Button
               onClick={() => {
                 fetchOnChainStatus();
@@ -309,89 +337,187 @@ export function BlockDriveFileGrid({
               size="sm"
               disabled={loadingOnChain}
             >
-              <RefreshCw className={cn("w-4 h-4 mr-2", loadingOnChain && "animate-spin")} />
-              Refresh
+              <RefreshCw className={cn("w-4 h-4", loadingOnChain && "animate-spin")} />
             </Button>
           </div>
         </div>
 
-        {/* Stats Summary */}
-        {filteredFiles.length > 0 && (
-          <div className="flex gap-4 mb-6 flex-wrap">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/20">
-              <Lock className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary">
-                {filteredFiles.filter(f => f.encrypted).length} Encrypted
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-lg border border-green-500/20">
-              <Link2 className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">
-                {filteredFiles.filter(f => f.onChain?.registered).length} On-Chain
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-lg border border-purple-500/20">
-              <CheckCircle className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-400">
-                {filteredFiles.filter(f => f.onChain?.verified).length} Verified
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20">
-              <Share2 className="w-4 h-4 text-amber-400" />
-              <span className="text-sm text-amber-400">
-                {filteredFiles.filter(f => f.onChain?.isShared).length} Shared
-              </span>
+        {/* Folders Section */}
+        {folderEntries.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
+              Folders
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {folderEntries.map((file) => {
+                const folderPath = file.folderPath === '/'
+                  ? `/${file.filename}`
+                  : `${file.folderPath}/${file.filename}`;
+                return (
+                  <FolderCard
+                    key={file.id}
+                    file={file}
+                    folderPath={folderPath}
+                    formatDate={formatDate}
+                    onNavigate={() => onFolderNavigate?.(folderPath)}
+                    onDelete={() => onFileDelete?.(file)}
+                    onMoveFileHere={(fileId) => onMoveFileToFolder?.(fileId, folderPath)}
+                    onDropFilesHere={(droppedFiles) => onDropFilesToFolder?.(droppedFiles, folderPath)}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* File Grid */}
-        {filteredFiles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredFiles.map((file) => (
-              <FileCard
-                key={file.id}
-                file={file}
-                onSelect={() => onFileSelect?.(file)}
-                onDownload={() => onFileDownload?.(file)}
-                onDelete={() => onFileDelete?.(file)}
-                onShare={() => onFileShare?.(file)}
-                formatFileSize={formatFileSize}
-                formatDate={formatDate}
-                getSecurityBadge={getSecurityBadge}
-                getFileTypeColor={getFileTypeColor}
-                showTeamActions={showTeamActions}
-                isPrivateFile={isPrivateFile}
-                onActionComplete={onActionComplete}
-              />
-            ))}
+        {/* Files Section */}
+        {fileEntries.length > 0 ? (
+          <div>
+            {folderEntries.length > 0 && (
+              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
+                Files
+              </h3>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {fileEntries.map((file) => (
+                <FileCard
+                  key={file.id}
+                  file={file}
+                  onSelect={() => onFileSelect?.(file)}
+                  onDownload={() => onFileDownload?.(file)}
+                  onDelete={() => onFileDelete?.(file)}
+                  onShare={() => onFileShare?.(file)}
+                  onMove={() => onFileMove?.(file)}
+                  formatFileSize={formatFileSize}
+                  formatDate={formatDate}
+                  getSecurityBadge={getSecurityBadge}
+                  getFileTypeColor={getFileTypeColor}
+                  showTeamActions={showTeamActions}
+                  isPrivateFile={isPrivateFile}
+                  onActionComplete={onActionComplete}
+                />
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <Globe className="w-12 h-12 text-primary/40 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">No files found</h3>
-            <p className="text-muted-foreground/70">
-              {selectedFolder === 'all' 
-                ? 'Upload some files to your BlockDrive storage to get started'
+        ) : folderEntries.length === 0 ? (
+          <div className="text-center py-16">
+            <Globe className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-zinc-400 mb-2">No files found</h3>
+            <p className="text-zinc-500">
+              {selectedFolder === 'all'
+                ? 'Upload files to get started'
                 : selectedFolder === 'on-chain'
                 ? 'No files have been registered on-chain yet'
                 : `No ${selectedFolder} files found`
               }
             </p>
           </div>
-        )}
+        ) : null}
       </div>
     </TooltipProvider>
   );
 }
 
-// Individual File Card Component
+// Folder Card Component — drop target for internal file moves and external file drops
+interface FolderCardProps {
+  file: BlockDriveFile;
+  folderPath: string;
+  formatDate: (date: Date) => string;
+  onNavigate: () => void;
+  onDelete: () => void;
+  onMoveFileHere?: (fileId: string) => void;
+  onDropFilesHere?: (files: FileList) => void;
+}
+
+function FolderCard({ file, folderPath, formatDate, onNavigate, onDelete, onMoveFileHere, onDropFilesHere }: FolderCardProps) {
+  const [isDragTarget, setIsDragTarget] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragTarget(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragTarget(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragTarget(false);
+
+    // Check for internal file drag first
+    const fileId = e.dataTransfer.getData(DRAG_TYPE);
+    if (fileId) {
+      onMoveFileHere?.(fileId);
+      return;
+    }
+
+    // External file drop
+    if (e.dataTransfer.files.length > 0) {
+      onDropFilesHere?.(e.dataTransfer.files);
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "bg-zinc-900/50 rounded-xl p-4 border transition-colors group cursor-pointer",
+        isDragTarget
+          ? "border-blue-500 bg-blue-500/10 scale-[1.02]"
+          : "border-zinc-800 hover:border-blue-500/40"
+      )}
+      onClick={onNavigate}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <FolderOpen className={cn("w-8 h-8", isDragTarget ? "text-blue-400" : "text-blue-500")} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-1 rounded hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="w-4 h-4 text-zinc-500" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="space-y-1">
+        <h3 className="font-medium text-foreground text-sm truncate" title={file.filename}>
+          {file.filename}
+        </h3>
+        <p className="text-xs text-zinc-500">Created {formatDate(file.uploadedAt)}</p>
+        {isDragTarget && (
+          <p className="text-xs text-blue-400 font-medium">Drop here</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Individual File Card Component — draggable for internal moves
 interface FileCardProps {
   file: BlockDriveFile;
   onSelect: () => void;
   onDownload: () => void;
   onDelete: () => void;
   onShare: () => void;
+  onMove: () => void;
   formatFileSize: (bytes: number) => string;
   formatDate: (date: Date) => string;
   getSecurityBadge: (level: string) => React.ReactNode;
@@ -408,6 +534,7 @@ function FileCard({
   onDownload,
   onDelete,
   onShare,
+  onMove,
   formatFileSize,
   formatDate,
   getSecurityBadge,
@@ -418,13 +545,20 @@ function FileCard({
 }: FileCardProps) {
   const iconColor = getFileTypeColor(file.mimeType);
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData(DRAG_TYPE, file.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
       className={cn(
-        "bg-card rounded-xl p-4 border transition-colors group cursor-pointer",
+        "bg-zinc-900/50 rounded-xl p-4 border transition-colors group cursor-pointer",
         file.onChain?.registered
           ? "border-green-500/30 hover:border-green-500/50"
-          : "border-border/50 hover:border-border"
+          : "border-zinc-800 hover:border-zinc-700"
       )}
       onClick={onSelect}
     >
@@ -489,6 +623,7 @@ function FileCard({
               onView={onSelect}
               onDownload={onDownload}
               onShare={file.onChain?.registered ? onShare : undefined}
+              onMove={onMove}
               onDelete={onDelete}
               onActionComplete={onActionComplete}
               showTeamActions={true}
@@ -519,6 +654,10 @@ function FileCard({
                     Share
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(); }}>
+                  <FolderInput className="w-4 h-4 mr-2" />
+                  Move to Folder
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive"
@@ -532,7 +671,7 @@ function FileCard({
           )}
         </div>
       </div>
-      
+
       {/* File Info */}
       <div className="space-y-1 mb-3">
         <h3 className="font-medium text-foreground text-sm truncate" title={file.filename}>
@@ -546,9 +685,9 @@ function FileCard({
       <div className="mb-3">
         {getSecurityBadge(file.securityLevel)}
       </div>
-      
+
       {/* On-Chain Status Footer */}
-      <div className="pt-3 border-t border-border space-y-2">
+      <div className="pt-3 border-t border-zinc-800 space-y-2">
         {file.onChain?.registered ? (
           <>
             {/* Verified Status */}
@@ -564,7 +703,7 @@ function FileCard({
                 </Badge>
               )}
             </div>
-            
+
             {/* Commitment Preview */}
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">Commitment:</span>
@@ -609,21 +748,23 @@ function FileCard({
             </Tooltip>
           </div>
         )}
-        
+
         {/* CID Preview */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground/70">CID:</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-xs text-muted-foreground/70 font-mono truncate max-w-[100px] cursor-help">
-                {file.cid?.slice(0, CID_PREVIEW_LENGTH)}...
-              </span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="font-mono text-xs break-all">{file.cid}</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        {file.cid && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground/70">CID:</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-muted-foreground/70 font-mono truncate max-w-[100px] cursor-help">
+                  {file.cid?.slice(0, CID_PREVIEW_LENGTH)}...
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-mono text-xs break-all">{file.cid}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
     </div>
   );

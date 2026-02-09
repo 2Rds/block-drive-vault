@@ -7,17 +7,17 @@ interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateFolder: (folderName: string) => void;
+  loading?: boolean;
 }
 
-export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder }: CreateFolderModalProps) => {
+export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, loading = false }: CreateFolderModalProps) => {
   const [folderName, setFolderName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (folderName.trim()) {
+    if (folderName.trim() && !loading) {
       onCreateFolder(folderName.trim());
       setFolderName('');
-      onClose();
     }
   };
 
@@ -34,6 +34,7 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder }: CreateFol
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
+            disabled={loading}
           >
             <X className="w-5 h-5" />
           </button>
@@ -52,6 +53,7 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder }: CreateFol
               placeholder="Enter folder name"
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               autoFocus
+              disabled={loading}
             />
           </div>
 
@@ -61,15 +63,16 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder }: CreateFol
               onClick={onClose}
               variant="outline"
               className="bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              disabled={loading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={!folderName.trim()}
+              disabled={!folderName.trim() || loading}
               className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Folder
+              {loading ? 'Creating...' : 'Create Folder'}
             </Button>
           </div>
         </form>

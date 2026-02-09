@@ -17,6 +17,7 @@ import {
   FolderInput,
   Users,
   Lock,
+  FolderOpen,
 } from 'lucide-react';
 import { MoveToTeamFilesModal } from './MoveToTeamFilesModal';
 import { SendToTeammateModal } from './SendToTeammateModal';
@@ -33,6 +34,7 @@ interface TeamFileActionsProps {
   onView?: () => void;
   onDownload?: () => void;
   onShare?: () => void;
+  onMove?: () => void;
   onDelete?: () => void;
   onActionComplete?: () => void;
   showTeamActions?: boolean;
@@ -44,6 +46,7 @@ export function TeamFileActions({
   onView,
   onDownload,
   onShare,
+  onMove,
   onDelete,
   onActionComplete,
   showTeamActions = false,
@@ -129,6 +132,18 @@ export function TeamFileActions({
                 </DropdownMenuItem>
               )}
             </>
+          )}
+
+          {onMove && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove();
+              }}
+            >
+              <FolderOpen className="w-4 h-4 mr-2" />
+              Move to Folder
+            </DropdownMenuItem>
           )}
 
           {onDelete && (

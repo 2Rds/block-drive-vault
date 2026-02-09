@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
 const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
+const ANSWER_HASH_KEY = 'bd_session_hash';
 
 // ── Module-level singleton key store (shared across all hook instances) ──
 
@@ -21,6 +22,7 @@ let _keys: WalletDerivedKeys | null = null;
 let _session: KeyDerivationSession | null = null;
 let _answerHash: string | null = null;
 let _version = 0; // bumped on every mutation so subscribers re-render
+let _autoRestoreAttempted = false;
 
 const _listeners = new Set<() => void>();
 function _notify() {
@@ -90,6 +92,8 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     _keys = null;
     _session = null;
     _answerHash = null;
+    _autoRestoreAttempted = false;
+    try { sessionStorage.removeItem(ANSWER_HASH_KEY); } catch {}
     _notify();
     setState({
       isInitialized: false,
@@ -140,9 +144,17 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
+    // If no answerHash provided, try to recover from memory or sessionStorage
     if (!answerHash) {
-      setState(prev => ({ ...prev, needsSecurityQuestion: true }));
-      return false;
+      const cached = _answerHash || (() => {
+        try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
+      })();
+      if (cached) {
+        answerHash = cached;
+      } else {
+        setState(prev => ({ ...prev, needsSecurityQuestion: true }));
+        return false;
+      }
     }
 
     setState(prev => ({ ...prev, isInitializing: true, error: null, needsSecurityQuestion: false }));
@@ -165,8 +177,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         lastRefreshed: Date.now()
       };
 
-      toast.info('Setting up encryption...');
-
       const keyMaterials = await requestAllKeyMaterials(answerHash);
 
       for (const level of ALL_SECURITY_LEVELS) {
@@ -183,6 +193,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       _answerHash = answerHash;
       _session.isComplete = true;
       _keys.initialized = true;
+
+      // Persist answer hash to sessionStorage so keys survive page refresh
+      try { sessionStorage.setItem(ANSWER_HASH_KEY, answerHash); } catch {}
+
       _notify();
 
       setState({
@@ -193,7 +207,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         needsSecurityQuestion: false
       });
 
-      toast.success('Encryption keys initialized successfully');
       return true;
     } catch (error) {
       _keys = null;
@@ -208,10 +221,29 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         error: errorMessage,
         needsSecurityQuestion: false
       });
-      toast.error(errorMessage);
+
+      // If auto-restore failed (bad hash), clear the stored hash
+      try { sessionStorage.removeItem(ANSWER_HASH_KEY); } catch {}
+
       return false;
     }
   }, [crossmintWallet, walletData, requestAllKeyMaterials]);
+
+  // Auto-restore keys from sessionStorage on mount / wallet connect
+  useEffect(() => {
+    if (!hasAnyWallet) return;
+    if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
+    if (_autoRestoreAttempted) return;
+
+    const storedHash = (() => {
+      try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
+    })();
+
+    if (storedHash) {
+      _autoRestoreAttempted = true;
+      initializeKeys(storedHash);
+    }
+  }, [hasAnyWallet, initializeKeys]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {

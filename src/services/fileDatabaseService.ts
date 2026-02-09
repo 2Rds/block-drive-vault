@@ -179,6 +179,73 @@ export class FileDatabaseService {
   }
 
   // =============================================================================
+  // Folder Methods
+  // =============================================================================
+
+  static async createFolder(
+    client: SupabaseClient,
+    clerkUserId: string,
+    folderName: string,
+    parentPath: string = '/',
+    clerkOrgId?: string,
+    visibility?: FileVisibility
+  ): Promise<any> {
+    const fullPath = `${parentPath}${parentPath.endsWith('/') ? '' : '/'}${folderName}`;
+    const insertData: Record<string, unknown> = {
+      clerk_user_id: clerkUserId,
+      filename: folderName,
+      file_path: fullPath,
+      folder_path: parentPath,
+      content_type: 'application/x-directory',
+      file_size: 0,
+      ipfs_cid: '',
+      ipfs_url: '',
+      storage_provider: 'local',
+      is_encrypted: false,
+    };
+    if (clerkOrgId) insertData.clerk_org_id = clerkOrgId;
+    if (visibility) insertData.visibility = visibility;
+
+    const { data, error } = await client
+      .from('files')
+      .insert(insertData)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to create folder: ${error.message}`);
+    return data;
+  }
+
+  static async deleteFolder(
+    client: SupabaseClient,
+    folderId: string,
+    clerkUserId: string
+  ): Promise<void> {
+    const { error } = await client
+      .from('files')
+      .delete()
+      .eq('id', folderId)
+      .eq('clerk_user_id', clerkUserId)
+      .eq('content_type', 'application/x-directory');
+    if (error) throw new Error(`Failed to delete folder: ${error.message}`);
+  }
+
+  static async moveFileToFolder(
+    client: SupabaseClient,
+    fileId: string,
+    clerkUserId: string,
+    targetFolderPath: string,
+    filename: string
+  ): Promise<void> {
+    const filePath = `${targetFolderPath}${targetFolderPath.endsWith('/') ? '' : '/'}${filename}`;
+    const { error } = await client
+      .from('files')
+      .update({ folder_path: targetFolderPath, file_path: filePath })
+      .eq('id', fileId)
+      .eq('clerk_user_id', clerkUserId);
+    if (error) throw new Error(`Failed to move file: ${error.message}`);
+  }
+
+  // =============================================================================
   // Organization-Aware File Methods
   // =============================================================================
 

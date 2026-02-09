@@ -28,9 +28,20 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   const [questionText, setQuestionText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // Short-circuit: if keys are already initialized (e.g. auto-restored from
+  // sessionStorage), immediately complete without prompting again.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (state.isInitialized) {
+      onComplete();
+    }
+  }, [isOpen, state.isInitialized, onComplete]);
+
   // Check if user has a security question when modal opens
   useEffect(() => {
     if (!isOpen) return;
+    // Skip the check if keys are already good — the effect above handles that
+    if (state.isInitialized) return;
 
     setError(null);
 
@@ -56,7 +67,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     };
 
     checkQuestion();
-  }, [isOpen, supabase]);
+  }, [isOpen, supabase, state.isInitialized]);
 
   const handleSetupComplete = async () => {
     // After setup, fetch the question and move to verify
