@@ -1,8 +1,8 @@
 # BlockDrive Product Requirements Document (PRD)
 
-**Version**: 2.0.0
-**Date**: February 3, 2026
-**Status**: ACTIVE - Phase 8 Testing
+**Version**: 1.0.0
+**Date**: February 9, 2026
+**Status**: ACTIVE - v1.0.0 Release
 **Prepared By**: BlockDrive Product Team
 
 ---
@@ -36,10 +36,10 @@ This unique architecture enables **"Instant Revoke"** capabilities where senders
 
 ### Current Status
 
-- **Development Stage**: Phase 8 Testing, ~95% complete
-- **Branch**: `feature/clerk-alchemy-integration`
-- **Last Major Milestone**: Organization Subdomain NFT System with Clerk Organizations
-- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions (41 functions), Solana Anchor + Multi-PDA Sharding, Crossmint Embedded Wallets, Clerk Organizations, Stripe Sync Engine, AES-256-GCM, Groth16 ZK Proofs, Metadata Privacy v2
+- **Development Stage**: v1.0.0 Release
+- **Branch**: `main`
+- **Last Major Milestone**: v1.0.0 release with security question key derivation, folder management, end-to-end encrypted downloads
+- **Technology Stack**: React 18.3.1 + TypeScript, Supabase Edge Functions, Solana Anchor + Multi-PDA Sharding, Crossmint Embedded Solana Wallets, Clerk Organizations, Stripe Sync Engine, AES-256-GCM, Groth16 ZK Proofs, Metadata Privacy v2
 
 ### Unique Value Proposition
 
@@ -47,9 +47,9 @@ BlockDrive bridges Web2 security standards with Web3 decentralization:
 
 1. **Proprietary Programmed Incompleteness** - Critical bytes extraction enables instant, irreversible access revocation
 2. **Zero-Knowledge Cryptography** - Files verified on-chain without revealing content
-3. **Multi-Chain Authentication** - Solana (primary) + Base/Ethereum support
+3. **Blockchain Authentication** - Solana embedded wallets (Crossmint) + EVM auth-only (Clerk)
 4. **Enterprise-Grade Features** - Team collaboration with full encryption
-5. **Flexible Payments** - Both fiat (Stripe) and crypto (Radom - planned)
+5. **Flexible Payments** - Both fiat (Stripe) and crypto (Crossmint)
 
 ### Market Positioning
 
@@ -59,7 +59,7 @@ Unlike traditional cloud storage which relies on company policies for access rev
 
 ### Target Launch
 
-**Q1 2026** - 8-9 weeks remaining across 8 implementation phases
+**Q1 2026** - v1.0.0 released February 2026
 
 ---
 
@@ -92,9 +92,9 @@ BlockDrive occupies a unique position between:
 - ✅ Programmed Incompleteness (proprietary, patentable)
 - ✅ Instant revoke capability (unique in market)
 - ✅ Zero-knowledge proofs on-chain
-- ✅ Multi-chain authentication (Solana + Ethereum + Base + Polygon + Arbitrum)
-  - **Powered by**: Crossmint Embedded Wallets (automatic multichain from Day 1)
-  - **Chains**: Solana devnet/mainnet + 50+ EVM chains
+- ✅ Blockchain authentication (Solana embedded wallets via Crossmint; EVM wallets via Clerk auth-only)
+  - **Embedded wallets**: Solana only (Crossmint MPC)
+  - **Auth-only**: MetaMask, Coinbase Wallet (Clerk)
 - ✅ Soulbound NFT membership
 - ✅ Crypto + fiat payment options
 - ✅ Built-in compliance (AML/KYC) for enterprise users
@@ -114,7 +114,7 @@ BlockDrive implements a unique upload architecture called **"Programmed Incomple
 
 **Phase 1: File Encryption**
 - **Algorithm**: AES-256-GCM (NIST-approved)
-- **Key Source**: Wallet-derived via HKDF-SHA256
+- **Key Source**: Security question-derived via HKDF-SHA256
 - **IV Generation**: 96-bit random per file
 - **Output**: `[IV || ciphertext || auth_tag]`
 - **Security Levels**:
@@ -142,7 +142,7 @@ BlockDrive implements a unique upload architecture called **"Programmed Incomple
 
 **Phase 4: Multi-Provider Upload**
 - **Content Upload**: Encrypted file (WITHOUT critical bytes) → Filebase/IPFS
-- **Proof Upload**: ZK proof package → Amazon S3
+- **Proof Upload**: ZK proof package → Cloudflare R2
 - **Metadata Upload**: Encrypted metadata JSON → Filebase
 - **Blockchain Registration**: FileRecord PDA on Solana with commitments
 - **Redundancy Support**: 3 levels (single, dual, triple provider)
@@ -201,7 +201,7 @@ Total: ~5 seconds
 - Verify: Proof integrity hash matches
 
 **Phase 4: File Reconstruction & Decryption**
-- Decrypt critical bytes using wallet-derived key
+- Decrypt critical bytes using security question-derived key
 - Reconstruct complete file: `critical_bytes + encrypted_content`
 - Decrypt reconstructed file with AES-256-GCM
 - Validate decrypted content format
@@ -227,7 +227,7 @@ BlockDrive uses a redundant, multi-provider storage strategy for resilience:
 | Provider | Purpose | Protocol | Cost | Performance |
 |----------|---------|----------|------|-------------|
 | **Filebase** | Primary IPFS | S3-compatible | ~$5/TB/month | Fast, reliable |
-| **Amazon S3** | Backup + Critical bytes | S3 native | ~$23/TB/month | Very fast |
+| **Cloudflare R2** | ZK Proofs + Critical bytes | S3-compatible | Zero egress | Very fast |
 | **Arweave** | Permanent archival | HTTP API | ~$500-1000/TB one-time | Slow, permanent |
 
 #### Redundancy Levels
@@ -236,9 +236,9 @@ BlockDrive uses a redundant, multi-provider storage strategy for resilience:
    - Use case: Non-critical files, cost optimization
    - Risk: Single point of failure
 
-2. **Level 2**: Primary + S3 backup
+2. **Level 2**: Primary + R2 backup
    - Use case: Standard business files
-   - Benefit: Automatic failover
+   - Benefit: Automatic failover, zero egress
 
 3. **Level 3**: All three providers
    - Use case: Critical documents, compliance
@@ -266,7 +266,7 @@ interface StorageConfig {
 
 ### 3.4 Encryption & Cryptography
 
-**Status**: 🟡 90% Complete (3-message key derivation pending Phase 5)
+**Status**: ✅ Complete
 
 #### AES-256-GCM Encryption
 
@@ -286,40 +286,40 @@ interface StorageConfig {
 **Security Levels Implementation**:
 
 ```typescript
+// Key material obtained from derive-key-material edge function
+// (answer hash sent to server, key material returned per level)
+
 // Standard (Level 0)
 const key = await hkdf({
-  ikm: walletSignatures,
+  ikm: keyMaterial[0],  // from edge function
   salt: 'BlockDrive-HKDF-Salt-v1',
   info: 'blockdrive-level-0-encryption',
-  iterations: 1000
 });
 
 // Sensitive (Level 1)
 const key = await hkdf({
-  ikm: walletSignatures,
+  ikm: keyMaterial[1],  // from edge function
   salt: 'BlockDrive-HKDF-Salt-v1',
   info: 'blockdrive-level-1-encryption',
-  iterations: 10000,        // 10x more iterations
-  additionalEntropy: true   // Extra entropy source
 });
 
 // Maximum (Level 2)
 const key = await hkdf({
-  ikm: walletSignatures,
-  salt: 'BlockDrive-HKDF-Salt-v1' + fileSpecificSalt,
+  ikm: keyMaterial[2],  // from edge function
+  salt: 'BlockDrive-HKDF-Salt-v1',
   info: 'blockdrive-level-2-encryption',
-  iterations: 100000,       // 100x more iterations
-  additionalEntropy: true,
-  perFileSalt: true         // Unique salt per file
 });
 ```
 
 **Key Derivation (HKDF-SHA256)**:
-- **Input Material**: 3 wallet signatures (see Phase 5)
+- **Input Material**: Security question answer hash (sent to `derive-key-material` edge function)
+- **Server Response**: Key material for 3 security levels
 - **Salt**: Static application salt + optional file salt
 - **Info**: Level-specific context string (domain separation)
 - **Output**: 256-bit non-extractable CryptoKey
-- **Security**: Keys NEVER leave client, never sent to server
+- **Session**: Answer hash cached in sessionStorage (survives page refresh, clears on tab close)
+- **Expiry**: 4-hour session with auto-restore via module-level singleton (`useSyncExternalStore`)
+- **Security**: Final CryptoKeys NEVER leave client, never sent to server
 
 #### Performance
 
@@ -410,23 +410,54 @@ interface ZKProofPackage {
 - **Proof Size**: ~2KB per proof package
 - **On-chain Storage**: Only 32-byte commitment (SHA-256)
 
+### 3.6 Folder Management (v1.0.0)
+
+**Status**: ✅ Complete
+
+#### Redesigned Files Page
+
+- **Compact Upload**: Upload button in header bar (no giant upload area)
+- **Folder Creation/Deletion**: Persisted via Supabase `files` table as sentinel rows with `content_type: 'application/x-directory'`
+- **Drag-and-Drop**: External OS files trigger page overlay + upload; internal file-to-folder moves via HTML5 DnD
+- **Move-to-Folder**: Available from file context menu via modal
+- **Directory Filtering**: Files only shown at their current folder level
+- **Separate Sections**: Folders and files displayed in labeled sections
+
+#### New Edge Functions (v1.0.0)
+
+- `security-question` -- get/set/verify security questions
+- `derive-key-material` -- derive key materials from answer hash
+- `clerk-webhook` -- handle Clerk user/org events, provision storage
+
+### 3.7 Pricing (v1.0.0)
+
+**Current pricing model (Power and Starter/Growth tiers eliminated):**
+
+| Tier | Price | Storage | Notes |
+|------|-------|---------|-------|
+| **Pro** | $15/mo | 1TB, +$10/mo per additional TB | Quarterly $40, Annual $149 |
+| **Scale** | $29/seat/mo | 2TB/seat, +$10/seat/mo per additional TB | 2-99 seats, Quarterly $79, Annual $299 |
+| **Enterprise** | Custom | Custom | 100+ seats, SSO/SAML, whitelabeling, dedicated account manager |
+
+All plans include 7-day free trial, blockchain auth, and Programmed Incompleteness.
+
 ---
 
 ## Implementation Status
 
-### Overall Completion: ~95%
+### Overall Completion: v1.0.0 Released
 
-### Completed Features (✅ 95%)
+### Completed Features (✅ v1.0.0)
 
 **Frontend (100% Complete)**:
 - ✅ 151 React components across all feature areas
 - ✅ 18 page components (Dashboard, Files, Membership, Teams, Onboarding, etc.)
 - ✅ 20+ custom React hooks (useAuth, useCrossmintWallet, useOrganizations, etc.)
 - ✅ Clerk authentication UI integration with Organizations
-- ✅ Crossmint embedded wallet provider (multichain)
+- ✅ Crossmint embedded wallet provider (Solana)
 - ✅ File upload/download interfaces with progress tracking
-- ✅ File browser with folder navigation
-- ✅ Encryption setup wizard (3 security levels)
+- ✅ File browser with persistent folder management (create/delete/move, drag-and-drop)
+- ✅ Encryption setup via security questions (3 security levels)
 - ✅ File sharing modal with permissions
 - ✅ Subscription/pricing pages with Stripe Sync
 - ✅ Dashboard with usage metrics and analytics
@@ -437,7 +468,7 @@ interface ZKProofPackage {
 
 **Backend Services (95% Complete)**:
 - ✅ Clerk authentication integration with Organizations
-- ✅ Crossmint embedded wallet setup (multichain)
+- ✅ Crossmint embedded wallet setup (Solana only; EVM wallets are Clerk auth-only)
 - ✅ SNS domain verification (Solana)
 - ✅ File upload service (multi-provider orchestration)
 - ✅ File download service (verified retrieval with ZK proofs)
@@ -452,7 +483,7 @@ interface ZKProofPackage {
 - ✅ ECDH key exchange for secure sharing
 - ✅ Critical bytes extraction and storage
 - ✅ Metadata Privacy v2 (encrypted metadata + HMAC search)
-- ✅ 3-message key derivation (complete with 4-hour sessions)
+- ✅ Security question key derivation (complete with 4-hour sessions)
 - ✅ Organization invite code system
 - ✅ Email domain verification (magic links via Resend)
 - ✅ Username NFT minting via Crossmint API
@@ -472,19 +503,19 @@ interface ZKProofPackage {
 
 **Cryptography (100% Complete)**:
 - ✅ AES-256-GCM implementation (WebCrypto API)
-- ✅ HKDF key derivation (3-level wallet signatures)
-- ✅ Wallet signature collection flow
+- ✅ HKDF key derivation (3-level via security question answer hash)
+- ✅ Security question setup/verify flow with sessionStorage caching
 - ✅ Groth16 ZK proof generation (snarkjs)
 - ✅ ECDH key exchange (X25519)
 - ✅ Commitment verification (SHA-256)
-- ✅ Full 3-message key derivation (complete)
+- ✅ Security question-based key derivation (complete)
 - ✅ Metadata Privacy v2 (HMAC search tokens)
 - 🟡 Production trusted setup ceremony (before mainnet)
 
 **Payments & Monetization (95% Complete)**:
 - ✅ Stripe Sync Engine integration
 - ✅ Stripe integration (checkout, subscriptions, webhooks)
-- ✅ Subscription tier system (4 tiers)
+- ✅ Subscription tier system (3 tiers: Pro $15/mo, Scale $29/seat/mo, Enterprise custom)
 - ✅ NFT-based membership minting (Token-2022)
 - ✅ Pricing page with dynamic pricing
 - ✅ Billing history tracking
@@ -512,10 +543,10 @@ interface ZKProofPackage {
 ## Roadmap & Milestones
 
 ### Current Status
-- **Week**: Final weeks of 8-9 week roadmap
-- **Branch**: `feature/clerk-alchemy-integration`
-- **Last Milestone**: Organization Subdomain NFT System complete
-- **Current Phase**: Phase 8 - Testing & Mainnet Deployment
+- **Version**: v1.0.0 Released
+- **Branch**: `main`
+- **Last Milestone**: v1.0.0 release with security question key derivation, folder management, encrypted downloads
+- **Current Phase**: All phases complete
 
 ### Q1 2026 Implementation Progress
 
@@ -543,11 +574,12 @@ interface ZKProofPackage {
 - ✅ Size buckets for privacy-preserving categorization
 - ✅ Backward compatibility with v1 metadata
 
-**Phase 5 - Full 3-Message Key Derivation** ✅ COMPLETE
-- ✅ 3-message templates finalized
+**Phase 5 - Security Question Key Derivation** ✅ COMPLETE
+- ✅ Security question setup/verify flow (replaces wallet signatures)
+- ✅ Answer hash sent to `derive-key-material` edge function
 - ✅ HKDF-SHA256 with 3 security levels
-- ✅ 4-hour session expiry
-- ✅ Dual wallet support (Crossmint + external adapters)
+- ✅ 4-hour session expiry with sessionStorage caching
+- ✅ Module-level singleton via `useSyncExternalStore`
 
 **Phase 6 - Download Commitment Verification** ✅ COMPLETE
 - ✅ On-chain verification at FileRecord level
@@ -572,14 +604,12 @@ interface ZKProofPackage {
 - ✅ 5-step onboarding flow
 - ✅ Organization-aware username NFT minting
 
-**Phase 8 - Testing & Mainnet Deployment** 🔄 IN PROGRESS
+**Phase 8 - Testing & Deployment** ✅ COMPLETE
 - ✅ Unit tests for crypto/blockchain modules
 - ✅ Integration tests for major workflows
-- 🔄 E2E tests (Playwright)
-- 🔄 Devnet deployment and validation
-- 📋 Third-party security audit
-- 📋 Mainnet-beta deployment
-- 📋 Production monitoring setup
+- ✅ E2E tests (Playwright)
+- ✅ Devnet deployment and validation
+- ✅ v1.0.0 release
 
 ### Q2 2026 Planned
 
@@ -596,10 +626,10 @@ interface ZKProofPackage {
 
 ### Functional Metrics
 - ✅ 1000+ files per user supported (via multi-PDA sharding)
-- ✅ Crypto payments live (SOL, USDC, ETH, BTC via Radom)
+- ✅ Crypto payments live (SOL, USDC, ETH via Crossmint)
 - ✅ Python Recovery SDK available and open-sourced
 - ✅ Solana mainnet-beta deployment complete
-- ✅ Full 3-message key derivation implemented
+- ✅ Security question key derivation implemented
 - ✅ On-chain download verification active
 
 ### Performance Metrics
@@ -681,10 +711,9 @@ interface ZKProofPackage {
 
 ---
 
-**Document Version**: 2.0.0
-**Last Updated**: February 3, 2026
-**Status**: ACTIVE - Phase 8 Testing
+**Document Version**: 1.0.0
+**Last Updated**: February 9, 2026
+**Status**: ACTIVE - v1.0.0 Release
 **Prepared By**: BlockDrive Product Team
-**Next Review**: Weekly during testing phase
 **Feedback**: Submit via GitHub issues or team@blockdrive.app
 

@@ -218,23 +218,20 @@ import { SignInButton } from '@clerk/clerk-react';
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                   2
                 </div>
-                <CardTitle>Upload Your First File</CardTitle>
+                <CardTitle>Set Up Your Security Question</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Once authenticated, you can upload files directly to IPFS with automatic pinning and CDN access.
+                Before uploading, you set a personal security question. Your answer is used to derive encryption keys
+                via HKDF — keys are generated client-side and never leave your device. You only need to answer once
+                per browser session; the answer hash is cached in sessionStorage and auto-restored on page refresh.
               </p>
-              <CodeBlock id="upload-file">
-{`// Upload file to IPFS
-import { IPFSService } from '@/services/ipfsService';
-
-const uploadFile = async (file: File) => {
-  const result = await IPFSService.uploadFile(file);
-  // result.cid contains the IPFS content identifier
-  return result;
-};`}
-              </CodeBlock>
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                  Session keys expire after 4 hours or when you close the tab. Logging out clears all cached keys.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -244,21 +241,48 @@ const uploadFile = async (file: File) => {
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                   3
                 </div>
-                <CardTitle>Manage and Share</CardTitle>
+                <CardTitle>Upload Your First File</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Organize your files in folders, invite team members, and share files securely.
+                Click the Upload button in the Files page header or drag files directly onto the page.
+                Files are encrypted client-side with AES-256-GCM before upload to IPFS. A ZK proof of the
+                critical bytes is generated and registered on Solana.
+              </p>
+              <CodeBlock id="upload-file">
+{`// Files page: compact upload button + page-level drag-and-drop
+// 1. Click "Upload" in header → file picker opens
+// 2. Or drag files from your OS onto the page → blue overlay appears
+// 3. Files are encrypted at Maximum security level
+// 4. Uploaded to IPFS via Filebase with ZK proof
+// 5. FileRecord registered on Solana blockchain`}
+              </CodeBlock>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                  4
+                </div>
+                <CardTitle>Organize and Share</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Create folders, drag files into them, move files between folders via the context menu,
+                and share encrypted files with teammates or external recipients.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">📁 File Organization</h4>
-                  <p className="text-sm text-muted-foreground">Create folders and organize your files</p>
+                  <h4 className="font-medium mb-2">Folder Management</h4>
+                  <p className="text-sm text-muted-foreground">Create folders, drag-and-drop files into them, or use "Move to Folder" from the file menu</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">👥 Team Collaboration</h4>
-                  <p className="text-sm text-muted-foreground">Invite members and manage permissions</p>
+                  <h4 className="font-medium mb-2">Team Collaboration</h4>
+                  <p className="text-sm text-muted-foreground">Share files with on-chain delegation, send to teammates, or move to team folders</p>
                 </div>
               </div>
             </CardContent>
@@ -694,32 +718,70 @@ const downloadFile = async (cid: string) => {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">File Management</h1>
           <p className="text-lg text-muted-foreground">
-            Organize, search, and manage your files with enterprise-grade tools.
+            The Files page provides a clean, files-first interface with folder management, drag-and-drop, and per-file actions.
           </p>
         </div>
 
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Core Features</CardTitle>
+              <CardTitle>Page Layout</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                The Files page uses a compact header with action buttons (Upload, New Folder) and maximizes the grid area for file visualization. The old full-width upload block has been replaced.
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Header action buttons: Upload (or Set Up Keys) and New Folder</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Status badges: Vault Active, Organization name, Initialize Vault</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Slim progress bar during uploads with percentage and status message</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Tabs: Team Files, My Files, Shared With Me, Trash</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Folders and files displayed in separate, labeled sections</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Folder Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Folders are stored as sentinel rows in the <code className="text-primary">files</code> table with <code className="text-primary">content_type: 'application/x-directory'</code>. They persist across sessions and support hierarchical navigation.
+              </p>
+              <CodeBlock id="folder-ops">
+{`// Create folder (stored in Supabase files table)
+await FileDatabaseService.createFolder(
+  supabase, userId, "Project Documents", "/",
+  orgId,       // optional: organization scope
+  "private"    // optional: visibility
+);
+
+// Delete folder
+await FileDatabaseService.deleteFolder(supabase, folderId, userId);
+
+// Move file into folder
+await FileDatabaseService.moveFileToFolder(
+  supabase, fileId, userId, "/Project Documents", "report.pdf"
+);`}
+              </CodeBlock>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Drag-and-Drop</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">Two types of drag-and-drop are supported:</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">📁 Folder Organization</h4>
-                  <p className="text-sm text-muted-foreground">Hierarchical folder structure for organization</p>
+                  <h4 className="font-medium mb-2">External File Drop</h4>
+                  <p className="text-sm text-muted-foreground">Drag files from your OS onto the page. A blue overlay appears confirming the drop target. Files are encrypted and uploaded.</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">🏷️ File Metadata</h4>
-                  <p className="text-sm text-muted-foreground">Size, type, upload date, blockchain info</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">🔍 Search & Filter</h4>
-                  <p className="text-sm text-muted-foreground">Find files by name, type, or date</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">📦 Batch Operations</h4>
-                  <p className="text-sm text-muted-foreground">Upload and manage multiple files</p>
+                  <h4 className="font-medium mb-2">Internal File Move</h4>
+                  <p className="text-sm text-muted-foreground">Drag a file card onto a folder card to move it. The folder highlights blue as a drop target. The page overlay does not appear for internal drags.</p>
                 </div>
               </div>
             </CardContent>
@@ -727,28 +789,33 @@ const downloadFile = async (cid: string) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>File Operations</CardTitle>
+              <CardTitle>File Context Menu</CardTitle>
             </CardHeader>
             <CardContent>
-              <CodeBlock id="file-ops">
-{`// Create folder
-const createFolder = async (folderName: string) => {
-  const folder = await folderService.create(folderName);
-  return folder;
-};
+              <p className="text-sm text-muted-foreground mb-3">
+                Each file card has a context menu (top-right) with these actions:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><strong>View</strong> — Preview the encrypted file in-browser</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><strong>Download</strong> — Decrypt and download to local device</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><strong>Share</strong> — On-chain delegation (requires file registration)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><strong>Move to Folder</strong> — Opens a folder picker modal</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" /><strong>Send to Teammate</strong> — Direct send within organization</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-red-500 rounded-full" /><strong>Delete</strong> — Remove from storage</li>
+              </ul>
+            </CardContent>
+          </Card>
 
-// Search files
-const searchFiles = async (query: string) => {
-  const results = await fileService.search(query);
-  return results;
-};
-
-// Generate sharing link
-const shareFile = async (fileId: string) => {
-  const link = await fileService.generateShareLink(fileId);
-  return link;
-};`}
-              </CodeBlock>
+          <Card>
+            <CardHeader>
+              <CardTitle>Directory Navigation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Files are filtered by the current directory path. When you navigate into a folder, only files at that
+                level are displayed. Files that have been moved into subfolders are not shown at the parent level.
+                A Back button appears when inside a subfolder. The current path is displayed in the page header.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -1018,9 +1085,11 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
           <CardContent>
             <div className="grid gap-4">
               {[
-                { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS with metadata storage" },
+                { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS via Worker gateway with metadata storage" },
+                { name: "derive-key-material", desc: "Derive encryption key materials from security answer hash for all 3 security levels" },
+                { name: "security-question", desc: "Get, set, and verify security questions for encryption key derivation" },
+                { name: "clerk-webhook", desc: "Handle Clerk user/org events, provision storage folders, sync profiles" },
                 { name: "check-subscription", desc: "Verify user subscription status and quotas" },
-                { name: "secure-wallet-auth", desc: "Authenticate wallet connections securely" },
                 { name: "create-checkout", desc: "Process Stripe payments and subscriptions" },
                 { name: "send-team-invitation", desc: "Handle team member invitation emails" }
               ].map((func) => (
@@ -1179,18 +1248,34 @@ const uploadWithPI = async (file: File) => {
           </Card>
         </div>
 
-        <CodeBlock id="aes-encrypt">
-{`// AES-256-GCM encryption with wallet-derived keys
-import { blockDriveCryptoService } from '@/services/crypto';
+        <Card>
+          <CardHeader>
+            <CardTitle>Key Derivation Flow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Encryption keys are derived from a security question answer via HKDF. The answer hash is sent to the
+              <code className="text-primary"> derive-key-material</code> edge function, which returns key material for all 3 security levels.
+              Keys are then derived client-side using HKDF-SHA256 into AES-256-GCM CryptoKeys.
+            </p>
+            <CodeBlock id="aes-encrypt">
+{`// 1. User answers security question (once per session)
+// 2. Answer hash sent to derive-key-material edge function
+// 3. Server returns key materials for all 3 levels
+// 4. Client derives CryptoKeys via HKDF-SHA256
 
-// Initialize from 3-message wallet signature
-await blockDriveCryptoService.initializeKeys(wallet, 'maximum');
+const keyMaterials = await supabase.functions.invoke('derive-key-material', {
+  body: { answer_hash: answerHash }
+});
 
-// Encrypt file
-const { encrypted, iv, authTag } = await blockDriveCryptoService.encryptFile(file);
+// Derive AES-256-GCM CryptoKey for each level
+const key = await deriveKeyFromMaterial(material, SecurityLevel.MAXIMUM);
 
-// Keys never touch application servers - derived client-side only`}
-        </CodeBlock>
+// Keys never leave the browser - 4-hour session with auto-restore
+// Answer hash cached in sessionStorage (survives page refresh)`}
+            </CodeBlock>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -1501,7 +1586,7 @@ pub struct Delegation {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Multi-Provider Storage</h1>
           <p className="text-lg text-muted-foreground">
-            Automatic failover across Filebase, Cloudflare R2, S3, and Arweave for maximum reliability.
+            Automatic failover across Filebase, Cloudflare R2, and Arweave for maximum reliability.
           </p>
         </div>
 
@@ -1523,16 +1608,6 @@ pub struct Delegation {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">Zero-egress-fee storage for ZK proof packages and critical bytes.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Amazon S3</CardTitle>
-              <Badge variant="secondary">Backup</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Redundant content backup and critical bytes storage.</p>
             </CardContent>
           </Card>
 
@@ -2643,6 +2718,93 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
               <code className="text-sm text-primary">neo.blockdrive.sol</code>
               <p className="text-xs text-muted-foreground mt-1">GABYjW8LgkLBTFzkJSzTFZGnuZbZaw36xcDv6cVFRg2y</p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeSection === 'key-derivation') {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Key Derivation & Session Management</h1>
+          <p className="text-lg text-muted-foreground">
+            BlockDrive derives encryption keys from a personal security question, with session persistence
+            so users only answer once per browser session.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Security Question Flow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ol className="space-y-3 text-sm">
+              <li className="flex gap-3">
+                <span className="font-bold text-primary shrink-0">1.</span>
+                <span><strong>First time:</strong> User chooses a security question and provides an answer. The question is stored server-side; the answer is hashed client-side (SHA-256) and never stored in plaintext.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-primary shrink-0">2.</span>
+                <span><strong>On each session:</strong> User answers their security question. The answer hash is sent to the <code className="text-primary">derive-key-material</code> edge function.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-primary shrink-0">3.</span>
+                <span><strong>Server response:</strong> The edge function verifies the answer hash and returns key material (hex) for all 3 security levels (Standard, Sensitive, Maximum).</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-primary shrink-0">4.</span>
+                <span><strong>Client derivation:</strong> Key materials are derived into AES-256-GCM CryptoKeys via HKDF-SHA256. Keys exist only in browser memory.</span>
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Session Persistence</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              The answer hash is cached in <code className="text-primary">sessionStorage</code> (key: <code className="text-primary">bd_session_hash</code>)
+              so encryption keys can be silently re-derived on page refresh without re-prompting. This provides a seamless experience while maintaining security.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Auto-Restore</h4>
+                <p className="text-sm text-muted-foreground">When a wallet connects and a stored hash exists, keys are automatically derived in the background. If the CryptoSetupModal opens but keys are already initialized, it immediately completes.</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Session Boundaries</h4>
+                <p className="text-sm text-muted-foreground">Keys expire after 4 hours. Closing the browser tab clears sessionStorage. Logging out explicitly clears all cached keys and the stored hash.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Module-Level Singleton</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              The <code className="text-primary">useWalletCrypto</code> hook uses a module-level singleton store shared across all
+              hook instances via <code className="text-primary">useSyncExternalStore</code>. This ensures all components see the same
+              key state without prop drilling or context providers.
+            </p>
+            <CodeBlock id="key-singleton">
+{`// Module-level singleton (shared across all hook instances)
+let _keys: WalletDerivedKeys | null = null;
+let _session: KeyDerivationSession | null = null;
+let _answerHash: string | null = null;
+
+// All components using useWalletCrypto() share the same keys
+const { state, initializeKeys, getKey } = useWalletCrypto();
+
+// getKey() auto-refreshes expired sessions from cached hash
+const cryptoKey = await getKey(SecurityLevel.MAXIMUM);`}
+            </CodeBlock>
           </CardContent>
         </Card>
       </div>

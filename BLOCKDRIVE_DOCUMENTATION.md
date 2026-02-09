@@ -1,4 +1,4 @@
-# BlockDrive Platform Documentation
+# BlockDrive Platform Documentation — v1.0.0
 
 ## Overview
 
@@ -40,16 +40,17 @@ BlockDrive is a comprehensive Web3 data management platform that combines decent
 - Stripe for payment processing
 
 **Blockchain:**
-- Dynamic Labs SDK for multi-chain wallet connectivity
+- Clerk for identity + Crossmint for embedded Solana wallets
 - Solana Anchor program for on-chain file registry
-- Support for Ethereum, Base, Solana, and 50+ networks
+- EVM wallets (MetaMask/Coinbase) supported for Clerk auth only
 - SNS (.sol) and Basenames (.base) domain verification
 
 **Cryptography:**
-- AES-256-GCM encryption with 3 security levels
+- AES-256-GCM encryption with 3 security levels (Standard, Sensitive, Maximum)
 - Zero-Knowledge Proofs (snarkjs/Groth16)
 - ECDH key exchange for secure file sharing
-- Wallet-derived encryption keys via HKDF
+- Security-question-derived encryption keys via HKDF-SHA256
+- Session-persistent key caching (sessionStorage, 4-hour expiry)
 
 ### Project Structure
 
@@ -99,17 +100,18 @@ BlockDrive's proprietary privacy-first architecture where encrypted files are sp
 - Enables "Instant Revoke" - senders can permanently revoke access
 
 ### 2. Decentralized Storage (IPFS + Multi-Provider)
-- **Primary Provider**: Filebase (S3-compatible IPFS API)
-- **Redundancy**: Amazon S3 and Arweave fallbacks
-- **File Management**: Organize files in folders with metadata
+- **Primary Provider**: Filebase (S3-compatible IPFS API) via Cloudflare Worker gateway
+- **Redundancy**: Cloudflare R2 for ZK proofs, Arweave for permanent archival
+- **Folder Management**: Create, delete, and navigate folders; drag-and-drop file organization; move-to-folder modal
+- **Directory Filtering**: Files displayed only at current folder level, clean hierarchical navigation
 - **Permanent Storage**: Files pinned for guaranteed availability
 - **Global CDN**: Fast access through gateway network
 
-### 3. Multi-Chain Wallet Support
-- **Supported Networks**: Ethereum, Base, Solana, and 50+ other blockchains
-- **Wallet Providers**: Phantom, Solflare, MetaMask, WalletConnect, and more
-- **Secure Authentication**: Wallet-based login without exposing private keys
-- **Cross-Chain Compatibility**: Seamless switching between different blockchain networks
+### 3. Authentication & Wallets
+- **Identity**: Clerk (email, social login, organizations)
+- **Embedded Wallets**: Crossmint MPC wallets on Solana with gas sponsorship
+- **External Wallets**: MetaMask, Coinbase Wallet (Clerk auth only, not embedded)
+- **Secure Authentication**: No private keys exposed to the application
 
 ### 4. On-Chain File Registry (Solana)
 - **UserVault PDA**: Stores owner, master key commitment, file count
@@ -159,13 +161,24 @@ Three security levels derived from wallet signatures:
 - Recipients decrypt using wallet-derived keys
 - End-to-end encrypted sharing
 
-### Wallet-Derived Encryption Keys
+### Security-Question Key Derivation
+
+Keys are derived from a personal security question answer, not wallet signatures:
+
+1. User sets a security question on first use (stored server-side)
+2. Answer hash (SHA-256) sent to `derive-key-material` edge function
+3. Server returns key material for all 3 security levels
+4. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256
+5. Answer hash cached in `sessionStorage` — keys auto-restore on page refresh
+6. Session expires after 4 hours or when the browser tab closes
 
 ```typescript
-// 3-message wallet signature flow
-const signatures = await signThreeMessages(wallet);
-const masterKey = await deriveKeyFromSignatures(signatures);
-// Keys never touch application servers
+// Keys derived client-side from security question answer
+const keyMaterials = await supabase.functions.invoke('derive-key-material', {
+  body: { answer_hash: answerHash }
+});
+const key = await deriveKeyFromMaterial(material, SecurityLevel.MAXIMUM);
+// Keys never leave the browser
 ```
 
 ---
@@ -199,8 +212,8 @@ BlockDrive implements dual-chain verification requiring ownership of both:
 
 **Supported Providers:**
 - **Filebase (Primary)**: IPFS with S3-compatible API
-- **Amazon S3**: Backup and critical bytes storage
-- **Arweave**: Permanent archival storage
+- **Cloudflare R2**: ZK proof storage and critical bytes
+- **Arweave (Optional)**: Permanent archival storage
 
 **Features:**
 - Automatic failover and health checks
@@ -230,12 +243,13 @@ const shareLink = await shareFile(fileId, recipientPubkey, {
 
 ### Storage Quotas by Plan
 
-| Plan | Storage | Bandwidth | Team Members |
-|------|---------|-----------|--------------|
-| **Starter** | 100 GB | 100 GB | 1 user |
-| **Pro** | 500 GB | 500 GB | 1 user |
-| **Growth** | 1 TB | 1 TB | Up to 3 |
-| **Scale** | 2 TB (5 seats) | 2 TB | Unlimited |
+| Plan | Price | Storage | Team Members |
+|------|-------|---------|--------------|
+| **Pro** | $15/mo | 1 TB (+$10/mo per additional TB) | 1 user |
+| **Scale** | $29/seat/mo | 2 TB/seat (+$10/seat/mo per additional TB) | 2-99 seats |
+| **Enterprise** | Custom | Custom | 100+ seats |
+
+All plans include 7-day free trial, blockchain auth, and Programmed Incompleteness.
 
 ---
 
@@ -251,8 +265,8 @@ const shareLink = await shareFile(fileId, recipientPubkey, {
 - Shared workspaces with visibility controls
 
 **Subscription Requirements:**
-- **Growth Plan**: 1 team, up to 3 members
-- **Scale Plan**: Unlimited teams and members
+- **Scale Plan**: 2-99 seats, Clerk Organizations + SSO
+- **Enterprise Plan**: 100+ seats, SSO/SAML, whitelabeling
 
 ### File Sharing with Instant Revoke
 
@@ -339,12 +353,11 @@ Unique to BlockDrive: senders retain control even after sharing
 
 | Plan | Monthly | Quarterly | Annual | Storage |
 |------|---------|-----------|--------|---------|
-| **Starter** | Free | - | - | 100 GB |
-| **Pro** | $49 | $134 | $499 | 500 GB |
-| **Growth** | $99 | $269 | $999 | 1 TB |
-| **Scale** | $199 | $549 | $1,999 | 2 TB (5 seats) |
+| **Pro** | $15 | $40 | $149 | 1 TB (+$10/mo per additional TB) |
+| **Scale** | $29/seat | $79/seat | $299/seat | 2 TB/seat (+$10/seat/mo per additional TB) |
+| **Enterprise** | Custom | Custom | Custom | Custom allocation |
 
-**Scale Add-on Seats**: $39/month ($109/quarter, $399/year) per seat, +400 GB storage
+Scale requires 2-seat minimum (2-99 seats). Enterprise: 100+ seats, SSO/SAML, whitelabeling, dedicated account manager.
 
 ### Billing Features
 
@@ -405,14 +418,16 @@ pub struct Delegation {
 
 | Function | Purpose |
 |----------|---------|
-| `mca-start` | Initiate multichain authentication |
-| `mca-verify` | Verify signatures and domain ownership |
-| `mca-check` | Validate JWT tokens |
-| `upload-to-ipfs` | Handle file uploads to IPFS |
+| `upload-to-ipfs` | Handle file uploads to IPFS via Worker gateway |
+| `derive-key-material` | Derive encryption key materials from security answer hash |
+| `security-question` | Get, set, and verify security questions |
+| `clerk-webhook` | Handle Clerk user/org events, provision storage folders |
 | `check-subscription` | Verify user subscription status |
 | `create-checkout` | Process Stripe payments |
 | `send-team-invitation` | Handle team invitations |
-| `mint-solbound-nft` | Mint membership NFTs |
+| `mca-start` | Initiate multichain authentication |
+| `mca-verify` | Verify signatures and domain ownership |
+| `mca-check` | Validate JWT tokens |
 
 ### SDK Integration
 
@@ -450,7 +465,7 @@ snarkjs groth16 setup circuit.r1cs powersOfTau28_hez_final_14.ptau circuit_0000.
 
 ### Production Environment
 
-- **Hosting**: Lovable.dev platform with global CDN
+- **Hosting**: Vercel/Cloudflare with global CDN
 - **Database**: Supabase PostgreSQL with auto-scaling
 - **Storage**: Multi-provider (Filebase, S3, Arweave)
 - **Blockchain**: Solana mainnet-beta / devnet
@@ -473,22 +488,26 @@ QUICKNODE_SOLANA_URL=your_quicknode_url
 
 ---
 
-## Roadmap & Future Features
+## v1.0.0 Release Notes
 
-### In Development
+This is the first fully functional build of BlockDrive, completing all core features:
 
-- **Basenames Verification**: Complete Base chain domain verification
-- **Mobile Apps**: Native iOS and Android applications
-- **Gas Credits Top-Up**: Seamless transaction funding
+- End-to-end encrypted file upload, download, and preview
+- Security-question-based key derivation with session persistence
+- Folder management with drag-and-drop and directory navigation
+- Solana on-chain file registry with ZK proofs (Groth16)
+- On-chain file sharing via delegation PDAs
+- Clerk + Crossmint authentication with embedded Solana wallets
+- Stripe + crypto payment processing
+- Organization/team file management
 
 ### Planned Features
 
+- **Mobile Apps**: Native iOS and Android applications
 - **Layer 2 Support**: Polygon, Arbitrum, Optimism
-- **DeFi Integration**: Yield farming and staking rewards
-- **NFT Marketplace**: Built-in NFT storage and trading
 - **Custom Branding**: White-label solutions for enterprises
 - **API Expansion**: Comprehensive developer APIs
 
 ---
 
-*This documentation is maintained and updated regularly. For the latest information, visit the BlockDrive platform or contact our support team.*
+*BlockDrive v1.0.0 — February 2026*

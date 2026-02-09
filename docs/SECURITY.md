@@ -1,7 +1,7 @@
 # BlockDrive Security Model
 
-> **Version**: 2.0.0
-> **Last Updated**: February 2026
+> **Version**: 1.0.0
+> **Last Updated**: February 9, 2026
 > **Classification**: Technical Security Documentation
 
 ---
@@ -52,7 +52,7 @@ BlockDrive is built on four foundational security principles:
 | Asset | Value | Protection Mechanism |
 |-------|-------|---------------------|
 | User files | HIGH | AES-256-GCM + multi-provider storage |
-| Encryption keys | CRITICAL | Wallet-derived, never stored |
+| Encryption keys | CRITICAL | Security question-derived via edge function, keys never stored server-side |
 | File metadata | MEDIUM | On-chain + ZK proofs |
 | User identity | HIGH | Clerk + embedded wallet |
 | Subscription data | MEDIUM | Supabase RLS + encryption |
@@ -129,7 +129,7 @@ BlockDrive implements a configurable security model with three levels:
 │  LEVEL 1: Standard Security                                        │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │ • AES-256-GCM encryption                                      │ │
-│  │ • Wallet-derived keys (HKDF)                                  │ │
+│  │ • Security question-derived keys (HKDF)                        │ │
 │  │ • Single encryption pass                                      │ │
 │  │ • Fastest performance                                         │ │
 │  │ • Use case: General documents                                 │ │
@@ -138,7 +138,7 @@ BlockDrive implements a configurable security model with three levels:
 │  LEVEL 2: Enhanced Security                                        │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │ • Level 1 + Critical Bytes Separation                         │ │
-│  │ • First 1KB stored separately on S3                           │ │
+│  │ • First 1KB stored separately on R2                           │ │
 │  │ • File unrecoverable without both parts                       │ │
 │  │ • Protects against single-provider breach                     │ │
 │  │ • Use case: Financial documents, contracts                    │ │
@@ -155,42 +155,38 @@ BlockDrive implements a configurable security model with three levels:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Derivation
+### Key Derivation (Security Question Based - v1.0.0)
 
-Keys are derived from wallet signatures, never stored:
+As of v1.0.0, keys are derived from security question answers via a server-side edge function. The answer itself is never stored on the server -- only the hash is used.
+
+**Flow:**
+
+1. **First Use**: User sets a security question via `SecurityQuestionSetup` component
+2. **Answer Hash**: Answer is hashed client-side and sent to the `derive-key-material` edge function
+3. **Server Response**: Edge function returns key material for 3 security levels
+4. **Client Derivation**: Client derives AES-256-GCM CryptoKeys via HKDF-SHA256
+5. **Session Caching**: Answer hash cached in `sessionStorage`
+6. **Session Boundaries**: Survives page refresh; clears on tab close; 4-hour expiry
 
 ```typescript
-// Key Derivation Flow
-async function deriveEncryptionKeys(
-  signMessage: (message: Uint8Array) => Promise<Uint8Array>,
-  userId: string
-): Promise<EncryptionKeys> {
-  // 1. Create level-specific messages
-  const messages = [
-    `BlockDrive Encryption Key - Level 1 - ${userId}`,
-    `BlockDrive Encryption Key - Level 2 - ${userId}`,
-    `BlockDrive Encryption Key - Level 3 - ${userId}`,
-  ];
+// Key Derivation Flow (v1.0.0 - Security Questions)
+async function deriveEncryptionKeys(answerHash: string): Promise<EncryptionKeys> {
+  // 1. Send answer hash to edge function
+  const { keyMaterials } = await supabase.functions.invoke('derive-key-material', {
+    body: { answerHash }
+  });
 
-  // 2. Get wallet signatures (requires user approval)
-  const signatures = await Promise.all(
-    messages.map(msg => signMessage(new TextEncoder().encode(msg)))
-  );
-
-  // 3. Derive keys using HKDF
+  // 2. Derive AES-256-GCM keys client-side via HKDF
   const keys = await Promise.all(
-    signatures.map(async (sig, level) => {
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw', sig, 'HKDF', false, ['deriveKey']
-      );
+    [1, 2, 3].map(async (level) => {
       return crypto.subtle.deriveKey(
         {
           name: 'HKDF',
-          salt: new TextEncoder().encode(`blockdrive-level-${level + 1}`),
+          salt: new TextEncoder().encode(`blockdrive-level-${level}`),
           info: new TextEncoder().encode('file-encryption'),
           hash: 'SHA-256'
         },
-        keyMaterial,
+        keyMaterials[level],
         { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
@@ -198,9 +194,20 @@ async function deriveEncryptionKeys(
     })
   );
 
+  // 3. Cache answer hash in sessionStorage (4-hour expiry)
+  sessionStorage.setItem('bd-answer-hash', answerHash);
+  sessionStorage.setItem('bd-session-ts', Date.now().toString());
+
   return { level1: keys[0], level2: keys[1], level3: keys[2] };
 }
 ```
+
+**Session Security:**
+- Answer hash stored in `sessionStorage` (not `localStorage`) -- clears when tab closes
+- 4-hour session expiry enforced client-side with auto-restore
+- Module-level singleton via `useSyncExternalStore` ensures single source of truth
+- On session expiry, user must re-verify security question via `SecurityQuestionVerify` component
+- Server-side key material derivation prevents client-only key reconstruction
 
 ### AES-256-GCM Implementation
 
@@ -257,7 +264,7 @@ For Level 2+ security, the first 1KB of encrypted data is stored separately:
 │                  │                              │                   │
 │                  ▼                              ▼                   │
 │          ┌──────────────┐              ┌──────────────┐            │
-│          │  AWS S3      │              │  IPFS/R2     │            │
+│          │  Cloudflare  │              │  IPFS/R2     │            │
 │          │  (encrypted) │              │  (encrypted) │            │
 │          │              │              │              │            │
 │          │  Requires:   │              │  Useless     │            │
@@ -268,7 +275,7 @@ For Level 2+ security, the first 1KB of encrypted data is stored separately:
 │                                                                     │
 │  SECURITY BENEFITS:                                                 │
 │  • IPFS provider breach → No complete files                        │
-│  • S3 provider breach → Only 1KB fragments                         │
+│  • R2 provider breach → Only 1KB fragments                         │
 │  • Both required for decryption                                    │
 │  • Metadata stored on Solana blockchain                            │
 └─────────────────────────────────────────────────────────────────────┘
@@ -307,7 +314,7 @@ BlockDrive uses Groth16 proofs for Level 3 security:
 │                                                                     │
 │  VERIFICATION:                                                      │
 │  1. Proof generated client-side (snarkjs)                          │
-│  2. Proof stored on S3/R2                                          │
+│  2. Proof stored on R2                                             │
 │  3. Public inputs stored on Solana                                 │
 │  4. Verification can happen anywhere (edge, client, on-chain)      │
 └─────────────────────────────────────────────────────────────────────┘
@@ -478,6 +485,56 @@ USING (
     AND om.role IN ('admin', 'owner')
   )
 );
+```
+
+---
+
+## Folder Management Security (v1.0.0)
+
+### Folder Storage Security Model
+
+Folders are stored as sentinel rows in the Supabase `files` table with `content_type: 'application/x-directory'`. This approach ensures:
+
+1. **RLS Enforcement**: Folder rows are subject to the same Row-Level Security policies as file rows. Users can only see and manage their own folders.
+2. **No Path Traversal**: Folder paths are validated server-side to prevent path traversal attacks (e.g., `../` injection).
+3. **Drag-and-Drop Isolation**: Internal file-to-folder moves update `folder_path` via authenticated Supabase calls. External file drops trigger the full encryption pipeline before upload.
+4. **Move Operations**: Move-to-folder operations are atomic updates to the `folder_path` column, protected by RLS.
+5. **Deletion Cascade**: Folder deletion only removes the sentinel row; files within the folder retain their records but are no longer grouped visually.
+
+### Session Security for Key Derivation (v1.0.0)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              SESSION SECURITY MODEL                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  SECURITY QUESTION FLOW:                                             │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ 1. User sets security question on first use                   │  │
+│  │ 2. Answer hash sent to derive-key-material edge function      │  │
+│  │ 3. Server returns key material for 3 security levels          │  │
+│  │ 4. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  SESSION PERSISTENCE:                                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Storage: sessionStorage (NOT localStorage)                    │  │
+│  │ Survives: Page refresh within same tab                        │  │
+│  │ Clears: Tab close, browser close                              │  │
+│  │ Expiry: 4 hours (enforced client-side)                        │  │
+│  │ Singleton: Module-level via useSyncExternalStore               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  THREAT MITIGATIONS:                                                 │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ * Answer hash in sessionStorage, not the raw answer           │  │
+│  │ * 4-hour expiry limits exposure window                        │  │
+│  │ * Tab close guarantees session destruction                    │  │
+│  │ * Server-side key material prevents client-only reconstruction│  │
+│  │ * useSyncExternalStore prevents stale state across components │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -777,7 +834,7 @@ const SECURITY_HEADERS = {
 │                                                                     │
 │  1. CREATION                                                        │
 │     • Encrypted client-side before transmission                     │
-│     • Keys derived from wallet (never transmitted)                  │
+│     • Keys derived from security question answer via edge function  │
 │                                                                     │
 │  2. TRANSMISSION                                                    │
 │     • TLS 1.3 encryption in transit                                │
@@ -789,7 +846,7 @@ const SECURITY_HEADERS = {
 │     • Immutable blockchain references                              │
 │                                                                     │
 │  4. ACCESS                                                          │
-│     • Wallet signature required                                    │
+│     • Security question verification required                      │
 │     • ZK proof verification (Level 3)                              │
 │     • Delegation checking for shared files                         │
 │                                                                     │
@@ -808,9 +865,9 @@ const SECURITY_HEADERS = {
 ### Backup and Recovery
 
 **User Responsibility:**
-- Wallet seed phrase backup (12/24 words)
-- Wallet provides access to all encryption keys
-- No platform recovery possible (by design)
+- Security question answer must be remembered (used for key derivation)
+- Wallet seed phrase backup (12/24 words) for blockchain operations
+- No platform recovery of encryption keys possible (by design)
 
 **Platform-Side:**
 - Multi-provider storage redundancy
@@ -886,7 +943,7 @@ const SECURITY_HEADERS = {
 | GDPR | Aligned | User controls all data, right to deletion |
 | CCPA | Aligned | Data transparency, opt-out supported |
 | HIPAA | Partial | Level 3 security suitable, BAA required |
-| SOC 2 | Planned | Type II audit scheduled |
+| SOC 2 | Planned | Type II audit planned (no timeline set) |
 
 ### Data Residency
 

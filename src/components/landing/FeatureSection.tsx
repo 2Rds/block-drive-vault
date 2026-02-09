@@ -57,12 +57,12 @@ const features: Feature[] = [
     tag: 'Multi-Provider',
     title: 'Redundant Decentralized Storage',
     description:
-      'Files distributed across Filebase IPFS, Cloudflare R2, S3, and Arweave. Automatic failover ensures 99.99% availability with zero single points of failure.',
+      'Files distributed across Filebase IPFS, Cloudflare R2, and Arweave. Automatic failover ensures 99.99% availability with zero single points of failure.',
     details: [
       'Filebase IPFS for content-addressed bulk storage',
-      'Cloudflare R2 for ZK proofs (zero egress fees)',
-      'S3 backup with automatic failover',
+      'Cloudflare R2 for ZK proofs and critical bytes (zero egress fees)',
       'Arweave permanent storage for critical data',
+      'Automatic health checks and provider failover',
     ],
     visual: StorageVisual,
   },

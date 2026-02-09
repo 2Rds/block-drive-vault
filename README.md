@@ -1,17 +1,17 @@
-# BlockDrive
+# BlockDrive v1.0.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
-BlockDrive is a next-generation cloud storage platform that combines encrypted storage, blockchain authentication, zero-knowledge proofs, and enterprise collaboration features. Built on Solana with multi-chain wallet support.
+BlockDrive is a next-generation cloud storage platform that combines encrypted storage, blockchain authentication, zero-knowledge proofs, and enterprise collaboration features. Built on Solana with Clerk + Crossmint authentication.
 
 ## Key Features
 
 ### Security & Privacy
-- **Programmed Incompleteness**: Proprietary architecture enabling instant, irreversible access revocation
-- **AES-256-GCM Encryption**: Military-grade encryption with wallet-derived keys
+- **Programmed Incompleteness**: Proprietary architecture — breached data is incomplete and useless
+- **AES-256-GCM Encryption**: 3 security levels derived from security question via HKDF-SHA256
 - **Zero-Knowledge Proofs**: Groth16 proofs verify file integrity without revealing content
-- **Metadata Privacy v2**: Encrypted metadata with HMAC search tokens
-- **Client-Side Only**: All encryption/decryption happens locally
+- **Session-Persistent Keys**: Answer once per session; keys auto-restore on page refresh (4-hour expiry)
+- **Client-Side Only**: All encryption/decryption happens locally, keys never leave the browser
 
 ### Blockchain Integration
 - **Solana Anchor Program**: On-chain file records, commitments, and access delegation
@@ -25,10 +25,18 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 - **Email Domain Verification**: Magic link verification for business emails
 - **Hierarchical Subdomains**: `username.organization.blockdrive.sol`
 
-### Multi-Chain Wallets
-- **Crossmint Embedded Wallets**: Non-custodial MPC wallets with gas sponsorship
-- **Multichain Support**: Solana, Ethereum, Base, Polygon, Arbitrum, Optimism
-- **Gasless Operations**: Crossmint sponsors all transaction fees
+### Authentication & Wallets
+- **Clerk Identity**: Email, social login, organization management
+- **Crossmint Embedded Wallets**: Non-custodial MPC Solana wallets with gas sponsorship
+- **External Wallets**: MetaMask, Coinbase Wallet for Clerk auth (not embedded)
+- **Gasless Operations**: Crossmint sponsors all Solana transaction fees
+
+### File Management
+- **Folder Organization**: Create, delete, and navigate folders with persistent storage
+- **Drag-and-Drop**: Drop OS files to upload, or drag file cards onto folder cards to move
+- **Move to Folder**: Context menu option with folder picker modal
+- **Directory Filtering**: Files shown only at their current folder level
+- **Separated Sections**: Folders and files displayed in distinct, labeled grid sections
 
 ### Payments
 - **Stripe Integration**: Fiat payments with Stripe Sync Engine
@@ -46,7 +54,7 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 |-------|------------|
 | Frontend | React 18 + TypeScript + Vite |
 | Styling | Tailwind CSS + shadcn/ui |
-| Auth | Clerk + Crossmint |
+| Auth | Clerk + Crossmint Embedded Wallets |
 | Backend | Supabase Edge Functions (Deno) |
 | Database | PostgreSQL + RLS |
 | Blockchain | Solana Anchor |
@@ -67,8 +75,8 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 │         │                                            │             │
 │         ▼                                            ▼             │
 │  ┌─────────────┐    ┌──────────────────┐    ┌───────────────────┐ │
-│  │  Crossmint  │    │  Filebase IPFS   │    │  Solana Program   │ │
-│  │  Wallets    │    │  + R2 + Arweave  │    │  (Multi-PDA)      │ │
+│  │  Clerk +    │    │  Filebase IPFS   │    │  Solana Program   │ │
+│  │  Crossmint  │    │  + R2 + Arweave  │    │  (Multi-PDA)      │ │
 │  └─────────────┘    └──────────────────┘    └───────────────────┘ │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -163,8 +171,9 @@ Revoking access destroys the critical bytes, making decryption **mathematically 
 
 ### Key Derivation
 - 3-level security (Standard, Sensitive, Maximum)
-- HKDF-SHA256 from wallet signatures
-- 4-hour session expiry with auto-refresh
+- Security question answer → SHA-256 hash → `derive-key-material` edge function → HKDF-SHA256
+- 4-hour session expiry with auto-restore from sessionStorage
+- Module-level singleton via `useSyncExternalStore` (shared across all components)
 
 ## Organization System
 
@@ -201,16 +210,18 @@ plaintext = recover_file(
 
 ## Development Status
 
-**Phase 8: Testing & Deployment** (95% complete)
+**v1.0.0 Released** — February 2026
 
 - ✅ Multi-PDA Sharding (1000+ files/user)
 - ✅ Metadata Privacy v2
-- ✅ Organization System
-- ✅ Stripe Sync Engine
-- ✅ Crossmint Crypto Payments
-- ✅ Python Recovery SDK
-- 🔄 E2E Testing
-- 📋 Mainnet Deployment
+- ✅ Organization System (Clerk Organizations)
+- ✅ Stripe + Crypto Payment Processing
+- ✅ End-to-End Encrypted Upload, Download, Preview
+- ✅ Security Question Key Derivation with Session Persistence
+- ✅ Folder Management with Drag-and-Drop
+- ✅ Solana On-Chain File Registry with ZK Proofs
+- ✅ On-Chain File Sharing via Delegation PDAs
+- ✅ Cloudflare Worker API Gateway
 
 ## Contributing
 

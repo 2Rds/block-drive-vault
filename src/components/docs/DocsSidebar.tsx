@@ -32,7 +32,8 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
         { title: "Programmed Incompleteness", id: "programmed-incompleteness" },
         { title: "AES-256 Encryption", id: "aes-encryption" },
         { title: "Zero-Knowledge Proofs", id: "zk-proofs" },
-        { title: "Instant Revoke", id: "instant-revoke" }
+        { title: "Instant Revoke", id: "instant-revoke" },
+        { title: "Key Derivation", id: "key-derivation" }
       ]
     },
     {

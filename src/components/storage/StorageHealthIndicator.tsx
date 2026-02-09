@@ -33,7 +33,7 @@ interface StorageHealthIndicatorProps {
 
 const PROVIDER_INFO: Record<StorageProviderType, { icon: typeof HardDrive; name: string }> = {
   filebase: { icon: HardDrive, name: 'Filebase (IPFS)' },
-  s3: { icon: Cloud, name: 'Amazon S3' },
+  s3: { icon: Cloud, name: 'Cloudflare R2' },
   arweave: { icon: Database, name: 'Arweave' }
 };
 

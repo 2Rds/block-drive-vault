@@ -1,10 +1,10 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: Active Development
+> **Status**: COMPLETE - v1.0.0 Released
 >
-> **Last Updated**: January 2026
+> **Last Updated**: February 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure, separate from the authentication/membership phases already completed.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are now complete for the v1.0.0 release.
 
 ---
 
@@ -46,7 +46,7 @@ This implementation plan focuses on the **core storage infrastructure** features
 3. **Relayer Service** - Backend service for advanced operations (optional)
 4. **Crypto Payments** - Radom integration alongside Stripe
 5. **Enhanced Metadata Privacy** - Encrypted metadata blobs
-6. **Full Key Derivation** - Complete 3-message wallet signature flow
+6. **Security Question Key Derivation** - Complete security question-based HKDF flow
 7. **Download Verification** - End-to-end commitment verification
 8. **Python Recovery SDK** - Open source independent file recovery
 
@@ -69,25 +69,26 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 
 | Phase | Focus Area | Duration | Status |
 |-------|-----------|----------|--------|
-| **Phase 1** | On-Chain Infrastructure (Multi-PDA Sharding) | 1-2 weeks | 🔴 Not Started |
-| **Phase 2** | Relayer Service (Optional) | 1 week | 🔴 Not Started |
-| **Phase 3** | Radom Crypto Payments | 1 week | 🔴 Not Started |
-| **Phase 4** | Enhanced Metadata Privacy | 1 week | 🔴 Not Started |
-| **Phase 5** | Full 3-Message Key Derivation | 0.5 week | 🟡 Partially Complete |
-| **Phase 6** | Commitment Verification | 0.5 week | 🟡 Partially Complete |
-| **Phase 7** | Python Recovery SDK | 1.5 weeks | 🔴 Not Started |
-| **Phase 8** | Testing & Deployment | 2 weeks | 🔴 Not Started |
+| **Phase 1** | On-Chain Infrastructure (Multi-PDA Sharding) | 1-2 weeks | ✅ COMPLETE |
+| **Phase 2** | Relayer Service (Optional) | 1 week | ✅ COMPLETE |
+| **Phase 3** | Crypto Payments (Crossmint) | 1 week | ✅ COMPLETE |
+| **Phase 4** | Enhanced Metadata Privacy | 1 week | ✅ COMPLETE |
+| **Phase 5** | Security Question Key Derivation | 0.5 week | ✅ COMPLETE |
+| **Phase 6** | Commitment Verification | 0.5 week | ✅ COMPLETE |
+| **Phase 7** | Python Recovery SDK | 1.5 weeks | ✅ COMPLETE |
+| **Phase 8** | Testing & Deployment | 2 weeks | ✅ COMPLETE |
 
-**Total Estimated Time**: 8-9 weeks (reduced from 10-11 weeks by removing gas credits system)
+**All phases complete for v1.0.0 release (February 2026).**
 
 **Note**: Gas Credits System removed - Crossmint gas sponsorship with USD billing used instead.
+Key derivation now uses security questions + HKDF instead of wallet signatures.
 
 ---
 
 ## Phase 1: On-Chain Infrastructure
 
 **Duration**: Weeks 1-2
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 > **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses Crossmint gas sponsorship with USD billing instead of per-user on-chain accounting.
 
@@ -253,7 +254,7 @@ pub fn execute_delegated_update_file(
 ## Phase 2: Relayer Service
 
 **Duration**: Weeks 3-4
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 ### 2.1 Backend Relayer Service
 
@@ -498,10 +499,10 @@ class RelayerService {
 
 ---
 
-## Phase 3: Radom Crypto Payments
+## Phase 3: Crypto Payments
 
 **Duration**: Weeks 4-5
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 ### 3.1 Radom Integration
 
@@ -678,7 +679,7 @@ async function allocateGasCredits(walletAddress: string, amount: number) {
 ## Phase 4: Enhanced Metadata Privacy
 
 **Duration**: Week 5
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 ### 4.1 Encrypted Metadata Blob Storage
 
@@ -828,10 +829,12 @@ class MetadataService {
 
 ---
 
-## Phase 5: Full 3-Message Key Derivation
+## Phase 5: Security Question Key Derivation
 
 **Duration**: Week 5
-**Status**: 🟡 Partially Complete
+**Status**: ✅ COMPLETE
+
+> **Note**: Key derivation was updated from wallet signatures to security questions in v1.0.0. Users set a security question on first use; the answer hash is sent to the `derive-key-material` edge function, which returns key material for 3 security levels. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256. Answer hash is cached in sessionStorage with 4-hour session expiry.
 
 ### 5.1 Complete Key Derivation Implementation
 
@@ -992,7 +995,7 @@ class BackupKeyDerivation {
 ## Phase 6: Commitment Verification on Download
 
 **Duration**: Week 6
-**Status**: 🟡 Partially Complete
+**Status**: ✅ COMPLETE
 
 ### 6.1 Full Verification Flow
 
@@ -1116,7 +1119,7 @@ export enum VerificationErrorCode {
 ## Phase 7: Python Recovery SDK
 
 **Duration**: Weeks 6-7
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 ### 7.1 Open Source Recovery SDK
 
@@ -1588,7 +1591,7 @@ if __name__ == '__main__':
 ## Phase 8: Testing and Deployment
 
 **Duration**: Weeks 7-8
-**Status**: 🔴 Not Started
+**Status**: ✅ COMPLETE
 
 ### 8.1 Testing Strategy
 
@@ -1948,17 +1951,17 @@ COMMIT;
 
 | Priority | Feature | Effort | Dependencies | Status |
 |----------|---------|--------|--------------|--------|
-| **1** | Gas Credits System | 2 weeks | None | 🔴 Not Started |
-| **2** | Session Key Delegation | 1 week | Gas Credits | 🔴 Not Started |
-| **3** | Relayer Service | 1 week | Session Keys | 🔴 Not Started |
-| **4** | Radom Integration | 1 week | Gas Credits | 🔴 Not Started |
-| **5** | Multi-PDA Sharding | 2 weeks | None (parallel) | 🔴 Not Started |
-| **6** | Enhanced Metadata | 1 week | None (parallel) | 🔴 Not Started |
-| **7** | Download Verification | 0.5 week | None | 🟡 Partially Complete |
-| **8** | Python Recovery SDK | 1.5 weeks | Download Verification | 🔴 Not Started |
-| **9** | Testing & Deployment | 2 weeks | All above | 🔴 Not Started |
+| **1** | Multi-PDA Sharding | 2 weeks | None | ✅ COMPLETE |
+| **2** | Session Key Delegation | 1 week | None | ✅ COMPLETE |
+| **3** | Relayer Service | 1 week | Session Keys | ✅ COMPLETE |
+| **4** | Crypto Payments (Crossmint) | 1 week | None | ✅ COMPLETE |
+| **5** | Enhanced Metadata | 1 week | None (parallel) | ✅ COMPLETE |
+| **6** | Security Question Key Derivation | 0.5 week | None | ✅ COMPLETE |
+| **7** | Download Verification | 0.5 week | None | ✅ COMPLETE |
+| **8** | Python Recovery SDK | 1.5 weeks | Download Verification | ✅ COMPLETE |
+| **9** | Testing & Deployment | 2 weeks | All above | ✅ COMPLETE |
 
-**Total Estimated Time**: 10-11 weeks
+**All phases complete. v1.0.0 released February 2026.**
 
 ### Recommended Parallel Tracks
 
@@ -2111,6 +2114,39 @@ These existing files serve as patterns for implementation:
 
 ---
 
-**Last Updated**: January 17, 2026
+---
+
+## v1.0.0 Release (February 2026)
+
+All implementation phases are complete. The v1.0.0 release includes:
+
+### Completed Infrastructure
+- Multi-PDA Sharding (1000+ files per user)
+- Security question-based key derivation (replaced wallet signatures)
+- End-to-end encrypted file upload/download with Groth16 ZK proofs
+- Persistent folder management with drag-and-drop
+- Crossmint gas-sponsored Solana wallets
+- Clerk authentication with Organizations
+
+### Pricing (v1.0.0)
+- **Pro**: $15/mo, 1TB, +$10/mo per additional TB (quarterly $40, annual $149)
+- **Scale**: $29/seat/mo, 2TB/seat, +$10/seat/mo per additional TB, 2-99 seats (quarterly $79, annual $299)
+- **Enterprise**: Custom pricing, 100+ seats, SSO/SAML, whitelabeling, dedicated account manager
+- All plans include 7-day free trial, blockchain auth, Programmed Incompleteness
+
+### New Edge Functions (v1.0.0)
+- `security-question` -- get/set/verify security questions
+- `derive-key-material` -- derive key materials from answer hash
+- `clerk-webhook` -- handle Clerk user/org events, provision storage
+
+### Key Architecture Changes from Original Plan
+1. **Key derivation**: Security questions + HKDF replaced wallet signature-based derivation
+2. **Folder management**: Full folder CRUD with Supabase persistence (sentinel rows)
+3. **File page redesign**: Compact upload button, separate folder/file sections, drag-and-drop
+4. **EVM wallets**: Clerk auth-only (not embedded wallets); only Solana uses Crossmint embedded wallets
+
+---
+
+**Last Updated**: February 9, 2026
 **Document Version**: 1.0.0
-**Status**: Active Planning
+**Status**: COMPLETE - v1.0.0 Released

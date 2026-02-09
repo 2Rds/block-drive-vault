@@ -1,8 +1,12 @@
 # BlockDrive Solana Program Architecture
 
+> **Version**: v1.0.0 (February 2026)
+
 ## Overview
 
 The BlockDrive Solana program manages on-chain file records, user vaults, cryptographic commitments, and access delegation using Anchor framework. The architecture implements **Multi-PDA Sharding** to support 1000+ files per user.
+
+As of v1.0.0, all core on-chain infrastructure is complete. Key derivation has moved from wallet signatures to security questions (processed via Supabase edge functions), but the on-chain commitment and verification model remains unchanged -- commitments are still SHA-256 hashes stored in FileRecord PDAs.
 
 ## Program ID
 
@@ -88,7 +92,8 @@ pub struct UserVaultMaster {
     /// Owner's wallet public key
     pub owner: Pubkey,
 
-    /// Hash of the wallet-derived master encryption key
+    /// Hash of the derived master encryption key
+    /// (Key derived from security question answer via edge function)
     pub master_key_commitment: [u8; 32],
 
     /// Number of active shards
@@ -195,8 +200,9 @@ pub struct UserVault {
     /// Owner's wallet public key
     pub owner: Pubkey,
 
-    /// Hash of the wallet-derived master encryption key
+    /// Hash of the derived master encryption key
     /// SHA256(master_key) - proves key ownership without revealing key
+    /// (Key derived from security question answer via derive-key-material edge function)
     pub master_key_commitment: [u8; 32],
 
     /// Total number of files in vault
@@ -564,7 +570,7 @@ let (config_pda, bump) = Pubkey::find_program_address(
 │                    FILE UPLOAD FLOW                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. Client encrypts file with wallet-derived key                │
+│  1. Client encrypts file with derived encryption key            │
 │     └─> AES-256-GCM encryption                                  │
 │                                                                  │
 │  2. Client extracts critical bytes (first 1-5KB)                │
@@ -751,7 +757,7 @@ pub struct FileAccessed {
 
 ---
 
-## Implementation Status
+## Implementation Status (v1.0.0)
 
 ### Completed ✅
 1. **Multi-PDA Sharding Architecture**: UserVaultMaster, Shard, Index PDAs
@@ -761,15 +767,15 @@ pub struct FileAccessed {
 5. **Session Key Delegation**: Gasless operations with 4-hour sessions
 6. **On-chain Commitment Verification**: Critical bytes commitment comparison
 7. **FileRecord Integration**: With encryption/critical bytes commitments
-
-### In Progress 🔄
-1. **Devnet Testing**: Integration testing with frontend
-2. **Anchor-bankrun Tests**: Comprehensive test coverage
+8. **End-to-end Encrypted Download**: Full ZK proof verification path
+9. **Groth16 ZK Proofs**: Real proof generation and verification via snarkjs
 
 ### Planned 📋
 1. **Mainnet Deployment**: After security audit
 2. **Migration Tools**: For legacy UserVault accounts
-3. **Session Key Enhancements**: Extended delegation options
+
+### Note on Key Derivation (v1.0.0)
+Key derivation has moved from wallet signatures to security questions. This change is transparent to the on-chain program -- the program only stores and verifies SHA-256 commitments of encryption keys and critical bytes. The source of the key material (previously wallet signatures, now security question answer hash via `derive-key-material` edge function) does not affect on-chain state.
 
 ## Client Usage Example
 

@@ -41,7 +41,7 @@ const PRESETS = [
   {
     id: 'balanced',
     name: 'Balanced',
-    description: 'IPFS + S3 backup',
+    description: 'IPFS + R2 backup',
     icon: Shield,
     config: DEFAULT_STORAGE_CONFIG,
     color: 'text-amber-500',

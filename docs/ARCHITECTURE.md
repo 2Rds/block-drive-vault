@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 2.0.0
-**Date**: February 3, 2026
-**Status**: ACTIVE
+**Version**: 1.0.0 (v1.0.0 Release)
+**Date**: February 9, 2026
+**Status**: ACTIVE - v1.0.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -52,7 +52,7 @@
 |-------|------------|---------|
 | **Frontend** | React 18.3.1 + TypeScript + Vite | Single-page application |
 | **Styling** | Tailwind CSS + shadcn/ui | Component library |
-| **Auth** | Clerk + Crossmint | OAuth + embedded wallets (multichain) |
+| **Auth** | Clerk + Crossmint | OAuth + embedded Solana wallets |
 | **Backend** | Supabase Edge Functions (Deno) | Serverless API |
 | **Edge** | Cloudflare Workers + R2 + WAF | CDN, storage, security |
 | **Database** | Supabase PostgreSQL + RLS | User data, metadata |
@@ -91,6 +91,9 @@ src/
 │   ├── subscription/       # Payments & billing
 │   │   ├── SubscriptionManager.tsx
 │   │   └── PricingCard.tsx
+│   ├── crypto/             # Cryptographic UI
+│   │   ├── SecurityQuestionSetup.tsx  # First-use security question
+│   │   └── SecurityQuestionVerify.tsx # Session re-authentication
 │   ├── integrations/       # Third-party integrations
 │   │   ├── BoxIntegration.tsx, GoogleDriveIntegration.tsx
 │   │   └── SlackIntegration.tsx
@@ -117,7 +120,7 @@ src/
 │   └── blockDriveDownloadService.ts  # Verified download
 ├── hooks/                  # React state management
 │   ├── useCrossmintWallet.tsx        # Embedded wallet
-│   ├── useWalletCrypto.tsx           # 3-level key derivation
+│   ├── useWalletCrypto.tsx           # 3-level key derivation (security questions)
 │   ├── useOrganizations.tsx          # Org management
 │   ├── useOrgInviteCode.tsx          # Invite code validation
 │   ├── useOrgEmailVerification.tsx   # Email verification
@@ -142,11 +145,14 @@ src/
 ```
 supabase/functions/                 # 41 edge functions
 ├── auth/
-│   ├── clerk-webhook/              # Clerk user sync (created/updated/deleted)
+│   ├── clerk-webhook/              # Clerk user/org events, storage provisioning
 │   ├── secure-wallet-auth/         # Wallet signature verification
 │   ├── secure-auth-token-verify/   # Email token validation
 │   ├── send-auth-token/            # Email auth token generation
 │   └── authenticate-wallet/        # Wallet authentication flow
+├── crypto/
+│   ├── security-question/          # Get/set/verify security questions
+│   └── derive-key-material/        # Derive key materials from answer hash
 ├── wallet/
 │   ├── sync-crossmint-wallet/      # Crossmint wallet DB sync
 │   ├── create-crossmint-wallet/    # Crossmint embedded wallet creation
@@ -265,7 +271,7 @@ UserVaultIndex (1 per user, O(1) lookup)
 │  │                   │    │                    │                               │
 │  │ Encrypted file    │    │ ZK proof + bytes   │                               │
 │  │ → Cloudflare R2   │    │ → Separate storage │                               │
-│  │   (or IPFS/Arweave)    │   (S3 bucket)      │                               │
+│  │   (or IPFS/Arweave)    │   (R2 bucket)      │                               │
 │  └─────────┬─────────┘    └────────┬───────────┘                               │
 │            │                       │                                           │
 │            └───────────┬───────────┘                                           │
@@ -298,7 +304,7 @@ UserVaultIndex (1 per user, O(1) lookup)
 │  ┌──────────────────────────────────────┐                                      │
 │  │ STEP 1: Access Verification          │                                      │
 │  │                                       │                                      │
-│  │  1. Verify wallet signature          │                                      │
+│  │  1. Verify user authentication       │                                      │
 │  │  2. Check FileRecord ownership       │                                      │
 │  │  3. Verify active subscription       │                                      │
 │  │  4. Check delegation if shared       │                                      │
@@ -310,7 +316,7 @@ UserVaultIndex (1 per user, O(1) lookup)
 │  │ STEP 2: Retrieve  │    │ STEP 3: Retrieve   │                               │
 │  │                   │    │                    │                               │
 │  │ Encrypted file    │    │ ZK proof + bytes   │                               │
-│  │ from R2/IPFS      │    │ from S3            │                               │
+│  │ from R2/IPFS      │    │ from R2            │                               │
 │  │ via CF gateway    │    │                    │                               │
 │  └─────────┬─────────┘    └────────┬───────────┘                               │
 │            │                       │                                           │
@@ -354,7 +360,7 @@ UserVaultIndex (1 per user, O(1) lookup)
 │  ┌──────────────────────────────────────┐                                      │
 │  │ STEP 2: Critical Bytes Destruction   │                                      │
 │  │                                       │                                      │
-│  │  1. Delete ZK proof from S3          │  ← FILE BECOMES PERMANENTLY          │
+│  │  1. Delete ZK proof from R2          │  ← FILE BECOMES PERMANENTLY          │
 │  │  2. Overwrite critical 16 bytes      │    UNRECOVERABLE                     │
 │  │  3. Clear proof cache in Cloudflare  │                                      │
 │  └──────────────────┬───────────────────┘                                      │
@@ -382,43 +388,52 @@ UserVaultIndex (1 per user, O(1) lookup)
 
 | Level | Name | Key Derivation | Use Case |
 |-------|------|----------------|----------|
-| **1** | Standard | HKDF(wallet_sig + "level1") | General files |
-| **2** | Sensitive | HKDF(wallet_sig + "level2") | Personal documents |
-| **3** | Maximum | HKDF(wallet_sig + "level3") | Financial/medical |
+| **1** | Standard | HKDF(answer_hash + "level1") | General files |
+| **2** | Sensitive | HKDF(answer_hash + "level2") | Personal documents |
+| **3** | Maximum | HKDF(answer_hash + "level3") | Financial/medical |
 
-#### Key Derivation Process
+#### Key Derivation Process (Security Question Based)
+
+As of v1.0.0, key derivation uses security questions instead of wallet signatures:
+
+1. **First Use**: User sets a security question via `SecurityQuestionSetup` component
+2. **Answer Hash**: Answer is hashed and sent to the `derive-key-material` edge function
+3. **Server Response**: Server returns key material for all 3 security levels
+4. **Client Derivation**: Client derives AES-256-GCM CryptoKeys via HKDF-SHA256
+5. **Session Caching**: Answer hash cached in `sessionStorage` (survives page refresh, clears on tab close)
+6. **Session Expiry**: 4-hour session with auto-restore via module-level singleton (`useSyncExternalStore`)
 
 ```typescript
-// src/hooks/useWalletCrypto.tsx
+// src/services/crypto/keyDerivationService.ts
 
-async function deriveEncryptionKey(level: 1 | 2 | 3): Promise<CryptoKey> {
-  // 1. Get wallet signature
-  const message = `BlockDrive Encryption Key - Level ${level} - ${userId}`;
-  const signature = await signMessage(new TextEncoder().encode(message));
+// 1. User answers security question
+const answerHash = await hashAnswer(answer);
 
-  // 2. HKDF key derivation
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    signature,
-    'HKDF',
-    false,
-    ['deriveBits', 'deriveKey']
-  );
+// 2. Send to edge function for key material
+const response = await supabase.functions.invoke('derive-key-material', {
+  body: { answerHash }
+});
+const { keyMaterials } = response.data; // 3 levels
 
-  // 3. Derive AES-256-GCM key
-  return crypto.subtle.deriveKey(
+// 3. Derive AES-256-GCM keys client-side via HKDF
+for (const level of [1, 2, 3]) {
+  const key = await crypto.subtle.deriveKey(
     {
       name: 'HKDF',
       salt: new TextEncoder().encode(`blockdrive-level-${level}`),
       info: new TextEncoder().encode('encryption-key'),
       hash: 'SHA-256',
     },
-    keyMaterial,
+    keyMaterials[level],
     { name: 'AES-GCM', length: 256 },
     true,
     ['encrypt', 'decrypt']
   );
 }
+
+// 4. Answer hash cached in sessionStorage for session persistence
+sessionStorage.setItem('bd-answer-hash', answerHash);
+// Auto-expires after 4 hours
 ```
 
 ### Programmed Incompleteness
@@ -740,18 +755,19 @@ pub mod blockdrive {
 │                              │                            │                     │
 │                              ▼                            ▼                     │
 │                    ┌──────────────────┐        ┌────────────────────────────┐  │
-│                    │    Supabase      │        │  Multichain MPC Wallets    │  │
-│                    │  (user profile)  │◄───────│  (Solana + EVM chains)     │  │
+│                    │    Supabase      │        │  Embedded Solana Wallets   │  │
+│                    │  (user profile)  │◄───────│  (Crossmint MPC)           │  │
 │                    └──────────────────┘        └────────────────────────────┘  │
 │                                                           │                     │
 │                                                           ▼                     │
 │                                                 ┌────────────────────────────┐ │
 │                                                 │   Gas Sponsored Wallets    │ │
-│                                                 │  (Crossmint)               │ │
+│                                                 │  (Crossmint - Solana)      │ │
 │                                                 │                            │ │
 │                                                 │  - Sign transactions       │ │
 │                                                 │  - Hold membership NFT     │ │
-│                                                 │  - Derive encryption keys  │ │
+│                                                 │  Note: EVM wallets are     │ │
+│                                                 │  Clerk auth-only           │ │
 │                                                 └────────────────────────────┘ │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
@@ -777,7 +793,7 @@ const CLERK_CONFIG = {
 **Status**: ✅ **ACTIVE - Production Wallet Infrastructure**
 **Location**: `plugins/crossmint-fullstack/`
 
-Crossmint is BlockDrive's embedded wallet solution with **multichain support from Day 1**:
+Crossmint is BlockDrive's embedded wallet solution for **Solana wallets**:
 
 ```typescript
 // src/components/auth/CrossmintProvider.tsx
@@ -795,22 +811,20 @@ import { CrossmintWalletProvider } from '@crossmint/client-sdk-react-ui';
   </CrossmintAuthProvider>
 </CrossmintProvider>
 
-// Automatic wallet creation on ALL chains:
-// - Solana (devnet/mainnet)
-// - Ethereum, Base, Polygon, Arbitrum, Optimism
+// Embedded wallet creation for Solana only
+// EVM wallets (MetaMask/Coinbase) are Clerk auth-only, NOT embedded wallets
 ```
 
 **Key Features**:
 
 | Feature | Crossmint |
 |---------|-----------|
-| Multichain Support | ✅ Automatic - Solana + 50+ EVM chains |
-| NFT Minting | ✅ Built-in API |
-| AML/KYC | ✅ Built-in compliance |
-| Payment Rails | ✅ Stablecoin orchestration (USDC/USDT) |
-| Smart Wallets | ✅ Squads Protocol (Solana) + ERC-4337 (EVM) |
-| Gas Sponsorship | ✅ Built-in gasless transactions |
-| MPC Security | ✅ Non-custodial multi-party computation |
+| Embedded Wallets | Solana only (EVM wallets are Clerk auth-only) |
+| NFT Minting | Built-in API |
+| AML/KYC | Built-in compliance |
+| Payment Rails | Stablecoin orchestration (USDC/USDT) |
+| Gas Sponsorship | Built-in gasless transactions |
+| MPC Security | Non-custodial multi-party computation |
 
 **Plugin Resources**:
 - **Setup**: `/crossmint:setup` - Interactive configuration wizard
@@ -921,7 +935,7 @@ CREATE TABLE public.organizations (
   org_nft_mint TEXT,                  -- Organization NFT
   subscription_tier TEXT,             -- 'business' | 'enterprise'
   settings JSONB DEFAULT '{}',
-  owner_clerk_id TEXT NOT NULL,
+  owner_clerk_id TEXT,                    -- Nullable; webhook-created orgs use data.created_by
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1308,6 +1322,58 @@ function isV2Metadata(file: FileRecord): boolean {
 
 ---
 
+## Folder Management Architecture (v1.0.0)
+
+### Overview
+
+BlockDrive v1.0.0 introduces persistent folder management with a redesigned Files page:
+
+- **Compact Upload**: Upload button in header (no giant upload area)
+- **Folder Persistence**: Folders stored as sentinel rows in Supabase `files` table with `content_type: 'application/x-directory'`
+- **Drag-and-Drop**: External OS files trigger page overlay + upload; internal file-to-folder moves via HTML5 DnD
+- **Move-to-Folder**: Available from file context menu via modal
+- **Directory Filtering**: Files only shown at their current folder level
+- **Separate Sections**: Folders and files displayed in labeled sections
+
+### Folder Storage Model
+
+```
+Supabase `files` table:
+┌─────────────────────────────────────────────────────────────────────┐
+│  Folders stored as sentinel rows:                                    │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  id: UUID                                                     │  │
+│  │  name: "My Folder"                                            │  │
+│  │  content_type: "application/x-directory"                      │  │
+│  │  folder_path: "/parent-folder"  (parent location)             │  │
+│  │  user_id: UUID                                                │  │
+│  │  created_at: timestamp                                        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  Files reference their folder via folder_path:                       │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  id: UUID                                                     │  │
+│  │  name: "document.pdf"                                         │  │
+│  │  content_type: "application/pdf"                              │  │
+│  │  folder_path: "/My Folder"  (which folder it's in)            │  │
+│  │  ...encryption fields...                                      │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Drag-and-Drop Architecture
+
+```
+External File Drop:
+  OS file dragged over page → DragOverlay appears → Drop → Upload pipeline
+
+Internal File Move:
+  File dragged to folder → HTML5 DnD → Update folder_path in Supabase
+  File context menu → "Move to..." → Modal with folder list → Update
+```
+
+---
+
 ## Python Recovery SDK
 
 ### Independent File Recovery
@@ -1320,7 +1386,7 @@ BlockDrive provides an open-source Python SDK for file recovery without the Bloc
 │                                                                                 │
 │  REQUIRED INPUTS:                                                               │
 │  ├── file_id: UUID of the file                                                 │
-│  ├── encryption_key: Wallet-derived AES-256 key                                │
+│  ├── encryption_key: Derived AES-256 key (from security question)              │
 │  └── storage_access: IPFS gateway or Filebase credentials                      │
 │                                                                                 │
 │  OPTIONAL INPUTS:                                                               │
@@ -1424,8 +1490,8 @@ R2_BUCKET_NAME=blockdrive-storage
 # Storage Providers
 FILEBASE_API_KEY=...
 ARWEAVE_WALLET_KEY=...
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
+FILEBASE_ACCESS_KEY=...
+FILEBASE_SECRET_KEY=...
 
 # Supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
