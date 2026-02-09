@@ -7,7 +7,7 @@
 
 import { ZKProofPackage, AnyZKProofPackage, zkProofService } from './crypto/zkProofService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
-import { StorageConfig, DEFAULT_STORAGE_CONFIG, StorageProviderType } from '@/types/storageProvider';
+import { StorageConfig, R2_PRIMARY_CONFIG, StorageProviderType } from '@/types/storageProvider';
 
 export interface ZKProofUploadResult {
   success: boolean;
@@ -34,14 +34,15 @@ class ZKProofStorageService {
   async uploadProof(
     proofPackage: ZKProofPackage,
     fileId: string,
-    storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG
+    storageConfig: StorageConfig = R2_PRIMARY_CONFIG,
+    extraMetadata?: Record<string, string>
   ): Promise<ZKProofUploadResult> {
     const startTime = performance.now();
 
     try {
       // Serialize proof for storage
       const proofData = zkProofService.serializeForStorage(proofPackage);
-      
+
       // Upload to primary storage provider
       const result = await storageOrchestrator.uploadWithRedundancy(
         proofData,
@@ -55,7 +56,8 @@ class ZKProofStorageService {
           type: 'zkproof',
           fileId,
           commitment: proofPackage.commitment,
-          blockdrive: 'true'
+          blockdrive: 'true',
+          ...extraMetadata,
         }
       );
 
@@ -102,7 +104,7 @@ class ZKProofStorageService {
    */
   async downloadProof(
     proofCid: string,
-    primaryProvider: StorageProviderType = 'filebase'
+    primaryProvider: StorageProviderType = 'r2'
   ): Promise<ZKProofDownloadResult> {
     const startTime = performance.now();
 
@@ -166,7 +168,7 @@ class ZKProofStorageService {
   async verifyProofExists(
     proofCid: string,
     expectedCommitment: string,
-    primaryProvider: StorageProviderType = 'filebase'
+    primaryProvider: StorageProviderType = 'r2'
   ): Promise<boolean> {
     try {
       const result = await this.downloadProof(proofCid, primaryProvider);
@@ -193,7 +195,7 @@ class ZKProofStorageService {
    */
   async invalidateProof(
     proofCid: string,
-    primaryProvider: StorageProviderType = 'filebase'
+    primaryProvider: StorageProviderType = 'r2'
   ): Promise<{ success: boolean; error?: string }> {
     const startTime = performance.now();
 

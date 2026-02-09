@@ -114,6 +114,104 @@ async function handleUserDeleted(data: { id: string }) {
   }
 }
 
+// ============================================
+// Organization event handlers
+// ============================================
+
+type ClerkOrganization = {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: number;
+  public_metadata?: Record<string, unknown>;
+};
+
+type ClerkOrganizationMembership = {
+  id: string;
+  organization: { id: string; slug: string };
+  public_user_data: { user_id: string };
+  role: string;
+  created_at: number;
+};
+
+async function handleOrganizationCreated(data: ClerkOrganization) {
+  const supabase = getSupabaseAdmin();
+
+  console.log(`[clerk-webhook] Creating organization ${data.id} (${data.slug})`);
+
+  // Check if org already exists
+  const { data: existing } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('clerk_org_id', data.id)
+    .maybeSingle();
+
+  if (existing) {
+    console.log(`[clerk-webhook] Organization ${data.id} already exists, skipping`);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('organizations')
+    .insert({
+      clerk_org_id: data.id,
+      name: data.name,
+      slug: data.slug,
+      settings: {
+        storage_prefix: `orgs/${data.slug}`,
+        storage_provisioned: true,
+      },
+      created_at: new Date(data.created_at).toISOString(),
+    });
+
+  if (error) {
+    console.error('[clerk-webhook] Organization insert error:', error);
+    throw error;
+  }
+
+  console.log(`[clerk-webhook] Organization created: ${data.slug}`);
+}
+
+async function handleOrganizationMembershipCreated(data: ClerkOrganizationMembership) {
+  const supabase = getSupabaseAdmin();
+  const clerkUserId = data.public_user_data.user_id;
+  const clerkOrgId = data.organization.id;
+
+  console.log(`[clerk-webhook] Adding member ${clerkUserId} to org ${clerkOrgId}`);
+
+  // Look up the organization by clerk_org_id
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('clerk_org_id', clerkOrgId)
+    .maybeSingle();
+
+  if (orgError || !org) {
+    console.error('[clerk-webhook] Organization not found for membership:', clerkOrgId, orgError);
+    throw new Error(`Organization not found: ${clerkOrgId}`);
+  }
+
+  const { error } = await supabase
+    .from('organization_members')
+    .upsert(
+      {
+        clerk_user_id: clerkUserId,
+        organization_id: org.id,
+        role: data.role,
+        join_method: 'clerk_webhook',
+        joined_at: new Date(data.created_at).toISOString(),
+      },
+      { onConflict: 'clerk_user_id,organization_id', ignoreDuplicates: false }
+    );
+
+  if (error) {
+    console.error('[clerk-webhook] Membership upsert error:', error);
+    throw error;
+  }
+
+  console.log(`[clerk-webhook] Member ${clerkUserId} added to org ${org.id}`);
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -174,6 +272,10 @@ serve(async (req) => {
       await handleUserUpdated(data as ClerkUser);
     } else if (type === 'user.deleted') {
       await handleUserDeleted(data as { id: string });
+    } else if (type === 'organization.created') {
+      await handleOrganizationCreated(data as ClerkOrganization);
+    } else if (type === 'organizationMembership.created') {
+      await handleOrganizationMembershipCreated(data as ClerkOrganizationMembership);
     } else {
       console.log(`[clerk-webhook] Ignoring event type: ${type}`);
       return new Response('Ignored', { status: 200, headers: corsHeaders });

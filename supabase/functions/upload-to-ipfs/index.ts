@@ -217,9 +217,9 @@ serve(async (req) => {
       logStep("Verifying team membership", { teamId, userId });
 
       const { data: membership, error: membershipError } = await supabaseClient
-        .from('team_members')
-        .select('team_id, role')
-        .eq('team_id', teamId)
+        .from('organization_members')
+        .select('organization_id, role')
+        .eq('organization_id', teamId)
         .eq('clerk_user_id', userId)
         .maybeSingle();
 
@@ -227,7 +227,7 @@ serve(async (req) => {
         logStep("Team membership check error", { error: membershipError.message });
         // Don't fail - fall back to personal storage
       } else if (membership) {
-        verifiedTeamId = membership.team_id;
+        verifiedTeamId = membership.organization_id;
         logStep("Team membership verified", { teamId: verifiedTeamId, role: membership.role });
       } else {
         logStep("User not a member of team, falling back to personal storage");
@@ -237,14 +237,14 @@ serve(async (req) => {
     // If no explicit teamId, check if user belongs to any team (for default behavior)
     if (!teamId) {
       const { data: userTeams } = await supabaseClient
-        .from('team_members')
-        .select('team_id')
+        .from('organization_members')
+        .select('organization_id')
         .eq('clerk_user_id', userId)
         .limit(1);
 
       if (userTeams && userTeams.length > 0) {
         logStep("User has team membership, but uploading to personal space", {
-          availableTeams: userTeams.map(t => t.team_id)
+          availableTeams: userTeams.map(t => t.organization_id)
         });
       }
     }

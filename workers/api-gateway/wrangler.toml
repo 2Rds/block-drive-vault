@@ -8,16 +8,17 @@ compatibility_flags = ["nodejs_compat"]
 
 # Environment variables (non-sensitive)
 [vars]
-SUPABASE_URL = "https://your-project.supabase.co"
-ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173"
+SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co"
+FILEBASE_GATEWAY = "https://ipfs.filebase.io"
+ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173,http://localhost:8080"
 RATE_LIMIT_PER_MINUTE = "100"
 RATE_LIMIT_BURST = "20"
 
 # KV Namespace for rate limiting
 [[kv_namespaces]]
 binding = "RATE_LIMITS"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
+id = "2a7d0c6095cb49c29900f8ec22e07c9d"
+preview_id = "5498fac94ce44412b2f1fc542d7449f2"
 
 # R2 bucket binding (for direct storage access)
 [[r2_buckets]]
@@ -32,16 +33,16 @@ class_name = "EncryptionSession"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["EncryptionSession"]
+new_sqlite_classes = ["EncryptionSession"]
 
 # Development environment
 [env.dev]
 name = "blockdrive-api-gateway-dev"
-vars = { SUPABASE_URL = "https://your-project.supabase.co", ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000" }
+vars = { SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co", FILEBASE_GATEWAY = "https://ipfs.filebase.io", ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000,http://localhost:8080" }
 
 [[env.dev.kv_namespaces]]
 binding = "RATE_LIMITS"
-id = "your-dev-kv-namespace-id"
+id = "5498fac94ce44412b2f1fc542d7449f2"
 
 # Staging environment
 [env.staging]
@@ -56,12 +57,6 @@ name = "blockdrive-api-gateway"
 routes = [
   { pattern = "api.blockdrive.io/*", zone_name = "blockdrive.io" }
 ]
-
-# Build configuration
-[build]
-command = "npm run build"
-cwd = "."
-watch_dir = "src"
 
 # Observability
 [observability]

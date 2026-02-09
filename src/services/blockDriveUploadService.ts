@@ -25,6 +25,7 @@ import {
 import {
   StorageConfig,
   DEFAULT_STORAGE_CONFIG,
+  R2_PRIMARY_CONFIG,
   MultiProviderUploadResult,
   StorageManifest
 } from '@/types/storageProvider';
@@ -110,6 +111,12 @@ export interface BlockDriveDownloadResult {
   decryptionTimeMs: number;
 }
 
+// Org context for hierarchical storage paths
+export interface OrgContext {
+  orgSlug?: string;
+  isShared?: boolean;
+}
+
 class BlockDriveUploadService {
   /**
    * Full BlockDrive upload flow:
@@ -121,7 +128,8 @@ class BlockDriveUploadService {
     securityLevel: SecurityLevel,
     walletAddress: string,
     storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
-    folderPath: string = '/'
+    folderPath: string = '/',
+    orgContext?: OrgContext
   ): Promise<BlockDriveUploadResult> {
     const startTime = performance.now();
     let encryptionTime = 0;
@@ -184,22 +192,29 @@ class BlockDriveUploadService {
           commitment: encryptedData.commitment,
           securityLevel: securityLevel.toString(),
           encrypted: 'true',
-          blockdrive: 'true'
+          blockdrive: 'true',
+          userId: walletAddress,
+          ...(orgContext?.orgSlug && { orgSlug: orgContext.orgSlug }),
+          ...(orgContext?.isShared && { isShared: 'true' }),
         }
       );
       
-      // Step 7: Upload ZK proof to storage
+      // Step 7: Upload ZK proof to R2 (separate from content for Programmed Incompleteness)
       const proofUploadResult = await zkProofStorageService.uploadProof(
         zkProof,
         fileId,
-        storageConfig
+        R2_PRIMARY_CONFIG,
+        {
+          userId: walletAddress,
+          ...(orgContext?.orgSlug && { orgSlug: orgContext.orgSlug }),
+        }
       );
-      
+
       if (!proofUploadResult.success) {
         console.error('[BlockDriveUpload] Failed to upload ZK proof');
         throw new Error('Failed to upload ZK proof: ' + proofUploadResult.error);
       }
-      
+
       // Upload encrypted metadata
       const metadataBlob = new TextEncoder().encode(JSON.stringify({
         encryptedMetadata,
@@ -324,17 +339,17 @@ class BlockDriveUploadService {
         commitment
       );
       
-      // Upload ZK proof
+      // Upload ZK proof to R2 (separate from content for Programmed Incompleteness)
       const proofUploadResult = await zkProofStorageService.uploadProof(
         zkProof,
         fileId,
-        storageConfig
+        R2_PRIMARY_CONFIG
       );
-      
+
       if (!proofUploadResult.success) {
         throw new Error('Failed to upload ZK proof');
       }
-      
+
       // Upload content
       const contentUpload = await storageOrchestrator.uploadWithRedundancy(
         encryptedContent,
@@ -420,13 +435,13 @@ class BlockDriveUploadService {
       encryptedData.commitment
     );
     
-    // Upload ZK proof
+    // Upload ZK proof to R2 (separate from content for Programmed Incompleteness)
     const proofUploadResult = await zkProofStorageService.uploadProof(
       zkProof,
       fileId,
-      storageConfig
+      R2_PRIMARY_CONFIG
     );
-    
+
     if (!proofUploadResult.success) {
       throw new Error('Failed to upload ZK proof for large file');
     }
@@ -584,7 +599,8 @@ class BlockDriveUploadService {
     connection: Connection,
     signAndSend: (transactions: Transaction[]) => Promise<string[]>,
     storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
-    folderPath: string = '/'
+    folderPath: string = '/',
+    orgContext?: OrgContext
   ): Promise<BlockDriveUploadResult> {
     // Step 1: Upload to storage providers
     const uploadResult = await this.uploadFile(
@@ -593,7 +609,8 @@ class BlockDriveUploadService {
       securityLevel,
       walletAddress,
       storageConfig,
-      folderPath
+      folderPath,
+      orgContext
     );
 
     if (!uploadResult.success) {
@@ -759,7 +776,8 @@ class BlockDriveUploadService {
     walletAddress: string,
     clerkUserId: string,
     storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
-    folderPath: string = '/'
+    folderPath: string = '/',
+    orgContext?: OrgContext
   ): Promise<BlockDriveUploadResult & { databaseRecord?: any }> {
     // Step 1: Upload to storage providers
     const uploadResult = await this.uploadFile(
@@ -768,7 +786,8 @@ class BlockDriveUploadService {
       securityLevel,
       walletAddress,
       storageConfig,
-      folderPath
+      folderPath,
+      orgContext
     );
 
     if (!uploadResult.success) {

@@ -15,12 +15,12 @@ import {
 import { StorageProviderBase } from './storageProviderBase';
 import { supabase } from '@/integrations/supabase/client';
 
-// Cloudflare IPFS gateway provides cached access with ~5x lower latency
-const CLOUDFLARE_IPFS_GATEWAY = import.meta.env.VITE_CLOUDFLARE_IPFS_GATEWAY || 'https://cloudflare-ipfs.com';
+// Worker gateway provides cached IPFS access with auth, rate limiting, and edge caching
+const WORKER_URL = import.meta.env.VITE_WORKER_URL || '';
 const FILEBASE_GATEWAY = 'https://ipfs.filebase.io';
 
-// Use Cloudflare gateway for downloads (better caching), Filebase for uploads (pinning)
-const USE_CLOUDFLARE_GATEWAY = import.meta.env.VITE_USE_CLOUDFLARE_IPFS === 'true';
+// Route IPFS downloads through the Worker gateway when available
+const USE_WORKER_GATEWAY = Boolean(WORKER_URL);
 
 export class FilebaseProvider extends StorageProviderBase {
   readonly type: StorageProviderType = 'filebase';
@@ -30,14 +30,14 @@ export class FilebaseProvider extends StorageProviderBase {
     supportsPermanentStorage: true,
     supportsLargeFiles: true,
     maxFileSizeMB: 5000, // 5GB
-    averageLatencyMs: USE_CLOUDFLARE_GATEWAY ? 300 : 1500, // CF gateway is faster
+    averageLatencyMs: USE_WORKER_GATEWAY ? 300 : 1500, // Worker gateway is edge-cached
     costPerGBCents: 0.6 // ~$0.006/GB/month
   };
 
   // Primary gateway for uploads (ensures pinning)
   private uploadGateway = FILEBASE_GATEWAY;
-  // Download gateway (Cloudflare for caching, fallback to Filebase)
-  private downloadGateway = USE_CLOUDFLARE_GATEWAY ? CLOUDFLARE_IPFS_GATEWAY : FILEBASE_GATEWAY;
+  // Download gateway — Worker for auth + edge caching, fallback to Filebase direct
+  private downloadGateway = USE_WORKER_GATEWAY ? WORKER_URL : FILEBASE_GATEWAY;
 
   async checkHealth(): Promise<ProviderHealthCheck> {
     const start = performance.now();
@@ -170,7 +170,7 @@ export class FilebaseProvider extends StorageProviderBase {
     if (identifier.startsWith('http')) {
       return identifier;
     }
-    // Use download gateway (Cloudflare for caching, Filebase as fallback)
+    // Worker gateway uses /ipfs/{cid}, Filebase uses /ipfs/{cid} too
     return `${this.downloadGateway}/ipfs/${identifier}`;
   }
 

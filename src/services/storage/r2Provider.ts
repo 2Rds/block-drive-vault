@@ -1,19 +1,10 @@
 /**
  * Cloudflare R2 Storage Provider
  *
- * S3-compatible object storage with zero egress fees.
- * Primary storage provider for BlockDrive encrypted files.
- *
- * Benefits:
- * - Zero egress fees (vs $0.09/GB on S3)
- * - S3-compatible API
- * - Edge caching via Cloudflare CDN
- * - Direct integration with Workers
- *
- * @see https://developers.cloudflare.com/r2/
+ * Routes all R2 operations through the BlockDrive API Gateway Worker.
+ * No client-side S3 credentials — the Worker uses its R2 binding directly.
  */
 
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { StorageProviderBase } from './storageProviderBase';
 import {
   StorageProviderType,
@@ -23,25 +14,25 @@ import {
   ProviderDownloadResult,
 } from '@/types/storageProvider';
 
-// R2 Configuration
-const R2_ACCOUNT_ID = import.meta.env.VITE_R2_ACCOUNT_ID || '';
-const R2_ACCESS_KEY_ID = import.meta.env.VITE_R2_ACCESS_KEY_ID || '';
-const R2_SECRET_ACCESS_KEY = import.meta.env.VITE_R2_SECRET_ACCESS_KEY || '';
-const R2_BUCKET_NAME = import.meta.env.VITE_R2_BUCKET_NAME || 'blockdrive-storage';
-const R2_CUSTOM_DOMAIN = import.meta.env.VITE_R2_CUSTOM_DOMAIN || '';
-
-// R2 endpoint URL
-const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+const WORKER_URL = import.meta.env.VITE_WORKER_URL || '';
 
 /**
- * Check if R2 provider is configured
+ * Check if R2 provider is configured (Worker URL must be set)
  */
 export function isR2Configured(): boolean {
-  return Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY);
+  return Boolean(WORKER_URL);
+}
+
+// Org context for hierarchical key generation (resolved server-side)
+export interface R2UploadContext {
+  userId: string;
+  orgSlug?: string;
+  isShared?: boolean;
+  folderPath?: string;
 }
 
 /**
- * Cloudflare R2 Storage Provider
+ * Cloudflare R2 Storage Provider — Worker-proxied
  */
 export class R2Provider extends StorageProviderBase {
   readonly type: StorageProviderType = 'r2';
@@ -49,77 +40,42 @@ export class R2Provider extends StorageProviderBase {
 
   readonly capabilities: ProviderCapabilities = {
     supportsEncryption: true,
-    supportsPermanentStorage: false, // R2 is not permanent like Arweave
+    supportsPermanentStorage: false,
     supportsLargeFiles: true,
-    maxFileSizeMB: 5120, // 5GB with multipart
-    averageLatencyMs: 50, // Edge-cached responses are very fast
-    costPerGBCents: 1.5, // $0.015/GB/month storage, zero egress
+    maxFileSizeMB: 5120,
+    averageLatencyMs: 50,
+    costPerGBCents: 1.5,
   };
 
-  private client: S3Client;
-
-  constructor() {
-    super();
-
-    this.client = new S3Client({
-      region: 'auto',
-      endpoint: R2_ENDPOINT,
-      credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID,
-        secretAccessKey: R2_SECRET_ACCESS_KEY,
-      },
-    });
-  }
-
-  /**
-   * Check R2 provider health
-   */
   async checkHealth(): Promise<ProviderHealthCheck> {
     const startTime = performance.now();
 
     try {
-      // Try to head a known object or list bucket
-      await this.client.send(
-        new HeadObjectCommand({
-          Bucket: R2_BUCKET_NAME,
-          Key: '.health-check',
-        })
-      );
+      const response = await fetch(`${WORKER_URL}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
 
       const latencyMs = Math.round(performance.now() - startTime);
 
       return {
         provider: this.type,
-        status: 'available',
+        status: response.ok ? 'available' : 'degraded',
         latencyMs,
         lastChecked: Date.now(),
       };
-    } catch (error: unknown) {
-      const latencyMs = Math.round(performance.now() - startTime);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      // 404 is expected if health check object doesn't exist - R2 is still available
-      if (errorMessage.includes('404') || errorMessage.includes('NotFound')) {
-        return {
-          provider: this.type,
-          status: 'available',
-          latencyMs,
-          lastChecked: Date.now(),
-        };
-      }
-
+    } catch (error) {
       return {
         provider: this.type,
         status: 'unavailable',
-        latencyMs,
+        latencyMs: Math.round(performance.now() - startTime),
         lastChecked: Date.now(),
-        errorMessage,
+        errorMessage: error instanceof Error ? error.message : 'Health check failed',
       };
     }
   }
 
   /**
-   * Upload file to R2
+   * Upload file to R2 via Worker gateway
    */
   async upload(
     data: Uint8Array,
@@ -128,28 +84,37 @@ export class R2Provider extends StorageProviderBase {
     metadata?: Record<string, string>
   ): Promise<ProviderUploadResult> {
     const { result, timeMs } = await this.measureTime(async () => {
-      // Generate unique key with timestamp for deduplication
-      const timestamp = Date.now();
-      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const key = `files/${timestamp}/${sanitizedFileName}`;
-
       try {
-        await this.client.send(
-          new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: data,
-            ContentType: contentType,
-            Metadata: {
-              'x-blockdrive-uploaded-at': new Date().toISOString(),
-              'x-blockdrive-encryption': 'aes-256-gcm',
-              'x-blockdrive-original-name': fileName,
-              ...metadata,
-            },
-          })
-        );
+        // Extract org context from metadata if present
+        const userId = metadata?.userId || 'anonymous';
+        const orgSlug = metadata?.orgSlug;
+        const isShared = metadata?.isShared === 'true';
+        const folderPath = metadata?.folderPath;
 
-        return { success: true, key };
+        // Get auth token from Clerk session
+        const authToken = await this.getAuthToken();
+
+        const response = await fetch(`${WORKER_URL}/r2/put`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/octet-stream',
+            'X-Blockdrive-UserId': userId,
+            'X-Blockdrive-FileName': fileName,
+            ...(orgSlug && { 'X-Blockdrive-OrgSlug': orgSlug }),
+            ...(isShared && { 'X-Blockdrive-IsShared': 'true' }),
+            ...(folderPath && { 'X-Blockdrive-FolderPath': folderPath }),
+          },
+          body: data,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json() as { error?: string };
+          return { success: false, key: '', error: errorData.error || `Upload failed: ${response.status}` };
+        }
+
+        const result = await response.json() as { success: boolean; key: string };
+        return { success: true, key: result.key };
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error('[R2Provider] Upload failed:', errorMessage);
@@ -167,7 +132,6 @@ export class R2Provider extends StorageProviderBase {
       identifier: result.key,
       url: this.getAccessUrl(result.key),
       metadata: {
-        bucket: R2_BUCKET_NAME,
         key: result.key,
         ...metadata,
       },
@@ -176,41 +140,19 @@ export class R2Provider extends StorageProviderBase {
   }
 
   /**
-   * Download file from R2
+   * Download file from R2 via Worker gateway
    */
   async download(identifier: string): Promise<ProviderDownloadResult> {
     const { result, timeMs } = await this.measureTime(async () => {
       try {
-        const response = await this.client.send(
-          new GetObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: identifier,
-          })
-        );
+        const response = await fetch(`${WORKER_URL}/r2/${identifier}`);
 
-        if (!response.Body) {
-          return { success: false, data: new Uint8Array(), error: 'Empty response body' };
+        if (!response.ok) {
+          return { success: false, data: new Uint8Array(), error: `Download failed: ${response.status}` };
         }
 
-        // Convert stream to Uint8Array
-        const chunks: Uint8Array[] = [];
-        const reader = response.Body.transformToWebStream().getReader();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-        }
-
-        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-        const data = new Uint8Array(totalLength);
-        let offset = 0;
-        for (const chunk of chunks) {
-          data.set(chunk, offset);
-          offset += chunk.length;
-        }
-
-        return { success: true, data };
+        const arrayBuffer = await response.arrayBuffer();
+        return { success: true, data: new Uint8Array(arrayBuffer) };
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error('[R2Provider] Download failed:', errorMessage);
@@ -237,30 +179,27 @@ export class R2Provider extends StorageProviderBase {
   }
 
   /**
-   * Get public access URL for R2 object
+   * Get access URL for R2 object (via Worker gateway)
    */
   getAccessUrl(identifier: string): string {
-    // Use custom domain if configured (recommended for production)
-    if (R2_CUSTOM_DOMAIN) {
-      return `https://${R2_CUSTOM_DOMAIN}/${identifier}`;
-    }
-
-    // Fall back to R2.dev URL (requires public bucket or signed URLs)
-    return `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.dev/${identifier}`;
+    return `${WORKER_URL}/r2/${identifier}`;
   }
 
   /**
-   * Delete file from R2
+   * Delete file from R2 via Worker gateway
    */
   async delete(identifier: string): Promise<boolean> {
     try {
-      await this.client.send(
-        new DeleteObjectCommand({
-          Bucket: R2_BUCKET_NAME,
-          Key: identifier,
-        })
-      );
-      return true;
+      const authToken = await this.getAuthToken();
+
+      const response = await fetch(`${WORKER_URL}/r2/${identifier}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      return response.ok;
     } catch (error) {
       console.error('[R2Provider] Delete failed:', error);
       return false;
@@ -268,28 +207,59 @@ export class R2Provider extends StorageProviderBase {
   }
 
   /**
-   * Generate signed URL for private access (if needed)
-   */
-  async getSignedUrl(identifier: string, expiresInSeconds: number = 3600): Promise<string> {
-    // For now, return the public URL
-    // In production, implement presigned URLs using @aws-sdk/s3-request-presigner
-    return this.getAccessUrl(identifier);
-  }
-
-  /**
-   * Check if object exists
+   * Check if object exists via Worker gateway
    */
   async exists(identifier: string): Promise<boolean> {
     try {
-      await this.client.send(
-        new HeadObjectCommand({
-          Bucket: R2_BUCKET_NAME,
-          Key: identifier,
-        })
-      );
-      return true;
+      const response = await fetch(`${WORKER_URL}/r2/${identifier}`, {
+        method: 'GET',
+      });
+      return response.ok;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * List objects by prefix via Worker gateway
+   */
+  async listByPrefix(prefix: string, limit = 100): Promise<Array<{ key: string; size: number; uploaded: string }>> {
+    try {
+      const authToken = await this.getAuthToken();
+
+      const response = await fetch(`${WORKER_URL}/r2/list`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prefix, limit }),
+      });
+
+      if (!response.ok) return [];
+
+      const data = await response.json() as { objects: Array<{ key: string; size: number; uploaded: string }> };
+      return data.objects;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get auth token from Clerk session (injected via window.__clerk_session)
+   */
+  private async getAuthToken(): Promise<string> {
+    // Try Clerk's getToken if available
+    if (typeof window !== 'undefined' && (window as any).__clerk_session?.getToken) {
+      return (window as any).__clerk_session.getToken() || '';
+    }
+    // Fallback to Supabase session token
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || '';
+    } catch {
+      return '';
     }
   }
 }
