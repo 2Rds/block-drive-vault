@@ -62,9 +62,30 @@ export function useBlockDriveDownload(): UseBlockDriveDownloadReturn {
     updateProgress('downloading', 20, 'Encrypted file', 'Downloading encrypted content...');
 
     try {
-      updateProgress('downloading', 40, 'Encrypted file', 'Content downloaded, decrypting...');
+      // Diagnostic: log the file record so we can trace missing fields
+      console.log('[BlockDriveDownload] FileRecord:', {
+        contentCID: fileRecord.contentCID,
+        proofCid: fileRecord.proofCid,
+        commitment: fileRecord.commitment?.substring(0, 20) + '...',
+        securityLevel: fileRecord.securityLevel,
+        hasEncryptedCriticalBytes: !!fileRecord.encryptedCriticalBytes,
+        hasFileIv: !!fileRecord.fileIv,
+        fileName: fileRecord.fileName,
+      });
 
-      const result = await blockDriveDownloadService.downloadFile(fileRecord, key);
+      updateProgress('downloading', 40, fileRecord.fileName || 'Encrypted file', 'Downloading and decrypting...');
+
+      // Use ZK proof path when proofCid is available (recommended)
+      // Fall back to legacy direct path only when inline critical bytes are present
+      if (!fileRecord.proofCid && !fileRecord.encryptedCriticalBytes) {
+        throw new Error(
+          'This file is missing download metadata (proofCid). It may have been uploaded before ZK proof support. Please re-upload the file.'
+        );
+      }
+
+      const result = fileRecord.proofCid
+        ? await blockDriveDownloadService.downloadFileWithZKProof(fileRecord, key)
+        : await blockDriveDownloadService.downloadFile(fileRecord, key);
 
       if (!result.success) {
         updateProgress('error', 0, '', result.error || 'Download failed');

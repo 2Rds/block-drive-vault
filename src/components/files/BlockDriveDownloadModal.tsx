@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import {
   Download,
   FileIcon,
-  Shield,
   ShieldCheck,
   ShieldAlert,
   Link2,
@@ -33,6 +32,7 @@ import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
 import { useBlockDriveDownload } from '@/hooks/useBlockDriveDownload';
 import { useWalletCrypto } from '@/hooks/useWalletCrypto';
+import { CryptoSetupModal } from '@/components/crypto/CryptoSetupModal';
 import { SecurityLevelRing } from './SecurityLevelRing';
 import { EncryptionPhaseIndicator } from './EncryptionPhaseIndicator';
 import { DataBlockAnimation } from './DataBlockAnimation';
@@ -54,6 +54,8 @@ export function BlockDriveDownloadModal({
 }: BlockDriveDownloadModalProps) {
   const [downloadState, setDownloadState] = useState<'idle' | 'downloading' | 'complete' | 'error'>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cryptoSetupOpen, setCryptoSetupOpen] = useState(false);
+  const [pendingDownload, setPendingDownload] = useState(false);
 
   const {
     downloadAndSave,
@@ -64,7 +66,7 @@ export function BlockDriveDownloadModal({
     hasKeys,
   } = useBlockDriveDownload();
 
-  const { initializeKeys, state: cryptoState } = useWalletCrypto();
+  const { state: cryptoState } = useWalletCrypto();
 
   // Auto-start download if requested
   useEffect(() => {
@@ -82,18 +84,18 @@ export function BlockDriveDownloadModal({
     };
   }, [previewUrl]);
 
-  // Handle download
-  const handleDownload = async () => {
-    if (!fileRecord) return;
-
-    if (!hasKeys) {
-      toast.info('Initializing decryption keys...');
-      const success = await initializeKeys();
-      if (!success) {
-        toast.error('Failed to initialize decryption keys');
-        return;
-      }
+  // After crypto setup completes, auto-start the pending download
+  const handleCryptoSetupComplete = () => {
+    setCryptoSetupOpen(false);
+    if (pendingDownload) {
+      setPendingDownload(false);
+      startDownload();
     }
+  };
+
+  // Actually perform the download (keys must be ready)
+  const startDownload = async () => {
+    if (!fileRecord) return;
 
     setDownloadState('downloading');
 
@@ -106,12 +108,25 @@ export function BlockDriveDownloadModal({
     }
   };
 
+  // Handle download button click
+  const handleDownload = async () => {
+    if (!fileRecord) return;
+
+    if (!hasKeys) {
+      setPendingDownload(true);
+      setCryptoSetupOpen(true);
+      return;
+    }
+
+    startDownload();
+  };
+
   // Handle preview
   const handlePreview = async () => {
     if (!fileRecord) return;
 
     if (!hasKeys) {
-      toast.error('Please initialize your decryption keys first');
+      setCryptoSetupOpen(true);
       return;
     }
 
@@ -171,6 +186,8 @@ export function BlockDriveDownloadModal({
   const handleClose = () => {
     if (!isDownloading) {
       setDownloadState('idle');
+      setCryptoSetupOpen(false);
+      setPendingDownload(false);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
@@ -215,15 +232,10 @@ export function BlockDriveDownloadModal({
               </div>
               <Button
                 size="sm"
-                onClick={initializeKeys}
-                disabled={cryptoState.isInitializing}
+                onClick={() => setCryptoSetupOpen(true)}
                 className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-amber-500/30"
               >
-                {cryptoState.isInitializing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Initialize'
-                )}
+                Unlock
               </Button>
             </div>
           )}
@@ -400,7 +412,7 @@ export function BlockDriveDownloadModal({
                   <Button
                     variant="outline"
                     onClick={handlePreview}
-                    disabled={isDownloading || !hasKeys}
+                    disabled={isDownloading}
                     className="flex-1"
                   >
                     <Eye className="w-4 h-4 mr-2" />
@@ -411,7 +423,7 @@ export function BlockDriveDownloadModal({
                 {/* Download button */}
                 <Button
                   onClick={handleDownload}
-                  disabled={isDownloading || !hasKeys}
+                  disabled={isDownloading}
                   className={cn(
                     'flex-1 h-12 vault-font-display tracking-wider text-sm',
                     !fileRecord.mimeType?.startsWith('image/') && 'w-full'
@@ -459,6 +471,15 @@ export function BlockDriveDownloadModal({
           )}
         </div>
       </DialogContent>
+
+      <CryptoSetupModal
+        isOpen={cryptoSetupOpen}
+        onClose={() => {
+          setCryptoSetupOpen(false);
+          setPendingDownload(false);
+        }}
+        onComplete={handleCryptoSetupComplete}
+      />
     </Dialog>
   );
 }

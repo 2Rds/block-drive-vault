@@ -46,11 +46,22 @@ export interface FileRecordData {
   contentCID: string;
   metadataCID?: string;
   commitment: string;
-  encryptedCriticalBytes: string;
-  criticalBytesIv: string;
-  fileIv: string; // Base64-encoded IV used for file encryption
   securityLevel: SecurityLevel;
   storageProvider: StorageProviderType;
+
+  // ZK proof path (recommended) — critical bytes are fetched from R2
+  proofCid?: string;
+
+  // Legacy direct path — critical bytes inline (deprecated)
+  encryptedCriticalBytes?: string;
+  criticalBytesIv?: string;
+  fileIv?: string; // Base64-encoded IV used for file encryption
+
+  // Display info
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+
   backupProviders?: Array<{
     provider: StorageProviderType;
     identifier: string;
@@ -93,13 +104,17 @@ class BlockDriveDownloadService {
       const downloadTime = performance.now() - downloadStart;
       
       // Step 3: Decrypt critical bytes
+      if (!fileRecord.encryptedCriticalBytes || !fileRecord.criticalBytesIv || !fileRecord.fileIv) {
+        throw new Error('Missing critical bytes data. Use ZK proof download path instead.');
+      }
+
       const decryptStart = performance.now();
       const criticalBytes = await decryptCriticalBytes(
         fileRecord.encryptedCriticalBytes,
         fileRecord.criticalBytesIv,
         decryptionKey
       );
-      
+
       // Step 4: Decrypt and verify file
       // Decode the file IV from base64 (stored during upload)
       const fileIv = base64ToBytes(fileRecord.fileIv);
@@ -311,32 +326,30 @@ class BlockDriveDownloadService {
    * 4. Reconstruct and decrypt file
    */
   async downloadFileWithZKProof(
-    fileRecord: {
-      contentCID: string;
-      proofCid: string;
-      commitment: string;
-      securityLevel: SecurityLevel;
-      storageProvider: StorageProviderType;
-    },
+    fileRecord: FileRecordData,
     decryptionKey: CryptoKey
   ): Promise<BlockDriveDownloadResult> {
     const downloadStart = performance.now();
     let decryptionTime = 0;
-    
+
+    if (!fileRecord.proofCid) {
+      throw new Error('No proofCid available for ZK proof download');
+    }
+
     try {
       // Step 1: Download encrypted content from IPFS/Filebase
       const identifiers = new Map<StorageProviderType, string>();
       identifiers.set(fileRecord.storageProvider, fileRecord.contentCID);
-      
+
       const contentResult = await storageOrchestrator.downloadWithFallback(
         identifiers,
         fileRecord.storageProvider
       );
-      
+
       if (!contentResult.success) {
         throw new Error(contentResult.error || 'Failed to download encrypted content');
       }
-      
+
       // Step 2: Download and extract critical bytes from ZK proof (R2)
       const zkProofResult = await zkProofStorageService.downloadProof(
         fileRecord.proofCid
@@ -355,19 +368,28 @@ class BlockDriveDownloadService {
       }
 
       // Extract encrypted critical bytes and IVs from proof
-      const encryptedCriticalBytes = proofPackage.encryptedCriticalBytes;
-      const criticalBytesIv = proofPackage.encryptionIv; // IV used to encrypt critical bytes
       const fileIv = base64ToBytes(proofPackage.encryptedIv); // IV used for file encryption
 
       const downloadTime = performance.now() - downloadStart;
 
-      // Step 4: Decrypt critical bytes
+      // Step 4: Decrypt critical bytes payload directly
+      // The proof stores: AES-GCM-encrypt(concat(criticalBytes, fileIv))
+      // This is raw binary, NOT JSON metadata, so we decrypt directly.
       const decryptStart = performance.now();
-      const criticalBytes = await decryptCriticalBytes(
-        encryptedCriticalBytes,
-        criticalBytesIv,
-        decryptionKey
+      const encryptedPayloadBytes = base64ToBytes(proofPackage.encryptedCriticalBytes);
+      const encryptionIvBytes = base64ToBytes(proofPackage.encryptionIv);
+
+      const decryptedPayload = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: encryptionIvBytes.buffer as ArrayBuffer },
+        decryptionKey,
+        encryptedPayloadBytes.buffer as ArrayBuffer
       );
+      const payloadBytes = new Uint8Array(decryptedPayload);
+
+      // Payload = concat(criticalBytes, fileIv)
+      // criticalBytes is everything before the fileIv portion
+      const criticalBytesLength = payloadBytes.length - fileIv.length;
+      const criticalBytes = payloadBytes.slice(0, criticalBytesLength);
 
       // Step 5: Reconstruct and decrypt file using the stored file IV
       const decryptResult = await decryptFileWithCriticalBytes(
@@ -379,13 +401,39 @@ class BlockDriveDownloadService {
       );
       
       decryptionTime = performance.now() - decryptStart;
-      
+
+      // Use file info from the record, fall back to metadata CID, then defaults
+      let fileName = fileRecord.fileName || 'downloaded_file';
+      let fileType = fileRecord.mimeType || 'application/octet-stream';
+      let fileSize = decryptResult.content.length;
+
+      if (fileRecord.metadataCID && (fileName === 'downloaded_file' || fileType === 'application/octet-stream')) {
+        try {
+          const metadataIdentifiers = new Map<StorageProviderType, string>();
+          metadataIdentifiers.set(fileRecord.storageProvider, fileRecord.metadataCID);
+          const metadataResult = await storageOrchestrator.downloadWithFallback(metadataIdentifiers);
+          if (metadataResult.success) {
+            const metadataJson = JSON.parse(new TextDecoder().decode(metadataResult.data));
+            const metadata = await decryptFileMetadata(
+              metadataJson.encryptedMetadata,
+              metadataJson.metadataIv,
+              decryptionKey
+            );
+            fileName = metadata.fileName || fileName;
+            fileType = metadata.fileType || fileType;
+            fileSize = metadata.fileSize || fileSize;
+          }
+        } catch (metadataError) {
+          console.warn('[BlockDriveDownload] Failed to decrypt metadata:', metadataError);
+        }
+      }
+
       return {
         success: true,
         data: decryptResult.content,
-        fileName: 'downloaded_file', // Get from metadata
-        fileType: 'application/octet-stream',
-        fileSize: decryptResult.content.length,
+        fileName,
+        fileType,
+        fileSize,
         verified: decryptResult.verified,
         commitmentValid: decryptResult.commitmentValid,
         downloadTimeMs: Math.round(downloadTime),

@@ -89,6 +89,8 @@ function IPFSFiles(): JSX.Element {
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [fileForDownload, setFileForDownload] = useState<FileRecordData | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [pendingFileView, setPendingFileView] = useState<any>(null);
+  const [pendingDownloadFile, setPendingDownloadFile] = useState<any>(null);
   const [fileToShare, setFileToShare] = useState<any>(null);
 
   const [teamFiles, setTeamFiles] = useState<IPFSFile[]>([]);
@@ -158,8 +160,15 @@ function IPFSFiles(): JSX.Element {
     }
   }, [loadUserFiles, isInOrganization, loadOrgFiles]);
 
-  const handleFileSelect = (file: any) => {
-    const ipfsFile = userFiles.find(f => f.id === file.id);
+  // Unified file lookup across all sources (userFiles, myOrgFiles, teamFiles)
+  const findFullFile = useCallback((fileId: string): IPFSFile | undefined => {
+    return userFiles.find(f => f.id === fileId)
+      || myOrgFiles.find(f => f.id === fileId)
+      || teamFiles.find(f => f.id === fileId);
+  }, [userFiles, myOrgFiles, teamFiles]);
+
+  const openFileViewer = (file: any) => {
+    const ipfsFile = findFullFile(file.id);
     if (ipfsFile) {
       selectFile(ipfsFile);
     } else {
@@ -182,15 +191,28 @@ function IPFSFiles(): JSX.Element {
     }
   };
 
-  const handleDownloadFile = async (file: any) => {
-    const ipfsFile = userFiles.find(f => f.id === file.id);
+  const handleFileSelect = (file: any) => {
+    const ipfsFile = findFullFile(file.id);
     const encrypted = isFileEncrypted(file, ipfsFile);
 
-    if (encrypted && ipfsFile?.metadata) {
+    if (encrypted && !cryptoState.isInitialized) {
+      setPendingFileView(file);
+      setCryptoSetupOpen(true);
+      return;
+    }
+
+    openFileViewer(file);
+  };
+
+  const openDownloadModal = (file: any) => {
+    const ipfsFile = findFullFile(file.id);
+
+    if (ipfsFile?.metadata) {
       const fileRecord: FileRecordData = {
         contentCID: file.cid,
         metadataCID: ipfsFile.metadata.metadataCID,
         commitment: ipfsFile.metadata.commitment || file.onChain?.encryptionCommitment || '',
+        proofCid: ipfsFile.metadata.proofCid || file.onChain?.proofCid,
         encryptedCriticalBytes: ipfsFile.metadata.encryptedCriticalBytes || '',
         criticalBytesIv: ipfsFile.metadata.criticalBytesIv || '',
         fileIv: ipfsFile.metadata.fileIv || '',
@@ -199,13 +221,26 @@ function IPFSFiles(): JSX.Element {
         fileName: file.filename,
         fileSize: file.size,
         mimeType: file.mimeType,
-      } as FileRecordData & { fileName?: string; fileSize?: number; mimeType?: string };
+      };
 
       setFileForDownload(fileRecord);
       setDownloadModalOpen(true);
     } else {
-      await downloadFromIPFS(file.cid, file.filename);
+      downloadFromIPFS(file.cid, file.filename);
     }
+  };
+
+  const handleDownloadFile = async (file: any) => {
+    const ipfsFile = findFullFile(file.id);
+    const encrypted = isFileEncrypted(file, ipfsFile);
+
+    if (encrypted && !cryptoState.isInitialized) {
+      setPendingDownloadFile(file);
+      setCryptoSetupOpen(true);
+      return;
+    }
+
+    openDownloadModal(file);
   };
 
   const handleDeleteFile = async (file: any) => {
@@ -215,7 +250,7 @@ function IPFSFiles(): JSX.Element {
   };
 
   const handleShareFile = (file: any) => {
-    const ipfsFile = userFiles.find(f => f.id === file.id);
+    const ipfsFile = findFullFile(file.id);
     const fileToShareData = {
       id: file.id,
       filename: file.filename,
@@ -259,10 +294,10 @@ function IPFSFiles(): JSX.Element {
 
   const handleCryptoSetupComplete = useCallback(async () => {
     setCryptoSetupOpen(false);
+    toast.success('Keys initialized!');
 
+    // Handle pending shared file actions
     if (pendingAction) {
-      toast.success('Keys initialized! Processing your request...');
-
       if (pendingAction.type === 'download') {
         downloadAndSave(pendingAction.file, pendingAction.delegation);
       } else if (pendingAction.type === 'preview') {
@@ -273,7 +308,19 @@ function IPFSFiles(): JSX.Element {
       }
       setPendingAction(null);
     }
-  }, [pendingAction, downloadAndSave, previewSharedFile]);
+
+    // Handle pending file view
+    if (pendingFileView) {
+      openFileViewer(pendingFileView);
+      setPendingFileView(null);
+    }
+
+    // Handle pending file download
+    if (pendingDownloadFile) {
+      openDownloadModal(pendingDownloadFile);
+      setPendingDownloadFile(null);
+    }
+  }, [pendingAction, pendingFileView, pendingDownloadFile, downloadAndSave, previewSharedFile]);
 
   const FileGridContent = ({
     files,
@@ -393,10 +440,15 @@ function IPFSFiles(): JSX.Element {
             contentCID: selectedFile.cid,
             metadataCID: selectedFile.metadata?.metadataCID,
             commitment: selectedFile.metadata?.commitment || '',
+            proofCid: selectedFile.metadata?.proofCid,
             encryptedCriticalBytes: selectedFile.metadata?.encryptedCriticalBytes || '',
             criticalBytesIv: selectedFile.metadata?.criticalBytesIv || '',
+            fileIv: selectedFile.metadata?.fileIv || '',
             securityLevel: (selectedFile.metadata?.securityLevel as SecurityLevel) || SecurityLevel.STANDARD,
-            storageProvider: 'filebase'
+            storageProvider: 'filebase',
+            fileName: selectedFile.filename,
+            mimeType: selectedFile.contentType,
+            fileSize: selectedFile.size,
           } : undefined}
           onClose={closeFileViewer}
         />
@@ -419,6 +471,8 @@ function IPFSFiles(): JSX.Element {
         onClose={() => {
           setCryptoSetupOpen(false);
           setPendingAction(null);
+          setPendingFileView(null);
+          setPendingDownloadFile(null);
         }}
         onComplete={handleCryptoSetupComplete}
       />

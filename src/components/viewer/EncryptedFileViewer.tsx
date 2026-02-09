@@ -6,14 +6,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Download, 
-  ExternalLink, 
-  File, 
-  Lock, 
-  Shield, 
-  ShieldCheck, 
+import {
+  X,
+  Download,
+  ExternalLink,
+  File,
+  Lock,
+  Shield,
+  ShieldCheck,
   ShieldAlert,
   Loader2,
   Key,
@@ -27,6 +27,7 @@ import { IPFSFile } from '@/types/ipfs';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
 import { useBlockDriveDownload } from '@/hooks/useBlockDriveDownload';
+import { CryptoSetupModal } from '@/components/crypto/CryptoSetupModal';
 import { cn } from '@/lib/utils';
 
 interface EncryptedFileViewerProps {
@@ -73,6 +74,7 @@ export function EncryptedFileViewer({
   const [previewType, setPreviewType] = useState<string>('');
   const [isDecrypted, setIsDecrypted] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'failed'>('pending');
+  const [cryptoSetupOpen, setCryptoSetupOpen] = useState(false);
 
   // Determine if file is encrypted (has BlockDrive metadata)
   const isEncrypted = fileRecord || (file as any).metadata?.blockdrive === 'true';
@@ -117,11 +119,23 @@ export function EncryptedFileViewer({
 
   const handleDownload = async () => {
     if (fileRecord) {
+      if (!hasKeys) {
+        setCryptoSetupOpen(true);
+        return;
+      }
       await downloadAndSave(fileRecord);
     } else {
       // Direct download for non-encrypted files
       window.open(`https://ipfs.filebase.io/ipfs/${file.cid}`, '_blank');
     }
+  };
+
+  const handleDecryptAndPreviewWithKeyCheck = async () => {
+    if (!hasKeys) {
+      setCryptoSetupOpen(true);
+      return;
+    }
+    handleDecryptAndPreview();
   };
 
   const formatFileSize = (bytes: number) => {
@@ -224,11 +238,18 @@ export function EncryptedFileViewer({
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 max-w-md mx-auto">
                   <div className="flex items-center gap-2 text-amber-500 mb-2">
                     <AlertTriangle className="w-5 h-5" />
-                    <span className="font-medium">Keys Not Initialized</span>
+                    <span className="font-medium">Decryption Keys Required</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    You need to initialize your encryption keys before you can decrypt files.
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Answer your security question to unlock your encryption keys.
                   </p>
+                  <Button
+                    onClick={() => setCryptoSetupOpen(true)}
+                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30"
+                  >
+                    <Key className="w-4 h-4 mr-2" />
+                    Unlock Keys
+                  </Button>
                 </div>
               ) : canPreview ? (
                 <Button 
@@ -369,6 +390,11 @@ export function EncryptedFileViewer({
           )}
         </div>
       </div>
+      <CryptoSetupModal
+        isOpen={cryptoSetupOpen}
+        onClose={() => setCryptoSetupOpen(false)}
+        onComplete={() => setCryptoSetupOpen(false)}
+      />
     </div>
   );
 }

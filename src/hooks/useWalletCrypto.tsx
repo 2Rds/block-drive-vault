@@ -109,7 +109,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, [hasAnyWallet, clearKeys]);
 
   const hasKey = useCallback((level: SecurityLevel): boolean => {
-    return _keys?.keys.has(level) ?? false;
+    return _keys?.keys.has(Number(level) as SecurityLevel) ?? false;
   }, []);
 
   const requestAllKeyMaterials = useCallback(async (
@@ -224,7 +224,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       }
     }
 
-    const cachedKey = _keys?.keys.get(level);
+    const cachedKey = _keys?.keys.get(Number(level) as SecurityLevel);
     if (cachedKey) return cachedKey.key;
 
     return null;

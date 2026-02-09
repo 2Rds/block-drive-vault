@@ -217,6 +217,16 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
       }
 
       // Save proper file record to Supabase with original filename + org context
+      console.log('[useBlockDriveUpload] Upload result:', {
+        success: result.success,
+        proofCid: result.proofCid,
+        proofHash: result.proofHash,
+        contentCID: result.contentCID,
+        commitment: result.commitment?.substring(0, 20) + '...',
+        fileId: result.fileId,
+        proofUpload: result.proofUpload,
+      });
+
       if (clerkUserId && supabase) {
         try {
           const isInOrg = !!organization;
