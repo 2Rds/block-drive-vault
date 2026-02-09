@@ -203,6 +203,33 @@ async function handleR2Request(request: Request, env: Env, url: URL): Promise<Re
     return handleR2Get(key, env);
   }
 
+  // Direct key PUT — used by clerk-webhook for folder provisioning
+  if (request.method === 'PUT') {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const data = await request.arrayBuffer();
+    const contentType = request.headers.get('Content-Type') || 'application/octet-stream';
+
+    await env.R2_STORAGE.put(key, data, {
+      httpMetadata: { contentType },
+      customMetadata: {
+        uploadedAt: new Date().toISOString(),
+        createdBy: 'direct-put',
+      },
+    });
+
+    return new Response(JSON.stringify({ success: true, key }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (request.method === 'DELETE') {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {

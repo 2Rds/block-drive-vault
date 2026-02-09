@@ -1,20 +1,27 @@
 /**
  * Clerk Webhook Handler
  *
- * Handles Clerk user events to sync profiles to Supabase.
- * - user.created → Upsert profile
+ * Handles Clerk events to sync profiles/orgs to Supabase
+ * and provision storage folder hierarchy in Filebase + R2.
+ *
+ * - user.created → Upsert profile + create personal/{userId}/ folders
  * - user.updated → Update profile
  * - user.deleted → Delete profile
+ * - organization.created → Insert org + create orgs/{slug}/ folder tree
+ * - organizationMembership.created → Insert member + create member folder
  *
  * Required env vars:
  * - CLERK_WEBHOOK_SECRET: Webhook signing secret from Clerk dashboard
  * - SUPABASE_URL (automatic)
  * - SUPABASE_SERVICE_ROLE_KEY (automatic)
+ * - FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY: For Filebase folder provisioning
+ * - WORKER_URL: BlockDrive Worker gateway for R2 folder provisioning
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Webhook } from 'https://esm.sh/svix@1.41.0';
+import { S3Client, PutObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.400.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +56,108 @@ function getSupabaseAdmin() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
+// ============================================
+// Storage provisioning — create folder structure
+// ============================================
+
+function getFilebaseClient(): S3Client | null {
+  const accessKey = Deno.env.get('FILEBASE_ACCESS_KEY');
+  const secretKey = Deno.env.get('FILEBASE_SECRET_KEY');
+  if (!accessKey || !secretKey) return null;
+
+  return new S3Client({
+    endpoint: 'https://s3.filebase.com',
+    region: 'us-east-1',
+    credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+    forcePathStyle: true,
+  });
+}
+
+function getWorkerUrl(): string {
+  return Deno.env.get('WORKER_URL') || '';
+}
+
+/**
+ * Create a zero-byte "folder" placeholder in Filebase (S3).
+ * S3 treats keys with trailing / as folder markers.
+ */
+async function createFilebaseFolder(s3: S3Client, folderKey: string): Promise<void> {
+  const bucket = Deno.env.get('FILEBASE_BUCKET') || 'blockdrive-ipfs';
+  const key = folderKey.endsWith('/') ? folderKey : folderKey + '/';
+
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: new Uint8Array(0),
+    ContentType: 'application/x-directory',
+    Metadata: { 'blockdrive-folder': 'true', 'created-by': 'clerk-webhook' },
+  }));
+
+  console.log(`[clerk-webhook] Filebase folder created: ${key}`);
+}
+
+/**
+ * Create a zero-byte "folder" placeholder in R2 via the Worker gateway.
+ */
+async function createR2Folder(workerUrl: string, folderKey: string): Promise<void> {
+  const key = folderKey.endsWith('/') ? folderKey : folderKey + '/';
+
+  const response = await fetch(`${workerUrl}/r2/${key}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'Bearer clerk-webhook-internal',
+      'Content-Type': 'application/x-directory',
+    },
+    body: new Uint8Array(0),
+  });
+
+  if (!response.ok) {
+    console.error(`[clerk-webhook] R2 folder creation failed for ${key}: ${response.status}`);
+    return;
+  }
+
+  console.log(`[clerk-webhook] R2 folder created: ${key}`);
+}
+
+/**
+ * Provision folder hierarchy in both Filebase and R2.
+ * Failures are logged but don't block the webhook response.
+ */
+async function provisionFolders(folderKeys: string[]): Promise<void> {
+  const s3 = getFilebaseClient();
+  const workerUrl = getWorkerUrl();
+
+  const tasks: Promise<void>[] = [];
+
+  for (const key of folderKeys) {
+    if (s3) {
+      tasks.push(
+        createFilebaseFolder(s3, key).catch(err =>
+          console.error(`[clerk-webhook] Filebase folder error (${key}):`, err.message)
+        )
+      );
+    }
+    if (workerUrl) {
+      tasks.push(
+        createR2Folder(workerUrl, key).catch(err =>
+          console.error(`[clerk-webhook] R2 folder error (${key}):`, err.message)
+        )
+      );
+    }
+  }
+
+  if (tasks.length === 0) {
+    console.log('[clerk-webhook] No storage credentials configured, skipping folder provisioning');
+    return;
+  }
+
+  await Promise.allSettled(tasks);
+}
+
+// ============================================
+// User event handlers
+// ============================================
+
 async function handleUserCreated(data: ClerkUser) {
   const supabase = getSupabaseAdmin();
   const email = extractEmail(data);
@@ -72,6 +181,9 @@ async function handleUserCreated(data: ClerkUser) {
     console.error('[clerk-webhook] Insert error:', error);
     throw error;
   }
+
+  // Provision personal storage folder
+  await provisionFolders([`personal/${data.id}`]);
 
   console.log(`[clerk-webhook] Profile created for ${data.id}`);
 }
@@ -169,6 +281,13 @@ async function handleOrganizationCreated(data: ClerkOrganization) {
     throw error;
   }
 
+  // Provision org folder hierarchy
+  await provisionFolders([
+    `orgs/${data.slug}`,
+    `orgs/${data.slug}/shared`,
+    `orgs/${data.slug}/members`,
+  ]);
+
   console.log(`[clerk-webhook] Organization created: ${data.slug}`);
 }
 
@@ -182,7 +301,7 @@ async function handleOrganizationMembershipCreated(data: ClerkOrganizationMember
   // Look up the organization by clerk_org_id
   const { data: org, error: orgError } = await supabase
     .from('organizations')
-    .select('id')
+    .select('id, slug')
     .eq('clerk_org_id', clerkOrgId)
     .maybeSingle();
 
@@ -207,6 +326,12 @@ async function handleOrganizationMembershipCreated(data: ClerkOrganizationMember
   if (error) {
     console.error('[clerk-webhook] Membership upsert error:', error);
     throw error;
+  }
+
+  // Provision member folder within the org
+  const orgSlug = org.slug || data.organization.slug;
+  if (orgSlug) {
+    await provisionFolders([`orgs/${orgSlug}/members/${clerkUserId}`]);
   }
 
   console.log(`[clerk-webhook] Member ${clerkUserId} added to org ${org.id}`);
