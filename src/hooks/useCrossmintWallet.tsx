@@ -82,28 +82,15 @@ export function useCrossmintWallet(): CrossmintWalletState {
     transaction: Transaction | VersionedTransaction
   ): Promise<Transaction | VersionedTransaction> => {
     if (!wallet) throw new Error('Wallet not initialized');
-
-    try {
-      const signed = await wallet.sign(transaction);
-      return signed as Transaction | VersionedTransaction;
-    } catch (err) {
-      console.error('[useCrossmintWallet] Sign error:', err);
-      throw err;
-    }
+    const signed = await wallet.sign(transaction);
+    return signed as Transaction | VersionedTransaction;
   }, [wallet]);
 
   const signAndSendTransaction = useCallback(async (
     transaction: Transaction | VersionedTransaction
   ): Promise<string> => {
     if (!wallet || !connection) throw new Error('Wallet not initialized');
-
-    try {
-      const signature = await wallet.sendTransaction(transaction);
-      return signature;
-    } catch (err) {
-      console.error('[useCrossmintWallet] Send error:', err);
-      throw err;
-    }
+    return wallet.sendTransaction(transaction);
   }, [wallet, connection]);
 
   const getBalance = useCallback(async (): Promise<number> => {
@@ -146,14 +133,8 @@ export function useCrossmintWallet(): CrossmintWalletState {
 
   const switchChain = useCallback(async (chain: string) => {
     if (!wallet) throw new Error('Wallet not initialized');
-
-    try {
-      await wallet.switchChain(chain);
-      setCurrentChain(chain);
-    } catch (err) {
-      console.error('[useCrossmintWallet] Switch chain error:', err);
-      throw err;
-    }
+    await wallet.switchChain(chain);
+    setCurrentChain(chain);
   }, [wallet]);
 
   const getCurrentChain = useCallback(() => currentChain, [currentChain]);
@@ -173,5 +154,3 @@ export function useCrossmintWallet(): CrossmintWalletState {
     getCurrentChain,
   };
 }
-
-export default useCrossmintWallet;

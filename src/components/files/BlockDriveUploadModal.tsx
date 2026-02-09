@@ -519,5 +519,3 @@ export function BlockDriveUploadModal({
     </Dialog>
   );
 }
-
-export default BlockDriveUploadModal;

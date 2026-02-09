@@ -137,12 +137,10 @@ class BlockDriveUploadService {
     
     try {
       // Step 1: Read file content
-      console.log('[BlockDriveUpload] Step 1: Reading file', file.name, file.size, 'bytes');
       const arrayBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
 
       // Step 2: Encrypt file with critical byte extraction
-      console.log('[BlockDriveUpload] Step 2: Encrypting...');
       const encryptStart = performance.now();
       const encryptedData = await encryptFileWithCriticalBytes(
         fileData,
@@ -154,7 +152,6 @@ class BlockDriveUploadService {
       encryptionTime = performance.now() - encryptStart;
       
       // Step 3: Generate ZK proof with encrypted critical bytes
-      console.log('[BlockDriveUpload] Step 3: Generating ZK proof...');
       const proofStart = performance.now();
       const zkProof = await zkProofService.generateProof(
         encryptedData.criticalBytes,
@@ -181,7 +178,6 @@ class BlockDriveUploadService {
       );
       
       // Step 6: Upload encrypted content to storage providers
-      console.log('[BlockDriveUpload] Step 6: Uploading to storage providers...');
       const uploadStart = performance.now();
 
       // Upload main content (without critical bytes)
@@ -204,8 +200,6 @@ class BlockDriveUploadService {
       );
       
       // Step 7: Upload ZK proof to R2 (separate from content for Programmed Incompleteness)
-      console.log('[BlockDriveUpload] Step 7: Uploading ZK proof to R2...');
-      console.log('[BlockDriveUpload] Content upload result:', { success: contentUpload.success, providers: contentUpload.successfulProviders });
       const proofUploadResult = await zkProofStorageService.uploadProof(
         zkProof,
         fileId,

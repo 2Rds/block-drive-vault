@@ -140,16 +140,12 @@ serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
-
     const workerUrl = Deno.env.get("WORKER_URL");
     const filebaseGateway = Deno.env.get("FILEBASE_GATEWAY") || "https://ipfs.filebase.io";
 
     if (!workerUrl) {
       throw new Error("WORKER_URL not configured");
     }
-
-    logStep("Environment check", { workerUrl, gateway: filebaseGateway });
 
     // Initialize Supabase client for auth validation
     const supabaseAuthClient = createClient(
@@ -164,7 +160,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
-    logStep("Supabase clients initialized");
 
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
@@ -178,7 +173,6 @@ serve(async (req) => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
 
     if (isUUID) {
-      logStep("Using user ID directly", { userId: token });
       userId = token;
     } else {
       // Decode Clerk JWT to extract user ID from claims.
@@ -190,7 +184,6 @@ serve(async (req) => {
         const payload = JSON.parse(atob(parts[1]));
         if (!payload.sub) throw new Error('JWT missing sub claim');
         userId = payload.sub;
-        logStep("Clerk JWT decoded", { userId, iss: payload.iss });
       } catch (jwtError: any) {
         throw new Error(`Authentication failed: ${jwtError.message}`);
       }
@@ -208,15 +201,6 @@ serve(async (req) => {
       throw new Error("No file provided");
     }
 
-    logStep("File received", {
-      filename: file.name,
-      size: file.size,
-      type: file.type,
-      folderPath,
-      teamId: teamId || 'personal',
-      isShared,
-    });
-
     // Verify team membership if teamId provided
     let verifiedTeamId: string | null = null;
     if (teamId) {
@@ -231,9 +215,6 @@ serve(async (req) => {
         logStep("Team membership check error", { error: membershipError.message });
       } else if (membership) {
         verifiedTeamId = membership.organization_id;
-        logStep("Team membership verified", { teamId: verifiedTeamId, role: membership.role });
-      } else {
-        logStep("User not a member of team, falling back to personal storage");
       }
     }
 
@@ -247,13 +228,9 @@ serve(async (req) => {
 
     const { objectKey, storageContext, teamId: pathTeamId } = generateObjectKey(file.name, pathContext);
 
-    logStep("Generated object key", { objectKey, storageContext, teamId: pathTeamId || 'personal' });
-
     // Convert file to Uint8Array
     const fileArrayBuffer = await file.arrayBuffer();
     const fileUint8Array = new Uint8Array(fileArrayBuffer);
-
-    logStep("Uploading via Worker gateway", { objectKey, storageContext });
 
     // Upload to Filebase via Worker gateway
     const { cid } = await uploadViaWorker(
@@ -271,14 +248,11 @@ serve(async (req) => {
       },
     );
 
-    logStep("Filebase upload successful", { cid, objectKey, storageContext });
-
     const ipfsUrl = `${filebaseGateway}/ipfs/${cid}`;
 
     // When called from the storage orchestrator, skip DB insert — the upload hook
     // creates one proper file record with the original filename + org context.
     if (skipDbInsert) {
-      logStep("Skipping DB insert (skipDbInsert=true)");
       return new Response(JSON.stringify({
         success: true,
         file: {
@@ -345,8 +319,6 @@ serve(async (req) => {
     if (!savedFile) {
       throw new Error("Failed to save file metadata: No data returned");
     }
-
-    logStep("File saved to database", { fileId: savedFile.id, storageContext });
 
     return new Response(JSON.stringify({
       success: true,

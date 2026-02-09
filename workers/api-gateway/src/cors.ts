@@ -82,7 +82,6 @@ function isOriginAllowed(origin: string | null, env: Env): boolean {
 export function handleCORS(request: Request, env: Env): Response {
   const origin = request.headers.get('Origin');
   const requestMethod = request.headers.get('Access-Control-Request-Method');
-  const requestHeaders = request.headers.get('Access-Control-Request-Headers');
 
   // Check if origin is allowed
   if (!isOriginAllowed(origin, env)) {
@@ -112,16 +111,8 @@ export function handleCORS(request: Request, env: Env): Response {
   // Methods
   headers.set('Access-Control-Allow-Methods', ALLOWED_METHODS.join(', '));
 
-  // Headers - allow requested headers if they're in our allowlist or merge with standard
-  if (requestHeaders) {
-    const requestedHeadersList = requestHeaders.split(',').map((h) => h.trim());
-    const allowedRequestHeaders = requestedHeadersList.filter((h) =>
-      ALLOWED_HEADERS.some((allowed) => allowed.toLowerCase() === h.toLowerCase())
-    );
-    headers.set('Access-Control-Allow-Headers', [...ALLOWED_HEADERS, ...allowedRequestHeaders].join(', '));
-  } else {
-    headers.set('Access-Control-Allow-Headers', ALLOWED_HEADERS.join(', '));
-  }
+  // Headers - always send the full allowlist (requested headers are validated against it)
+  headers.set('Access-Control-Allow-Headers', ALLOWED_HEADERS.join(', '));
 
   // Expose headers
   headers.set('Access-Control-Expose-Headers', EXPOSED_HEADERS.join(', '));
@@ -157,20 +148,3 @@ export function getCORSHeaders(request: Request, env: Env): Record<string, strin
   };
 }
 
-/**
- * Create a CORS error response
- */
-export function createCORSError(message: string): Response {
-  return new Response(
-    JSON.stringify({
-      error: 'CORS Error',
-      message,
-    }),
-    {
-      status: 403,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-}

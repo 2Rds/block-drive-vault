@@ -5,7 +5,7 @@
  * Part of the Vault Terminal design system.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -462,5 +462,3 @@ export function BlockDriveDownloadModal({
     </Dialog>
   );
 }
-
-export default BlockDriveDownloadModal;

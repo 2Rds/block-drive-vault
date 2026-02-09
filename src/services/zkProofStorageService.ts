@@ -207,8 +207,6 @@ class ZKProofStorageService {
     proofCid: string,
     primaryProvider: StorageProviderType = 'r2'
   ): Promise<{ success: boolean; error?: string }> {
-    const startTime = performance.now();
-
     try {
       // Step 1: Download the original proof
       const downloadResult = await this.downloadProof(proofCid, primaryProvider);
@@ -222,28 +220,18 @@ class ZKProofStorageService {
 
       // Step 2: Create an invalidated version with garbage data
       const originalProof = downloadResult.proofPackage;
-      const invalidatedProof: AnyZKProofPackage = originalProof.version === 2 
-        ? {
-            ...originalProof,
-            // Replace encrypted critical bytes with random garbage
-            encryptedCriticalBytes: this.generateGarbageData(64),
-            encryptedIv: this.generateGarbageData(16),
-            encryptionIv: this.generateGarbageData(12),
-            // Update proof hash to reflect invalidation
-            proofHash: 'INVALIDATED_' + Date.now().toString(16),
-            proofTimestamp: Date.now(),
-            // Mark as invalidated
-            walletSignature: 'REVOKED'
-          }
-        : {
-            ...originalProof,
-            encryptedCriticalBytes: this.generateGarbageData(64),
-            encryptedIv: this.generateGarbageData(16),
-            encryptionIv: this.generateGarbageData(12),
-            proofHash: 'INVALIDATED_' + Date.now().toString(16),
-            proofTimestamp: Date.now(),
-            walletSignature: 'REVOKED'
-          };
+      const invalidatedProof: AnyZKProofPackage = {
+        ...originalProof,
+        // Replace encrypted critical bytes with random garbage
+        encryptedCriticalBytes: this.generateGarbageData(64),
+        encryptedIv: this.generateGarbageData(16),
+        encryptionIv: this.generateGarbageData(12),
+        // Update proof hash to reflect invalidation
+        proofHash: 'INVALIDATED_' + Date.now().toString(16),
+        proofTimestamp: Date.now(),
+        // Mark as invalidated
+        walletSignature: 'REVOKED',
+      };
 
       // Step 3: Serialize the invalidated proof
       const invalidatedData = zkProofService.serializeForStorage(invalidatedProof);
@@ -269,8 +257,6 @@ class ZKProofStorageService {
           blockdrive: 'true'
         }
       );
-
-      const elapsedTime = performance.now() - startTime;
 
       if (!uploadResult.success) {
         console.error('[ZKProofStorage] Failed to upload invalidated proof');

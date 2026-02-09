@@ -104,10 +104,11 @@ export function useSharedFileDownload(): UseSharedFileDownloadReturn {
       setLastDownload(result);
       return result;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Download failed';
       console.error('[useSharedFileDownload] Download failed:', error);
-      setProgress({ stage: 'error', message: error.message, percent: 0 });
-      toast.error('Download failed', { description: error.message });
+      setProgress({ stage: 'error', message, percent: 0 });
+      toast.error('Download failed', { description: message });
       return null;
     } finally {
       setIsDownloading(false);
@@ -163,9 +164,10 @@ export function useSharedFileDownload(): UseSharedFileDownloadReturn {
 
       return result;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Preview failed';
       console.error('[useSharedFileDownload] Preview failed:', error);
-      setProgress({ stage: 'error', message: error.message, percent: 0 });
+      setProgress({ stage: 'error', message, percent: 0 });
       return null;
     } finally {
       setIsDownloading(false);

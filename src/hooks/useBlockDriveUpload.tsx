@@ -141,21 +141,17 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
     signTransaction?: (tx: any) => Promise<any>
   ): Promise<BlockDriveUploadResult | null> => {
     if (!walletData?.address) {
-      console.error('[useBlockDriveUpload] No wallet address');
       toast.error('Wallet not connected');
       return null;
     }
 
     // Get encryption key for the security level
-    console.log('[useBlockDriveUpload] Getting key for level:', securityLevel);
     const key = await walletCrypto.getKey(securityLevel);
     if (!key) {
-      console.error('[useBlockDriveUpload] No encryption key for level', securityLevel);
       toast.error('Encryption keys not initialized. Please set up your keys first.');
       return null;
     }
 
-    console.log('[useBlockDriveUpload] Starting upload for:', file.name, file.size, 'bytes');
     setIsUploading(true);
     updateProgress('encrypting', 10, file.name, 'Encrypting file...');
 
@@ -250,7 +246,6 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
               provider: 'filebase',
             },
           });
-          console.log('[useBlockDriveUpload] File record saved to Supabase');
         } catch (dbError) {
           console.error('[useBlockDriveUpload] Failed to save file record:', dbError);
         }

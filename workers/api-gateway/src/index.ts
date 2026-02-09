@@ -36,6 +36,25 @@ export interface Env {
 }
 
 // ============================================
+// Common helpers
+// ============================================
+
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function requireAuth(request: Request): Response | null {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+  return null;
+}
+
+// ============================================
 // Key generation helpers (mirrors upload-to-ipfs logic)
 // ============================================
 
@@ -141,10 +160,7 @@ export default {
       } else if (url.pathname.startsWith('/functions/')) {
         response = await forwardToSupabase(request, env, url);
       } else {
-        response = new Response(
-          JSON.stringify({ error: 'Not found' }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } }
-        );
+        response = jsonResponse({ error: 'Not found' }, 404);
       }
 
       // Add security and CORS headers
@@ -211,13 +227,8 @@ async function handleR2Request(request: Request, env: Env, url: URL): Promise<Re
 
   // Direct key PUT — used by clerk-webhook for folder provisioning
   if (request.method === 'PUT') {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const authError = requireAuth(request);
+    if (authError) return authError;
 
     const data = await request.arrayBuffer();
     const contentType = request.headers.get('Content-Type') || 'application/octet-stream';
@@ -230,40 +241,24 @@ async function handleR2Request(request: Request, env: Env, url: URL): Promise<Re
       },
     });
 
-    return new Response(JSON.stringify({ success: true, key }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ success: true, key }, 201);
   }
 
   if (request.method === 'DELETE') {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const authError = requireAuth(request);
+    if (authError) return authError;
 
     await env.R2_STORAGE.delete(key);
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ success: true });
   }
 
-  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse({ error: 'Method not allowed' }, 405);
 }
 
 async function handleR2Get(key: string, env: Env): Promise<Response> {
   const object = await env.R2_STORAGE.get(key);
   if (!object) {
-    return new Response(JSON.stringify({ error: 'Object not found' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Object not found' }, 404);
   }
 
   const headers = new Headers();
@@ -281,14 +276,8 @@ async function handleR2Get(key: string, env: Env): Promise<Response> {
 }
 
 async function handleR2Put(request: Request, env: Env): Promise<Response> {
-  // Verify authorization
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const authError = requireAuth(request);
+  if (authError) return authError;
 
   const contentType = request.headers.get('Content-Type') || '';
 
@@ -317,10 +306,7 @@ async function handleR2Put(request: Request, env: Env): Promise<Response> {
     };
 
     if (!body.data || !body.fileName || !body.userId) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: data, fileName, userId' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Missing required fields: data, fileName, userId' }, 400);
     }
 
     key = generateR2Key(body.fileName, {
@@ -348,10 +334,7 @@ async function handleR2Put(request: Request, env: Env): Promise<Response> {
     const fileName = request.headers.get('X-Blockdrive-FileName');
 
     if (!userId || !fileName) {
-      return new Response(JSON.stringify({ error: 'Missing X-Blockdrive-UserId and X-Blockdrive-FileName headers' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Missing X-Blockdrive-UserId and X-Blockdrive-FileName headers' }, 400);
     }
 
     key = generateR2Key(fileName, {
@@ -370,20 +353,12 @@ async function handleR2Put(request: Request, env: Env): Promise<Response> {
     customMetadata,
   });
 
-  return new Response(JSON.stringify({ success: true, key }), {
-    status: 201,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse({ success: true, key }, 201);
 }
 
 async function handleR2List(request: Request, env: Env): Promise<Response> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const authError = requireAuth(request);
+  if (authError) return authError;
 
   const body = await request.json() as {
     prefix: string;
@@ -392,10 +367,7 @@ async function handleR2List(request: Request, env: Env): Promise<Response> {
   };
 
   if (!body.prefix) {
-    return new Response(JSON.stringify({ error: 'Missing required field: prefix' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Missing required field: prefix' }, 400);
   }
 
   const listed = await env.R2_STORAGE.list({
@@ -411,12 +383,10 @@ async function handleR2List(request: Request, env: Env): Promise<Response> {
     etag: obj.etag,
   }));
 
-  return new Response(JSON.stringify({
+  return jsonResponse({
     objects,
     truncated: listed.truncated,
     cursor: listed.truncated ? listed.cursor : undefined,
-  }), {
-    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -434,29 +404,18 @@ function getFilebaseClient(env: Env): AwsClient {
 }
 
 async function handleFilebaseRequest(request: Request, env: Env, url: URL): Promise<Response> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const authError = requireAuth(request);
+  if (authError) return authError;
 
   if (!env.FILEBASE_ACCESS_KEY || !env.FILEBASE_SECRET_KEY) {
-    return new Response(JSON.stringify({ error: 'Filebase credentials not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Filebase credentials not configured' }, 500);
   }
 
   if (request.method === 'POST' && url.pathname === '/filebase/upload') {
     return handleFilebaseUpload(request, env);
   }
 
-  return new Response(JSON.stringify({ error: 'Not found' }), {
-    status: 404,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse({ error: 'Not found' }, 404);
 }
 
 async function handleFilebaseUpload(request: Request, env: Env): Promise<Response> {
@@ -468,10 +427,7 @@ async function handleFilebaseUpload(request: Request, env: Env): Promise<Respons
   };
 
   if (!body.data || !body.objectKey) {
-    return new Response(JSON.stringify({ error: 'Missing required fields: data, objectKey' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Missing required fields: data, objectKey' }, 400);
   }
 
   const bucket = env.FILEBASE_BUCKET || 'blockdrive-ipfs';
@@ -508,14 +464,11 @@ async function handleFilebaseUpload(request: Request, env: Env): Promise<Respons
   if (!putResponse.ok) {
     const errorText = await putResponse.text();
     console.error(`Filebase PUT failed: ${putResponse.status}`, errorText);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Filebase upload failed',
       status: putResponse.status,
       detail: errorText,
-    }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }, 502);
   }
 
   // HEAD to get the CID from Filebase metadata
@@ -530,15 +483,7 @@ async function handleFilebaseUpload(request: Request, env: Env): Promise<Respons
       || '';
   }
 
-  return new Response(JSON.stringify({
-    success: true,
-    objectKey: body.objectKey,
-    cid,
-    bucket,
-  }), {
-    status: 201,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse({ success: true, objectKey: body.objectKey, cid, bucket }, 201);
 }
 
 // ============================================
@@ -552,19 +497,13 @@ async function handleIPFSRequest(
   ctx: ExecutionContext
 ): Promise<Response> {
   if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   // Extract CID from /ipfs/{cid}
   const cid = url.pathname.replace('/ipfs/', '');
   if (!cid) {
-    return new Response(JSON.stringify({ error: 'Missing CID' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Missing CID' }, 400);
   }
 
   // Check Cloudflare Cache API first
@@ -587,10 +526,7 @@ async function handleIPFSRequest(
   });
 
   if (!gatewayResponse.ok) {
-    return new Response(JSON.stringify({ error: 'IPFS content not found', cid }), {
-      status: gatewayResponse.status,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'IPFS content not found', cid }, gatewayResponse.status);
   }
 
   // Build cacheable response — IPFS content is immutable (content-addressed)
@@ -699,6 +635,6 @@ export class EncryptionSession {
 
   async alarm(): Promise<void> {
     await this.state.storage.put('status', 'expired');
-    console.log('Encryption session expired');
+    console.warn('Encryption session expired');
   }
 }
