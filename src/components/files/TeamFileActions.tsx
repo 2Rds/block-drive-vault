@@ -15,8 +15,6 @@ import {
   Trash2,
   Send,
   FolderInput,
-  Users,
-  Lock,
   FolderOpen,
 } from 'lucide-react';
 import { MoveToTeamFilesModal } from './MoveToTeamFilesModal';
@@ -105,7 +103,6 @@ export function TeamFileActions({
             </DropdownMenuItem>
           )}
 
-          {/* Team-specific actions */}
           {canShowTeamActions && (
             <>
               <DropdownMenuSeparator />
@@ -164,7 +161,6 @@ export function TeamFileActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Modals */}
       <MoveToTeamFilesModal
         isOpen={showMoveModal}
         onClose={() => setShowMoveModal(false)}

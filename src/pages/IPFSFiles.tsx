@@ -49,7 +49,6 @@ import { FileDatabaseService } from '@/services/fileDatabaseService';
 import { ParsedDelegation, ParsedFileRecord } from '@/services/solana';
 import { IPFSFile } from '@/types/ipfs';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 type TabValue = 'my-files' | 'team-files' | 'shared' | 'trash';
 type PendingActionType = 'download' | 'preview';
@@ -88,13 +87,13 @@ function IPFSFiles(): JSX.Element {
   const isTrashView = searchParams.get('view') === 'trash';
   const searchQuery = searchParams.get('search') || '';
 
-  const { user, walletData } = useAuth();
+  const { walletData } = useAuth();
   const { signTransaction } = useSolanaWalletSigning();
   const { downloadAndSave, previewSharedFile } = useSharedFileDownload();
   const { state: cryptoState, isSessionValid } = useWalletCrypto();
   const { supabase, userId } = useClerkAuth();
   const { organization } = useOrganization();
-  const { canUpload, needsSignup, needsSubscription } = useUploadPermissions();
+  const { canUpload } = useUploadPermissions();
   const {
     currentPath,
     selectedFile,
@@ -106,7 +105,6 @@ function IPFSFiles(): JSX.Element {
   } = useFolderNavigation();
   const { userFiles, loadUserFiles, downloadFromIPFS } = useIPFSUpload();
 
-  // Upload hook — used directly instead of BlockDriveUploadArea
   const {
     isUploading,
     progress,
@@ -114,7 +112,6 @@ function IPFSFiles(): JSX.Element {
     uploadFiles,
     initializeVault,
     checkVaultExists,
-    solanaLoading
   } = useBlockDriveUpload({ enableOnChainRegistration: true });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,23 +136,14 @@ function IPFSFiles(): JSX.Element {
   const [myOrgFiles, setMyOrgFiles] = useState<IPFSFile[]>([]);
   const [loadingOrgFiles, setLoadingOrgFiles] = useState(false);
 
-  // Folder creation
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
-
-  // Move to folder
   const [fileToMove, setFileToMove] = useState<any>(null);
   const [movingFile, setMovingFile] = useState(false);
-
-  // Drag-and-drop
   const [dragOver, setDragOver] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
-
-  // Vault status
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [initializingVault, setInitializingVault] = useState(false);
-
-  // Destination modal (org upload)
   const [showDestinationModal, setShowDestinationModal] = useState(false);
 
   const isInOrganization = !!organization;
@@ -227,22 +215,15 @@ function IPFSFiles(): JSX.Element {
     }
   }, [loadUserFiles, isInOrganization, loadOrgFiles]);
 
-  // Unified file lookup across all sources
   const findFullFile = useCallback((fileId: string): IPFSFile | undefined => {
     return userFiles.find(f => f.id === fileId)
       || myOrgFiles.find(f => f.id === fileId)
       || teamFiles.find(f => f.id === fileId);
   }, [userFiles, myOrgFiles, teamFiles]);
 
-  // ===== Upload logic (moved from BlockDriveUploadArea) =====
-
   const handleUploadClick = () => {
     if (!canUpload) {
-      if (needsSignup) {
-        navigate('/pricing');
-      } else if (needsSubscription) {
-        navigate('/pricing');
-      }
+      navigate('/pricing');
       return;
     }
 
@@ -302,27 +283,26 @@ function IPFSFiles(): JSX.Element {
     setPendingFiles(null);
   };
 
-  const handleDestinationSelect = (toTeam: boolean) => {
+  const handleDestinationSelect = () => {
     if (pendingFiles) {
       processUpload(pendingFiles);
     }
   };
 
-  // Drag-and-drop handlers (page-level — only for external OS file drops)
   const isInternalDrag = (e: React.DragEvent) =>
     e.dataTransfer.types.includes(DRAG_TYPE);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    if (isInternalDrag(e)) return; // internal file-to-folder move, handled by FolderCard
+    if (isInternalDrag(e)) return;
     if (activeTab === 'shared' || activeTab === 'trash') return;
     handleFileSelect(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (isInternalDrag(e)) return; // don't show overlay for internal drags
+    if (isInternalDrag(e)) return;
     if (activeTab === 'shared' || activeTab === 'trash') return;
     setDragOver(true);
   };
@@ -332,7 +312,6 @@ function IPFSFiles(): JSX.Element {
     setDragOver(false);
   };
 
-  // ===== Vault initialization =====
   const handleInitializeVault = async () => {
     if (!signTransaction) {
       toast.error('Wallet signing not available');
@@ -350,7 +329,6 @@ function IPFSFiles(): JSX.Element {
     }
   };
 
-  // ===== Folder creation =====
   const handleCreateFolder = async (name: string) => {
     if (!userId || !supabase) return;
     setCreatingFolder(true);
@@ -369,8 +347,6 @@ function IPFSFiles(): JSX.Element {
     }
   };
 
-  // ===== Move to folder =====
-
   const availableFolders = useMemo(() => {
     const allFiles = isInOrganization
       ? [...teamFilesForDisplay, ...myOrgFilesForDisplay]
@@ -383,13 +359,10 @@ function IPFSFiles(): JSX.Element {
       }));
   }, [blockDriveFiles, teamFilesForDisplay, myOrgFilesForDisplay, isInOrganization]);
 
-  const handleFileMove = (file: any) => {
-    setFileToMove(file);
-  };
+  const handleFileMove = setFileToMove;
 
   const handleMoveFileToFolder = async (fileId: string, targetFolderPath: string) => {
     if (!userId || !supabase) return;
-    // Find the file to get its filename
     const allDisplay = isInOrganization
       ? [...teamFilesForDisplay, ...myOrgFilesForDisplay]
       : blockDriveFiles;
@@ -426,8 +399,6 @@ function IPFSFiles(): JSX.Element {
     await processUpload(files, targetFolderPath);
   };
 
-  // ===== File operations =====
-
   const openFileViewer = (file: any) => {
     const ipfsFile = findFullFile(file.id);
     if (ipfsFile) {
@@ -453,7 +424,6 @@ function IPFSFiles(): JSX.Element {
   };
 
   const handleFileSelectAction = (file: any) => {
-    // Folders have no CID — skip encrypted check
     if (file.mimeType === 'application/x-directory') return;
 
     const ipfsFile = findFullFile(file.id);
@@ -510,7 +480,6 @@ function IPFSFiles(): JSX.Element {
   const handleDeleteFile = async (file: any) => {
     if (!userId || !supabase) return;
 
-    // For folders, use deleteFolder
     if (file.mimeType === 'application/x-directory') {
       if (confirm(`Are you sure you want to delete the folder "${file.filename}"?`)) {
         try {
@@ -546,10 +515,6 @@ function IPFSFiles(): JSX.Element {
     setShareModalOpen(true);
   };
 
-  const handleShareComplete = () => {
-    loadUserFiles();
-  };
-
   const handleSharedFileDownload = useCallback((file: ParsedFileRecord, delegation: ParsedDelegation) => {
     if (!cryptoState.isInitialized || !isSessionValid) {
       setPendingAction({ type: 'download', file, delegation });
@@ -577,7 +542,6 @@ function IPFSFiles(): JSX.Element {
     setCryptoSetupOpen(false);
     toast.success('Keys initialized!');
 
-    // Handle pending shared file actions
     if (pendingAction) {
       if (pendingAction.type === 'download') {
         downloadAndSave(pendingAction.file, pendingAction.delegation);
@@ -590,19 +554,16 @@ function IPFSFiles(): JSX.Element {
       setPendingAction(null);
     }
 
-    // Handle pending file view
     if (pendingFileView) {
       openFileViewer(pendingFileView);
       setPendingFileView(null);
     }
 
-    // Handle pending file download
     if (pendingDownloadFile) {
       openDownloadModal(pendingDownloadFile);
       setPendingDownloadFile(null);
     }
 
-    // Handle pending upload files
     if (pendingFiles) {
       if (isInOrganization) {
         setShowDestinationModal(true);
@@ -687,7 +648,6 @@ function IPFSFiles(): JSX.Element {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        {/* Drag overlay */}
         {dragOver && (
           <div className="absolute inset-0 z-40 bg-blue-500/10 border-2 border-dashed border-blue-500/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
             <div className="text-center">
@@ -697,7 +657,6 @@ function IPFSFiles(): JSX.Element {
           </div>
         )}
 
-        {/* Status badges */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {vaultExists && (
             <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-xs">
@@ -723,7 +682,6 @@ function IPFSFiles(): JSX.Element {
           )}
         </div>
 
-        {/* Upload progress */}
         {isUploading && progress && (
           <div className="mb-4 bg-zinc-900 rounded-lg border border-zinc-800 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
@@ -734,7 +692,6 @@ function IPFSFiles(): JSX.Element {
           </div>
         )}
 
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
           <TabsList className="bg-muted/50 rounded-lg p-1">
             {isInOrganization ? (
@@ -804,7 +761,6 @@ function IPFSFiles(): JSX.Element {
           </TabsContent>
         </Tabs>
 
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -815,7 +771,6 @@ function IPFSFiles(): JSX.Element {
         />
       </div>
 
-      {/* Destination modal (org context) */}
       <Dialog open={showDestinationModal} onOpenChange={setShowDestinationModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -828,7 +783,7 @@ function IPFSFiles(): JSX.Element {
             <Button
               variant="outline"
               className="h-auto flex-col gap-3 p-6 hover:bg-purple-500/10 hover:border-purple-500/50"
-              onClick={() => handleDestinationSelect(true)}
+              onClick={handleDestinationSelect}
             >
               <Users className="w-8 h-8 text-purple-400" />
               <div className="text-center">
@@ -841,7 +796,7 @@ function IPFSFiles(): JSX.Element {
             <Button
               variant="outline"
               className="h-auto flex-col gap-3 p-6 hover:bg-primary/10 hover:border-primary/50"
-              onClick={() => handleDestinationSelect(false)}
+              onClick={handleDestinationSelect}
             >
               <User className="w-8 h-8 text-primary" />
               <div className="text-center">
@@ -855,7 +810,6 @@ function IPFSFiles(): JSX.Element {
         </DialogContent>
       </Dialog>
 
-      {/* File viewer */}
       {showFileViewer && selectedFile && (
         <EncryptedFileViewer
           file={selectedFile}
@@ -886,7 +840,7 @@ function IPFSFiles(): JSX.Element {
         file={fileToShare}
         ownerAddress={walletData?.address || ''}
         signTransaction={signTransaction}
-        onShareComplete={handleShareComplete}
+        onShareComplete={loadUserFiles}
       />
 
       <CryptoSetupModal

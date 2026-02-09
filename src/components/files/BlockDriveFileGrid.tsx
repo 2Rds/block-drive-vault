@@ -59,7 +59,6 @@ interface BlockDriveFile {
   encrypted: boolean;
   folderPath?: string;
 
-  // On-chain data (optional, populated from Solana)
   onChain?: {
     registered: boolean;
     verified: boolean;
@@ -91,7 +90,6 @@ interface BlockDriveFileGridProps {
   onDropFilesToFolder?: (files: FileList, targetFolderPath: string) => void;
   onRefresh?: () => void;
   loading?: boolean;
-  // Organization context
   showTeamActions?: boolean;
   isPrivateFile?: boolean;
   onActionComplete?: () => void;
@@ -117,11 +115,10 @@ export function BlockDriveFileGrid({
   onActionComplete
 }: BlockDriveFileGridProps) {
   const { user, walletData } = useAuth();
-  const { getUserFiles, isLoading: solanaLoading } = useBlockDriveSolana();
+  const { getUserFiles } = useBlockDriveSolana();
   const [onChainFiles, setOnChainFiles] = useState<ParsedFileRecord[]>([]);
   const [loadingOnChain, setLoadingOnChain] = useState(false);
 
-  // Fetch on-chain files for the wallet
   const fetchOnChainStatus = useCallback(async () => {
     if (!walletData?.address) return;
 
@@ -142,9 +139,7 @@ export function BlockDriveFileGrid({
     }
   }, [walletData?.connected, fetchOnChainStatus]);
 
-  // Merge local files with on-chain status
   const enrichedFiles = files.map(file => {
-    // Skip enrichment for folders
     if (file.mimeType === 'application/x-directory') return file;
 
     const onChainRecord = onChainFiles.find(
@@ -172,13 +167,11 @@ export function BlockDriveFileGrid({
     return file;
   });
 
-  // Filter to current directory level first — only show items whose folderPath matches currentPath
   const pathFiltered = enrichedFiles.filter(file => {
     const fileFolderPath = file.folderPath || '/';
     return fileFolderPath === currentPath;
   });
 
-  // Then apply category filter if set
   const filteredFiles = selectedFolder === 'all'
     ? pathFiltered
     : pathFiltered.filter(file => {
@@ -205,7 +198,6 @@ export function BlockDriveFileGrid({
         return true;
       });
 
-  // Sort: folders first, then files by date
   const sortedFiles = [...filteredFiles].sort((a, b) => {
     const aIsFolder = a.mimeType === 'application/x-directory';
     const bIsFolder = b.mimeType === 'application/x-directory';
@@ -216,6 +208,8 @@ export function BlockDriveFileGrid({
 
   const folderEntries = sortedFiles.filter(f => f.mimeType === 'application/x-directory');
   const fileEntries = sortedFiles.filter(f => f.mimeType !== 'application/x-directory');
+  const onChainCount = fileEntries.filter(f => f.onChain?.registered).length;
+  const encryptedCount = fileEntries.filter(f => f.encrypted).length;
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -295,7 +289,6 @@ export function BlockDriveFileGrid({
   return (
     <TooltipProvider>
       <div>
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {currentPath !== '/' && onGoBack && (
@@ -306,25 +299,24 @@ export function BlockDriveFileGrid({
             )}
             <span className="text-sm text-zinc-400">
               {sortedFiles.length} items
-              {fileEntries.filter(f => f.onChain?.registered).length > 0 && (
+              {onChainCount > 0 && (
                 <span className="ml-1 text-blue-400">
-                  ({fileEntries.filter(f => f.onChain?.registered).length} on-chain)
+                  ({onChainCount} on-chain)
                 </span>
               )}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Compact stats */}
             {fileEntries.length > 0 && (
               <div className="hidden md:flex items-center gap-2">
                 <Badge variant="outline" className="bg-transparent border-zinc-700 text-zinc-400 text-xs">
                   <Lock className="w-3 h-3 mr-1" />
-                  {fileEntries.filter(f => f.encrypted).length} encrypted
+                  {encryptedCount} encrypted
                 </Badge>
                 <Badge variant="outline" className="bg-transparent border-zinc-700 text-zinc-400 text-xs">
                   <Link2 className="w-3 h-3 mr-1" />
-                  {fileEntries.filter(f => f.onChain?.registered).length} on-chain
+                  {onChainCount} on-chain
                 </Badge>
               </div>
             )}
@@ -342,7 +334,6 @@ export function BlockDriveFileGrid({
           </div>
         </div>
 
-        {/* Folders Section */}
         {folderEntries.length > 0 && (
           <div className="mb-6">
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
@@ -370,7 +361,6 @@ export function BlockDriveFileGrid({
           </div>
         )}
 
-        {/* Files Section */}
         {fileEntries.length > 0 ? (
           <div>
             {folderEntries.length > 0 && (
@@ -418,7 +408,6 @@ export function BlockDriveFileGrid({
   );
 }
 
-// Folder Card Component — drop target for internal file moves and external file drops
 interface FolderCardProps {
   file: BlockDriveFile;
   folderPath: string;
@@ -449,14 +438,12 @@ function FolderCard({ file, folderPath, formatDate, onNavigate, onDelete, onMove
     e.stopPropagation();
     setIsDragTarget(false);
 
-    // Check for internal file drag first
     const fileId = e.dataTransfer.getData(DRAG_TYPE);
     if (fileId) {
       onMoveFileHere?.(fileId);
       return;
     }
 
-    // External file drop
     if (e.dataTransfer.files.length > 0) {
       onDropFilesHere?.(e.dataTransfer.files);
     }
@@ -510,7 +497,6 @@ function FolderCard({ file, folderPath, formatDate, onNavigate, onDelete, onMove
   );
 }
 
-// Individual File Card Component — draggable for internal moves
 interface FileCardProps {
   file: BlockDriveFile;
   onSelect: () => void;
@@ -522,7 +508,6 @@ interface FileCardProps {
   formatDate: (date: Date) => string;
   getSecurityBadge: (level: string) => React.ReactNode;
   getFileTypeColor: (mimeType: string) => string;
-  // Team actions
   showTeamActions?: boolean;
   isPrivateFile?: boolean;
   onActionComplete?: () => void;
@@ -562,7 +547,6 @@ function FileCard({
       )}
       onClick={onSelect}
     >
-      {/* Header with Icon and Actions */}
       <div className="flex items-start justify-between mb-3">
         <div className="relative">
           <File className={cn("w-8 h-8", iconColor)} />
@@ -574,7 +558,6 @@ function FileCard({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* On-Chain Status Badge */}
           {file.onChain?.registered && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -599,7 +582,6 @@ function FileCard({
             </Tooltip>
           )}
 
-          {/* Team Badge for team files */}
           {showTeamActions && !isPrivateFile && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -611,7 +593,6 @@ function FileCard({
             </Tooltip>
           )}
 
-          {/* Actions - Use TeamFileActions when in org context */}
           {showTeamActions ? (
             <TeamFileActions
               file={{
@@ -672,7 +653,6 @@ function FileCard({
         </div>
       </div>
 
-      {/* File Info */}
       <div className="space-y-1 mb-3">
         <h3 className="font-medium text-foreground text-sm truncate" title={file.filename}>
           {file.filename}
@@ -681,16 +661,13 @@ function FileCard({
         <p className="text-xs text-muted-foreground/70">Uploaded {formatDate(file.uploadedAt)}</p>
       </div>
 
-      {/* Security Level Badge */}
       <div className="mb-3">
         {getSecurityBadge(file.securityLevel)}
       </div>
 
-      {/* On-Chain Status Footer */}
       <div className="pt-3 border-t border-zinc-800 space-y-2">
         {file.onChain?.registered ? (
           <>
-            {/* Verified Status */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -704,7 +681,6 @@ function FileCard({
               )}
             </div>
 
-            {/* Commitment Preview */}
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">Commitment:</span>
               <Tooltip>
@@ -719,7 +695,6 @@ function FileCard({
               </Tooltip>
             </div>
 
-            {/* Provider Count */}
             {file.onChain.providerCount && file.onChain.providerCount > 1 && (
               <div className="flex items-center gap-1">
                 <Globe className="w-3 h-3 text-muted-foreground" />
@@ -749,7 +724,6 @@ function FileCard({
           </div>
         )}
 
-        {/* CID Preview */}
         {file.cid && (
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground/70">CID:</span>

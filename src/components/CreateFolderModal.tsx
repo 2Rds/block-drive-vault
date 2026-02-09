@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Folder } from 'lucide-react';
 
@@ -10,10 +9,10 @@ interface CreateFolderModalProps {
   loading?: boolean;
 }
 
-export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, loading = false }: CreateFolderModalProps) => {
+export function CreateFolderModal({ isOpen, onClose, onCreateFolder, loading = false }: CreateFolderModalProps) {
   const [folderName, setFolderName] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (folderName.trim() && !loading) {
       onCreateFolder(folderName.trim());
@@ -79,4 +78,4 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, loading = f
       </div>
     </div>
   );
-};
+}

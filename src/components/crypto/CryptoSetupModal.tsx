@@ -70,7 +70,6 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   }, [isOpen, supabase, state.isInitialized]);
 
   const handleSetupComplete = async () => {
-    // After setup, fetch the question and move to verify
     try {
       const { data } = await supabase.functions.invoke('security-question', {
         body: { action: 'get' },

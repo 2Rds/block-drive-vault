@@ -36,6 +36,24 @@ export interface PrivacyEnhancedFileData {
   owner_clerk_id?: string;
 }
 
+function toIPFSFile(file: any): IPFSFile {
+  return {
+    id: file.id,
+    filename: file.filename,
+    cid: file.ipfs_cid || '',
+    size: file.file_size || 0,
+    contentType: file.content_type || 'application/octet-stream',
+    ipfsUrl: file.ipfs_url || '',
+    uploadedAt: file.created_at,
+    userId: file.clerk_user_id,
+    folderPath: file.folder_path,
+    metadata: file.metadata as IPFSFile['metadata'],
+    visibility: file.visibility as FileVisibility | undefined,
+    clerkOrgId: file.clerk_org_id,
+    ownerClerkId: file.owner_clerk_id,
+  };
+}
+
 export class FileDatabaseService {
   static async saveFileMetadata(
     clerkUserId: string,
@@ -91,7 +109,6 @@ export class FileDatabaseService {
     ipfs_cid: string;
     ipfs_url: string;
     metadata?: any;
-    // Organization support
     clerk_org_id?: string;
     visibility?: FileVisibility;
     owner_clerk_id?: string;
@@ -111,7 +128,6 @@ export class FileDatabaseService {
         folder_path: fileData.folder_path || '/'
       };
 
-      // Add organization fields if provided
       if (fileData.clerk_org_id) {
         insertData.clerk_org_id = fileData.clerk_org_id;
       }
@@ -269,21 +285,7 @@ export class FileDatabaseService {
       throw error;
     }
 
-    return (files || []).map(file => ({
-      id: file.id,
-      filename: file.filename,
-      cid: file.ipfs_cid || '',
-      size: file.file_size || 0,
-      contentType: file.content_type || 'application/octet-stream',
-      ipfsUrl: file.ipfs_url || '',
-      uploadedAt: file.created_at,
-      userId: file.clerk_user_id,
-      folderPath: file.folder_path,
-      metadata: file.metadata as IPFSFile['metadata'],
-      visibility: file.visibility as FileVisibility,
-      clerkOrgId: file.clerk_org_id,
-      ownerClerkId: file.owner_clerk_id,
-    }));
+    return (files || []).map(toIPFSFile);
   }
 
   /**
@@ -308,21 +310,7 @@ export class FileDatabaseService {
       throw error;
     }
 
-    return (files || []).map(file => ({
-      id: file.id,
-      filename: file.filename,
-      cid: file.ipfs_cid || '',
-      size: file.file_size || 0,
-      contentType: file.content_type || 'application/octet-stream',
-      ipfsUrl: file.ipfs_url || '',
-      uploadedAt: file.created_at,
-      userId: file.clerk_user_id,
-      folderPath: file.folder_path,
-      metadata: file.metadata as IPFSFile['metadata'],
-      visibility: file.visibility as FileVisibility,
-      clerkOrgId: file.clerk_org_id,
-      ownerClerkId: file.owner_clerk_id,
-    }));
+    return (files || []).map(toIPFSFile);
   }
 
   /**
@@ -344,21 +332,7 @@ export class FileDatabaseService {
       throw error;
     }
 
-    return (files || []).map(file => ({
-      id: file.id,
-      filename: file.filename,
-      cid: file.ipfs_cid || '',
-      size: file.file_size || 0,
-      contentType: file.content_type || 'application/octet-stream',
-      ipfsUrl: file.ipfs_url || '',
-      uploadedAt: file.created_at,
-      userId: file.clerk_user_id,
-      folderPath: file.folder_path,
-      metadata: file.metadata as IPFSFile['metadata'],
-      visibility: file.visibility as FileVisibility | undefined,
-      clerkOrgId: undefined,
-      ownerClerkId: file.owner_clerk_id,
-    }));
+    return (files || []).map(toIPFSFile);
   }
 
   /**
@@ -440,7 +414,6 @@ export class FileDatabaseService {
         metadata: null
       };
 
-      // Add organization fields if provided
       if (fileData.clerk_org_id) {
         insertData.clerk_org_id = fileData.clerk_org_id;
       }

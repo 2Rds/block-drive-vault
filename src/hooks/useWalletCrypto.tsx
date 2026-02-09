@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   SecurityLevel,
   WalletDerivedKeys,
-  DerivedEncryptionKey,
   KeyDerivationSession
 } from '@/types/blockdriveCrypto';
 import { deriveKeyFromMaterial } from '@/services/crypto/keyDerivationService';
@@ -10,7 +9,6 @@ import { hexToBytes } from '@/services/crypto/cryptoUtils';
 import { useAuth } from './useAuth';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
-import { toast } from 'sonner';
 
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
 const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
@@ -23,6 +21,10 @@ let _session: KeyDerivationSession | null = null;
 let _answerHash: string | null = null;
 let _version = 0; // bumped on every mutation so subscribers re-render
 let _autoRestoreAttempted = false;
+
+function _getStoredHash(): string | null {
+  try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
+}
 
 const _listeners = new Set<() => void>();
 function _notify() {
@@ -72,7 +74,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     needsSecurityQuestion: false
   });
 
-  // Sync local state with singleton on mount / store change
   useEffect(() => {
     const initialized = _keys?.initialized ?? false;
     setState(prev => {
@@ -130,7 +131,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, [supabase]);
 
   const initializeKeys = useCallback(async (answerHash?: string): Promise<boolean> => {
-    // If keys are already initialized and session is valid, skip
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) {
       setState(prev => ({ ...prev, isInitialized: true, needsSecurityQuestion: false }));
       return true;
@@ -144,11 +144,8 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
-    // If no answerHash provided, try to recover from memory or sessionStorage
     if (!answerHash) {
-      const cached = _answerHash || (() => {
-        try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
-      })();
+      const cached = _answerHash || _getStoredHash();
       if (cached) {
         answerHash = cached;
       } else {
@@ -194,7 +191,6 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       _session.isComplete = true;
       _keys.initialized = true;
 
-      // Persist answer hash to sessionStorage so keys survive page refresh
       try { sessionStorage.setItem(ANSWER_HASH_KEY, answerHash); } catch {}
 
       _notify();
@@ -222,22 +218,18 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         needsSecurityQuestion: false
       });
 
-      // If auto-restore failed (bad hash), clear the stored hash
       try { sessionStorage.removeItem(ANSWER_HASH_KEY); } catch {}
 
       return false;
     }
   }, [crossmintWallet, walletData, requestAllKeyMaterials]);
 
-  // Auto-restore keys from sessionStorage on mount / wallet connect
   useEffect(() => {
     if (!hasAnyWallet) return;
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
     if (_autoRestoreAttempted) return;
 
-    const storedHash = (() => {
-      try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
-    })();
+    const storedHash = _getStoredHash();
 
     if (storedHash) {
       _autoRestoreAttempted = true;
