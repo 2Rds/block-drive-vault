@@ -495,7 +495,14 @@ function IPFSFiles(): JSX.Element {
     }
 
     if (confirm(`Are you sure you want to delete ${file.filename}?`)) {
-      loadUserFiles();
+      try {
+        await FileDatabaseService.deleteFile(file.id, userId);
+        toast.success(`"${file.filename}" deleted`);
+        handleUploadComplete();
+      } catch (err) {
+        toast.error('Failed to delete file');
+        console.error('File deletion error:', err);
+      }
     }
   };
 
