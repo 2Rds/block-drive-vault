@@ -55,17 +55,13 @@ export function useWebAuthnRegistration() {
   }, [supabase]);
 
   const hasCredentials = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data, error: err } = await supabase.functions.invoke(
-        'webauthn-registration',
-        { body: { action: 'has-credentials' } }
-      );
+    const { data, error: err } = await supabase.functions.invoke(
+      'webauthn-registration',
+      { body: { action: 'has-credentials' } }
+    );
 
-      if (err) return false;
-      return data?.hasCredentials ?? false;
-    } catch {
-      return false;
-    }
+    if (err) throw new Error(err.message || 'Failed to check credentials');
+    return data?.hasCredentials ?? false;
   }, [supabase]);
 
   return { register, hasCredentials, isRegistering, error, isSupported };

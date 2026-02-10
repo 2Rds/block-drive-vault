@@ -41,14 +41,19 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify Clerk JWT
+    // Extract Clerk user ID from JWT (signature verified by Supabase API gateway)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('Missing authorization header');
 
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const clerkUserId = payload.sub;
-    if (!clerkUserId) throw new Error('Invalid token: no sub claim');
+    let clerkUserId: string;
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      clerkUserId = payload.sub;
+      if (!clerkUserId) throw new Error('no sub claim');
+    } catch {
+      throw new Error('Invalid or malformed authentication token');
+    }
 
     // Parse request — supports either assertion_token (WebAuthn) or answer_hash (legacy)
     const { answer_hash, assertion_token } = await req.json();
@@ -164,10 +169,11 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[derive-key-material] Error:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[derive-key-material] Error:', message);
 
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

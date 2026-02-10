@@ -14,22 +14,31 @@ const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.app';
 const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://blockdrive.app';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// JWT signature is verified by the Supabase API gateway; we only extract claims here.
 function getClerkUserId(req: Request): string {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) throw new Error('Missing authorization header');
-  const token = authHeader.replace('Bearer ', '');
-  const payload = JSON.parse(atob(token.split('.')[1]));
-  const userId = payload.sub;
-  if (!userId) throw new Error('Invalid token: no sub claim');
-  return userId;
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    if (!userId) throw new Error('Invalid token: no sub claim');
+    return userId;
+  } catch {
+    throw new Error('Invalid or malformed authentication token');
+  }
 }
 
 function getClerkUserEmail(req: Request): string | null {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return null;
-  const token = authHeader.replace('Bearer ', '');
-  const payload = JSON.parse(atob(token.split('.')[1]));
-  return payload.email || payload.primary_email || null;
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || payload.primary_email || null;
+  } catch {
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -70,12 +79,13 @@ serve(async (req) => {
       });
 
       // Store challenge for verification
-      await supabase.from('webauthn_challenges').insert({
+      const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
         clerk_user_id: clerkUserId,
         challenge: options.challenge,
         challenge_type: 'registration',
         expires_at: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(),
       });
+      if (challengeInsertErr) throw new Error(`Failed to store challenge: ${challengeInsertErr.message}`);
 
       return successResponse({ options, device_name });
     }
@@ -129,8 +139,9 @@ serve(async (req) => {
 
       if (insertErr) throw new Error(`Failed to store credential: ${insertErr.message}`);
 
-      // Clean up challenge
-      await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
+      // Clean up challenge (non-critical — expired challenges are cleaned up separately)
+      const { error: deleteErr } = await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
+      if (deleteErr) console.error('[webauthn-registration] Challenge delete failed:', deleteErr);
 
       return successResponse({ credential_id: credential.id });
     }
@@ -149,7 +160,8 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (error) {
-    console.error('[webauthn-registration] Error:', error);
-    return errorResponse(error.message, 400);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[webauthn-registration] Error:', message);
+    return errorResponse(message, 400);
   }
 });

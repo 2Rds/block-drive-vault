@@ -6,22 +6,31 @@ import { EmailService } from '../_shared/emailService.ts';
 const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://blockdrive.app';
 const EMAIL_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
+// JWT signature is verified by the Supabase API gateway; we only extract claims here.
 function getClerkUserId(req: Request): string {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) throw new Error('Missing authorization header');
-  const token = authHeader.replace('Bearer ', '');
-  const payload = JSON.parse(atob(token.split('.')[1]));
-  const userId = payload.sub;
-  if (!userId) throw new Error('Invalid token: no sub claim');
-  return userId;
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    if (!userId) throw new Error('Invalid token: no sub claim');
+    return userId;
+  } catch {
+    throw new Error('Invalid or malformed authentication token');
+  }
 }
 
 function getClerkUserEmail(req: Request): string | null {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return null;
-  const token = authHeader.replace('Bearer ', '');
-  const payload = JSON.parse(atob(token.split('.')[1]));
-  return payload.email || payload.primary_email || null;
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || payload.primary_email || null;
+  } catch {
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -64,11 +73,12 @@ serve(async (req) => {
       // Generate email token
       const token = crypto.randomUUID();
 
-      await supabase.from('webauthn_email_tokens').insert({
+      const { error: tokenInsertErr } = await supabase.from('webauthn_email_tokens').insert({
         clerk_user_id: clerkUserId,
         token,
         expires_at: new Date(Date.now() + EMAIL_TOKEN_TTL_MS).toISOString(),
       });
+      if (tokenInsertErr) throw new Error(`Failed to store email token: ${tokenInsertErr.message}`);
 
       const verifyUrl = `${FRONTEND_URL}/verify?token=${token}`;
 
@@ -106,7 +116,8 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (error) {
-    console.error('[webauthn-email-fallback] Error:', error);
-    return errorResponse(error.message, 400);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[webauthn-email-fallback] Error:', message);
+    return errorResponse(message, 400);
   }
 });

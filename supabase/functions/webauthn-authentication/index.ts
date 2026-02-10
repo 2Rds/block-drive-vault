@@ -15,14 +15,19 @@ const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://blockdrive.app';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const ASSERTION_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// JWT signature is verified by the Supabase API gateway; we only extract claims here.
 function getClerkUserId(req: Request): string {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) throw new Error('Missing authorization header');
-  const token = authHeader.replace('Bearer ', '');
-  const payload = JSON.parse(atob(token.split('.')[1]));
-  const userId = payload.sub;
-  if (!userId) throw new Error('Invalid token: no sub claim');
-  return userId;
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    if (!userId) throw new Error('Invalid token: no sub claim');
+    return userId;
+  } catch {
+    throw new Error('Invalid or malformed authentication token');
+  }
 }
 
 serve(async (req) => {
@@ -60,13 +65,14 @@ serve(async (req) => {
       // Optionally create a session_id for QR flow
       const sessionId = create_session ? crypto.randomUUID() : null;
 
-      await supabase.from('webauthn_challenges').insert({
+      const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
         clerk_user_id: clerkUserId,
         challenge: options.challenge,
         challenge_type: 'authentication',
         session_id: sessionId,
         expires_at: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(),
       });
+      if (challengeInsertErr) throw new Error(`Failed to store challenge: ${challengeInsertErr.message}`);
 
       const qrUrl = sessionId ? `${FRONTEND_URL}/verify?sid=${sessionId}` : null;
 
@@ -93,11 +99,17 @@ serve(async (req) => {
 
         targetUserId = tokenRow.clerk_user_id;
 
-        // Mark token as used
-        await supabase
+        // Mark token as used — conditional update prevents race condition
+        const { data: usedRows } = await supabase
           .from('webauthn_email_tokens')
           .update({ used_at: new Date().toISOString() })
-          .eq('id', tokenRow.id);
+          .eq('id', tokenRow.id)
+          .is('used_at', null)
+          .select('id');
+
+        if (!usedRows || usedRows.length === 0) {
+          throw new Error('Email token already used');
+        }
       }
 
       // If session_id provided, verify it exists, is valid, and belongs to the caller
@@ -139,13 +151,14 @@ serve(async (req) => {
       });
 
       // Store new challenge (linked to session if QR flow)
-      await supabase.from('webauthn_challenges').insert({
+      const { error: sessionChallengeErr } = await supabase.from('webauthn_challenges').insert({
         clerk_user_id: targetUserId,
         challenge: options.challenge,
         challenge_type: 'authentication',
         session_id: session_id || null,
         expires_at: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(),
       });
+      if (sessionChallengeErr) throw new Error(`Failed to store challenge: ${sessionChallengeErr.message}`);
 
       return successResponse({ options, user_id: targetUserId });
     }
@@ -216,7 +229,7 @@ serve(async (req) => {
       if (!verification.verified) throw new Error('Authentication verification failed');
 
       // Update counter (replay protection) — include user ownership check for defense in depth
-      await supabase
+      const { error: counterErr } = await supabase
         .from('webauthn_credentials')
         .update({
           counter: verification.authenticationInfo.newCounter,
@@ -225,17 +238,24 @@ serve(async (req) => {
         .eq('id', credRow.id)
         .eq('clerk_user_id', targetUserId);
 
-      // Delete challenge FIRST to prevent replay (closes race condition window)
-      await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
+      if (counterErr) {
+        console.error('[webauthn-authentication] Counter update failed:', counterErr);
+        // Continue — auth already verified, counter is defense-in-depth
+      }
+
+      // Delete challenge after counter update to prevent reuse
+      const { error: deleteErr } = await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
+      if (deleteErr) console.error('[webauthn-authentication] Challenge delete failed:', deleteErr);
 
       // Generate assertion token (replaces answer_hash for derive-key-material)
       const assertionToken = crypto.randomUUID();
 
-      await supabase.from('webauthn_assertion_tokens').insert({
+      const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({
         clerk_user_id: targetUserId,
         token: assertionToken,
         expires_at: new Date(Date.now() + ASSERTION_TOKEN_TTL_MS).toISOString(),
       });
+      if (tokenInsertErr) throw new Error(`Failed to store assertion token: ${tokenInsertErr.message}`);
 
       return successResponse({
         assertion_token: assertionToken,
@@ -246,7 +266,8 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (error) {
-    console.error('[webauthn-authentication] Error:', error);
-    return errorResponse(error.message, 400);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[webauthn-authentication] Error:', message);
+    return errorResponse(message, 400);
   }
 });

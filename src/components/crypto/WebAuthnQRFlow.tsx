@@ -30,7 +30,7 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
     }
   }, [onComplete]);
 
-  useRealtimeChannel(channelName, handleRealtimeMessage);
+  const { channelError } = useRealtimeChannel(channelName, handleRealtimeMessage);
 
   // Create QR session on mount
   const createSession = useCallback(async () => {
@@ -82,9 +82,14 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
         </div>
       </div>
 
-      {error && (
+      {(error || channelError) && (
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error || channelError}</p>
+          {channelError && (
+            <p className="text-xs text-destructive/70 mt-1">
+              The live connection failed. Try refreshing the QR code, or use email verification instead.
+            </p>
+          )}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Fingerprint, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Fingerprint, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
@@ -22,7 +22,7 @@ export default function WebAuthnMobileVerify() {
     };
   }, []);
   const [status, setStatus] = useState<VerifyStatus>('loading');
-  const [assertionToken, setAssertionToken] = useState<string | null>(null);
+  const [broadcastFailed, setBroadcastFailed] = useState(false);
 
   // Validate that we have either a session ID or email token
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function WebAuthnMobileVerify() {
     );
 
     if (result?.success) {
-      setAssertionToken(result.assertionToken);
+      let notifyFailed = false;
 
       // If this is a QR flow (sessionId), broadcast the result via Realtime
       if (sessionId) {
@@ -65,6 +65,7 @@ export default function WebAuthnMobileVerify() {
           );
         } catch (err) {
           console.error('Failed to broadcast auth result:', err);
+          notifyFailed = true;
         }
       }
 
@@ -80,11 +81,13 @@ export default function WebAuthnMobileVerify() {
           cleanupRef.current.push(
             () => { clearTimeout(t); bc.close(); }
           );
-        } catch {
-          // BroadcastChannel not available — user will need to refresh original tab
+        } catch (err) {
+          console.warn('BroadcastChannel not available:', err);
+          notifyFailed = true;
         }
       }
 
+      setBroadcastFailed(notifyFailed);
       setStatus('success');
     } else {
       setStatus('error');
@@ -136,13 +139,21 @@ export default function WebAuthnMobileVerify() {
 
           {status === 'success' && (
             <div className="flex flex-col items-center gap-4 py-8">
-              <CheckCircle2 className="w-12 h-12 text-green-500" />
+              {broadcastFailed ? (
+                <AlertTriangle className="w-12 h-12 text-yellow-500" />
+              ) : (
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
+              )}
               <div className="text-center">
-                <p className="font-medium text-foreground">Verification Complete</p>
+                <p className="font-medium text-foreground">
+                  {broadcastFailed ? 'Verification Complete — Manual Refresh Needed' : 'Verification Complete'}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {sessionId
-                    ? 'Your desktop session has been unlocked. You can close this tab.'
-                    : 'Your encryption keys are being derived. You can close this tab.'}
+                  {broadcastFailed
+                    ? 'Your identity was verified, but we could not notify the other tab automatically. Please go back to the BlockDrive tab and refresh the page.'
+                    : sessionId
+                      ? 'Your desktop session has been unlocked. You can close this tab.'
+                      : 'Your encryption keys are being derived. You can close this tab.'}
                 </p>
               </div>
             </div>

@@ -6,7 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Key, Loader2 } from 'lucide-react';
+import { Key, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useWalletCrypto } from '@/hooks/useWalletCrypto';
 import { useWebAuthnRegistration } from '@/hooks/useWebAuthnRegistration';
 import { WebAuthnSetup } from './WebAuthnSetup';
@@ -63,6 +64,8 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   }, [isOpen, state.isInitialized, onComplete]);
 
+  const [broadcastAvailable, setBroadcastAvailable] = useState(true);
+
   // Listen for BroadcastChannel messages (email fallback flow from another tab)
   useEffect(() => {
     if (!isOpen) return;
@@ -73,9 +76,12 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
           handleWebAuthnVerified(event.data.assertionToken);
         }
       };
+      setBroadcastAvailable(true);
       return () => bc.close();
     } catch {
-      // BroadcastChannel not available
+      // BroadcastChannel not supported — email fallback auto-unlock won't work
+      setBroadcastAvailable(false);
+      console.warn('[CryptoSetupModal] BroadcastChannel not available — email auto-unlock disabled');
     }
   }, [isOpen, handleWebAuthnVerified]);
 
@@ -114,9 +120,10 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
 
         // New user — set up biometrics directly
         setStep('setup-biometric');
-      } catch {
-        // Fallback to biometric setup if we can't determine status
-        setStep('setup-biometric');
+      } catch (err) {
+        console.error('[CryptoSetupModal] Failed to determine flow:', err);
+        setError('Unable to check your encryption status. Please check your connection and try again.');
+        setStep('loading'); // Will show error with retry button
       }
     };
 
@@ -181,9 +188,44 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
         </DialogHeader>
 
         <div className="py-4">
-          {step === 'loading' && (
+          {step === 'loading' && !error && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {step === 'loading' && error && (
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <AlertCircle className="w-8 h-8 text-destructive" />
+              <p className="text-sm text-muted-foreground text-center">{error}</p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setError(null);
+                  setStep('loading');
+                  // Re-trigger determineFlow by toggling a counter
+                  // The useEffect depends on isOpen/state.isInitialized/hasCredentials
+                  // which haven't changed, so we manually retry
+                  (async () => {
+                    try {
+                      const hasWebAuthn = await hasCredentials();
+                      if (hasWebAuthn) { setStep('verify-biometric'); return; }
+                      const { data, error: fnError } = await supabase.functions.invoke('security-question', {
+                        body: { action: 'get' },
+                      });
+                      if (fnError) throw new Error(fnError.message);
+                      if (data?.hasQuestion) { setQuestionText(data.question); setStep('setup-biometric'); return; }
+                      setStep('setup-biometric');
+                    } catch (err) {
+                      console.error('[CryptoSetupModal] Retry failed:', err);
+                      setError('Still unable to connect. Please check your network and try again.');
+                    }
+                  })();
+                }}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
             </div>
           )}
 
