@@ -64,8 +64,6 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   }, [isOpen, state.isInitialized, onComplete]);
 
-  const [broadcastAvailable, setBroadcastAvailable] = useState(true);
-
   // Listen for BroadcastChannel messages (email fallback flow from another tab)
   useEffect(() => {
     if (!isOpen) return;
@@ -76,59 +74,45 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
           handleWebAuthnVerified(event.data.assertionToken);
         }
       };
-      setBroadcastAvailable(true);
       return () => bc.close();
     } catch {
-      // BroadcastChannel not supported — email fallback auto-unlock won't work
-      setBroadcastAvailable(false);
       console.warn('[CryptoSetupModal] BroadcastChannel not available — email auto-unlock disabled');
     }
   }, [isOpen, handleWebAuthnVerified]);
 
-  // Determine flow when modal opens
+  // Determine which flow to show (WebAuthn, legacy security question, or first-time setup)
+  const determineFlow = useCallback(async () => {
+    setStep('loading');
+    setError(null);
+    try {
+      const hasWebAuthn = await hasCredentials();
+      if (hasWebAuthn) {
+        setStep('verify-biometric');
+        return;
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke('security-question', {
+        body: { action: 'get' },
+      });
+      if (fnError) throw new Error(fnError.message);
+
+      if (data?.hasQuestion) {
+        setQuestionText(data.question);
+      }
+      setStep('setup-biometric');
+    } catch (err) {
+      console.error('[CryptoSetupModal] Failed to determine flow:', err);
+      setError('Unable to check your encryption status. Please check your connection and try again.');
+      setStep('loading');
+    }
+  }, [hasCredentials, supabase]);
+
+  // Run flow determination when modal opens
   useEffect(() => {
     if (!isOpen) return;
     if (state.isInitialized) return;
-
-    setError(null);
-
-    const determineFlow = async () => {
-      setStep('loading');
-      try {
-        // Check if user has WebAuthn credentials (new flow)
-        const hasWebAuthn = await hasCredentials();
-
-        if (hasWebAuthn) {
-          setStep('verify-biometric');
-          return;
-        }
-
-        // Check if user has a legacy security question
-        const { data, error: fnError } = await supabase.functions.invoke('security-question', {
-          body: { action: 'get' },
-        });
-
-        if (fnError) throw new Error(fnError.message);
-
-        if (data?.hasQuestion) {
-          // Legacy user with security question — show biometric setup prompt
-          // They'll set up biometrics, then verify
-          setQuestionText(data.question);
-          setStep('setup-biometric');
-          return;
-        }
-
-        // New user — set up biometrics directly
-        setStep('setup-biometric');
-      } catch (err) {
-        console.error('[CryptoSetupModal] Failed to determine flow:', err);
-        setError('Unable to check your encryption status. Please check your connection and try again.');
-        setStep('loading'); // Will show error with retry button
-      }
-    };
-
     determineFlow();
-  }, [isOpen, supabase, state.isInitialized, hasCredentials]);
+  }, [isOpen, state.isInitialized, determineFlow]);
 
   // Legacy handlers (for users who haven't migrated yet)
   const handleLegacySetupComplete = async () => {
@@ -158,21 +142,26 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   };
 
-  const getTitle = () => {
-    if (step === 'setup-biometric') return 'Set Up Biometric Unlock';
-    if (step === 'legacy-setup') return 'Set Up Encryption';
-    return 'Unlock Your Encryption';
-  };
+  function getTitle(): string {
+    switch (step) {
+      case 'setup-biometric': return 'Set Up Biometric Unlock';
+      case 'legacy-setup': return 'Set Up Encryption';
+      default: return 'Unlock Your Encryption';
+    }
+  }
 
-  const getDescription = () => {
-    if (step === 'setup-biometric') {
-      return 'Register your biometric (fingerprint, face, or PIN) to protect your encryption keys.';
+  function getDescription(): string {
+    switch (step) {
+      case 'setup-biometric':
+        return 'Register your biometric (fingerprint, face, or PIN) to protect your encryption keys.';
+      case 'verify-biometric':
+      case 'verify-qr':
+      case 'verify-email-sent':
+        return 'Verify your identity to derive your encryption keys. Keys never leave your device.';
+      default:
+        return 'Your keys are derived from your verification and never leave your device.';
     }
-    if (step === 'verify-biometric' || step === 'verify-qr' || step === 'verify-email-sent') {
-      return 'Verify your identity to derive your encryption keys. Keys never leave your device.';
-    }
-    return 'Your keys are derived from your verification and never leave your device.';
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -198,31 +187,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
             <div className="flex flex-col items-center justify-center py-8 gap-4">
               <AlertCircle className="w-8 h-8 text-destructive" />
               <p className="text-sm text-muted-foreground text-center">{error}</p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setError(null);
-                  setStep('loading');
-                  // Re-trigger determineFlow by toggling a counter
-                  // The useEffect depends on isOpen/state.isInitialized/hasCredentials
-                  // which haven't changed, so we manually retry
-                  (async () => {
-                    try {
-                      const hasWebAuthn = await hasCredentials();
-                      if (hasWebAuthn) { setStep('verify-biometric'); return; }
-                      const { data, error: fnError } = await supabase.functions.invoke('security-question', {
-                        body: { action: 'get' },
-                      });
-                      if (fnError) throw new Error(fnError.message);
-                      if (data?.hasQuestion) { setQuestionText(data.question); setStep('setup-biometric'); return; }
-                      setStep('setup-biometric');
-                    } catch (err) {
-                      console.error('[CryptoSetupModal] Retry failed:', err);
-                      setError('Still unable to connect. Please check your network and try again.');
-                    }
-                  })();
-                }}
-              >
+              <Button variant="outline" onClick={determineFlow}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>

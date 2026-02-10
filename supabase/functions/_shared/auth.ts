@@ -23,6 +23,37 @@ export function extractBearerToken(req: Request): string | null {
   return authHeader.replace('Bearer ', '');
 }
 
+/**
+ * Extract Clerk user ID (sub claim) from the JWT in the Authorization header.
+ * JWT signature is verified by the Supabase API gateway; we only extract claims here.
+ */
+export function getClerkUserId(req: Request): string {
+  const token = extractBearerToken(req);
+  if (!token) throw new Error('Missing authorization header');
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+    if (!userId) throw new Error('Invalid token: no sub claim');
+    return userId;
+  } catch {
+    throw new Error('Invalid or malformed authentication token');
+  }
+}
+
+/**
+ * Extract email from Clerk JWT claims. Returns null if unavailable.
+ */
+export function getClerkUserEmail(req: Request): string | null {
+  const token = extractBearerToken(req);
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || payload.primary_email || null;
+  } catch {
+    return null;
+  }
+}
+
 export function isUUID(value: string): boolean {
   return WALLET_ADDRESS_PATTERNS.UUID.test(value);
 }

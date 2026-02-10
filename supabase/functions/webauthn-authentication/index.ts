@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseServiceClient } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getClerkUserId } from '../_shared/auth.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 import {
   generateAuthenticationOptions,
@@ -14,21 +14,6 @@ const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://blockdrive.app';
 const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://blockdrive.app';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const ASSERTION_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-// JWT signature is verified by the Supabase API gateway; we only extract claims here.
-function getClerkUserId(req: Request): string {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) throw new Error('Missing authorization header');
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-    if (!userId) throw new Error('Invalid token: no sub claim');
-    return userId;
-  } catch {
-    throw new Error('Invalid or malformed authentication token');
-  }
-}
 
 serve(async (req) => {
   const corsResp = handleCors(req);

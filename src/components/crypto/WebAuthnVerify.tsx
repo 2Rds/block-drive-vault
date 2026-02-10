@@ -27,14 +27,7 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
     }
   };
 
-  const handleQRComplete = (assertionToken: string) => {
-    onVerified(assertionToken);
-  };
-
-  const handleEmailComplete = (assertionToken: string) => {
-    onVerified(assertionToken);
-  };
-
+  const resetMode = () => { setMode('choose'); clearError(); };
   const displayError = externalError || error;
 
   // QR flow sub-view
@@ -42,8 +35,8 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
     return (
       <div className="space-y-4">
         <WebAuthnQRFlow
-          onComplete={handleQRComplete}
-          onBack={() => { setMode('choose'); clearError(); }}
+          onComplete={onVerified}
+          onBack={resetMode}
         />
       </div>
     );
@@ -54,8 +47,7 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
     return (
       <div className="space-y-4">
         <WebAuthnEmailFallback
-          onComplete={handleEmailComplete}
-          onBack={() => { setMode('choose'); clearError(); }}
+          onBack={resetMode}
         />
       </div>
     );

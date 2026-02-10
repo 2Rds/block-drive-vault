@@ -5,16 +5,6 @@
  * security questions with fingerprint/face biometric verification.
  */
 
-/** Stored WebAuthn credential metadata (from server) */
-export interface WebAuthnCredential {
-  id: string;
-  credentialId: string;
-  deviceName: string;
-  deviceType: 'platform' | 'cross-platform';
-  createdAt: number;
-  lastUsedAt: number;
-}
-
 /** Result of a successful WebAuthn authentication */
 export interface WebAuthnVerificationResult {
   success: boolean;
@@ -22,24 +12,10 @@ export interface WebAuthnVerificationResult {
   credentialId: string;
 }
 
-/** QR flow session info returned by the challenge endpoint */
-export interface QRSession {
-  sessionId: string;
-  challengeId: string;
-  qrUrl: string;
-  expiresAt: number;
-}
-
 /** Realtime message broadcast when mobile completes auth */
 export interface QRAuthCompletedPayload {
   event: 'auth_completed';
   assertionToken: string;
-}
-
-/** Email fallback send result */
-export interface EmailFallbackResult {
-  success: boolean;
-  email: string;
 }
 
 /** Flow steps for CryptoSetupModal */

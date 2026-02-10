@@ -4,8 +4,6 @@ import { Mail, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 
 interface WebAuthnEmailFallbackProps {
-  // onComplete is handled via BroadcastChannel from the verification tab
-  onComplete: (assertionToken: string) => void;
   onBack: () => void;
 }
 
