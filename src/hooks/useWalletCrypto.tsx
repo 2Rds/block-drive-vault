@@ -272,10 +272,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {
-      if (_assertionToken) {
-        const success = await initializeKeys(undefined, _assertionToken);
-        if (!success) return null;
-      } else if (_answerHash) {
+      // Only legacy answer_hash can be reused for re-initialization.
+      // Assertion tokens are single-use — WebAuthn users must re-verify
+      // (triggers biometric modal, which is a fast single tap).
+      if (_answerHash) {
         const success = await initializeKeys(_answerHash);
         if (!success) return null;
       } else {
@@ -291,11 +291,13 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, [isSessionValid, initializeKeys]);
 
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    if (!_answerHash && !_assertionToken) {
+    // Only legacy answer_hash can be reused. Assertion tokens are single-use —
+    // WebAuthn users must re-verify via biometric modal.
+    if (!_answerHash) {
       setState(prev => ({ ...prev, needsSecurityQuestion: true }));
       return null;
     }
-    const success = await initializeKeys(_answerHash || undefined, _assertionToken || undefined);
+    const success = await initializeKeys(_answerHash);
     if (!success) return null;
     return _keys?.keys.get(level)?.key ?? null;
   }, [initializeKeys]);

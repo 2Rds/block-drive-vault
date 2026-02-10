@@ -100,7 +100,7 @@ serve(async (req) => {
           .eq('id', tokenRow.id);
       }
 
-      // If session_id provided, verify it exists and is valid
+      // If session_id provided, verify it exists, is valid, and belongs to the caller
       if (session_id) {
         const { data: sessionRow, error: sessionErr } = await supabase
           .from('webauthn_challenges')
@@ -111,6 +111,12 @@ serve(async (req) => {
 
         if (sessionErr || !sessionRow) throw new Error('Invalid session');
         if (new Date(sessionRow.expires_at) < new Date()) throw new Error('Session expired');
+
+        // Prevent cross-user impersonation: mobile user must be the same
+        // Clerk user who created the QR session on desktop
+        if (clerkUserId !== sessionRow.clerk_user_id) {
+          throw new Error('Session belongs to a different user');
+        }
 
         targetUserId = sessionRow.clerk_user_id;
       }
@@ -163,7 +169,13 @@ serve(async (req) => {
           .eq('session_id', session_id)
           .maybeSingle();
 
-        if (sessionRow) targetUserId = sessionRow.clerk_user_id;
+        if (sessionRow) {
+          // Prevent cross-user impersonation via session_id
+          if (clerkUserId !== sessionRow.clerk_user_id) {
+            throw new Error('Session belongs to a different user');
+          }
+          targetUserId = sessionRow.clerk_user_id;
+        }
       }
 
       // Find the matching challenge (most recent for this user)
