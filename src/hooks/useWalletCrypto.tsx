@@ -19,6 +19,7 @@ const ANSWER_HASH_KEY = 'bd_session_hash';
 let _keys: WalletDerivedKeys | null = null;
 let _session: KeyDerivationSession | null = null;
 let _answerHash: string | null = null;
+let _assertionToken: string | null = null; // in-memory only, NOT persisted (single-use tokens)
 let _version = 0; // bumped on every mutation so subscribers re-render
 let _autoRestoreAttempted = false;
 
@@ -50,7 +51,7 @@ interface WalletCryptoState {
 interface UseWalletCryptoReturn {
   state: WalletCryptoState;
   hasKey: (level: SecurityLevel) => boolean;
-  initializeKeys: (answerHash?: string) => Promise<boolean>;
+  initializeKeys: (answerHash?: string, assertionToken?: string) => Promise<boolean>;
   getKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   refreshKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   clearKeys: () => void;
@@ -93,6 +94,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     _keys = null;
     _session = null;
     _answerHash = null;
+    _assertionToken = null;
     _autoRestoreAttempted = false;
     try { sessionStorage.removeItem(ANSWER_HASH_KEY); } catch {}
     _notify();
@@ -118,10 +120,20 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, []);
 
   const requestAllKeyMaterials = useCallback(async (
-    answerHash: string
+    answerHash?: string,
+    assertionToken?: string
   ): Promise<Record<string, string>> => {
+    const body: Record<string, string> = {};
+    if (assertionToken) {
+      body.assertion_token = assertionToken;
+    } else if (answerHash) {
+      body.answer_hash = answerHash;
+    } else {
+      throw new Error('Either answerHash or assertionToken is required');
+    }
+
     const { data, error } = await supabase.functions.invoke('derive-key-material', {
-      body: { answer_hash: answerHash },
+      body,
     });
 
     if (error) throw new Error(error.message || 'Failed to derive key material');
@@ -130,7 +142,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     return data.key_materials;
   }, [supabase]);
 
-  const initializeKeys = useCallback(async (answerHash?: string): Promise<boolean> => {
+  const initializeKeys = useCallback(async (
+    answerHash?: string,
+    assertionToken?: string
+  ): Promise<boolean> => {
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) {
       setState(prev => ({ ...prev, isInitialized: true, needsSecurityQuestion: false }));
       return true;
@@ -144,10 +159,14 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
-    if (!answerHash) {
-      const cached = _answerHash || _getStoredHash();
-      if (cached) {
-        answerHash = cached;
+    // Try to resolve credentials
+    // Note: assertion tokens are single-use, so we DON'T restore them from
+    // sessionStorage. If the page refreshes, the user re-taps biometric (fast).
+    // Legacy answer_hash can be reused, so it's still restored from session.
+    if (!assertionToken && !answerHash) {
+      const cachedHash = _answerHash || _getStoredHash();
+      if (cachedHash) {
+        answerHash = cachedHash;
       } else {
         setState(prev => ({ ...prev, needsSecurityQuestion: true }));
         return false;
@@ -174,7 +193,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         lastRefreshed: Date.now()
       };
 
-      const keyMaterials = await requestAllKeyMaterials(answerHash);
+      const keyMaterials = await requestAllKeyMaterials(answerHash, assertionToken);
 
       for (const level of ALL_SECURITY_LEVELS) {
         const materialHex = keyMaterials[String(level)];
@@ -187,11 +206,19 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         _keys.keys.set(level, key);
       }
 
-      _answerHash = answerHash;
+      // Store credentials for in-memory session reuse
+      // Note: assertion tokens are single-use and NOT persisted to sessionStorage
+      // (they'd fail on restore). Legacy answer_hash IS persisted since it's reusable.
+      if (assertionToken) {
+        _assertionToken = assertionToken;
+      }
+      if (answerHash) {
+        _answerHash = answerHash;
+        try { sessionStorage.setItem(ANSWER_HASH_KEY, answerHash); } catch {}
+      }
+
       _session.isComplete = true;
       _keys.initialized = true;
-
-      try { sessionStorage.setItem(ANSWER_HASH_KEY, answerHash); } catch {}
 
       _notify();
 
@@ -207,6 +234,8 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     } catch (error) {
       _keys = null;
       _session = null;
+      _answerHash = null;
+      _assertionToken = null;
       _notify();
 
       const errorMessage = error instanceof Error ? error.message : 'Key initialization failed';
@@ -229,17 +258,24 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
     if (_autoRestoreAttempted) return;
 
+    // Only legacy answer_hash is persisted to sessionStorage (reusable).
+    // Assertion tokens are single-use and not stored — users re-tap biometric on refresh.
     const storedHash = _getStoredHash();
 
     if (storedHash) {
       _autoRestoreAttempted = true;
-      initializeKeys(storedHash);
+      initializeKeys(storedHash).catch(() => {
+        _autoRestoreAttempted = false; // Allow retry on failure
+      });
     }
   }, [hasAnyWallet, initializeKeys]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {
-      if (_answerHash) {
+      if (_assertionToken) {
+        const success = await initializeKeys(undefined, _assertionToken);
+        if (!success) return null;
+      } else if (_answerHash) {
         const success = await initializeKeys(_answerHash);
         if (!success) return null;
       } else {
@@ -255,11 +291,11 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, [isSessionValid, initializeKeys]);
 
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    if (!_answerHash) {
+    if (!_answerHash && !_assertionToken) {
       setState(prev => ({ ...prev, needsSecurityQuestion: true }));
       return null;
     }
-    const success = await initializeKeys(_answerHash);
+    const success = await initializeKeys(_answerHash || undefined, _assertionToken || undefined);
     if (!success) return null;
     return _keys?.keys.get(level)?.key ?? null;
   }, [initializeKeys]);

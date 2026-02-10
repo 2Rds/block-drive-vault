@@ -34,6 +34,7 @@ const SubscriptionCancel = lazy(() => import("./pages/SubscriptionCancel"));
 const TeamSettings = lazy(() => import("./pages/TeamSettings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CreateTeamOnboarding = lazy(() => import("./pages/CreateTeamOnboarding"));
+const WebAuthnMobileVerify = lazy(() => import("./pages/WebAuthnMobileVerify"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +110,7 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/subscription-success" element={<SubscriptionSuccess />} />
                 <Route path="/subscription-cancel" element={<SubscriptionCancel />} />
+                <Route path="/verify" element={<WebAuthnMobileVerify />} />
 
                 <Route
                   path="/onboarding"

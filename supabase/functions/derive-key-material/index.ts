@@ -50,9 +50,11 @@ serve(async (req) => {
     const clerkUserId = payload.sub;
     if (!clerkUserId) throw new Error('Invalid token: no sub claim');
 
-    // Parse request
-    const { answer_hash } = await req.json();
-    if (!answer_hash) throw new Error('answer_hash is required');
+    // Parse request — supports either assertion_token (WebAuthn) or answer_hash (legacy)
+    const { answer_hash, assertion_token } = await req.json();
+    if (!answer_hash && !assertion_token) {
+      throw new Error('assertion_token or answer_hash is required');
+    }
 
     // Look up wallet address
     const { data: walletRow, error: walletError } = await supabase
@@ -66,24 +68,83 @@ serve(async (req) => {
 
     const walletAddress = walletRow.wallet_address;
 
-    // Verify security question answer
-    const { data: sqRow, error: sqError } = await supabase
-      .from('security_questions')
-      .select('answer_hash')
-      .eq('clerk_user_id', clerkUserId)
-      .maybeSingle();
+    // Verify identity — WebAuthn assertion token OR legacy security question
+    if (assertion_token) {
+      // WebAuthn path: validate the assertion token
+      const { data: tokenRow, error: tokenErr } = await supabase
+        .from('webauthn_assertion_tokens')
+        .select('*')
+        .eq('token', assertion_token)
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
 
-    if (sqError) throw new Error(`Database error: ${sqError.message}`);
-    if (!sqRow) throw new Error('No security question set up');
+      if (tokenErr || !tokenRow) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid assertion token' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403,
+          }
+        );
+      }
 
-    if (sqRow.answer_hash !== answer_hash) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Incorrect security answer' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 403,
-        }
-      );
+      if (tokenRow.used_at) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Assertion token already used' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403,
+          }
+        );
+      }
+
+      if (new Date(tokenRow.expires_at) < new Date()) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Assertion token expired' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403,
+          }
+        );
+      }
+
+      // Mark token as used (single-use) — conditional update prevents race condition
+      const { data: updatedRows } = await supabase
+        .from('webauthn_assertion_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('id', tokenRow.id)
+        .is('used_at', null)
+        .select('id');
+
+      if (!updatedRows || updatedRows.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Assertion token already used' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403,
+          }
+        );
+      }
+    } else {
+      // Legacy path: verify security question answer
+      const { data: sqRow, error: sqError } = await supabase
+        .from('security_questions')
+        .select('answer_hash')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+
+      if (sqError) throw new Error(`Database error: ${sqError.message}`);
+      if (!sqRow) throw new Error('No security question set up');
+
+      if (sqRow.answer_hash !== answer_hash) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Incorrect security answer' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403,
+          }
+        );
+      }
     }
 
     // Derive key material for all 3 levels
