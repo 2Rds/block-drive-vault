@@ -41,13 +41,17 @@ serve(async (req) => {
       const { session_id } = body;
       if (!session_id) throw new Error('Missing session_id');
 
-      // Resolve user from the QR session (created by authenticated desktop user)
-      const { data: sessionRow, error: sessionErr } = await supabase
+      // Resolve user from the QR session (created by authenticated desktop user).
+      // Use order+limit instead of maybeSingle — get-session-challenge may have
+      // inserted additional authentication rows for the same session_id.
+      const { data: sessionRows, error: sessionErr } = await supabase
         .from('webauthn_challenges')
         .select('clerk_user_id')
         .eq('session_id', session_id)
         .eq('challenge_type', 'authentication')
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const sessionRow = sessionRows?.[0] ?? null;
 
       if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
       const targetUserId = sessionRow.clerk_user_id;
@@ -90,13 +94,16 @@ serve(async (req) => {
       };
       if (!session_id || !attestation) throw new Error('Missing session_id or attestation');
 
-      // Resolve user from the QR session
-      const { data: sessionRow, error: sessionErr } = await supabase
+      // Resolve user from the QR session (use order+limit — multiple auth
+      // challenge rows may exist for the same session_id).
+      const { data: sessionRows, error: sessionErr } = await supabase
         .from('webauthn_challenges')
         .select('clerk_user_id')
         .eq('session_id', session_id)
         .eq('challenge_type', 'authentication')
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const sessionRow = sessionRows?.[0] ?? null;
 
       if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
       const targetUserId = sessionRow.clerk_user_id;
