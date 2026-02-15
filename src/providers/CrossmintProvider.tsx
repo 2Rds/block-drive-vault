@@ -168,9 +168,9 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
       walletCreationAttempted.current = true;
 
       try {
-        // Crossmint docs pattern: pass signer with email type
-        // The JWT authenticates the user, signer identifies the wallet
+        // Crossmint docs: chain is required, signer identifies the wallet owner
         await getOrCreateWallet({
+          chain: 'solana',
           signer: { type: 'email', email: identifier },
         });
       } catch (error) {
