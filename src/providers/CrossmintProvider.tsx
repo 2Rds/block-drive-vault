@@ -170,20 +170,18 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     createWallet();
   }, [hasSetJwt, jwt, wallet, status, getUserIdentifier, getOrCreateWallet, isCreatingWallet]);
 
-  // Fallback: Server-side wallet creation when SDK fails
-  // If status stays "not-loaded" for 5 seconds after JWT is set, use server-side API
+  // Fallback: Server-side wallet creation when SDK doesn't produce a wallet in time
   useEffect(() => {
     if (!hasSetJwt || !user || serverWalletAttempted.current || isCreatingServerWallet) return;
     if (wallet || serverWalletAddress) return; // Already have a wallet
-    if (status !== 'not-loaded') return; // SDK is making progress
 
     const identifier = getUserIdentifier();
     if (!identifier) return;
 
-    // Wait 5 seconds for SDK to create wallet
+    // Give SDK 5 seconds to create wallet, then fall back to server-side
     const timeoutId = setTimeout(async () => {
-      // Re-check conditions after timeout
-      if (wallet || serverWalletAddress || status !== 'not-loaded') return;
+      // Re-check: if SDK created wallet while we waited, skip
+      if (wallet || serverWalletAddress) return;
 
       serverWalletAttempted.current = true;
       setIsCreatingServerWallet(true);
@@ -216,7 +214,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     }, 5000);
 
     return () => clearTimeout(timeoutId);
-  }, [hasSetJwt, user, wallet, serverWalletAddress, status, getUserIdentifier, getToken, isCreatingServerWallet]);
+  }, [hasSetJwt, user, wallet, serverWalletAddress, getUserIdentifier, getToken, isCreatingServerWallet]);
 
   // Sync wallet to Supabase when created (SDK or server-side)
   useEffect(() => {
