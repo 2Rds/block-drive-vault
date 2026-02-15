@@ -289,13 +289,7 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
     <CrossmintErrorBoundary fallback={<>{children}</>}>
       <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
         <CrossmintAuthProvider>
-          <CrossmintWalletProvider
-            defaultChain={defaultChain}
-            createOnLogin={{
-              chain: defaultChain,
-              signer: { type: 'email' },
-            }}
-          >
+          <CrossmintWalletProvider defaultChain={defaultChain}>
             <CrossmintWalletHandler>
               {children}
             </CrossmintWalletHandler>
