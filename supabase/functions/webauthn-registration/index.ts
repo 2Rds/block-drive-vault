@@ -4,15 +4,24 @@ import { handleCors, successResponse, errorResponse } from '../_shared/response.
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
-} from 'https://esm.sh/@simplewebauthn/server@11.0.0';
+} from 'https://esm.sh/@simplewebauthn/server@13.2.2';
 import type {
   RegistrationResponseJSON,
-} from 'https://esm.sh/@simplewebauthn/types@11.0.0';
+} from 'https://esm.sh/@simplewebauthn/server@13.2.2';
 
 const RP_NAME = 'BlockDrive Vault';
-const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.app';
-const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://blockdrive.app';
+const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.co';
+const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://app.blockdrive.co';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Convert Uint8Array to base64 string (Buffer.from is not available in Deno) */
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
 serve(async (req) => {
   const corsResp = handleCors(req);
@@ -43,7 +52,6 @@ serve(async (req) => {
         attestationType: 'none',
         excludeCredentials: (existingCreds || []).map(c => ({
           id: c.credential_id,
-          type: 'public-key',
         })),
         authenticatorSelection: {
           residentKey: 'preferred',
@@ -85,12 +93,18 @@ serve(async (req) => {
       if (challengeErr || !challengeRow) throw new Error('No registration challenge found');
       if (new Date(challengeRow.expires_at) < new Date()) throw new Error('Challenge expired');
 
-      const verification = await verifyRegistrationResponse({
-        response: attestation,
-        expectedChallenge: challengeRow.challenge,
-        expectedOrigin: ORIGIN,
-        expectedRPID: RP_ID,
-      });
+      let verification;
+      try {
+        verification = await verifyRegistrationResponse({
+          response: attestation,
+          expectedChallenge: challengeRow.challenge,
+          expectedOrigin: ORIGIN,
+          expectedRPID: RP_ID,
+        });
+      } catch (verifyErr) {
+        console.error('[webauthn-registration] verifyRegistrationResponse threw:', verifyErr);
+        throw new Error(`Verification error: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`);
+      }
 
       if (!verification.verified || !verification.registrationInfo) {
         throw new Error('Registration verification failed');
@@ -104,7 +118,7 @@ serve(async (req) => {
         .insert({
           clerk_user_id: clerkUserId,
           credential_id: credential.id,
-          public_key: Buffer.from(credential.publicKey).toString('base64'),
+          public_key: uint8ArrayToBase64(credential.publicKey),
           counter: credential.counter,
           device_type: credentialDeviceType === 'singleDevice' ? 'platform' : 'cross-platform',
           device_name: device_name || 'Unknown Device',

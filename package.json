@@ -47,7 +47,6 @@
     "@safe-global/safe-ethers-lib": "^1.9.4",
     "@safe-global/safe-service-client": "^2.0.3",
     "@simplewebauthn/browser": "^13.2.2",
-    "@simplewebauthn/types": "^12.0.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-phantom": "^0.9.28",
     "@solana/wallet-adapter-solflare": "^0.6.32",

@@ -4,16 +4,35 @@ import { handleCors, successResponse, errorResponse } from '../_shared/response.
 import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
-} from 'https://esm.sh/@simplewebauthn/server@11.0.0';
+} from 'https://esm.sh/@simplewebauthn/server@13.2.2';
 import type {
   AuthenticationResponseJSON,
-} from 'https://esm.sh/@simplewebauthn/types@11.0.0';
+} from 'https://esm.sh/@simplewebauthn/server@13.2.2';
 
-const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.app';
-const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://blockdrive.app';
-const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://blockdrive.app';
+const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.co';
+const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://app.blockdrive.co';
+const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://app.blockdrive.co';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const ASSERTION_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Convert base64 string to Uint8Array (Buffer.from is not available in Deno) */
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/** Try to extract Clerk user ID; returns null instead of throwing if missing. */
+function tryGetClerkUserId(req: Request): string | null {
+  try {
+    return getClerkUserId(req);
+  } catch {
+    return null;
+  }
+}
 
 serve(async (req) => {
   const corsResp = handleCors(req);
@@ -21,12 +40,12 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabaseServiceClient();
-    const clerkUserId = getClerkUserId(req);
     const body = await req.json();
     const { action } = body;
 
-    // ── Generate authentication challenge ──
+    // ── Generate authentication challenge (desktop, requires Clerk auth) ──
     if (action === 'generate-challenge') {
+      const clerkUserId = getClerkUserId(req); // Required — desktop is authenticated
       const { create_session } = body;
 
       // Get user's registered credentials
@@ -42,7 +61,6 @@ serve(async (req) => {
         rpID: RP_ID,
         allowCredentials: creds.map(c => ({
           id: c.credential_id,
-          type: 'public-key',
         })),
         userVerification: 'required',
       });
@@ -65,10 +83,18 @@ serve(async (req) => {
     }
 
     // ── Generate challenge for QR/email session (mobile side) ──
+    // Clerk auth is OPTIONAL here — mobile user may not have a Clerk session.
+    // The session_id (created by the authenticated desktop user) acts as the auth token.
     if (action === 'get-session-challenge') {
       const { session_id, email_token } = body;
+      const clerkUserId = tryGetClerkUserId(req);
 
-      let targetUserId = clerkUserId;
+      // Must have at least one form of identification
+      if (!clerkUserId && !session_id && !email_token) {
+        throw new Error('Authentication required');
+      }
+
+      let targetUserId: string | null = clerkUserId;
 
       // If email_token provided, look up the user from the token
       if (email_token) {
@@ -97,7 +123,7 @@ serve(async (req) => {
         }
       }
 
-      // If session_id provided, verify it exists, is valid, and belongs to the caller
+      // If session_id provided, verify it exists and is valid
       if (session_id) {
         const { data: sessionRow, error: sessionErr } = await supabase
           .from('webauthn_challenges')
@@ -109,14 +135,16 @@ serve(async (req) => {
         if (sessionErr || !sessionRow) throw new Error('Invalid session');
         if (new Date(sessionRow.expires_at) < new Date()) throw new Error('Session expired');
 
-        // Prevent cross-user impersonation: mobile user must be the same
-        // Clerk user who created the QR session on desktop
-        if (clerkUserId !== sessionRow.clerk_user_id) {
+        // If the mobile user IS authenticated, verify they own the session
+        if (clerkUserId && clerkUserId !== sessionRow.clerk_user_id) {
           throw new Error('Session belongs to a different user');
         }
 
+        // Use the session owner's user ID (works even without Clerk auth on mobile)
         targetUserId = sessionRow.clerk_user_id;
       }
+
+      if (!targetUserId) throw new Error('Could not determine user identity');
 
       // Get user's credentials
       const { data: creds } = await supabase
@@ -130,7 +158,6 @@ serve(async (req) => {
         rpID: RP_ID,
         allowCredentials: creds.map(c => ({
           id: c.credential_id,
-          type: 'public-key',
         })),
         userVerification: 'required',
       });
@@ -149,6 +176,7 @@ serve(async (req) => {
     }
 
     // ── Verify assertion ──
+    // Clerk auth is OPTIONAL here — mobile QR flow provides session_id instead.
     if (action === 'verify-assertion') {
       const { assertion, session_id } = body as {
         assertion: AuthenticationResponseJSON;
@@ -157,8 +185,15 @@ serve(async (req) => {
 
       if (!assertion) throw new Error('Missing assertion');
 
+      const clerkUserId = tryGetClerkUserId(req);
+
+      // Must have at least one form of identification
+      if (!clerkUserId && !session_id) {
+        throw new Error('Authentication required');
+      }
+
       // Determine which user we're verifying for
-      let targetUserId = clerkUserId;
+      let targetUserId: string | null = clerkUserId;
 
       if (session_id) {
         const { data: sessionRow } = await supabase
@@ -168,13 +203,15 @@ serve(async (req) => {
           .maybeSingle();
 
         if (sessionRow) {
-          // Prevent cross-user impersonation via session_id
-          if (clerkUserId !== sessionRow.clerk_user_id) {
+          // If the mobile user IS authenticated, verify they own the session
+          if (clerkUserId && clerkUserId !== sessionRow.clerk_user_id) {
             throw new Error('Session belongs to a different user');
           }
           targetUserId = sessionRow.clerk_user_id;
         }
       }
+
+      if (!targetUserId) throw new Error('Could not determine user identity');
 
       // Find the matching challenge (most recent for this user)
       const { data: challengeRow, error: challengeErr } = await supabase
@@ -199,17 +236,23 @@ serve(async (req) => {
 
       if (credErr || !credRow) throw new Error('Credential not found');
 
-      const verification = await verifyAuthenticationResponse({
-        response: assertion,
-        expectedChallenge: challengeRow.challenge,
-        expectedOrigin: ORIGIN,
-        expectedRPID: RP_ID,
-        credential: {
-          id: credRow.credential_id,
-          publicKey: new Uint8Array(Buffer.from(credRow.public_key, 'base64')),
-          counter: credRow.counter,
-        },
-      });
+      let verification;
+      try {
+        verification = await verifyAuthenticationResponse({
+          response: assertion,
+          expectedChallenge: challengeRow.challenge,
+          expectedOrigin: ORIGIN,
+          expectedRPID: RP_ID,
+          credential: {
+            id: credRow.credential_id,
+            publicKey: base64ToUint8Array(credRow.public_key),
+            counter: credRow.counter,
+          },
+        });
+      } catch (verifyErr) {
+        console.error('[webauthn-authentication] verifyAuthenticationResponse threw:', verifyErr);
+        throw new Error(`Verification error: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`);
+      }
 
       if (!verification.verified) throw new Error('Authentication verification failed');
 

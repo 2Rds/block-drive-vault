@@ -13,6 +13,7 @@ import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
 const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
 const ANSWER_HASH_KEY = 'bd_session_hash';
+const SESSION_CACHE_KEY = 'bd_session_materials';
 
 // ── Module-level singleton key store (shared across all hook instances) ──
 
@@ -25,6 +26,38 @@ let _autoRestoreAttempted = false;
 
 function _getStoredHash(): string | null {
   try { return sessionStorage.getItem(ANSWER_HASH_KEY); } catch { return null; }
+}
+
+// ── Cached key materials (survives navigation within the same tab) ──
+
+interface CachedSession {
+  /** Key materials by security level (hex strings) */
+  m: Record<string, string>;
+  /** Wallet address the materials were derived for */
+  w: string;
+  /** Expiry timestamp (ms) */
+  e: number;
+}
+
+function _getCachedSession(): CachedSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
+    if (!raw) return null;
+    const cached: CachedSession = JSON.parse(raw);
+    if (Date.now() >= cached.e) {
+      sessionStorage.removeItem(SESSION_CACHE_KEY);
+      return null;
+    }
+    return cached;
+  } catch { return null; }
+}
+
+function _setCachedSession(c: CachedSession) {
+  try { sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
+function _clearCachedSession() {
+  try { sessionStorage.removeItem(SESSION_CACHE_KEY); } catch {}
 }
 
 const _listeners = new Set<() => void>();
@@ -97,6 +130,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     _assertionToken = null;
     _autoRestoreAttempted = false;
     try { sessionStorage.removeItem(ANSWER_HASH_KEY); } catch {}
+    _clearCachedSession();
     _notify();
     setState({
       isInitialized: false,
@@ -111,6 +145,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
   useEffect(() => {
     if (!hasAnyWallet) {
+      // Don't clear valid keys during wallet hook re-initialization (e.g. after navigation).
+      // Module-level _keys/_session persist across route changes; wallet hooks may briefly
+      // return false while they reload async state.
+      if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
       clearKeys();
     }
   }, [hasAnyWallet, clearKeys]);
@@ -159,31 +197,36 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return false;
     }
 
-    // Try to resolve credentials
-    // Note: assertion tokens are single-use, so we DON'T restore them from
-    // sessionStorage. If the page refreshes, the user re-taps biometric (fast).
-    // Legacy answer_hash can be reused, so it's still restored from session.
-    if (!assertionToken && !answerHash) {
-      const cachedHash = _answerHash || _getStoredHash();
-      if (cachedHash) {
-        answerHash = cachedHash;
-      } else {
-        setState(prev => ({ ...prev, needsSecurityQuestion: true }));
-        return false;
+    const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
+
+    // Check if we can restore from cached key materials (no server call needed)
+    const cached = _getCachedSession();
+    const hasCachedMaterials = cached && cached.w === walletAddress && Date.now() < cached.e;
+
+    // Resolve credentials — only needed when there's no cached session
+    if (!hasCachedMaterials) {
+      if (!assertionToken && !answerHash) {
+        const cachedHash = _answerHash || _getStoredHash();
+        if (cachedHash) {
+          answerHash = cachedHash;
+        } else {
+          setState(prev => ({ ...prev, needsSecurityQuestion: true }));
+          return false;
+        }
       }
     }
 
     setState(prev => ({ ...prev, isInitializing: true, error: null, needsSecurityQuestion: false }));
 
-    const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
-
     try {
+      const expiresAt = hasCachedMaterials ? cached!.e : Date.now() + SESSION_EXPIRY_MS;
+
       _session = {
         walletAddress,
         signatures: new Map(),
         keys: new Map(),
         isComplete: false,
-        expiresAt: Date.now() + SESSION_EXPIRY_MS
+        expiresAt
       };
 
       _keys = {
@@ -193,7 +236,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         lastRefreshed: Date.now()
       };
 
-      const keyMaterials = await requestAllKeyMaterials(answerHash, assertionToken);
+      // Use cached materials or fetch from server
+      const keyMaterials = hasCachedMaterials
+        ? cached!.m
+        : await requestAllKeyMaterials(answerHash, assertionToken);
 
       for (const level of ALL_SECURITY_LEVELS) {
         const materialHex = keyMaterials[String(level)];
@@ -206,9 +252,12 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         _keys.keys.set(level, key);
       }
 
+      // Cache key materials for session persistence across navigation
+      if (!hasCachedMaterials) {
+        _setCachedSession({ m: keyMaterials, w: walletAddress, e: expiresAt });
+      }
+
       // Store credentials for in-memory session reuse
-      // Note: assertion tokens are single-use and NOT persisted to sessionStorage
-      // (they'd fail on restore). Legacy answer_hash IS persisted since it's reusable.
       if (assertionToken) {
         _assertionToken = assertionToken;
       }
@@ -236,6 +285,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       _session = null;
       _answerHash = null;
       _assertionToken = null;
+      _clearCachedSession();
       _notify();
 
       const errorMessage = error instanceof Error ? error.message : 'Key initialization failed';
@@ -258,30 +308,32 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
     if (_autoRestoreAttempted) return;
 
-    // Only legacy answer_hash is persisted to sessionStorage (reusable).
-    // Assertion tokens are single-use and not stored — users re-tap biometric on refresh.
-    const storedHash = _getStoredHash();
+    // Try cached key materials first (works for both WebAuthn and legacy users,
+    // avoids server round-trip on navigation)
+    const cached = _getCachedSession();
+    if (cached) {
+      _autoRestoreAttempted = true;
+      initializeKeys().catch(() => {
+        _autoRestoreAttempted = false;
+      });
+      return;
+    }
 
+    // Legacy: try answer_hash from sessionStorage (reusable, requires server call)
+    const storedHash = _getStoredHash();
     if (storedHash) {
       _autoRestoreAttempted = true;
       initializeKeys(storedHash).catch(() => {
-        _autoRestoreAttempted = false; // Allow retry on failure
+        _autoRestoreAttempted = false;
       });
     }
   }, [hasAnyWallet, initializeKeys]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {
-      // Only legacy answer_hash can be reused for re-initialization.
-      // Assertion tokens are single-use — WebAuthn users must re-verify
-      // (triggers biometric modal, which is a fast single tap).
-      if (_answerHash) {
-        const success = await initializeKeys(_answerHash);
-        if (!success) return null;
-      } else {
-        setState(prev => ({ ...prev, needsSecurityQuestion: true }));
-        return null;
-      }
+      // Try to restore — initializeKeys will check cache, then answer hash
+      const success = await initializeKeys(_answerHash || undefined);
+      if (!success) return null;
     }
 
     const cachedKey = _keys?.keys.get(Number(level) as SecurityLevel);
@@ -291,13 +343,9 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, [isSessionValid, initializeKeys]);
 
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    // Only legacy answer_hash can be reused. Assertion tokens are single-use —
-    // WebAuthn users must re-verify via biometric modal.
-    if (!_answerHash) {
-      setState(prev => ({ ...prev, needsSecurityQuestion: true }));
-      return null;
-    }
-    const success = await initializeKeys(_answerHash);
+    // Refresh requires a server call. WebAuthn users without an answer hash
+    // will restore from cached materials; if cache is also empty, prompt re-verify.
+    const success = await initializeKeys(_answerHash || undefined);
     if (!success) return null;
     return _keys?.keys.get(level)?.key ?? null;
   }, [initializeKeys]);
