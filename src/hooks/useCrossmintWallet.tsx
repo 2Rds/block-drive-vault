@@ -57,25 +57,24 @@ export function useCrossmintWallet(): CrossmintWalletState {
 
   useEffect(() => {
     const effectiveAddress = wallet?.address || serverWalletAddress;
+
+    console.log('[useCrossmintWallet] effect:', {
+      isSignedIn,
+      sdkAddress: wallet?.address?.slice(0, 8),
+      serverAddress: serverWalletAddress?.slice(0, 8),
+      effectiveAddress: effectiveAddress?.slice(0, 8),
+      isInitialized,
+    });
+
     if (!isSignedIn || !effectiveAddress || isInitialized) return;
 
-    const initWallet = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        setWalletAddress(effectiveAddress);
-        setChainAddresses({ solana: effectiveAddress });
-        setIsInitialized(true);
-      } catch (err) {
-        console.error('[useCrossmintWallet] Init error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initWallet();
+    setIsLoading(true);
+    setError(null);
+    setWalletAddress(effectiveAddress);
+    setChainAddresses({ solana: effectiveAddress });
+    setIsInitialized(true);
+    setIsLoading(false);
+    console.log('[useCrossmintWallet] Initialized with:', effectiveAddress.slice(0, 12));
   }, [isSignedIn, wallet, serverWalletAddress, isInitialized]);
 
   const signTransaction = useCallback(async (

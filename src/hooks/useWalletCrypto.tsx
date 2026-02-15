@@ -195,20 +195,38 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
     // Read latest wallet state from ref (not stale closure)
     const cm = walletRef.current;
+    let walletAddress = cm.walletAddress;
+
     console.log('[useWalletCrypto] initializeKeys called:', {
       isInitialized: cm.isInitialized,
-      walletAddress: cm.walletAddress?.slice(0, 8),
+      walletAddress: walletAddress?.slice(0, 8),
       hasAssertionToken: !!assertionToken,
       hasAnswerHash: !!answerHash,
     });
 
-    if (!cm.isInitialized || !cm.walletAddress) {
-      console.warn('[useWalletCrypto] No wallet connected');
+    // If Crossmint SDK hasn't provided the wallet yet, try fetching from our DB
+    if (!walletAddress) {
+      console.log('[useWalletCrypto] Crossmint SDK wallet not ready, fetching from DB...');
+      try {
+        const { data } = await supabaseRef.current
+          .from('crossmint_wallets')
+          .select('wallet_address')
+          .limit(1)
+          .single();
+        if (data?.wallet_address) {
+          walletAddress = data.wallet_address;
+          console.log('[useWalletCrypto] Got wallet from DB:', walletAddress.slice(0, 12));
+        }
+      } catch (err) {
+        console.warn('[useWalletCrypto] DB wallet lookup failed:', err);
+      }
+    }
+
+    if (!walletAddress) {
+      console.warn('[useWalletCrypto] No wallet connected (SDK and DB both empty)');
       setState(prev => ({ ...prev, error: 'No wallet connected' }));
       return false;
     }
-
-    const walletAddress = cm.walletAddress;
 
     // Check if we can restore from cached key materials (no server call needed)
     const cached = _getCachedSession();

@@ -63,6 +63,16 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const walletCreationAttempted = useRef(false);
 
+  // Debug: log wallet SDK state changes
+  useEffect(() => {
+    console.log('[CrossmintHandler] SDK state:', {
+      status,
+      walletAddress: wallet?.address?.slice(0, 12),
+      hasSetJwt,
+      isSignedIn,
+    });
+  }, [status, wallet, hasSetJwt, isSignedIn]);
+
   // Server-side wallet creation state (fallback when SDK fails)
   const [serverWalletAddress, setServerWalletAddress] = useState<string | null>(null);
   const [isCreatingServerWallet, setIsCreatingServerWallet] = useState(false);
