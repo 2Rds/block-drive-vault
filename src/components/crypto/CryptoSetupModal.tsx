@@ -35,6 +35,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   const [error, setError] = useState<string | null>(null);
 
   const handleWebAuthnVerified = useCallback(async (assertionToken: string) => {
+    console.log('[CryptoModal] handleWebAuthnVerified called, token:', assertionToken?.slice(0, 8));
     if (!assertionToken?.trim()) {
       setError('Invalid verification token');
       setStep('verify-biometric');
@@ -44,11 +45,15 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     setStep('deriving');
     setError(null);
 
+    console.log('[CryptoModal] Calling initializeKeys with assertion token...');
     const success = await initializeKeys(undefined, assertionToken);
+    console.log('[CryptoModal] initializeKeys result:', success);
     if (success) {
       onComplete();
     } else {
-      setError(state.error || 'Biometric verification succeeded but key derivation failed');
+      const errMsg = state.error || 'Biometric verification succeeded but key derivation failed';
+      console.error('[CryptoModal] Key derivation failed:', errMsg);
+      setError(errMsg);
       setStep('verify-biometric');
     }
   }, [initializeKeys, onComplete, state.error]);

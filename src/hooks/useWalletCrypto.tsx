@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import {
   SecurityLevel,
   WalletDerivedKeys,
@@ -6,7 +6,6 @@ import {
 } from '@/types/blockdriveCrypto';
 import { deriveKeyFromMaterial } from '@/services/crypto/keyDerivationService';
 import { hexToBytes } from '@/services/crypto/cryptoUtils';
-import { useAuth } from './useAuth';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
@@ -93,9 +92,14 @@ interface UseWalletCryptoReturn {
 }
 
 export function useWalletCrypto(): UseWalletCryptoReturn {
-  const { walletData } = useAuth();
   const crossmintWallet = useCrossmintWallet();
   const { supabase } = useClerkAuth();
+
+  // Stable refs — prevent Clerk token refresh (~60s) from cascading through callback deps
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
+  const walletRef = useRef(crossmintWallet);
+  walletRef.current = crossmintWallet;
 
   // Re-render whenever the singleton store changes
   useSyncExternalStore(_subscribe, _getVersion, _getVersion);
@@ -141,7 +145,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     });
   }, []);
 
-  const hasAnyWallet = walletData?.connected || crossmintWallet.isInitialized;
+  const hasAnyWallet = crossmintWallet.isInitialized;
 
   useEffect(() => {
     if (!hasAnyWallet) {
@@ -170,7 +174,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       throw new Error('Either answerHash or assertionToken is required');
     }
 
-    const { data, error } = await supabase.functions.invoke('derive-key-material', {
+    const { data, error } = await supabaseRef.current.functions.invoke('derive-key-material', {
       body,
     });
 
@@ -178,7 +182,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     if (!data?.success) throw new Error(data?.error || 'Key derivation failed');
 
     return data.key_materials;
-  }, [supabase]);
+  }, []);
 
   const initializeKeys = useCallback(async (
     answerHash?: string,
@@ -189,15 +193,22 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       return true;
     }
 
-    const hasCrossmintWallet = crossmintWallet.isInitialized && crossmintWallet.walletAddress;
-    const hasExternalWallet = walletData?.connected && walletData?.address;
+    // Read latest wallet state from ref (not stale closure)
+    const cm = walletRef.current;
+    console.log('[useWalletCrypto] initializeKeys called:', {
+      isInitialized: cm.isInitialized,
+      walletAddress: cm.walletAddress?.slice(0, 8),
+      hasAssertionToken: !!assertionToken,
+      hasAnswerHash: !!answerHash,
+    });
 
-    if (!hasCrossmintWallet && !hasExternalWallet) {
+    if (!cm.isInitialized || !cm.walletAddress) {
+      console.warn('[useWalletCrypto] No wallet connected');
       setState(prev => ({ ...prev, error: 'No wallet connected' }));
       return false;
     }
 
-    const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
+    const walletAddress = cm.walletAddress;
 
     // Check if we can restore from cached key materials (no server call needed)
     const cached = _getCachedSession();
@@ -301,7 +312,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
       return false;
     }
-  }, [crossmintWallet, walletData, requestAllKeyMaterials]);
+  }, [requestAllKeyMaterials]);
 
   useEffect(() => {
     if (!hasAnyWallet) return;
