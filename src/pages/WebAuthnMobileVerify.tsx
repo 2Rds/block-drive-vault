@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { startRegistration } from '@simplewebauthn/browser';
 import { Button } from '@/components/ui/button';
-import { Fingerprint, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Fingerprint, Loader2, CheckCircle2, XCircle, AlertTriangle, Smartphone } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
-type VerifyStatus = 'loading' | 'ready' | 'verifying' | 'success' | 'error';
+type VerifyStatus = 'loading' | 'ready' | 'verifying' | 'registering' | 'success' | 'error';
 
 export default function WebAuthnMobileVerify() {
   const [searchParams] = useSearchParams();
@@ -22,6 +23,7 @@ export default function WebAuthnMobileVerify() {
     };
   }, []);
   const [status, setStatus] = useState<VerifyStatus>('loading');
+  const [localError, setLocalError] = useState<string | null>(null);
   const [broadcastFailed, setBroadcastFailed] = useState(false);
 
   // Validate that we have either a session ID or email token
@@ -33,66 +35,145 @@ export default function WebAuthnMobileVerify() {
     }
   }, [sessionId, emailToken]);
 
+  /** Broadcast the assertion token back to the desktop (QR flow) or original tab (email flow) */
+  const broadcastResult = async (assertionToken: string) => {
+    let notifyFailed = false;
+
+    if (sessionId) {
+      try {
+        const channel = supabase.channel(`webauthn:${sessionId}`);
+        await channel.subscribe();
+        await channel.send({
+          type: 'broadcast',
+          event: 'message',
+          payload: {
+            event: 'auth_completed',
+            assertionToken,
+          },
+        });
+        const t = setTimeout(() => channel.unsubscribe(), 2000);
+        cleanupRef.current.push(
+          () => { clearTimeout(t); channel.unsubscribe(); }
+        );
+      } catch (err) {
+        console.error('Failed to broadcast auth result:', err);
+        notifyFailed = true;
+      }
+    }
+
+    if (emailToken) {
+      try {
+        const bc = new BroadcastChannel('blockdrive-webauthn');
+        bc.postMessage({
+          event: 'auth_completed',
+          assertionToken,
+        });
+        const t = setTimeout(() => bc.close(), 2000);
+        cleanupRef.current.push(
+          () => { clearTimeout(t); bc.close(); }
+        );
+      } catch (err) {
+        console.warn('BroadcastChannel not available:', err);
+        notifyFailed = true;
+      }
+    }
+
+    setBroadcastFailed(notifyFailed);
+    setStatus('success');
+  };
+
   const handleVerify = async () => {
     setStatus('verifying');
     clearError();
+    setLocalError(null);
 
-    const result = await authenticateForSession(
-      sessionId || undefined,
-      emailToken || undefined
-    );
+    // ── QR flow: try registration first, fall back to authentication ──
+    // On first use, the phone has no credential for blockdrive.co.
+    // We register one using the phone's fingerprint, then get an assertion token.
+    // On subsequent uses, registration throws InvalidStateError (credential exists),
+    // so we fall back to standard authentication.
+    if (sessionId) {
+      let registrationFailed = false;
+      let isInvalidState = false;
 
-    if (result?.success) {
-      let notifyFailed = false;
+      // Step 1: Try to register a new credential on this device
+      try {
+        const { data: regOptions, error: regOptionsErr } = await supabase.functions.invoke(
+          'webauthn-registration',
+          { body: { action: 'generate-options-for-session', session_id: sessionId } }
+        );
 
-      // If this is a QR flow (sessionId), broadcast the result via Realtime
-      if (sessionId) {
-        try {
-          const channel = supabase.channel(`webauthn:${sessionId}`);
-          await channel.subscribe();
-          await channel.send({
-            type: 'broadcast',
-            event: 'message',
-            payload: {
-              event: 'auth_completed',
-              assertionToken: result.assertionToken,
-            },
-          });
-          // Give the message time to propagate before unsubscribing
-          const t = setTimeout(() => channel.unsubscribe(), 2000);
-          cleanupRef.current.push(
-            () => { clearTimeout(t); channel.unsubscribe(); }
-          );
-        } catch (err) {
-          console.error('Failed to broadcast auth result:', err);
-          notifyFailed = true;
+        if (regOptionsErr || !regOptions?.success) {
+          throw new Error(regOptions?.error || 'Failed to get registration options');
         }
+
+        setStatus('registering');
+        const attResp = await startRegistration({ optionsJSON: regOptions.options });
+
+        // Verify registration and get assertion token
+        const { data: regVerify, error: regVerifyErr } = await supabase.functions.invoke(
+          'webauthn-registration',
+          { body: { action: 'verify-registration-for-session', session_id: sessionId, attestation: attResp } }
+        );
+
+        if (regVerifyErr || !regVerify?.success) {
+          throw new Error(regVerify?.error || 'Registration verification failed');
+        }
+
+        // Registration succeeded — broadcast assertion token to desktop
+        await broadcastResult(regVerify.assertion_token);
+        return;
+      } catch (regErr) {
+        const msg = regErr instanceof Error ? regErr.message : String(regErr);
+        isInvalidState = msg.includes('InvalidStateError');
+        registrationFailed = true;
+
+        if (!isInvalidState) {
+          // User cancelled or another non-recoverable error
+          if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
+            setLocalError('Biometric was cancelled. Please try again.');
+          } else {
+            setLocalError(msg || 'Verification failed');
+          }
+          setStatus('error');
+          return;
+        }
+        // InvalidStateError → device already has a credential, fall through to authenticate
       }
 
-      // If this is an email flow, signal the original tab via BroadcastChannel
-      if (emailToken) {
-        try {
-          const bc = new BroadcastChannel('blockdrive-webauthn');
-          bc.postMessage({
-            event: 'auth_completed',
-            assertionToken: result.assertionToken,
-          });
-          const t = setTimeout(() => bc.close(), 2000);
-          cleanupRef.current.push(
-            () => { clearTimeout(t); bc.close(); }
-          );
-        } catch (err) {
-          console.warn('BroadcastChannel not available:', err);
-          notifyFailed = true;
-        }
-      }
+      // Step 2: Device already has a credential — authenticate with it
+      if (registrationFailed && isInvalidState) {
+        setStatus('verifying');
+        const result = await authenticateForSession(sessionId);
 
-      setBroadcastFailed(notifyFailed);
-      setStatus('success');
-    } else {
-      setStatus('error');
+        if (result?.success) {
+          await broadcastResult(result.assertionToken);
+          return;
+        }
+
+        setLocalError(error || 'Authentication failed');
+        setStatus('error');
+        return;
+      }
     }
+
+    // ── Email token flow: authenticate directly (same device, credential exists) ──
+    if (emailToken) {
+      const result = await authenticateForSession(undefined, emailToken);
+
+      if (result?.success) {
+        await broadcastResult(result.assertionToken);
+        return;
+      }
+
+      setStatus('error');
+      return;
+    }
+
+    setStatus('error');
   };
+
+  const displayError = localError || error;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -118,14 +199,14 @@ export default function WebAuthnMobileVerify() {
                 </div>
                 <p className="text-sm text-muted-foreground text-center">
                   {sessionId
-                    ? 'Tap below to verify with your biometric and unlock your desktop session.'
+                    ? 'Tap below to verify with your fingerprint and unlock your desktop session.'
                     : 'Tap below to verify with your biometric and unlock your encryption keys.'}
                 </p>
               </div>
 
               <Button onClick={handleVerify} className="w-full h-14 text-base">
                 <Fingerprint className="w-5 h-5 mr-2" />
-                Verify Now
+                Verify with Fingerprint
               </Button>
             </>
           )}
@@ -134,6 +215,18 @@ export default function WebAuthnMobileVerify() {
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Waiting for biometric...</p>
+            </div>
+          )}
+
+          {status === 'registering' && (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Smartphone className="w-8 h-8 text-primary animate-pulse" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">Setting up fingerprint</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use your fingerprint to link this device to your vault.
+                </p>
+              </div>
             </div>
           )}
 
@@ -165,7 +258,7 @@ export default function WebAuthnMobileVerify() {
               <div className="text-center">
                 <p className="font-medium text-foreground">Verification Failed</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {error || (!sessionId && !emailToken
+                  {displayError || (!sessionId && !emailToken
                     ? 'Invalid verification link. Please try again from BlockDrive.'
                     : 'Something went wrong. Please try again.')}
                 </p>
