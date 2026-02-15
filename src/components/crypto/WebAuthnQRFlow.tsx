@@ -1,13 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { QrCode, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
+import { QrCode, Loader2, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
-import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/clerk/ClerkSupabaseClient';
-import type { QRAuthCompletedPayload } from '@/types/webauthn';
 
 const QR_EXPIRY_SECONDS = 300; // 5 minutes
+
+/** Poll the server to check if the phone completed verification for this session. */
+async function checkSessionStatus(sessionId: string): Promise<string | null> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/webauthn-authentication`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ action: 'check-session-status', session_id: sessionId }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data?.completed && data?.assertion_token) {
+      return data.assertion_token;
+    }
+  } catch {
+    // Will retry
+  }
+  return null;
+}
 
 interface WebAuthnQRFlowProps {
   onComplete: (assertionToken: string) => void;
@@ -20,57 +41,50 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(QR_EXPIRY_SECONDS);
+  const [isChecking, setIsChecking] = useState(false);
+  const [pollStatus, setPollStatus] = useState<string>('');
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   const completedRef = useRef(false);
 
-  // Realtime listener for mobile auth completion
-  const channelName = sessionId ? `webauthn:${sessionId}` : null;
-
-  const handleRealtimeMessage = useCallback((payload: Record<string, unknown>) => {
-    const data = payload as unknown as QRAuthCompletedPayload;
-    if (data.event === 'auth_completed' && data.assertionToken && !completedRef.current) {
-      completedRef.current = true;
-      onComplete(data.assertionToken);
-    }
-  }, [onComplete]);
-
-  const { channelError } = useRealtimeChannel(channelName, handleRealtimeMessage);
-
-  // Polling fallback: check every 3s if the mobile completed verification.
-  // Uses direct fetch (not supabase.functions.invoke) to avoid any issues
-  // with Clerk token injection or Supabase client response parsing.
+  // Auto-poll using window.setInterval (bypasses React effect lifecycle)
   useEffect(() => {
-    if (!sessionId || completedRef.current) return;
+    if (!sessionId) return;
+    completedRef.current = false;
 
-    const poll = setInterval(async () => {
+    const intervalId = window.setInterval(async () => {
       if (completedRef.current) return;
-      try {
-        const resp = await fetch(`${SUPABASE_URL}/functions/v1/webauthn-authentication`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ action: 'check-session-status', session_id: sessionId }),
-        });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        if (data?.completed && data?.assertion_token && !completedRef.current) {
-          completedRef.current = true;
-          clearInterval(poll);
-          onComplete(data.assertion_token);
-        }
-      } catch {
-        // Non-critical — will retry on next interval
+      const token = await checkSessionStatus(sessionId);
+      if (token && !completedRef.current) {
+        completedRef.current = true;
+        window.clearInterval(intervalId);
+        setPollStatus('Found! Unlocking...');
+        onCompleteRef.current(token);
       }
     }, 3000);
 
-    return () => clearInterval(poll);
-  }, [sessionId, onComplete]);
+    return () => window.clearInterval(intervalId);
+  }, [sessionId]);
+
+  // Manual check button handler
+  const handleManualCheck = async () => {
+    if (!sessionId) return;
+    setIsChecking(true);
+    const token = await checkSessionStatus(sessionId);
+    if (token && !completedRef.current) {
+      completedRef.current = true;
+      onCompleteRef.current(token);
+    } else {
+      setPollStatus('Not yet — try again in a moment');
+      setTimeout(() => setPollStatus(''), 3000);
+    }
+    setIsChecking(false);
+  };
 
   // Create QR session on mount
   const createSession = useCallback(async () => {
     setIsLoading(true);
+    completedRef.current = false;
     const session = await startQRSession();
     if (session) {
       setQrUrl(session.qrUrl);
@@ -84,7 +98,7 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
     createSession();
   }, [createSession]);
 
-  // Countdown timer — only re-create when qrUrl changes (new QR generated)
+  // Countdown timer
   useEffect(() => {
     if (!qrUrl) return;
     const timer = setInterval(() => {
@@ -118,14 +132,9 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
         </div>
       </div>
 
-      {(error || channelError) && (
+      {error && (
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-          <p className="text-sm text-destructive">{error || channelError}</p>
-          {channelError && (
-            <p className="text-xs text-destructive/70 mt-1">
-              The live connection failed. Try refreshing the QR code, or use email verification instead.
-            </p>
-          )}
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
@@ -164,12 +173,38 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
         )}
       </div>
 
+      {/* Manual completion check — reliable fallback */}
+      {!isLoading && qrUrl && !expired && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleManualCheck}
+          disabled={isChecking}
+        >
+          {isChecking ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Checking...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              I've verified on my phone
+            </>
+          )}
+        </Button>
+      )}
+
+      {pollStatus && (
+        <p className="text-xs text-center text-muted-foreground">{pollStatus}</p>
+      )}
+
       <div className="bg-muted/50 border border-border rounded-lg p-3">
         <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
           <li>Open your phone's camera or QR scanner</li>
           <li>Point it at the QR code above</li>
           <li>Complete the biometric verification on your phone</li>
-          <li>This screen will automatically unlock</li>
+          <li>Tap "I've verified on my phone" above, or wait for auto-unlock</li>
         </ol>
       </div>
     </div>
