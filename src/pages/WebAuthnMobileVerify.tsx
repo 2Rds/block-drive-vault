@@ -25,9 +25,6 @@ export default function WebAuthnMobileVerify() {
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [localError, setLocalError] = useState<string | null>(null);
   const [broadcastFailed, setBroadcastFailed] = useState(false);
-  // When auth fails (credentials exist server-side but not on this phone),
-  // force registration on the next retry instead of re-checking the server.
-  const forceRegistrationRef = useRef(false);
 
   // Validate that we have either a session ID or email token
   useEffect(() => {
@@ -45,7 +42,23 @@ export default function WebAuthnMobileVerify() {
     if (sessionId) {
       try {
         const channel = supabase.channel(`webauthn:${sessionId}`);
-        await channel.subscribe();
+
+        // Wait for the subscription to be fully established before sending.
+        // channel.subscribe() returns the channel (not a Promise), so we must
+        // use the status callback to know when we're actually connected.
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Subscribe timeout')), 5000);
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              clearTimeout(timeout);
+              resolve();
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              clearTimeout(timeout);
+              reject(new Error(`Channel ${status}`));
+            }
+          });
+        });
+
         await channel.send({
           type: 'broadcast',
           event: 'message',
@@ -97,44 +110,32 @@ export default function WebAuthnMobileVerify() {
     // subsequent authentication calls to also fail. By checking server-side
     // first, we pick exactly one path and never trigger the broken one.
     if (sessionId) {
-      // If a previous auth attempt failed (credentials exist server-side but
-      // not on this phone), skip the server check and go straight to registration.
-      const shouldForceRegistration = forceRegistrationRef.current;
-      forceRegistrationRef.current = false;
+      // Probe: does the user have any credentials? get-session-challenge returns
+      // options if yes, or throws "No credentials found" if no.
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
+        'webauthn-authentication',
+        { body: { action: 'get-session-challenge', session_id: sessionId } }
+      );
 
-      if (!shouldForceRegistration) {
-        // Probe: does the user have any credentials? get-session-challenge returns
-        // options if yes, or throws "No credentials found" if no.
-        const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
-          'webauthn-authentication',
-          { body: { action: 'get-session-challenge', session_id: sessionId } }
-        );
+      const hasCredentials = !challengeErr && challengeData?.success;
 
-        const hasCredentials = !challengeErr && challengeData?.success;
+      if (hasCredentials) {
+        // ── Path A: User has credentials → try to authenticate directly ──
+        // The phone may or may not have the credential locally. If it does,
+        // the fingerprint prompt appears and we're done.
+        const result = await authenticateForSession(sessionId);
 
-        if (hasCredentials) {
-          // ── Path A: User has credentials → authenticate directly ──
-          // The phone may or may not have the credential locally. If it does,
-          // the fingerprint prompt appears. If not, Android shows "No passkeys"
-          // but we only hit this path once (first phone scan), then the credential
-          // gets registered via Path B on retry.
-          const result = await authenticateForSession(sessionId);
-
-          if (result?.success) {
-            await broadcastResult(result.assertionToken);
-            return;
-          }
-
-          // Auth failed — credentials exist server-side but not on this phone.
-          // Set the flag so the next "Try Again" goes straight to registration.
-          forceRegistrationRef.current = true;
-          setLocalError('No passkey found on this device. Tap "Try Again" to set one up.');
-          setStatus('error');
+        if (result?.success) {
+          await broadcastResult(result.assertionToken);
           return;
         }
+
+        // Auth failed — credentials exist server-side but not on this phone.
+        // Fall through to Path B (registration) automatically instead of
+        // requiring the user to tap "Try Again".
       }
 
-      // ── Path B: No credentials yet (or forced after auth failure) → register ──
+      // ── Path B: No credentials yet (or auth failed above) → register ──
       try {
         const { data: regOptions, error: regOptionsErr } = await supabase.functions.invoke(
           'webauthn-registration',
