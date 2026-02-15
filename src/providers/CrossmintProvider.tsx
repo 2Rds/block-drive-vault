@@ -261,13 +261,13 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
 }
 
 export function CrossmintProvider({ children }: CrossmintProviderProps) {
-  const { isSignedIn } = useClerkAuth();
-
-  // Skip Crossmint if not configured or user not signed in
-  if (!isCrossmintConfigured || !isSignedIn) {
+  // Skip Crossmint entirely if API key not configured
+  if (!isCrossmintConfigured) {
     return <>{children}</>;
   }
 
+  // Always wrap with SDK providers so useWallet() doesn't throw.
+  // The handler effects guard on isSignedIn before taking any action.
   return (
     <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
       <CrossmintWalletProvider>
