@@ -4,7 +4,7 @@ import { QrCode, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/clerk/ClerkSupabaseClient';
 import type { QRAuthCompletedPayload } from '@/types/webauthn';
 
 const QR_EXPIRY_SECONDS = 300; // 5 minutes
@@ -16,7 +16,6 @@ interface WebAuthnQRFlowProps {
 
 export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   const { startQRSession, error, clearError } = useWebAuthnAuthentication();
-  const { supabase } = useClerkAuth();
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,16 +36,25 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   const { channelError } = useRealtimeChannel(channelName, handleRealtimeMessage);
 
   // Polling fallback: check every 3s if the mobile completed verification.
-  // This is more reliable than Realtime broadcast across different auth contexts.
+  // Uses direct fetch (not supabase.functions.invoke) to avoid any issues
+  // with Clerk token injection or Supabase client response parsing.
   useEffect(() => {
     if (!sessionId || completedRef.current) return;
 
     const poll = setInterval(async () => {
       if (completedRef.current) return;
       try {
-        const { data } = await supabase.functions.invoke('webauthn-authentication', {
-          body: { action: 'check-session-status', session_id: sessionId },
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/webauthn-authentication`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ action: 'check-session-status', session_id: sessionId }),
         });
+        if (!resp.ok) return;
+        const data = await resp.json();
         if (data?.completed && data?.assertion_token && !completedRef.current) {
           completedRef.current = true;
           clearInterval(poll);
@@ -58,7 +66,7 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
     }, 3000);
 
     return () => clearInterval(poll);
-  }, [sessionId, supabase, onComplete]);
+  }, [sessionId, onComplete]);
 
   // Create QR session on mount
   const createSession = useCallback(async () => {
