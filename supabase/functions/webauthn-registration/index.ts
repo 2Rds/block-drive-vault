@@ -163,6 +163,7 @@ serve(async (req) => {
       const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({
         clerk_user_id: targetUserId,
         token: assertionToken,
+        session_id,
         expires_at: new Date(Date.now() + ASSERTION_TOKEN_TTL_MS).toISOString(),
       });
       if (tokenInsertErr) throw new Error(`Failed to store assertion token: ${tokenInsertErr.message}`);

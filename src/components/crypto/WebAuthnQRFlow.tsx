@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { QrCode, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import type { QRAuthCompletedPayload } from '@/types/webauthn';
 
 const QR_EXPIRY_SECONDS = 300; // 5 minutes
@@ -15,22 +16,49 @@ interface WebAuthnQRFlowProps {
 
 export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   const { startQRSession, error, clearError } = useWebAuthnAuthentication();
+  const { supabase } = useClerkAuth();
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(QR_EXPIRY_SECONDS);
+  const completedRef = useRef(false);
 
   // Realtime listener for mobile auth completion
   const channelName = sessionId ? `webauthn:${sessionId}` : null;
 
   const handleRealtimeMessage = useCallback((payload: Record<string, unknown>) => {
     const data = payload as unknown as QRAuthCompletedPayload;
-    if (data.event === 'auth_completed' && data.assertionToken) {
+    if (data.event === 'auth_completed' && data.assertionToken && !completedRef.current) {
+      completedRef.current = true;
       onComplete(data.assertionToken);
     }
   }, [onComplete]);
 
   const { channelError } = useRealtimeChannel(channelName, handleRealtimeMessage);
+
+  // Polling fallback: check every 3s if the mobile completed verification.
+  // This is more reliable than Realtime broadcast across different auth contexts.
+  useEffect(() => {
+    if (!sessionId || completedRef.current) return;
+
+    const poll = setInterval(async () => {
+      if (completedRef.current) return;
+      try {
+        const { data } = await supabase.functions.invoke('webauthn-authentication', {
+          body: { action: 'check-session-status', session_id: sessionId },
+        });
+        if (data?.completed && data?.assertion_token && !completedRef.current) {
+          completedRef.current = true;
+          clearInterval(poll);
+          onComplete(data.assertion_token);
+        }
+      } catch {
+        // Non-critical — will retry on next interval
+      }
+    }, 3000);
+
+    return () => clearInterval(poll);
+  }, [sessionId, supabase, onComplete]);
 
   // Create QR session on mount
   const createSession = useCallback(async () => {

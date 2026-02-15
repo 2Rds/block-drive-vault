@@ -175,6 +175,28 @@ serve(async (req) => {
       return successResponse({ options, user_id: targetUserId });
     }
 
+    // ── Check if a QR session has been completed (desktop polls this) ──
+    if (action === 'check-session-status') {
+      const { session_id } = body;
+      if (!session_id) throw new Error('Missing session_id');
+
+      const { data: tokenRow, error: tokenErr } = await supabase
+        .from('webauthn_assertion_tokens')
+        .select('token')
+        .eq('session_id', session_id)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (tokenErr) throw new Error(tokenErr.message);
+
+      if (tokenRow) {
+        return successResponse({ completed: true, assertion_token: tokenRow.token });
+      }
+      return successResponse({ completed: false });
+    }
+
     // ── Verify assertion ──
     // Clerk auth is OPTIONAL here — mobile QR flow provides session_id instead.
     if (action === 'verify-assertion') {
@@ -281,6 +303,7 @@ serve(async (req) => {
       const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({
         clerk_user_id: targetUserId,
         token: assertionToken,
+        session_id: session_id || null,
         expires_at: new Date(Date.now() + ASSERTION_TOKEN_TTL_MS).toISOString(),
       });
       if (tokenInsertErr) throw new Error(`Failed to store assertion token: ${tokenInsertErr.message}`);
