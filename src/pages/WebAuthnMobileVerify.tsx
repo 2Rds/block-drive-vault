@@ -87,17 +87,44 @@ export default function WebAuthnMobileVerify() {
     clearError();
     setLocalError(null);
 
-    // ── QR flow: try registration first, fall back to authentication ──
-    // On first use, the phone has no credential for blockdrive.co.
-    // We register one using the phone's fingerprint, then get an assertion token.
-    // On subsequent uses, registration fails (credential already exists) and we
-    // fall back to standard authentication. We fall through on ANY registration
-    // error except explicit user cancellation, because Android devices sometimes
-    // throw unexpected errors instead of the standard InvalidStateError.
+    // ── QR flow: server-guided path selection ──
+    // Ask the server whether the user has credentials BEFORE touching the
+    // credential manager. Android's credential manager can get into a bad state
+    // if registration fails (e.g. credential already exists), which then causes
+    // subsequent authentication calls to also fail. By checking server-side
+    // first, we pick exactly one path and never trigger the broken one.
     if (sessionId) {
-      let shouldTryAuth = false;
+      // Probe: does the user have any credentials? get-session-challenge returns
+      // options if yes, or throws "No credentials found" if no.
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
+        'webauthn-authentication',
+        { body: { action: 'get-session-challenge', session_id: sessionId } }
+      );
 
-      // Step 1: Try to register a new credential on this device
+      const hasCredentials = !challengeErr && challengeData?.success;
+
+      if (hasCredentials) {
+        // ── Path A: User has credentials → authenticate directly ──
+        // The phone may or may not have the credential locally. If it does,
+        // the fingerprint prompt appears. If not, Android shows "No passkeys"
+        // but we only hit this path once (first phone scan), then the credential
+        // gets registered via Path B on retry.
+        const result = await authenticateForSession(sessionId);
+
+        if (result?.success) {
+          await broadcastResult(result.assertionToken);
+          return;
+        }
+
+        // Auth failed — might be first time on this phone (no local credential).
+        // Don't try registration in the same session (credential manager may be
+        // in a bad state). Show a helpful message instead.
+        setLocalError('No passkey found on this device. Tap "Try Again" to set one up.');
+        setStatus('error');
+        return;
+      }
+
+      // ── Path B: No credentials yet → register a new one ──
       try {
         const { data: regOptions, error: regOptionsErr } = await supabase.functions.invoke(
           'webauthn-registration',
@@ -111,7 +138,6 @@ export default function WebAuthnMobileVerify() {
         setStatus('registering');
         const attResp = await startRegistration({ optionsJSON: regOptions.options });
 
-        // Verify registration and get assertion token
         const { data: regVerify, error: regVerifyErr } = await supabase.functions.invoke(
           'webauthn-registration',
           { body: { action: 'verify-registration-for-session', session_id: sessionId, attestation: attResp } }
@@ -121,37 +147,15 @@ export default function WebAuthnMobileVerify() {
           throw new Error(regVerify?.error || 'Registration verification failed');
         }
 
-        // Registration succeeded — broadcast assertion token to desktop
         await broadcastResult(regVerify.assertion_token);
         return;
       } catch (regErr) {
         const msg = regErr instanceof Error ? regErr.message : String(regErr);
-
-        // Only stop on explicit user cancellation — all other errors (InvalidStateError,
-        // credential manager errors, Android quirks) fall through to authentication
         if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
           setLocalError('Biometric was cancelled. Please try again.');
-          setStatus('error');
-          return;
+        } else {
+          setLocalError(msg || 'Verification failed');
         }
-
-        // Registration failed for non-cancellation reason → try authentication
-        shouldTryAuth = true;
-      }
-
-      // Step 2: Registration failed — device likely already has a credential
-      if (shouldTryAuth) {
-        setStatus('verifying');
-        clearError();
-        setLocalError(null);
-        const result = await authenticateForSession(sessionId);
-
-        if (result?.success) {
-          await broadcastResult(result.assertionToken);
-          return;
-        }
-
-        setLocalError(error || 'Verification failed. Please try again.');
         setStatus('error');
         return;
       }
