@@ -339,6 +339,65 @@ export const useOrganizations = () => {
 
       await setActive?.({ organization: clerkOrg.id });
 
+      // Fire-and-forget: create org NFT collection + mint org domain NFT
+      // These run in the background — errors are logged, not shown to user
+      const token = await getToken();
+      if (token) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        };
+
+        const callEdgeFn = (fn: string, body: Record<string, unknown>) =>
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+          }).then(res => res.json());
+
+        // Step 1: Ensure global collection exists (idempotent — returns early if already created)
+        callEdgeFn('create-nft-collection', { type: 'global' })
+          .then(result => {
+            console.log('[useOrganizations] Global collection:', result.collectionId,
+              result.alreadyExists ? '(existing)' : '(created)');
+
+            // Step 2: Create per-org NFT collection
+            return callEdgeFn('create-nft-collection', {
+              type: 'organization',
+              organizationId: data.id,
+              orgName: params.name,
+              orgSlug: subdomain,
+              logoUrl: clerkOrg.imageUrl || undefined,
+            });
+          })
+          .then(result => {
+            if (result.success) {
+              console.log('[useOrganizations] Org NFT collection:', result.collectionId);
+            } else {
+              console.error('[useOrganizations] Failed to create org NFT collection:', result.error);
+            }
+
+            // Step 3: Mint org domain NFT (needs global collection from step 1)
+            return callEdgeFn('mint-org-domain-nft', {
+              organizationId: data.id,
+              orgName: params.name,
+              orgSubdomain: subdomain,
+              logoUrl: clerkOrg.imageUrl || undefined,
+            });
+          })
+          .then(result => {
+            if (result.success) {
+              console.log('[useOrganizations] Org domain NFT minted:', result.nft?.fullDomain);
+            } else {
+              console.error('[useOrganizations] Failed to mint org domain NFT:', result.error);
+            }
+          })
+          .catch(err => {
+            console.error('[useOrganizations] NFT collection/domain setup error:', err);
+          });
+      }
+
       toast.success(`Organization "${params.name}" created successfully`);
       return {
         clerkOrgId: clerkOrg.id,

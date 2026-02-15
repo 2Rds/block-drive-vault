@@ -1,73 +1,41 @@
 /**
  * NFT Membership Service
  *
- * Manages BlockDrive's NFT-based subscription system with Crossmint embedded wallets.
- * Subscriptions are SPL Token-2022 tokens on Solana that users truly own.
- * Uses Crossmint's gas sponsorship for transaction fees.
+ * Read-only membership verification and display for BlockDrive's NFT-based
+ * subscription system. All minting operations are handled server-side via
+ * Crossmint API (edge functions).
  *
  * Features:
- * - Mint membership NFTs using Token-2022 program (gas-sponsored)
- * - Verify membership validity from wallet
- * - Handle renewals and upgrades
- *
- * Note: Gas fees are handled by Crossmint, not per-user credits.
+ * - Verify membership validity from wallet (on-chain Token-2022 check)
+ * - Cache membership data locally
+ * - Display tier info
  */
 
 import {
   PublicKey,
   Connection,
-  Transaction,
-  SystemProgram,
   Keypair,
 } from '@solana/web3.js';
 import {
   TOKEN_2022_PROGRAM_ID,
-  createInitializeMintInstruction,
-  createInitializeMetadataPointerInstruction,
-  createAssociatedTokenAccountInstruction,
-  createMintToInstruction,
   getAssociatedTokenAddressSync,
-  getMintLen,
-  ExtensionType,
-  TYPE_SIZE,
-  LENGTH_SIZE,
 } from '@solana/spl-token';
 import {
-  createInitializeInstruction,
-  createUpdateFieldInstruction,
-  pack,
-  TokenMetadata,
-} from '@solana/spl-token-metadata';
-import {
   SubscriptionTier,
-  MembershipMetadata,
   MembershipNFT,
   MembershipVerification,
-  MembershipPurchaseRequest,
-  MembershipPurchaseResult,
   TIER_CONFIGS,
   gbToBytes,
   isMembershipExpired,
   getDaysRemaining,
 } from '@/types/nftMembership';
-import { crossmintConfig, createSolanaConnection } from '@/config/crossmint';
+import { createSolanaConnection } from '@/config/crossmint';
 
 // PDA seeds for membership accounts
 const MEMBERSHIP_SEED = 'blockdrive_membership';
 
 // BlockDrive program ID (placeholder - would be actual deployed program)
 const BLOCKDRIVE_PROGRAM_ID = new PublicKey('BLKDr1vE111111111111111111111111111111111111');
-
-// Time constants for billing periods (in milliseconds)
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const MONTHLY_DURATION_MS = 30 * MS_PER_DAY;
-const QUARTERLY_DURATION_MS = 90 * MS_PER_DAY;
-const ANNUAL_DURATION_MS = 365 * MS_PER_DAY;
-
-// NFT decimals (0 for non-fungible tokens)
-const NFT_DECIMALS = 0;
-// NFT supply (1 for unique membership token)
-const NFT_SUPPLY = 1;
 
 // Tier display configuration
 const TIER_COLORS: Record<SubscriptionTier, string> = {
@@ -86,12 +54,6 @@ const TIER_ICONS: Record<SubscriptionTier, string> = {
 
 // Get Crossmint-configured Solana connection (Devnet for MVP)
 const getConnection = () => createSolanaConnection();
-
-export interface CrossmintTransactionSigner {
-  signTransaction: (transaction: Transaction) => Promise<Transaction>;
-  signAndSendTransaction: (transaction: Transaction) => Promise<string>;
-  walletAddress: string | null;
-}
 
 class NFTMembershipService {
   private connection: Connection;
@@ -116,7 +78,7 @@ class NFTMembershipService {
 
   /**
    * Generate a deterministic mint keypair for a user's tier
-   * This ensures consistent mint addresses across sessions
+   * Used for on-chain verification lookups
    */
   private async generateDeterministicMintKeypair(
     walletAddress: string,
@@ -126,7 +88,6 @@ class NFTMembershipService {
     const encoder = new TextEncoder();
     const seedBytes = encoder.encode(seed);
 
-    // Create ArrayBuffer for crypto.subtle
     const seedBuffer = new ArrayBuffer(seedBytes.length);
     const view = new Uint8Array(seedBuffer);
     view.set(seedBytes);
@@ -194,12 +155,11 @@ class NFTMembershipService {
           try {
             const tokenAccount = await this.connection.getTokenAccountBalance(ata);
             if (tokenAccount.value.uiAmount && tokenAccount.value.uiAmount > 0) {
-              // Found a membership token - return basic verification
               const tierConfig = TIER_CONFIGS[tier];
               return {
                 isValid: true,
                 tier,
-                expiresAt: null, // Would need to read from metadata
+                expiresAt: null,
                 daysRemaining: -1,
                 storageRemaining: gbToBytes(tierConfig.storageGB),
                 bandwidthRemaining: gbToBytes(tierConfig.bandwidthGB),
@@ -220,7 +180,7 @@ class NFTMembershipService {
         isValid: true,
         tier: 'trial',
         expiresAt: null,
-        daysRemaining: -1, // Unlimited for free tier
+        daysRemaining: -1,
         storageRemaining: gbToBytes(TIER_CONFIGS.trial.storageGB),
         bandwidthRemaining: gbToBytes(TIER_CONFIGS.trial.bandwidthGB),
         features: TIER_CONFIGS.trial.features,
@@ -244,282 +204,7 @@ class NFTMembershipService {
   }
 
   /**
-   * Create a new membership NFT using Token-2022 with metadata extension
-   * Transaction fees are covered by Crossmint gas sponsorship
-   */
-  async createMembership(
-    request: MembershipPurchaseRequest,
-    crossmintSigner: CrossmintTransactionSigner
-  ): Promise<MembershipPurchaseResult> {
-    try {
-      if (!crossmintSigner.walletAddress) {
-        throw new Error('Crossmint wallet not initialized');
-      }
-
-      const tierConfig = TIER_CONFIGS[request.tier];
-      const walletPubkey = new PublicKey(crossmintSigner.walletAddress);
-
-      // Calculate expiration based on billing period
-      const now = Date.now();
-      let validUntil: number;
-      let price: number;
-
-      switch (request.billingPeriod) {
-        case 'quarterly':
-          validUntil = now + QUARTERLY_DURATION_MS;
-          price = tierConfig.quarterlyPrice;
-          break;
-        case 'annual':
-          validUntil = now + ANNUAL_DURATION_MS;
-          price = tierConfig.annualPrice;
-          break;
-        default:
-          validUntil = now + MONTHLY_DURATION_MS;
-          price = tierConfig.monthlyPrice;
-      }
-
-      // Generate deterministic mint keypair for this user/tier
-      const mintKeypair = await this.generateDeterministicMintKeypair(
-        crossmintSigner.walletAddress,
-        request.tier
-      );
-
-      // Create the Token-2022 metadata
-      const tokenMetadata: TokenMetadata = {
-        mint: mintKeypair.publicKey,
-        name: `BlockDrive ${tierConfig.name} Membership`,
-        symbol: tierConfig.nftSymbol,
-        uri: tierConfig.nftUri,
-        additionalMetadata: [
-          ['tier', request.tier],
-          ['validUntil', validUntil.toString()],
-          ['storageGB', tierConfig.storageGB.toString()],
-          ['bandwidthGB', tierConfig.bandwidthGB.toString()],
-          ['createdAt', now.toString()],
-        ],
-      };
-
-      // Calculate space needed for mint with metadata extension
-      const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
-      const metadataLen = pack(tokenMetadata).length;
-      const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-      const lamports = await this.connection.getMinimumBalanceForRentExemption(
-        mintLen + metadataExtension + metadataLen
-      );
-
-      // Build the transaction with Token-2022 instructions
-      const transaction = new Transaction();
-
-      // 1. Create the mint account
-      transaction.add(
-        SystemProgram.createAccount({
-          fromPubkey: walletPubkey,
-          newAccountPubkey: mintKeypair.publicKey,
-          space: mintLen,
-          lamports,
-          programId: TOKEN_2022_PROGRAM_ID,
-        })
-      );
-
-      // 2. Initialize metadata pointer extension
-      transaction.add(
-        createInitializeMetadataPointerInstruction(
-          mintKeypair.publicKey,
-          walletPubkey,
-          mintKeypair.publicKey,
-          TOKEN_2022_PROGRAM_ID
-        )
-      );
-
-      // 3. Initialize the mint
-      transaction.add(
-        createInitializeMintInstruction(
-          mintKeypair.publicKey,
-          NFT_DECIMALS,
-          walletPubkey, // mint authority
-          walletPubkey, // freeze authority
-          TOKEN_2022_PROGRAM_ID
-        )
-      );
-
-      // 4. Initialize token metadata
-      transaction.add(
-        createInitializeInstruction({
-          programId: TOKEN_2022_PROGRAM_ID,
-          mint: mintKeypair.publicKey,
-          metadata: mintKeypair.publicKey,
-          name: tokenMetadata.name,
-          symbol: tokenMetadata.symbol,
-          uri: tokenMetadata.uri,
-          mintAuthority: walletPubkey,
-          updateAuthority: walletPubkey,
-        })
-      );
-
-      // 5. Add custom metadata fields
-      for (const [key, value] of tokenMetadata.additionalMetadata) {
-        transaction.add(
-          createUpdateFieldInstruction({
-            programId: TOKEN_2022_PROGRAM_ID,
-            metadata: mintKeypair.publicKey,
-            updateAuthority: walletPubkey,
-            field: key,
-            value: value,
-          })
-        );
-      }
-
-      // 6. Create associated token account for the user
-      const ata = getAssociatedTokenAddressSync(
-        mintKeypair.publicKey,
-        walletPubkey,
-        false,
-        TOKEN_2022_PROGRAM_ID
-      );
-
-      transaction.add(
-        createAssociatedTokenAccountInstruction(
-          walletPubkey,
-          ata,
-          walletPubkey,
-          mintKeypair.publicKey,
-          TOKEN_2022_PROGRAM_ID
-        )
-      );
-
-      // 7. Mint token to the user's ATA
-      transaction.add(
-        createMintToInstruction(
-          mintKeypair.publicKey,
-          ata,
-          walletPubkey,
-          NFT_SUPPLY,
-          [],
-          TOKEN_2022_PROGRAM_ID
-        )
-      );
-
-      // Get recent blockhash
-      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.lastValidBlockHeight = lastValidBlockHeight;
-      transaction.feePayer = walletPubkey;
-
-      // Partially sign with the mint keypair (new account needs to sign)
-      transaction.partialSign(mintKeypair);
-
-      // Sign and send with Crossmint gas sponsorship
-      const transactionSignature = await crossmintSigner.signAndSendTransaction(transaction);
-
-      // Wait for confirmation
-      const confirmation = await this.connection.confirmTransaction({
-        signature: transactionSignature,
-        blockhash,
-        lastValidBlockHeight,
-      });
-
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-      }
-
-      // Create membership metadata
-      const metadata: MembershipMetadata = {
-        tier: request.tier,
-        validUntil,
-        isActive: true,
-        storageQuota: gbToBytes(tierConfig.storageGB),
-        storageUsed: BigInt(0),
-        bandwidthQuota: gbToBytes(tierConfig.bandwidthGB),
-        bandwidthUsed: BigInt(0),
-        features: tierConfig.features,
-        autoRenew: request.autoRenew,
-        renewalPrice: price * 100, // In cents
-        createdAt: now,
-        lastRenewedAt: now,
-      };
-
-      // Create membership NFT structure with real mint address
-      const membershipNFT: MembershipNFT = {
-        bump: 255,
-        mint: mintKeypair.publicKey.toBase58(),
-        owner: crossmintSigner.walletAddress,
-        metadata,
-        delegations: [],
-      };
-
-      // Cache the membership locally
-      this.cacheMembership(crossmintSigner.walletAddress, membershipNFT);
-
-      return {
-        success: true,
-        transactionSignature,
-        nftMint: mintKeypair.publicKey.toBase58(),
-        expiresAt: validUntil,
-      };
-
-    } catch (error) {
-      console.error('[NFTMembership] Token-2022 minting failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create membership',
-      };
-    }
-  }
-
-  /**
-   * Renew an existing membership using Crossmint gas sponsorship
-   */
-  async renewMembership(
-    walletAddress: string,
-    billingPeriod: 'monthly' | 'quarterly' | 'annual',
-    crossmintSigner: CrossmintTransactionSigner
-  ): Promise<MembershipPurchaseResult> {
-    const cachedMembership = this.getCachedMembership(walletAddress);
-
-    if (!cachedMembership) {
-      return {
-        success: false,
-        error: 'No existing membership found',
-      };
-    }
-
-    // For renewal, we update the metadata on-chain
-    // For MVP, we'll mint a new token (in production, we'd update existing)
-    const request: MembershipPurchaseRequest = {
-      tier: cachedMembership.metadata.tier,
-      billingPeriod,
-      paymentMethod: 'crypto',
-      walletAddress,
-      autoRenew: cachedMembership.metadata.autoRenew,
-    };
-
-    return this.createMembership(request, crossmintSigner);
-  }
-
-  /**
-   * Upgrade membership to a higher tier using Crossmint gas sponsorship
-   */
-  async upgradeMembership(
-    walletAddress: string,
-    newTier: SubscriptionTier,
-    crossmintSigner: CrossmintTransactionSigner
-  ): Promise<MembershipPurchaseResult> {
-    const cachedMembership = this.getCachedMembership(walletAddress);
-
-    // Create upgrade request (mints new tier token)
-    const request: MembershipPurchaseRequest = {
-      tier: newTier,
-      billingPeriod: 'monthly',
-      paymentMethod: 'crypto',
-      walletAddress,
-      autoRenew: cachedMembership?.metadata.autoRenew ?? false,
-    };
-
-    return this.createMembership(request, crossmintSigner);
-  }
-
-  /**
-   * Update storage usage
+   * Update storage usage in local cache
    */
   async updateStorageUsage(
     walletAddress: string,

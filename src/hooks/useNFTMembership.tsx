@@ -1,37 +1,30 @@
 /**
  * NFT Membership Hook
  *
- * Provides NFT membership functionality using Crossmint embedded wallet.
- * Integrates with gas-sponsored transactions for seamless UX.
+ * Provides read-only NFT membership verification and display utilities.
+ * All minting/purchasing is handled server-side via Crossmint edge functions.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Transaction } from '@solana/web3.js';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useCrossmintWallet } from './useCrossmintWallet';
 import {
   SubscriptionTier,
   MembershipVerification,
-  MembershipPurchaseResult,
   TIER_CONFIGS,
 } from '@/types/nftMembership';
-import { nftMembershipService, CrossmintTransactionSigner } from '@/services/nftMembershipService';
-import { toast } from 'sonner';
+import { nftMembershipService } from '@/services/nftMembershipService';
 
 interface UseNFTMembershipReturn {
   // State
   membership: MembershipVerification | null;
   isLoading: boolean;
   isVerifying: boolean;
-  isPurchasing: boolean;
   walletAddress: string | null;
   isWalletReady: boolean;
 
   // Actions
   verifyMembership: () => Promise<MembershipVerification | null>;
-  purchaseMembership: (tier: SubscriptionTier, billingPeriod: 'monthly' | 'quarterly' | 'annual') => Promise<MembershipPurchaseResult>;
-  renewMembership: (billingPeriod: 'monthly' | 'quarterly' | 'annual') => Promise<MembershipPurchaseResult>;
-  upgradeMembership: (newTier: SubscriptionTier) => Promise<MembershipPurchaseResult>;
 
   // Utilities
   getTierConfig: (tier: SubscriptionTier) => typeof TIER_CONFIGS[SubscriptionTier];
@@ -46,16 +39,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
   const [membership, setMembership] = useState<MembershipVerification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-
-  // Create Crossmint signer interface for the membership service
-  const crossmintSigner = useMemo((): CrossmintTransactionSigner => ({
-    signTransaction: async (transaction: Transaction) => {
-      return crossmintWallet.signTransaction(transaction) as Promise<Transaction>;
-    },
-    signAndSendTransaction: crossmintWallet.signAndSendTransaction as (tx: Transaction) => Promise<string>,
-    walletAddress: crossmintWallet.walletAddress,
-  }), [crossmintWallet]);
 
   // Verify membership using Crossmint wallet address
   const verifyMembership = useCallback(async (): Promise<MembershipVerification | null> => {
@@ -88,9 +71,7 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     setIsVerifying(true);
 
     try {
-      // Use the membership service with the Crossmint wallet address
       const verification = await nftMembershipService.verifyMembership(crossmintWallet.walletAddress!);
-
       setMembership(verification);
       return verification;
     } catch (error) {
@@ -104,8 +85,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
   }, [user, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
 
   // Auto-verify when user or wallet changes
-  // Note: verifyMembership is intentionally excluded from deps to prevent infinite loop
-  // The effect depends only on primitive values that indicate when to re-verify
   useEffect(() => {
     if (user) {
       verifyMembership();
@@ -115,158 +94,6 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
-
-  // Purchase membership using Crossmint gas-sponsored transaction
-  const purchaseMembership = useCallback(async (
-    tier: SubscriptionTier,
-    billingPeriod: 'monthly' | 'quarterly' | 'annual'
-  ): Promise<MembershipPurchaseResult> => {
-    const isWalletReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
-    if (!isWalletReady) {
-      toast.error('Wallet not ready', {
-        description: 'Please wait for your wallet to initialize'
-      });
-      return { success: false, error: 'Wallet not initialized' };
-    }
-
-    setIsPurchasing(true);
-
-    try {
-      toast.loading('Processing membership purchase...', { id: 'membership-purchase' });
-
-      const result = await nftMembershipService.createMembership(
-        {
-          tier,
-          billingPeriod,
-          paymentMethod: 'crypto',
-          walletAddress: crossmintWallet.walletAddress!,
-          autoRenew: false,
-        },
-        crossmintSigner
-      );
-
-      if (result.success) {
-        toast.success('Membership activated!', {
-          id: 'membership-purchase',
-          description: `Your ${TIER_CONFIGS[tier].name} membership is now active. Transaction: ${result.transactionSignature?.slice(0, 8)}...`
-        });
-
-        await verifyMembership();
-      } else {
-        toast.error('Purchase failed', {
-          id: 'membership-purchase',
-          description: result.error || 'Please try again'
-        });
-      }
-
-      return result;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Purchase failed';
-      toast.error('Purchase failed', {
-        id: 'membership-purchase',
-        description: errorMsg
-      });
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsPurchasing(false);
-    }
-  }, [crossmintWallet.isInitialized, crossmintWallet.walletAddress, crossmintSigner, verifyMembership]);
-
-  // Renew membership using Crossmint gas-sponsored transaction
-  const renewMembership = useCallback(async (
-    billingPeriod: 'monthly' | 'quarterly' | 'annual'
-  ): Promise<MembershipPurchaseResult> => {
-    const isWalletReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
-    if (!isWalletReady) {
-      toast.error('Wallet not ready');
-      return { success: false, error: 'Wallet not initialized' };
-    }
-
-    setIsPurchasing(true);
-
-    try {
-      toast.loading('Processing renewal...', { id: 'membership-renewal' });
-
-      const result = await nftMembershipService.renewMembership(
-        crossmintWallet.walletAddress!,
-        billingPeriod,
-        crossmintSigner
-      );
-
-      if (result.success) {
-        toast.success('Membership renewed!', {
-          id: 'membership-renewal',
-          description: 'Your subscription has been extended.'
-        });
-
-        await verifyMembership();
-      } else {
-        toast.error('Renewal failed', {
-          id: 'membership-renewal',
-          description: result.error
-        });
-      }
-
-      return result;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Renewal failed';
-      toast.error('Renewal failed', {
-        id: 'membership-renewal',
-        description: errorMsg
-      });
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsPurchasing(false);
-    }
-  }, [crossmintWallet.isInitialized, crossmintWallet.walletAddress, crossmintSigner, verifyMembership]);
-
-  // Upgrade membership using Crossmint gas-sponsored transaction
-  const upgradeMembership = useCallback(async (
-    newTier: SubscriptionTier
-  ): Promise<MembershipPurchaseResult> => {
-    const isWalletReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
-    if (!isWalletReady) {
-      toast.error('Wallet not ready');
-      return { success: false, error: 'Wallet not initialized' };
-    }
-
-    setIsPurchasing(true);
-
-    try {
-      toast.loading('Processing upgrade...', { id: 'membership-upgrade' });
-
-      const result = await nftMembershipService.upgradeMembership(
-        crossmintWallet.walletAddress!,
-        newTier,
-        crossmintSigner
-      );
-
-      if (result.success) {
-        toast.success('Membership upgraded!', {
-          id: 'membership-upgrade',
-          description: `Welcome to ${TIER_CONFIGS[newTier].name}!`
-        });
-
-        await verifyMembership();
-      } else {
-        toast.error('Upgrade failed', {
-          id: 'membership-upgrade',
-          description: result.error
-        });
-      }
-
-      return result;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Upgrade failed';
-      toast.error('Upgrade failed', {
-        id: 'membership-upgrade',
-        description: errorMsg
-      });
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsPurchasing(false);
-    }
-  }, [crossmintWallet.isInitialized, crossmintWallet.walletAddress, crossmintSigner, verifyMembership]);
 
   // Get tier configuration
   const getTierConfig = useCallback((tier: SubscriptionTier) => {
@@ -301,13 +128,9 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     membership,
     isLoading,
     isVerifying,
-    isPurchasing,
     walletAddress: crossmintWallet.walletAddress,
     isWalletReady: crossmintWallet.isInitialized && !!crossmintWallet.walletAddress,
     verifyMembership,
-    purchaseMembership,
-    renewMembership,
-    upgradeMembership,
     getTierConfig,
     formatStorageSize,
     getDisplayInfo,

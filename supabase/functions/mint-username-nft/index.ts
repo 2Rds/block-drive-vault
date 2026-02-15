@@ -24,8 +24,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// BlockDrive NFT Collection ID (from Crossmint dashboard)
-const COLLECTION_ID = '789d9f7f-15ae-40d9-8854-00890ef7db1e';
+// Global BlockDrive NFT Collection ID (fallback if env var not set)
+const FALLBACK_COLLECTION_ID = '789d9f7f-15ae-40d9-8854-00890ef7db1e';
 
 interface MintUsernameNFTRequest {
   clerkUserId: string;
@@ -260,8 +260,41 @@ serve(async (req) => {
       ],
     };
 
+    // Determine which collection to mint into
+    // Priority: system_config DB row > env var > hardcoded fallback
+    let globalCollectionId = FALLBACK_COLLECTION_ID;
+    const { data: configRow } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'global_nft_collection_id')
+      .maybeSingle();
+
+    if (configRow?.value) {
+      globalCollectionId = configRow.value;
+    } else if (Deno.env.get('CROSSMINT_GLOBAL_COLLECTION_ID')) {
+      globalCollectionId = Deno.env.get('CROSSMINT_GLOBAL_COLLECTION_ID')!;
+    }
+
+    let collectionId = globalCollectionId;
+
+    if (isOrgDomain && organizationId) {
+      // For org member NFTs, use the org's dedicated collection if available
+      const { data: orgRecord } = await supabase
+        .from('organizations')
+        .select('nft_collection_id')
+        .eq('id', organizationId)
+        .maybeSingle();
+
+      if (orgRecord?.nft_collection_id) {
+        collectionId = orgRecord.nft_collection_id;
+        console.log(`[mint-username-nft] Using org collection: ${collectionId}`);
+      } else {
+        console.log('[mint-username-nft] Org has no collection, using global collection');
+      }
+    }
+
     // Call Crossmint API to mint compressed NFT
-    const crossmintUrl = `https://${crossmintEnv}.crossmint.com/api/2022-06-09/collections/${COLLECTION_ID}/nfts`;
+    const crossmintUrl = `https://${crossmintEnv}.crossmint.com/api/2022-06-09/collections/${collectionId}/nfts`;
 
     const mintResponse = await fetch(crossmintUrl, {
       method: 'POST',
