@@ -37,6 +37,21 @@ const ServerWalletContext = createContext<ServerWalletContextType>({
 
 export const useServerWallet = () => useContext(ServerWalletContext);
 
+// Context for wallet address — lives OUTSIDE the error boundary so consumers
+// always have access even if the Crossmint SDK crashes after providing an address.
+interface WalletAddressContextType {
+  walletAddress: string | null;
+  setWalletAddress: (addr: string | null) => void;
+}
+
+const WalletAddressContext = createContext<WalletAddressContextType>({
+  walletAddress: null,
+  setWalletAddress: () => {},
+});
+
+/** Hook for consumers to read the Crossmint wallet address (SDK or server-side). */
+export const useCrossmintWalletAddress = (): string | null => useContext(WalletAddressContext).walletAddress;
+
 // Check if Crossmint is properly configured at module load
 const crossmintValidation = validateCrossmintConfig();
 const isCrossmintConfigured = crossmintValidation.valid;
@@ -75,6 +90,9 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   const [hasSetJwt, setHasSetJwt] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const walletCreationAttempted = useRef(false);
+
+  // Push wallet address to outer context (lives outside error boundary)
+  const { setWalletAddress: setOuterWalletAddress } = useContext(WalletAddressContext);
 
   // Debug: log wallet SDK state changes
   useEffect(() => {
@@ -256,6 +274,12 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     syncWallet();
   }, [wallet, serverWalletAddress, user, getToken]);
 
+  // Push wallet address to outer context whenever it changes
+  useEffect(() => {
+    const addr = wallet?.address || serverWalletAddress;
+    setOuterWalletAddress(addr || null);
+  }, [wallet, serverWalletAddress, setOuterWalletAddress]);
+
   // Clear JWT and wallet state when user signs out
   useEffect(() => {
     if (!isSignedIn && hasSetJwt) {
@@ -264,8 +288,9 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
       walletCreationAttempted.current = false;
       serverWalletAttempted.current = false;
       setServerWalletAddress(null);
+      setOuterWalletAddress(null);
     }
-  }, [isSignedIn, hasSetJwt, setJwt]);
+  }, [isSignedIn, hasSetJwt, setJwt, setOuterWalletAddress]);
 
   return (
     <ServerWalletContext.Provider value={{ serverWalletAddress, isCreatingServerWallet }}>
@@ -276,27 +301,35 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
 
 export function CrossmintProvider({ children }: CrossmintProviderProps) {
   const { isSignedIn } = useClerkAuth();
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  const noopSetWalletAddress = useCallback(() => {}, []);
 
   // Skip Crossmint if not configured or user not signed in
-  if (!isCrossmintConfigured || !isSignedIn) {
-    return <>{children}</>;
+  const shouldSkip = !isCrossmintConfigured || !isSignedIn;
+
+  if (shouldSkip) {
+    return (
+      <WalletAddressContext.Provider value={{ walletAddress: null, setWalletAddress: noopSetWalletAddress }}>
+        {children}
+      </WalletAddressContext.Provider>
+    );
   }
 
-  // Use "solana" for Solana Smart Wallets (not "solana:devnet")
-  const defaultChain = 'solana';
-
   return (
-    <CrossmintErrorBoundary fallback={<>{children}</>}>
-      <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
-        <CrossmintAuthProvider>
-          <CrossmintWalletProvider defaultChain={defaultChain}>
-            <CrossmintWalletHandler>
-              {children}
-            </CrossmintWalletHandler>
-          </CrossmintWalletProvider>
-        </CrossmintAuthProvider>
-      </CrossmintSDKProvider>
-    </CrossmintErrorBoundary>
+    <WalletAddressContext.Provider value={{ walletAddress, setWalletAddress }}>
+      <CrossmintErrorBoundary fallback={<>{children}</>}>
+        <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
+          <CrossmintAuthProvider>
+            <CrossmintWalletProvider defaultChain="solana">
+              <CrossmintWalletHandler>
+                {children}
+              </CrossmintWalletHandler>
+            </CrossmintWalletProvider>
+          </CrossmintAuthProvider>
+        </CrossmintSDKProvider>
+      </CrossmintErrorBoundary>
+    </WalletAddressContext.Provider>
   );
 }
 
