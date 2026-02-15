@@ -25,6 +25,9 @@ export default function WebAuthnMobileVerify() {
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [localError, setLocalError] = useState<string | null>(null);
   const [broadcastFailed, setBroadcastFailed] = useState(false);
+  // When auth fails (credentials exist server-side but not on this phone),
+  // force registration on the next retry instead of re-checking the server.
+  const forceRegistrationRef = useRef(false);
 
   // Validate that we have either a session ID or email token
   useEffect(() => {
@@ -94,37 +97,44 @@ export default function WebAuthnMobileVerify() {
     // subsequent authentication calls to also fail. By checking server-side
     // first, we pick exactly one path and never trigger the broken one.
     if (sessionId) {
-      // Probe: does the user have any credentials? get-session-challenge returns
-      // options if yes, or throws "No credentials found" if no.
-      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
-        'webauthn-authentication',
-        { body: { action: 'get-session-challenge', session_id: sessionId } }
-      );
+      // If a previous auth attempt failed (credentials exist server-side but
+      // not on this phone), skip the server check and go straight to registration.
+      const shouldForceRegistration = forceRegistrationRef.current;
+      forceRegistrationRef.current = false;
 
-      const hasCredentials = !challengeErr && challengeData?.success;
+      if (!shouldForceRegistration) {
+        // Probe: does the user have any credentials? get-session-challenge returns
+        // options if yes, or throws "No credentials found" if no.
+        const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
+          'webauthn-authentication',
+          { body: { action: 'get-session-challenge', session_id: sessionId } }
+        );
 
-      if (hasCredentials) {
-        // ── Path A: User has credentials → authenticate directly ──
-        // The phone may or may not have the credential locally. If it does,
-        // the fingerprint prompt appears. If not, Android shows "No passkeys"
-        // but we only hit this path once (first phone scan), then the credential
-        // gets registered via Path B on retry.
-        const result = await authenticateForSession(sessionId);
+        const hasCredentials = !challengeErr && challengeData?.success;
 
-        if (result?.success) {
-          await broadcastResult(result.assertionToken);
+        if (hasCredentials) {
+          // ── Path A: User has credentials → authenticate directly ──
+          // The phone may or may not have the credential locally. If it does,
+          // the fingerprint prompt appears. If not, Android shows "No passkeys"
+          // but we only hit this path once (first phone scan), then the credential
+          // gets registered via Path B on retry.
+          const result = await authenticateForSession(sessionId);
+
+          if (result?.success) {
+            await broadcastResult(result.assertionToken);
+            return;
+          }
+
+          // Auth failed — credentials exist server-side but not on this phone.
+          // Set the flag so the next "Try Again" goes straight to registration.
+          forceRegistrationRef.current = true;
+          setLocalError('No passkey found on this device. Tap "Try Again" to set one up.');
+          setStatus('error');
           return;
         }
-
-        // Auth failed — might be first time on this phone (no local credential).
-        // Don't try registration in the same session (credential manager may be
-        // in a bad state). Show a helpful message instead.
-        setLocalError('No passkey found on this device. Tap "Try Again" to set one up.');
-        setStatus('error');
-        return;
       }
 
-      // ── Path B: No credentials yet → register a new one ──
+      // ── Path B: No credentials yet (or forced after auth failure) → register ──
       try {
         const { data: regOptions, error: regOptionsErr } = await supabase.functions.invoke(
           'webauthn-registration',
