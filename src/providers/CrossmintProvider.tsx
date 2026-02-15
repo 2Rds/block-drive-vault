@@ -46,6 +46,19 @@ if (!isCrossmintConfigured) {
   console.warn('[Crossmint] Wallet features will be disabled until VITE_CROSSMINT_CLIENT_API_KEY is set.');
 }
 
+// Error boundary: if Crossmint SDK crashes (e.g. base58 decode error),
+// render children without wallet features rather than white-screening the app.
+interface EBProps { children: React.ReactNode; fallback: React.ReactNode }
+interface EBState { hasError: boolean }
+class CrossmintErrorBoundary extends React.Component<EBProps, EBState> {
+  state: EBState = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) {
+    console.error('[Crossmint] SDK crashed — wallet features disabled:', error.message);
+  }
+  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
+}
+
 interface CrossmintProviderProps {
   children: React.ReactNode;
 }
@@ -273,21 +286,23 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
   const defaultChain = 'solana';
 
   return (
-    <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
-      <CrossmintAuthProvider>
-        <CrossmintWalletProvider
-          defaultChain={defaultChain}
-          createOnLogin={{
-            chain: defaultChain,
-            signer: { type: 'email' },
-          }}
-        >
-          <CrossmintWalletHandler>
-            {children}
-          </CrossmintWalletHandler>
-        </CrossmintWalletProvider>
-      </CrossmintAuthProvider>
-    </CrossmintSDKProvider>
+    <CrossmintErrorBoundary fallback={<>{children}</>}>
+      <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
+        <CrossmintAuthProvider>
+          <CrossmintWalletProvider
+            defaultChain={defaultChain}
+            createOnLogin={{
+              chain: defaultChain,
+              signer: { type: 'email' },
+            }}
+          >
+            <CrossmintWalletHandler>
+              {children}
+            </CrossmintWalletHandler>
+          </CrossmintWalletProvider>
+        </CrossmintAuthProvider>
+      </CrossmintSDKProvider>
+    </CrossmintErrorBoundary>
   );
 }
 
