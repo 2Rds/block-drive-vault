@@ -12,6 +12,9 @@ export function useRealtimeChannel(
   onMessage: (payload: Record<string, unknown>) => void
 ) {
   const { supabase } = useClerkAuth();
+  // Stable ref so the channel doesn't tear down/recreate on Clerk token refresh
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
   const channelRef = useRef<RealtimeChannel | null>(null);
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
@@ -21,7 +24,7 @@ export function useRealtimeChannel(
     if (!channelName) return;
 
     setChannelError(null);
-    const channel = supabase.channel(channelName);
+    const channel = supabaseRef.current.channel(channelName);
 
     channel
       .on('broadcast', { event: 'message' }, ({ payload }) => {
@@ -40,7 +43,7 @@ export function useRealtimeChannel(
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [channelName, supabase]);
+  }, [channelName]);
 
   const broadcast = useCallback(async (payload: Record<string, unknown>): Promise<boolean> => {
     if (!channelRef.current) {

@@ -1,10 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 import type { WebAuthnVerificationResult } from '@/types/webauthn';
 
 export function useWebAuthnAuthentication() {
   const { supabase } = useClerkAuth();
+  // Stable ref so callbacks don't change when Clerk refreshes its token (~60s).
+  // Without this, every callback gets a new reference on token refresh, which
+  // causes downstream useEffect chains to re-fire (e.g. createSession in QR flow).
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +25,7 @@ export function useWebAuthnAuthentication() {
 
     try {
       // 1. Get authentication challenge from server
-      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
+      const { data: challengeData, error: challengeErr } = await supabaseRef.current.functions.invoke(
         'webauthn-authentication',
         { body: { action: 'generate-challenge' } }
       );
@@ -32,7 +37,7 @@ export function useWebAuthnAuthentication() {
       const authResp = await startAuthentication({ optionsJSON: challengeData.options });
 
       // 3. Verify assertion with server
-      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+      const { data: verifyData, error: verifyErr } = await supabaseRef.current.functions.invoke(
         'webauthn-authentication',
         { body: { action: 'verify-assertion', assertion: authResp } }
       );
@@ -56,7 +61,7 @@ export function useWebAuthnAuthentication() {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [supabase]);
+  }, []);
 
   /**
    * Start a QR flow session (desktop creates challenge + session_id).
@@ -66,7 +71,7 @@ export function useWebAuthnAuthentication() {
     setError(null);
 
     try {
-      const { data, error: err } = await supabase.functions.invoke(
+      const { data, error: err } = await supabaseRef.current.functions.invoke(
         'webauthn-authentication',
         { body: { action: 'generate-challenge', create_session: true } }
       );
@@ -83,7 +88,7 @@ export function useWebAuthnAuthentication() {
       setError(err instanceof Error ? err.message : 'Failed to start QR session');
       return null;
     }
-  }, [supabase]);
+  }, []);
 
   /**
    * Complete authentication for a session (mobile side of QR flow).
@@ -98,7 +103,7 @@ export function useWebAuthnAuthentication() {
 
     try {
       // 1. Get challenge for this session/token
-      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke(
+      const { data: challengeData, error: challengeErr } = await supabaseRef.current.functions.invoke(
         'webauthn-authentication',
         { body: { action: 'get-session-challenge', session_id: sessionId, email_token: emailToken } }
       );
@@ -110,7 +115,7 @@ export function useWebAuthnAuthentication() {
       const authResp = await startAuthentication({ optionsJSON: challengeData.options });
 
       // 3. Verify assertion
-      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+      const { data: verifyData, error: verifyErr } = await supabaseRef.current.functions.invoke(
         'webauthn-authentication',
         { body: { action: 'verify-assertion', assertion: authResp, session_id: sessionId } }
       );
@@ -130,7 +135,7 @@ export function useWebAuthnAuthentication() {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [supabase]);
+  }, []);
 
   /**
    * Send email fallback link.
@@ -139,7 +144,7 @@ export function useWebAuthnAuthentication() {
     setError(null);
 
     try {
-      const { data, error: err } = await supabase.functions.invoke(
+      const { data, error: err } = await supabaseRef.current.functions.invoke(
         'webauthn-email-fallback',
         { body: { action: 'send-link' } }
       );
@@ -152,7 +157,7 @@ export function useWebAuthnAuthentication() {
       setError(err instanceof Error ? err.message : 'Failed to send email');
       return null;
     }
-  }, [supabase]);
+  }, []);
 
   return {
     authenticate,

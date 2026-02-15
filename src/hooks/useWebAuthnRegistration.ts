@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
 export function useWebAuthnRegistration() {
   const { supabase } = useClerkAuth();
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export function useWebAuthnRegistration() {
 
     try {
       // 1. Get registration options from server
-      const { data: optionsData, error: optionsErr } = await supabase.functions.invoke(
+      const { data: optionsData, error: optionsErr } = await supabaseRef.current.functions.invoke(
         'webauthn-registration',
         { body: { action: 'generate-options', device_name: deviceName } }
       );
@@ -27,7 +29,7 @@ export function useWebAuthnRegistration() {
       const attResp = await startRegistration({ optionsJSON: optionsData.options });
 
       // 3. Verify registration with server
-      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+      const { data: verifyData, error: verifyErr } = await supabaseRef.current.functions.invoke(
         'webauthn-registration',
         { body: { action: 'verify-registration', attestation: attResp, device_name: deviceName } }
       );
@@ -52,17 +54,17 @@ export function useWebAuthnRegistration() {
     } finally {
       setIsRegistering(false);
     }
-  }, [supabase]);
+  }, []);
 
   const hasCredentials = useCallback(async (): Promise<boolean> => {
-    const { data, error: err } = await supabase.functions.invoke(
+    const { data, error: err } = await supabaseRef.current.functions.invoke(
       'webauthn-registration',
       { body: { action: 'has-credentials' } }
     );
 
     if (err) throw new Error(err.message || 'Failed to check credentials');
     return data?.hasCredentials ?? false;
-  }, [supabase]);
+  }, []);
 
   return { register, hasCredentials, isRegistering, error, isSupported };
 }

@@ -27,6 +27,8 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   const { state, initializeKeys } = useWalletCrypto();
   const { hasCredentials } = useWebAuthnRegistration();
   const { supabase } = useClerkAuth();
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
 
   const [step, setStep] = useState<CryptoFlowStep>('loading');
   const [questionText, setQuestionText] = useState('');
@@ -103,7 +105,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
         return;
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke('security-question', {
+      const { data, error: fnError } = await supabaseRef.current.functions.invoke('security-question', {
         body: { action: 'get' },
       });
       if (fnError) throw new Error(fnError.message);
@@ -118,7 +120,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
       setError('Unable to check your encryption status. Please check your connection and try again.');
       setStep('loading');
     }
-  }, [hasCredentials, supabase]);
+  }, [hasCredentials]);
 
   // Run flow determination when modal opens (once only)
   useEffect(() => {
@@ -134,7 +136,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   // Legacy handlers (for users who haven't migrated yet)
   const handleLegacySetupComplete = async () => {
     try {
-      const { data } = await supabase.functions.invoke('security-question', {
+      const { data } = await supabaseRef.current.functions.invoke('security-question', {
         body: { action: 'get' },
       });
       if (data?.question) {
