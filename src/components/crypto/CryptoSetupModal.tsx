@@ -85,9 +85,6 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     setStep('loading');
     setError(null);
     try {
-      // Silent restore from cached session (avoids verify UI after navigation)
-      if (await initializeKeys()) return; // isInitialized effect will call onComplete
-
       if (await hasCredentials()) {
         setStep('verify-biometric');
         return;
@@ -106,7 +103,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
       setError('Unable to check your encryption status. Please check your connection and try again.');
       setStep('loading');
     }
-  }, [hasCredentials, initializeKeys, supabase]);
+  }, [hasCredentials, supabase]);
 
   // Run flow determination when modal opens
   useEffect(() => {
