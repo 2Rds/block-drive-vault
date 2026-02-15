@@ -11,7 +11,7 @@
  * 4. Wallet is created via getOrCreateWallet() and linked to user's 'sub' (Clerk user ID)
  */
 
-import React, { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
+import React, { useEffect, useState, useCallback, useRef, createContext, useContext, Component } from 'react';
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import {
   CrossmintProvider as CrossmintSDKProvider,
@@ -23,18 +23,31 @@ import { crossmintConfig, validateCrossmintConfig } from '@/config/crossmint';
 import { syncCrossmintWallet } from '@/services/crossmint/walletSync';
 import { createWalletServerSide } from '@/services/crossmint/serverWalletService';
 
-// Context for server-created wallet (when SDK fails)
-interface ServerWalletContextType {
+// Context for wallet data (SDK wallet + server-side fallback)
+export interface CrossmintWalletContextType {
+  sdkWallet: { address: string } | null;
   serverWalletAddress: string | null;
   isCreatingServerWallet: boolean;
+  isSDKActive: boolean;
 }
 
-const ServerWalletContext = createContext<ServerWalletContextType>({
+const CrossmintWalletContext = createContext<CrossmintWalletContextType>({
+  sdkWallet: null,
   serverWalletAddress: null,
   isCreatingServerWallet: false,
+  isSDKActive: false,
 });
 
-export const useServerWallet = () => useContext(ServerWalletContext);
+export const useCrossmintWalletContext = () => useContext(CrossmintWalletContext);
+
+// Legacy export for compatibility
+export const useServerWallet = () => {
+  const ctx = useContext(CrossmintWalletContext);
+  return {
+    serverWalletAddress: ctx.serverWalletAddress,
+    isCreatingServerWallet: ctx.isCreatingServerWallet,
+  };
+};
 
 // Check if Crossmint is properly configured at module load
 const crossmintValidation = validateCrossmintConfig();
@@ -47,6 +60,31 @@ if (!isCrossmintConfigured) {
 
 interface CrossmintProviderProps {
   children: React.ReactNode;
+}
+
+/**
+ * Error boundary that catches Crossmint SDK crashes and falls back gracefully.
+ */
+class CrossmintSDKBoundary extends Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[Crossmint] SDK crashed during render:', error.message);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
 }
 
 /**
@@ -78,22 +116,18 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   }, [status, wallet, hasSetJwt, isSignedIn]);
 
   // Get user identifier for Crossmint wallet creation
-  // Tries email first, falls back to Clerk user ID-based identifier
   const getUserIdentifier = useCallback((): string | null => {
     if (!user) return null;
 
-    // Try primary email first
     if (user.primaryEmailAddress?.emailAddress) {
       return user.primaryEmailAddress.emailAddress;
     }
 
-    // Try email addresses array
     if (user.emailAddresses && user.emailAddresses.length > 0) {
       const email = user.emailAddresses[0]?.emailAddress;
       if (email) return email;
     }
 
-    // Try external accounts (OAuth providers like GitHub/Google)
     if (user.externalAccounts && user.externalAccounts.length > 0) {
       for (const account of user.externalAccounts) {
         const accountData = account as Record<string, unknown>;
@@ -103,11 +137,8 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Fallback: use Clerk user ID as a deterministic identifier
-    // This handles Web3 wallet sign-ins without email
     if (user.id) {
-      const fallbackEmail = `${user.id}@blockdrive.clerk`;
-      return fallbackEmail;
+      return `${user.id}@blockdrive.clerk`;
     }
 
     return null;
@@ -120,12 +151,10 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     const passJwtToCrossmint = async () => {
       try {
         const clerkToken = await getToken();
-
         if (!clerkToken) {
           console.warn('[Crossmint] No Clerk token available');
           return;
         }
-
         console.log('[Crossmint] Setting JWT for Crossmint SDK');
         setJwt(clerkToken);
         setHasSetJwt(true);
@@ -161,7 +190,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
         console.log('[Crossmint] getOrCreateWallet completed');
       } catch (error) {
         console.error('[Crossmint] Error creating wallet:', error);
-        walletCreationAttempted.current = false; // Allow retry on error
+        walletCreationAttempted.current = false;
       } finally {
         setIsCreatingWallet(false);
       }
@@ -173,14 +202,12 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   // Fallback: Server-side wallet creation when SDK doesn't produce a wallet in time
   useEffect(() => {
     if (!hasSetJwt || !user || serverWalletAttempted.current || isCreatingServerWallet) return;
-    if (wallet || serverWalletAddress) return; // Already have a wallet
+    if (wallet || serverWalletAddress) return;
 
     const identifier = getUserIdentifier();
     if (!identifier) return;
 
-    // Give SDK 5 seconds to create wallet, then fall back to server-side
     const timeoutId = setTimeout(async () => {
-      // Re-check: if SDK created wallet while we waited, skip
       if (wallet || serverWalletAddress) return;
 
       serverWalletAttempted.current = true;
@@ -216,7 +243,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [hasSetJwt, user, wallet, serverWalletAddress, getUserIdentifier, getToken, isCreatingServerWallet]);
 
-  // Sync wallet to Supabase when created (SDK or server-side)
+  // Sync wallet to Supabase when created
   useEffect(() => {
     const walletToSync = wallet?.address || serverWalletAddress;
     if (!walletToSync || !user) return;
@@ -229,9 +256,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
         await syncCrossmintWallet({
           clerkUserId: user.id,
           walletId: walletToSync,
-          addresses: {
-            solana: walletToSync,
-          },
+          addresses: { solana: walletToSync },
           token,
         });
       } catch (error) {
@@ -242,7 +267,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     syncWallet();
   }, [wallet, serverWalletAddress, user, getToken]);
 
-  // Clear JWT and wallet state when user signs out
+  // Clear state on sign out
   useEffect(() => {
     if (!isSignedIn && hasSetJwt) {
       setJwt(undefined);
@@ -253,29 +278,57 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     }
   }, [isSignedIn, hasSetJwt, setJwt]);
 
+  const ctxValue: CrossmintWalletContextType = {
+    sdkWallet: wallet ? { address: wallet.address } : null,
+    serverWalletAddress,
+    isCreatingServerWallet,
+    isSDKActive: true,
+  };
+
   return (
-    <ServerWalletContext.Provider value={{ serverWalletAddress, isCreatingServerWallet }}>
+    <CrossmintWalletContext.Provider value={ctxValue}>
       {children}
-    </ServerWalletContext.Provider>
+    </CrossmintWalletContext.Provider>
   );
 }
 
 export function CrossmintProvider({ children }: CrossmintProviderProps) {
-  // Skip Crossmint entirely if API key not configured
-  if (!isCrossmintConfigured) {
-    return <>{children}</>;
+  const { isSignedIn } = useClerkAuth();
+
+  // Default context when SDK not active
+  const defaultCtx: CrossmintWalletContextType = {
+    sdkWallet: null,
+    serverWalletAddress: null,
+    isCreatingServerWallet: false,
+    isSDKActive: false,
+  };
+
+  // Skip Crossmint if not configured or user not signed in
+  if (!isCrossmintConfigured || !isSignedIn) {
+    return (
+      <CrossmintWalletContext.Provider value={defaultCtx}>
+        {children}
+      </CrossmintWalletContext.Provider>
+    );
   }
 
-  // Always wrap with SDK providers so useWallet() doesn't throw.
-  // The handler effects guard on isSignedIn before taking any action.
+  // Fallback UI when SDK crashes — render children with default context
+  const fallback = (
+    <CrossmintWalletContext.Provider value={defaultCtx}>
+      {children}
+    </CrossmintWalletContext.Provider>
+  );
+
   return (
-    <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
-      <CrossmintWalletProvider>
-        <CrossmintWalletHandler>
-          {children}
-        </CrossmintWalletHandler>
-      </CrossmintWalletProvider>
-    </CrossmintSDKProvider>
+    <CrossmintSDKBoundary fallback={fallback}>
+      <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
+        <CrossmintWalletProvider>
+          <CrossmintWalletHandler>
+            {children}
+          </CrossmintWalletHandler>
+        </CrossmintWalletProvider>
+      </CrossmintSDKProvider>
+    </CrossmintSDKBoundary>
   );
 }
 

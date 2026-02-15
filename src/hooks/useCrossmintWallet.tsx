@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { useWallet, SolanaWallet } from '@crossmint/client-sdk-react-ui';
 import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from '@solana/spl-token';
 import { createSolanaConnection } from '@/config/crossmint';
-import { useServerWallet } from '@/providers/CrossmintProvider';
+import { useCrossmintWalletContext } from '@/providers/CrossmintProvider';
 
 const USDC_MINT_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 const USDC_MINT_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -33,8 +32,7 @@ interface CrossmintWalletState {
 
 export function useCrossmintWallet(): CrossmintWalletState {
   const { isSignedIn } = useAuth();
-  const { wallet } = useWallet(); // Crossmint SDK wallet hook
-  const { serverWalletAddress, isCreatingServerWallet } = useServerWallet(); // Fallback server-side wallet
+  const { sdkWallet, serverWalletAddress, isCreatingServerWallet } = useCrossmintWalletContext();
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [chainAddresses, setChainAddresses] = useState<{
@@ -49,7 +47,7 @@ export function useCrossmintWallet(): CrossmintWalletState {
   const [currentChain, setCurrentChain] = useState<string>('solana:devnet');
 
   useEffect(() => {
-    const effectiveAddress = wallet?.address || serverWalletAddress;
+    const effectiveAddress = sdkWallet?.address || serverWalletAddress;
     if (!isSignedIn || !effectiveAddress || isInitialized) return;
 
     console.log('[useCrossmintWallet] Initializing with address:', effectiveAddress.slice(0, 12));
@@ -66,7 +64,7 @@ export function useCrossmintWallet(): CrossmintWalletState {
     } finally {
       setIsLoading(false);
     }
-  }, [isSignedIn, wallet, serverWalletAddress, isInitialized]);
+  }, [isSignedIn, sdkWallet, serverWalletAddress, isInitialized]);
 
   const signTransaction = useCallback(async (
     transaction: VersionedTransaction
@@ -77,10 +75,8 @@ export function useCrossmintWallet(): CrossmintWalletState {
   const signAndSendTransaction = useCallback(async (
     transaction: VersionedTransaction
   ): Promise<string> => {
-    if (!wallet || !connection) throw new Error('Wallet not initialized');
-    const solanaWallet = SolanaWallet.from(wallet as any);
-    return solanaWallet.sendTransaction({ transaction });
-  }, [wallet, connection]);
+    throw new Error('sendTransaction requires SDK wallet — use server-side signing instead');
+  }, []);
 
   const getBalance = useCallback(async (): Promise<number> => {
     if (!walletAddress || !connection) return 0;
