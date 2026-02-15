@@ -90,11 +90,12 @@ export default function WebAuthnMobileVerify() {
     // ── QR flow: try registration first, fall back to authentication ──
     // On first use, the phone has no credential for blockdrive.co.
     // We register one using the phone's fingerprint, then get an assertion token.
-    // On subsequent uses, registration throws InvalidStateError (credential exists),
-    // so we fall back to standard authentication.
+    // On subsequent uses, registration fails (credential already exists) and we
+    // fall back to standard authentication. We fall through on ANY registration
+    // error except explicit user cancellation, because Android devices sometimes
+    // throw unexpected errors instead of the standard InvalidStateError.
     if (sessionId) {
-      let registrationFailed = false;
-      let isInvalidState = false;
+      let shouldTryAuth = false;
 
       // Step 1: Try to register a new credential on this device
       try {
@@ -125,25 +126,24 @@ export default function WebAuthnMobileVerify() {
         return;
       } catch (regErr) {
         const msg = regErr instanceof Error ? regErr.message : String(regErr);
-        isInvalidState = msg.includes('InvalidStateError');
-        registrationFailed = true;
 
-        if (!isInvalidState) {
-          // User cancelled or another non-recoverable error
-          if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
-            setLocalError('Biometric was cancelled. Please try again.');
-          } else {
-            setLocalError(msg || 'Verification failed');
-          }
+        // Only stop on explicit user cancellation — all other errors (InvalidStateError,
+        // credential manager errors, Android quirks) fall through to authentication
+        if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
+          setLocalError('Biometric was cancelled. Please try again.');
           setStatus('error');
           return;
         }
-        // InvalidStateError → device already has a credential, fall through to authenticate
+
+        // Registration failed for non-cancellation reason → try authentication
+        shouldTryAuth = true;
       }
 
-      // Step 2: Device already has a credential — authenticate with it
-      if (registrationFailed && isInvalidState) {
+      // Step 2: Registration failed — device likely already has a credential
+      if (shouldTryAuth) {
         setStatus('verifying');
+        clearError();
+        setLocalError(null);
         const result = await authenticateForSession(sessionId);
 
         if (result?.success) {
@@ -151,7 +151,7 @@ export default function WebAuthnMobileVerify() {
           return;
         }
 
-        setLocalError(error || 'Authentication failed');
+        setLocalError(error || 'Verification failed. Please try again.');
         setStatus('error');
         return;
       }
