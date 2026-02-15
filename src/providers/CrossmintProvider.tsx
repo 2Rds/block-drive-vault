@@ -15,12 +15,11 @@ import React, { useEffect, useState, useCallback, useRef, createContext, useCont
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import {
   CrossmintProvider as CrossmintSDKProvider,
-  CrossmintAuthProvider,
   CrossmintWalletProvider,
   useCrossmint,
   useWallet,
 } from '@crossmint/client-sdk-react-ui';
-import { crossmintConfig, validateCrossmintConfig, getCurrentChain } from '@/config/crossmint';
+import { crossmintConfig, validateCrossmintConfig } from '@/config/crossmint';
 import { syncCrossmintWallet } from '@/services/crossmint/walletSync';
 import { createWalletServerSide } from '@/services/crossmint/serverWalletService';
 
@@ -320,13 +319,11 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
     <WalletAddressContext.Provider value={{ walletAddress, setWalletAddress }}>
       <CrossmintErrorBoundary fallback={<>{children}</>}>
         <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
-          <CrossmintAuthProvider>
-            <CrossmintWalletProvider defaultChain="solana">
-              <CrossmintWalletHandler>
-                {children}
-              </CrossmintWalletHandler>
-            </CrossmintWalletProvider>
-          </CrossmintAuthProvider>
+          <CrossmintWalletProvider defaultChain="solana">
+            <CrossmintWalletHandler>
+              {children}
+            </CrossmintWalletHandler>
+          </CrossmintWalletProvider>
         </CrossmintSDKProvider>
       </CrossmintErrorBoundary>
     </WalletAddressContext.Provider>
