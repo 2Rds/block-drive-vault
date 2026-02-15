@@ -23,13 +23,17 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  // Guard: prevent createSession from running more than once per mount
+  const sessionCreatedRef = useRef(false);
 
-  // ── Primary: Realtime broadcast listener (this is what worked before) ──
+  // ── Primary: Realtime broadcast listener ──
   const channelName = sessionId ? `webauthn:${sessionId}` : null;
 
   const handleRealtimeMessage = useCallback((payload: Record<string, unknown>) => {
     const data = payload as unknown as QRAuthCompletedPayload;
+    console.log('[QR] Realtime message received:', data.event, !!data.assertionToken);
     if (data.event === 'auth_completed' && data.assertionToken && !completedRef.current) {
+      console.log('[QR] Completing via Realtime broadcast');
       completedRef.current = true;
       onCompleteRef.current(data.assertionToken);
     }
@@ -41,6 +45,7 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
   useEffect(() => {
     if (!sessionId) return;
     completedRef.current = false;
+    console.log('[QR] Polling started for session:', sessionId);
 
     const intervalId = window.setInterval(async () => {
       if (completedRef.current) return;
@@ -54,9 +59,13 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
           },
           body: JSON.stringify({ action: 'check-session-status', session_id: sessionId }),
         });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          console.warn('[QR] Poll response not ok:', resp.status);
+          return;
+        }
         const data = await resp.json();
         if (data?.completed && data?.assertion_token && !completedRef.current) {
+          console.log('[QR] Completing via polling');
           completedRef.current = true;
           window.clearInterval(intervalId);
           onCompleteRef.current(data.assertion_token);
@@ -66,25 +75,39 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
       }
     }, 3000);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      console.log('[QR] Polling stopped for session:', sessionId);
+      window.clearInterval(intervalId);
+    };
   }, [sessionId]);
 
-  // Create QR session on mount
-  const createSession = useCallback(async () => {
+  // Create QR session — runs once on mount, or when user clicks "Generate New QR Code"
+  const createSession = useCallback(async (manual = false) => {
+    // Guard: only allow one automatic session creation per mount.
+    // Manual refresh (expired QR) is always allowed.
+    if (!manual && sessionCreatedRef.current) {
+      console.log('[QR] createSession skipped (already created)');
+      return;
+    }
+    sessionCreatedRef.current = true;
+
     setIsLoading(true);
     completedRef.current = false;
+    console.log('[QR] Creating new QR session...');
     const session = await startQRSession();
     if (session) {
+      console.log('[QR] Session created:', session.sessionId);
       setQrUrl(session.qrUrl);
       setSessionId(session.sessionId);
       setSecondsLeft(QR_EXPIRY_SECONDS);
+    } else {
+      console.error('[QR] Failed to create session');
     }
     setIsLoading(false);
   }, [startQRSession]);
 
-  useEffect(() => {
-    createSession();
-  }, [createSession]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { createSession(); }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -158,7 +181,7 @@ export function WebAuthnQRFlow({ onComplete, onBack }: WebAuthnQRFlowProps) {
           <div className="flex flex-col items-center gap-4 py-4">
             <QrCode className="w-12 h-12 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">QR code expired</p>
-            <Button variant="outline" onClick={createSession}>
+            <Button variant="outline" onClick={() => createSession(true)}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Generate New QR Code
             </Button>
