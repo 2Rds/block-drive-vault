@@ -313,8 +313,9 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     const cached = _getCachedSession();
     if (cached) {
       _autoRestoreAttempted = true;
-      initializeKeys().catch(() => {
-        _autoRestoreAttempted = false;
+      // Use .then() — initializeKeys never rejects; it returns false on failure
+      initializeKeys().then(success => {
+        if (!success) _autoRestoreAttempted = false;
       });
       return;
     }
@@ -323,8 +324,8 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     const storedHash = _getStoredHash();
     if (storedHash) {
       _autoRestoreAttempted = true;
-      initializeKeys(storedHash).catch(() => {
-        _autoRestoreAttempted = false;
+      initializeKeys(storedHash).then(success => {
+        if (!success) _autoRestoreAttempted = false;
       });
     }
   }, [hasAnyWallet, initializeKeys]);

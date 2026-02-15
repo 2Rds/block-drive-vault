@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Fingerprint, QrCode, Mail, Loader2 } from 'lucide-react';
+import { ShieldCheck, QrCode, Mail, Loader2, Fingerprint } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { WebAuthnQRFlow } from './WebAuthnQRFlow';
 import { WebAuthnEmailFallback } from './WebAuthnEmailFallback';
@@ -74,7 +74,7 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
         </div>
       )}
 
-      {/* Primary: Direct biometric on this device */}
+      {/* Primary: Device passkey (Windows Hello / Touch ID / PIN) */}
       {isSupported && (
         <Button
           onClick={handleDirectAuth}
@@ -84,12 +84,12 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
           {isAuthenticating ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Waiting for biometric...
+              Waiting for passkey...
             </>
           ) : (
             <>
-              <Fingerprint className="w-5 h-5 mr-2" />
-              Verify with Biometric
+              <ShieldCheck className="w-5 h-5 mr-2" />
+              Unlock with Device Passkey
             </>
           )}
         </Button>
@@ -104,15 +104,15 @@ export function WebAuthnVerify({ onVerified, error: externalError }: WebAuthnVer
         </div>
       </div>
 
-      {/* Secondary: QR code for mobile */}
+      {/* Secondary: QR code → phone fingerprint biometric */}
       <Button
         variant="outline"
         onClick={() => { setMode('qr'); clearError(); }}
         disabled={isAuthenticating}
         className="w-full"
       >
-        <QrCode className="w-4 h-4 mr-2" />
-        Scan QR Code with Phone
+        <Fingerprint className="w-4 h-4 mr-2" />
+        Verify with Phone Fingerprint
       </Button>
 
       {/* Tertiary: Email fallback */}
