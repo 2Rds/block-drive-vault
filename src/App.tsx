@@ -14,6 +14,7 @@ import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingScreen } from "./components/LoadingScreen";
+import { CrossmintProvider } from "./providers/CrossmintProvider";
 
 const ClerkProtectedRoute = lazy(() =>
   import("./components/auth/ClerkProtectedRoute").then(m => ({ default: m.ClerkProtectedRoute }))
@@ -100,6 +101,7 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<LoadingScreen />}>
             <ClerkAuthProvider>
+            <CrossmintProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/sign-in/*" element={<SignIn />} />
@@ -171,6 +173,7 @@ function App() {
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+            </CrossmintProvider>
             </ClerkAuthProvider>
           </Suspense>
         </BrowserRouter>
