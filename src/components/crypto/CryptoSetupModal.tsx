@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -80,7 +80,13 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   }, [isOpen, handleWebAuthnVerified]);
 
-  // Determine which flow to show (WebAuthn, legacy security question, or first-time setup)
+  // Determine which flow to show (WebAuthn, legacy security question, or first-time setup).
+  // Uses a ref to ensure this only runs once per modal open — not when supabase/deps change.
+  // Without this guard, Clerk token refreshes (~60s) cause supabase to change, which
+  // re-triggers determineFlow, which calls setStep('loading'), which UNMOUNTS the QR flow
+  // mid-session and destroys the polling interval + session_id.
+  const flowDeterminedRef = useRef(false);
+
   const determineFlow = useCallback(async () => {
     setStep('loading');
     setError(null);
@@ -93,6 +99,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
       const hasWebAuthn = await hasCredentials();
       if (hasWebAuthn) {
         setStep('verify-biometric');
+        flowDeterminedRef.current = true;
         return;
       }
 
@@ -105,6 +112,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
         setQuestionText(data.question);
       }
       setStep('setup-biometric');
+      flowDeterminedRef.current = true;
     } catch (err) {
       console.error('[CryptoSetupModal] Failed to determine flow:', err);
       setError('Unable to check your encryption status. Please check your connection and try again.');
@@ -112,10 +120,14 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   }, [hasCredentials, supabase]);
 
-  // Run flow determination when modal opens
+  // Run flow determination when modal opens (once only)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      flowDeterminedRef.current = false; // Reset when modal closes
+      return;
+    }
     if (state.isInitialized) return;
+    if (flowDeterminedRef.current) return; // Already determined — don't re-run
     determineFlow();
   }, [isOpen, state.isInitialized, determineFlow]);
 
