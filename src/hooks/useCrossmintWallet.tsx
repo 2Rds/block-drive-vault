@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { useWallet } from '@crossmint/client-sdk-react-ui';
-import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { useWallet, SolanaWallet } from '@crossmint/client-sdk-react-ui';
+import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, getAccount, TokenAccountNotFoundError } from '@solana/spl-token';
 import { createSolanaConnection } from '@/config/crossmint';
 import { useServerWallet } from '@/providers/CrossmintProvider';
@@ -23,8 +23,8 @@ interface CrossmintWalletState {
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;
-  signTransaction: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>;
-  signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>;
+  signTransaction: (tx: VersionedTransaction) => Promise<VersionedTransaction>;
+  signAndSendTransaction: (tx: VersionedTransaction) => Promise<string>;
   getBalance: () => Promise<number>;
   getUsdcBalance: () => Promise<number>;
   switchChain: (chain: string) => Promise<void>;
@@ -69,18 +69,17 @@ export function useCrossmintWallet(): CrossmintWalletState {
   }, [isSignedIn, wallet, serverWalletAddress, isInitialized]);
 
   const signTransaction = useCallback(async (
-    transaction: Transaction | VersionedTransaction
-  ): Promise<Transaction | VersionedTransaction> => {
-    if (!wallet) throw new Error('Wallet not initialized');
-    const signed = await wallet.sign(transaction);
-    return signed as Transaction | VersionedTransaction;
-  }, [wallet]);
+    transaction: VersionedTransaction
+  ): Promise<VersionedTransaction> => {
+    throw new Error('Sign-only not supported by Crossmint Smart Wallets. Use signAndSendTransaction.');
+  }, []);
 
   const signAndSendTransaction = useCallback(async (
-    transaction: Transaction | VersionedTransaction
+    transaction: VersionedTransaction
   ): Promise<string> => {
     if (!wallet || !connection) throw new Error('Wallet not initialized');
-    return wallet.sendTransaction(transaction);
+    const solanaWallet = SolanaWallet.from(wallet as any);
+    return solanaWallet.sendTransaction({ transaction });
   }, [wallet, connection]);
 
   const getBalance = useCallback(async (): Promise<number> => {

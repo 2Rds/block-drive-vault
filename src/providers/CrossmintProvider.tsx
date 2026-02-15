@@ -56,7 +56,7 @@ interface CrossmintProviderProps {
 function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   const { getToken, isSignedIn } = useClerkAuth();
   const { user } = useUser();
-  const { setJwt, jwt } = useCrossmint();
+  const { crossmint, setJwt } = useCrossmint();
   const { getOrCreateWallet, wallet, status } = useWallet();
   const [hasSetJwt, setHasSetJwt] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
@@ -139,7 +139,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
 
   // Step 2: Create Crossmint embedded wallet once JWT is set
   useEffect(() => {
-    if (!hasSetJwt || !jwt || isCreatingWallet || walletCreationAttempted.current) return;
+    if (!hasSetJwt || !crossmint.jwt || isCreatingWallet || walletCreationAttempted.current) return;
     if (wallet) return;
 
     const identifier = getUserIdentifier();
@@ -168,7 +168,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
     };
 
     createWallet();
-  }, [hasSetJwt, jwt, wallet, status, getUserIdentifier, getOrCreateWallet, isCreatingWallet]);
+  }, [hasSetJwt, crossmint.jwt, wallet, status, getUserIdentifier, getOrCreateWallet, isCreatingWallet]);
 
   // Fallback: Server-side wallet creation when SDK doesn't produce a wallet in time
   useEffect(() => {
@@ -228,7 +228,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
 
         await syncCrossmintWallet({
           clerkUserId: user.id,
-          walletId: wallet?.id || walletToSync,
+          walletId: walletToSync,
           addresses: {
             solana: walletToSync,
           },
@@ -245,7 +245,7 @@ function CrossmintWalletHandler({ children }: { children: React.ReactNode }) {
   // Clear JWT and wallet state when user signs out
   useEffect(() => {
     if (!isSignedIn && hasSetJwt) {
-      setJwt(null as any);
+      setJwt(undefined);
       setHasSetJwt(false);
       walletCreationAttempted.current = false;
       serverWalletAttempted.current = false;
@@ -270,7 +270,7 @@ export function CrossmintProvider({ children }: CrossmintProviderProps) {
 
   return (
     <CrossmintSDKProvider apiKey={crossmintConfig.apiKey}>
-      <CrossmintWalletProvider defaultChain="solana">
+      <CrossmintWalletProvider>
         <CrossmintWalletHandler>
           {children}
         </CrossmintWalletHandler>
