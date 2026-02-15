@@ -200,9 +200,8 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     const walletAddress = crossmintWallet.walletAddress || walletData?.address || '';
 
     // Check if we can restore from cached key materials (no server call needed)
-    // _getCachedSession() already checks expiry, so non-null means valid
     const cached = _getCachedSession();
-    const hasCachedMaterials = cached && cached.w === walletAddress;
+    const hasCachedMaterials = cached && cached.w === walletAddress && Date.now() < cached.e;
 
     // Resolve credentials — only needed when there's no cached session
     if (!hasCachedMaterials) {
@@ -309,16 +308,26 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
     if (_autoRestoreAttempted) return;
 
-    // Determine restore strategy: cached key materials (no server call) or legacy answer hash
+    // Try cached key materials first (works for both WebAuthn and legacy users,
+    // avoids server round-trip on navigation)
     const cached = _getCachedSession();
-    const storedHash = !cached ? _getStoredHash() : null;
-    if (!cached && !storedHash) return;
+    if (cached) {
+      _autoRestoreAttempted = true;
+      // Use .then() — initializeKeys never rejects; it returns false on failure
+      initializeKeys().then(success => {
+        if (!success) _autoRestoreAttempted = false;
+      });
+      return;
+    }
 
-    _autoRestoreAttempted = true;
-    // initializeKeys never rejects — returns false on failure
-    initializeKeys(storedHash ?? undefined).then(success => {
-      if (!success) _autoRestoreAttempted = false;
-    });
+    // Legacy: try answer_hash from sessionStorage (reusable, requires server call)
+    const storedHash = _getStoredHash();
+    if (storedHash) {
+      _autoRestoreAttempted = true;
+      initializeKeys(storedHash).then(success => {
+        if (!success) _autoRestoreAttempted = false;
+      });
+    }
   }, [hasAnyWallet, initializeKeys]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {

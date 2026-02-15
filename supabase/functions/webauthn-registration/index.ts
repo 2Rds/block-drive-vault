@@ -24,105 +24,6 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-// deno-lint-ignore no-explicit-any
-type SupabaseClient = any;
-
-/** Resolve clerk_user_id from a QR session_id (the session was created by the authenticated desktop user). */
-async function getUserIdFromSession(supabase: SupabaseClient, sessionId: string): Promise<string> {
-  const { data, error } = await supabase
-    .from('webauthn_challenges')
-    .select('clerk_user_id')
-    .eq('session_id', sessionId)
-    .eq('challenge_type', 'authentication')
-    .maybeSingle();
-  if (error || !data) throw new Error('Invalid or expired session');
-  return data.clerk_user_id;
-}
-
-/** Generate registration options for a user, excluding their existing credentials. */
-async function buildRegistrationOptions(supabase: SupabaseClient, userId: string, userName: string) {
-  const { data: existingCreds } = await supabase
-    .from('webauthn_credentials')
-    .select('credential_id')
-    .eq('clerk_user_id', userId);
-
-  const options = await generateRegistrationOptions({
-    rpName: RP_NAME,
-    rpID: RP_ID,
-    userName,
-    attestationType: 'none',
-    excludeCredentials: (existingCreds || []).map((c: { credential_id: string }) => ({ id: c.credential_id })),
-    authenticatorSelection: {
-      residentKey: 'preferred',
-      userVerification: 'required',
-    },
-  });
-
-  return options;
-}
-
-/** Verify attestation against a stored challenge and persist the new credential. */
-async function verifyAndStoreCredential(
-  supabase: SupabaseClient,
-  userId: string,
-  attestation: RegistrationResponseJSON,
-  deviceName: string,
-  challengeFilter?: { session_id?: string },
-) {
-  // Find the latest registration challenge matching the filters
-  let query = supabase
-    .from('webauthn_challenges')
-    .select('*')
-    .eq('clerk_user_id', userId)
-    .eq('challenge_type', 'registration');
-  if (challengeFilter?.session_id) {
-    query = query.eq('session_id', challengeFilter.session_id);
-  }
-  const { data: challengeRow, error: challengeErr } = await query
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (challengeErr || !challengeRow) throw new Error('No registration challenge found');
-  if (new Date(challengeRow.expires_at) < new Date()) throw new Error('Challenge expired');
-
-  let verification;
-  try {
-    verification = await verifyRegistrationResponse({
-      response: attestation,
-      expectedChallenge: challengeRow.challenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
-    });
-  } catch (verifyErr) {
-    console.error('[webauthn-registration] verifyRegistrationResponse threw:', verifyErr);
-    throw new Error(`Verification error: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`);
-  }
-
-  if (!verification.verified || !verification.registrationInfo) {
-    throw new Error('Registration verification failed');
-  }
-
-  const { credential, credentialDeviceType } = verification.registrationInfo;
-
-  const { error: insertErr } = await supabase
-    .from('webauthn_credentials')
-    .insert({
-      clerk_user_id: userId,
-      credential_id: credential.id,
-      public_key: uint8ArrayToBase64(credential.publicKey),
-      counter: credential.counter,
-      device_type: credentialDeviceType === 'singleDevice' ? 'platform' : 'cross-platform',
-      device_name: deviceName,
-    });
-  if (insertErr) throw new Error(`Failed to store credential: ${insertErr.message}`);
-
-  // Clean up the used challenge
-  await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
-
-  return credential;
-}
-
 serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
@@ -133,14 +34,43 @@ serve(async (req) => {
     const { action } = body;
 
     // ── Session-based registration (mobile QR flow — Clerk auth NOT required) ──
+    // The session_id was created by the authenticated desktop user and serves as
+    // proof that this registration is authorized.
 
     if (action === 'generate-options-for-session') {
       const { session_id } = body;
       if (!session_id) throw new Error('Missing session_id');
 
-      const targetUserId = await getUserIdFromSession(supabase, session_id);
-      const options = await buildRegistrationOptions(supabase, targetUserId, targetUserId);
+      // Resolve user from the QR session (created by authenticated desktop user)
+      const { data: sessionRow, error: sessionErr } = await supabase
+        .from('webauthn_challenges')
+        .select('clerk_user_id')
+        .eq('session_id', session_id)
+        .eq('challenge_type', 'authentication')
+        .maybeSingle();
 
+      if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
+      const targetUserId = sessionRow.clerk_user_id;
+
+      // Get existing credentials to exclude (prevent duplicate per-device registration)
+      const { data: existingCreds } = await supabase
+        .from('webauthn_credentials')
+        .select('credential_id')
+        .eq('clerk_user_id', targetUserId);
+
+      const options = await generateRegistrationOptions({
+        rpName: RP_NAME,
+        rpID: RP_ID,
+        userName: targetUserId,
+        attestationType: 'none',
+        excludeCredentials: (existingCreds || []).map(c => ({ id: c.credential_id })),
+        authenticatorSelection: {
+          residentKey: 'preferred',
+          userVerification: 'required',
+        },
+      });
+
+      // Store challenge linked to session
       const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
         clerk_user_id: targetUserId,
         challenge: options.challenge,
@@ -160,10 +90,66 @@ serve(async (req) => {
       };
       if (!session_id || !attestation) throw new Error('Missing session_id or attestation');
 
-      const targetUserId = await getUserIdFromSession(supabase, session_id);
-      const credential = await verifyAndStoreCredential(
-        supabase, targetUserId, attestation, 'Mobile Device (QR)', { session_id }
-      );
+      // Resolve user from the QR session
+      const { data: sessionRow, error: sessionErr } = await supabase
+        .from('webauthn_challenges')
+        .select('clerk_user_id')
+        .eq('session_id', session_id)
+        .eq('challenge_type', 'authentication')
+        .maybeSingle();
+
+      if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
+      const targetUserId = sessionRow.clerk_user_id;
+
+      // Get the registration challenge for this session
+      const { data: challengeRow, error: challengeErr } = await supabase
+        .from('webauthn_challenges')
+        .select('*')
+        .eq('clerk_user_id', targetUserId)
+        .eq('challenge_type', 'registration')
+        .eq('session_id', session_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (challengeErr || !challengeRow) throw new Error('No registration challenge found');
+      if (new Date(challengeRow.expires_at) < new Date()) throw new Error('Challenge expired');
+
+      let verification;
+      try {
+        verification = await verifyRegistrationResponse({
+          response: attestation,
+          expectedChallenge: challengeRow.challenge,
+          expectedOrigin: ORIGIN,
+          expectedRPID: RP_ID,
+        });
+      } catch (verifyErr) {
+        console.error('[webauthn-registration] session verify threw:', verifyErr);
+        throw new Error(`Verification error: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`);
+      }
+
+      if (!verification.verified || !verification.registrationInfo) {
+        throw new Error('Registration verification failed');
+      }
+
+      const { credential, credentialDeviceType } = verification.registrationInfo;
+
+      // Store the credential
+      const { error: insertErr } = await supabase
+        .from('webauthn_credentials')
+        .insert({
+          clerk_user_id: targetUserId,
+          credential_id: credential.id,
+          public_key: uint8ArrayToBase64(credential.publicKey),
+          counter: credential.counter,
+          device_type: credentialDeviceType === 'singleDevice' ? 'platform' : 'cross-platform',
+          device_name: 'Mobile Device (QR)',
+        });
+
+      if (insertErr) throw new Error(`Failed to store credential: ${insertErr.message}`);
+
+      // Clean up registration challenge
+      await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
 
       // Generate assertion token (proves biometric was used — same as authentication flow)
       const assertionToken = crypto.randomUUID();
@@ -184,11 +170,33 @@ serve(async (req) => {
     // ── Standard actions (require Clerk auth) ──
     const clerkUserId = getClerkUserId(req);
 
+    // ── Generate registration options ──
     if (action === 'generate-options') {
       const { device_name } = body;
-      const userEmail = getClerkUserEmail(req) || clerkUserId;
-      const options = await buildRegistrationOptions(supabase, clerkUserId, userEmail);
 
+      // Get existing credentials to exclude (prevent duplicate registrations)
+      const { data: existingCreds } = await supabase
+        .from('webauthn_credentials')
+        .select('credential_id')
+        .eq('clerk_user_id', clerkUserId);
+
+      const userEmail = getClerkUserEmail(req) || clerkUserId;
+
+      const options = await generateRegistrationOptions({
+        rpName: RP_NAME,
+        rpID: RP_ID,
+        userName: userEmail,
+        attestationType: 'none',
+        excludeCredentials: (existingCreds || []).map(c => ({
+          id: c.credential_id,
+        })),
+        authenticatorSelection: {
+          residentKey: 'preferred',
+          userVerification: 'required',
+        },
+      });
+
+      // Store challenge for verification
       const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
         clerk_user_id: clerkUserId,
         challenge: options.challenge,
@@ -200,16 +208,64 @@ serve(async (req) => {
       return successResponse({ options, device_name });
     }
 
+    // ── Verify registration response ──
     if (action === 'verify-registration') {
       const { attestation, device_name } = body as {
         attestation: RegistrationResponseJSON;
         device_name?: string;
       };
+
       if (!attestation) throw new Error('Missing attestation response');
 
-      const credential = await verifyAndStoreCredential(
-        supabase, clerkUserId, attestation, device_name || 'Unknown Device'
-      );
+      // Get the latest challenge for this user
+      const { data: challengeRow, error: challengeErr } = await supabase
+        .from('webauthn_challenges')
+        .select('*')
+        .eq('clerk_user_id', clerkUserId)
+        .eq('challenge_type', 'registration')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (challengeErr || !challengeRow) throw new Error('No registration challenge found');
+      if (new Date(challengeRow.expires_at) < new Date()) throw new Error('Challenge expired');
+
+      let verification;
+      try {
+        verification = await verifyRegistrationResponse({
+          response: attestation,
+          expectedChallenge: challengeRow.challenge,
+          expectedOrigin: ORIGIN,
+          expectedRPID: RP_ID,
+        });
+      } catch (verifyErr) {
+        console.error('[webauthn-registration] verifyRegistrationResponse threw:', verifyErr);
+        throw new Error(`Verification error: ${verifyErr instanceof Error ? verifyErr.message : String(verifyErr)}`);
+      }
+
+      if (!verification.verified || !verification.registrationInfo) {
+        throw new Error('Registration verification failed');
+      }
+
+      const { credential, credentialDeviceType } = verification.registrationInfo;
+
+      // Store the credential
+      const { error: insertErr } = await supabase
+        .from('webauthn_credentials')
+        .insert({
+          clerk_user_id: clerkUserId,
+          credential_id: credential.id,
+          public_key: uint8ArrayToBase64(credential.publicKey),
+          counter: credential.counter,
+          device_type: credentialDeviceType === 'singleDevice' ? 'platform' : 'cross-platform',
+          device_name: device_name || 'Unknown Device',
+        });
+
+      if (insertErr) throw new Error(`Failed to store credential: ${insertErr.message}`);
+
+      // Clean up challenge (non-critical — expired challenges are cleaned up separately)
+      const { error: deleteErr } = await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
+      if (deleteErr) console.error('[webauthn-registration] Challenge delete failed:', deleteErr);
 
       return successResponse({ credential_id: credential.id });
     }

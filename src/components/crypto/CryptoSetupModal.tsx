@@ -85,18 +85,25 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     setStep('loading');
     setError(null);
     try {
-      if (await hasCredentials()) {
+      // Try silent restore from cached session first (avoids showing verify UI
+      // when keys are restorable from sessionStorage after navigation)
+      const restored = await initializeKeys();
+      if (restored) return; // isInitialized effect will fire and call onComplete
+
+      const hasWebAuthn = await hasCredentials();
+      if (hasWebAuthn) {
         setStep('verify-biometric');
         return;
       }
 
-      // No WebAuthn credentials — check for legacy security question
       const { data, error: fnError } = await supabase.functions.invoke('security-question', {
         body: { action: 'get' },
       });
       if (fnError) throw new Error(fnError.message);
 
-      if (data?.hasQuestion) setQuestionText(data.question);
+      if (data?.hasQuestion) {
+        setQuestionText(data.question);
+      }
       setStep('setup-biometric');
     } catch (err) {
       console.error('[CryptoSetupModal] Failed to determine flow:', err);
