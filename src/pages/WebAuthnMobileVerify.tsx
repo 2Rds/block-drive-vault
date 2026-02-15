@@ -18,10 +18,9 @@ export default function WebAuthnMobileVerify() {
 
   // Clean up any pending timeouts/channels on unmount
   useEffect(() => {
-    return () => {
-      cleanupRef.current.forEach(fn => fn());
-    };
+    return () => cleanupRef.current.forEach(fn => fn());
   }, []);
+
   const [status, setStatus] = useState<VerifyStatus>('loading');
   const [localError, setLocalError] = useState<string | null>(null);
   const [broadcastFailed, setBroadcastFailed] = useState(false);
@@ -37,48 +36,35 @@ export default function WebAuthnMobileVerify() {
 
   /** Broadcast the assertion token back to the desktop (QR flow) or original tab (email flow) */
   const broadcastResult = async (assertionToken: string) => {
-    let notifyFailed = false;
+    const payload = { event: 'auth_completed', assertionToken };
+    let failed = false;
 
     if (sessionId) {
       try {
         const channel = supabase.channel(`webauthn:${sessionId}`);
         await channel.subscribe();
-        await channel.send({
-          type: 'broadcast',
-          event: 'message',
-          payload: {
-            event: 'auth_completed',
-            assertionToken,
-          },
-        });
+        await channel.send({ type: 'broadcast', event: 'message', payload });
         const t = setTimeout(() => channel.unsubscribe(), 2000);
-        cleanupRef.current.push(
-          () => { clearTimeout(t); channel.unsubscribe(); }
-        );
+        cleanupRef.current.push(() => { clearTimeout(t); channel.unsubscribe(); });
       } catch (err) {
         console.error('Failed to broadcast auth result:', err);
-        notifyFailed = true;
+        failed = true;
       }
     }
 
     if (emailToken) {
       try {
         const bc = new BroadcastChannel('blockdrive-webauthn');
-        bc.postMessage({
-          event: 'auth_completed',
-          assertionToken,
-        });
+        bc.postMessage(payload);
         const t = setTimeout(() => bc.close(), 2000);
-        cleanupRef.current.push(
-          () => { clearTimeout(t); bc.close(); }
-        );
+        cleanupRef.current.push(() => { clearTimeout(t); bc.close(); });
       } catch (err) {
         console.warn('BroadcastChannel not available:', err);
-        notifyFailed = true;
+        failed = true;
       }
     }
 
-    setBroadcastFailed(notifyFailed);
+    setBroadcastFailed(failed);
     setStatus('success');
   };
 
@@ -87,23 +73,17 @@ export default function WebAuthnMobileVerify() {
     clearError();
     setLocalError(null);
 
-    // ── QR flow: try registration first, fall back to authentication ──
-    // On first use, the phone has no credential for blockdrive.co.
-    // We register one using the phone's fingerprint, then get an assertion token.
-    // On subsequent uses, registration fails (credential already exists) and we
-    // fall back to standard authentication. We fall through on ANY registration
-    // error except explicit user cancellation, because Android devices sometimes
-    // throw unexpected errors instead of the standard InvalidStateError.
+    // ── QR flow: register-first, authenticate-fallback ──
+    // First use: register a fingerprint credential on this phone, get assertion token.
+    // Subsequent uses: registration fails (credential exists), fall back to authentication.
+    // Any registration error except explicit user cancellation falls through to auth,
+    // because Android devices sometimes throw unexpected errors instead of InvalidStateError.
     if (sessionId) {
-      let shouldTryAuth = false;
-
-      // Step 1: Try to register a new credential on this device
       try {
         const { data: regOptions, error: regOptionsErr } = await supabase.functions.invoke(
           'webauthn-registration',
           { body: { action: 'generate-options-for-session', session_id: sessionId } }
         );
-
         if (regOptionsErr || !regOptions?.success) {
           throw new Error(regOptions?.error || 'Failed to get registration options');
         }
@@ -111,50 +91,43 @@ export default function WebAuthnMobileVerify() {
         setStatus('registering');
         const attResp = await startRegistration({ optionsJSON: regOptions.options });
 
-        // Verify registration and get assertion token
         const { data: regVerify, error: regVerifyErr } = await supabase.functions.invoke(
           'webauthn-registration',
           { body: { action: 'verify-registration-for-session', session_id: sessionId, attestation: attResp } }
         );
-
         if (regVerifyErr || !regVerify?.success) {
           throw new Error(regVerify?.error || 'Registration verification failed');
         }
 
-        // Registration succeeded — broadcast assertion token to desktop
         await broadcastResult(regVerify.assertion_token);
         return;
       } catch (regErr) {
         const msg = regErr instanceof Error ? regErr.message : String(regErr);
 
-        // Only stop on explicit user cancellation — all other errors (InvalidStateError,
-        // credential manager errors, Android quirks) fall through to authentication
+        // Explicit user cancellation — stop entirely
         if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
           setLocalError('Biometric was cancelled. Please try again.');
           setStatus('error');
           return;
         }
 
-        // Registration failed for non-cancellation reason → try authentication
-        shouldTryAuth = true;
+        // Any other error — fall through to authentication
       }
 
-      // Step 2: Registration failed — device likely already has a credential
-      if (shouldTryAuth) {
-        setStatus('verifying');
-        clearError();
-        setLocalError(null);
-        const result = await authenticateForSession(sessionId);
+      // Registration failed (credential likely exists) — try authentication
+      setStatus('verifying');
+      clearError();
+      setLocalError(null);
+      const result = await authenticateForSession(sessionId);
 
-        if (result?.success) {
-          await broadcastResult(result.assertionToken);
-          return;
-        }
-
-        setLocalError(error || 'Verification failed. Please try again.');
-        setStatus('error');
+      if (result?.success) {
+        await broadcastResult(result.assertionToken);
         return;
       }
+
+      setLocalError(error || 'Verification failed. Please try again.');
+      setStatus('error');
+      return;
     }
 
     // ── Email token flow: authenticate directly (same device, credential exists) ──

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, QrCode, Mail, Loader2, Fingerprint } from 'lucide-react';
+import { ShieldCheck, Mail, Loader2, Fingerprint } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { WebAuthnQRFlow } from './WebAuthnQRFlow';
 import { WebAuthnEmailFallback } from './WebAuthnEmailFallback';
