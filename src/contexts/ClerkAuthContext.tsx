@@ -66,7 +66,7 @@ interface ClerkAuthContextType {
   signOut: () => Promise<void>;
 }
 
-const ClerkAuthContext = createContext<ClerkAuthContextType | undefined>(undefined);
+export const ClerkAuthContext = createContext<ClerkAuthContextType | undefined>(undefined);
 
 export const useClerkAuth = () => {
   const context = useContext(ClerkAuthContext);

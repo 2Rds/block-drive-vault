@@ -67,7 +67,40 @@ const renderConfigError = (message: string) => {
   );
 };
 
+/**
+ * Render the /verify page standalone — no ClerkProvider needed.
+ * This allows QR-scanned mobile users to complete biometric verification
+ * without having a Clerk session on their phone.
+ */
+async function renderStandaloneVerify() {
+  const { BrowserRouter, Routes, Route } = await import('react-router-dom');
+  const { default: WebAuthnMobileVerify } = await import('./pages/WebAuthnMobileVerify');
+  const { StandaloneAuthProvider } = await import('./contexts/StandaloneAuthProvider');
+
+  const root = createRoot(document.getElementById('root')!, {
+    identifierPrefix: 'blockdrive-',
+  });
+
+  root.render(
+    <React.StrictMode>
+      <StandaloneAuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/verify" element={<WebAuthnMobileVerify />} />
+          </Routes>
+        </BrowserRouter>
+      </StandaloneAuthProvider>
+    </React.StrictMode>
+  );
+}
+
 const initializeApp = async () => {
+  // The /verify page is used by mobile devices scanning QR codes.
+  // These devices don't have a Clerk session, so render it standalone.
+  if (window.location.pathname === '/verify') {
+    return renderStandaloneVerify();
+  }
+
   const publishableKey = await getClerkPublishableKey();
 
   const root = createRoot(document.getElementById('root')!, {
