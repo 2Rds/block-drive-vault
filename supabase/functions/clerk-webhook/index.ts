@@ -245,6 +245,64 @@ async function handleOrganizationCreated(data: ClerkOrganization) {
   console.log(`[clerk-webhook] Organization created: ${data.slug}`);
 }
 
+/**
+ * Defense-in-depth: DB-only org cleanup (no on-chain operations).
+ * If the Worker webhook handler fires first, this is a no-op.
+ * If the Worker webhook fails, this ensures DB records get cleaned.
+ * Both are idempotent.
+ */
+async function handleOrganizationDeleted(data: { id: string }) {
+  const supabase = getSupabaseAdmin();
+  const clerkOrgId = data.id;
+
+  console.log(`[clerk-webhook] Deleting organization ${clerkOrgId}`);
+
+  // Look up internal org ID
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('clerk_org_id', clerkOrgId)
+    .maybeSingle();
+
+  if (orgError || !org) {
+    console.log(`[clerk-webhook] Organization ${clerkOrgId} not found (already deleted?)`);
+    return;
+  }
+
+  // NULL out organization_id on username_nfts (clear FK before org deletion)
+  const { error: nftErr } = await supabase
+    .from('username_nfts')
+    .update({ organization_id: null })
+    .eq('organization_id', org.id);
+
+  if (nftErr) {
+    console.error('[clerk-webhook] Failed to clear username_nfts.organization_id:', nftErr);
+  }
+
+  // NULL out org_subdomain_nft_id on organization_members
+  const { error: memberErr } = await supabase
+    .from('organization_members')
+    .update({ org_username: null, org_subdomain_nft_id: null })
+    .eq('organization_id', org.id);
+
+  if (memberErr) {
+    console.error('[clerk-webhook] Failed to clear organization_members FKs:', memberErr);
+  }
+
+  // Delete organizations row — CASCADEs to members, invites, etc.
+  const { error: deleteErr } = await supabase
+    .from('organizations')
+    .delete()
+    .eq('id', org.id);
+
+  if (deleteErr) {
+    console.error('[clerk-webhook] Organization delete error:', deleteErr);
+    throw deleteErr;
+  }
+
+  console.log(`[clerk-webhook] Organization deleted: ${clerkOrgId}`);
+}
+
 async function handleOrganizationMembershipCreated(data: ClerkOrganizationMembership) {
   const supabase = getSupabaseAdmin();
   const clerkUserId = data.public_user_data.user_id;
@@ -353,6 +411,8 @@ serve(async (req) => {
       await handleUserDeleted(data as { id: string });
     } else if (type === 'organization.created') {
       await handleOrganizationCreated(data as ClerkOrganization);
+    } else if (type === 'organization.deleted') {
+      await handleOrganizationDeleted(data as { id: string });
     } else if (type === 'organizationMembership.created') {
       await handleOrganizationMembershipCreated(data as ClerkOrganizationMembership);
     } else {
