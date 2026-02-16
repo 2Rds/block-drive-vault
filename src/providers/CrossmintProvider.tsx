@@ -1,23 +1,17 @@
 /**
- * Crossmint Provider for BlockDrive
- *
- * Creates Solana wallets via the Crossmint Server API (through our edge function).
- * The Crossmint React SDK has a persistent "Non-base58 character" crash across
- * all tested versions (v2.0.0–v2.6.17), so wallet creation is handled server-side.
+ * Crossmint Provider for BlockDrive — Server-side wallet creation only.
  *
  * Flow:
  * 1. User signs in via Clerk
- * 2. Check if wallet already exists in DB
- * 3. If not, create via edge function → Crossmint Server API
- * 4. Wallet address available to app via context
+ * 2. Check for existing wallet in DB
+ * 3. If none, create via Crossmint Server API (edge function)
  */
 
-import React, { useEffect, useState, useRef, useCallback, createContext, useContext } from 'react';
+import { useEffect, useState, useRef, useCallback, createContext, useContext, type ReactNode } from 'react';
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import { validateCrossmintConfig } from '@/config/crossmint';
 import { createWalletServerSide, getExistingWallet } from '@/services/crossmint/serverWalletService';
 
-// Context for wallet data
 export interface CrossmintWalletContextType {
   sdkWallet: { address: string } | null;
   serverWalletAddress: string | null;
@@ -42,13 +36,7 @@ export const useServerWallet = () => {
   };
 };
 
-// Check if Crossmint is configured at module load
-const crossmintValidation = validateCrossmintConfig();
-const isCrossmintConfigured = crossmintValidation.valid;
-
-if (!isCrossmintConfigured) {
-  console.warn('[Crossmint] Not configured. Missing:', crossmintValidation.missing.join(', '));
-}
+const isCrossmintConfigured = validateCrossmintConfig().valid;
 
 const defaultCtx: CrossmintWalletContextType = {
   sdkWallet: null,
@@ -57,101 +45,79 @@ const defaultCtx: CrossmintWalletContextType = {
   isSDKActive: false,
 };
 
-/**
- * Manages wallet creation via server-side API.
- * Runs directly when user signs in — no SDK dependency.
- */
-function WalletManager({ children }: { children: React.ReactNode }) {
+function WalletManager({ children }: { children: ReactNode }) {
   const { getToken, isSignedIn } = useClerkAuth();
   const { user } = useUser();
 
   const [serverWalletAddress, setServerWalletAddress] = useState<string | null>(null);
-  const [isCreatingServerWallet, setIsCreatingServerWallet] = useState(false);
-  const walletAttempted = useRef(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const attempted = useRef(false);
 
   const getUserEmail = useCallback((): string | null => {
     if (!user) return null;
-    if (user.primaryEmailAddress?.emailAddress) return user.primaryEmailAddress.emailAddress;
-    if (user.emailAddresses?.[0]?.emailAddress) return user.emailAddresses[0].emailAddress;
-    if (user.id) return `${user.id}@blockdrive.clerk`;
-    return null;
+    return user.primaryEmailAddress?.emailAddress
+      ?? user.emailAddresses?.[0]?.emailAddress
+      ?? (user.id ? `${user.id}@blockdrive.clerk` : null);
   }, [user]);
 
-  // Create or retrieve wallet on sign-in
   useEffect(() => {
-    if (!isSignedIn || !user || walletAttempted.current || serverWalletAddress) return;
+    if (!isSignedIn || !user || attempted.current || serverWalletAddress) return;
 
     const email = getUserEmail();
     if (!email) return;
 
-    walletAttempted.current = true;
+    attempted.current = true;
 
-    const initWallet = async () => {
-      setIsCreatingServerWallet(true);
+    const init = async () => {
+      setIsCreating(true);
       try {
         const token = await getToken();
-        if (!token) {
-          walletAttempted.current = false;
-          return;
-        }
+        if (!token) { attempted.current = false; return; }
 
-        // Check for existing wallet first
         const existing = await getExistingWallet(user.id, token);
         if (existing.address) {
-          console.log('[Crossmint] Found existing wallet:', existing.address.slice(0, 12));
           setServerWalletAddress(existing.address);
           return;
         }
 
-        // Create new wallet via server API
-        console.log('[Crossmint] Creating wallet for:', email);
-        const result = await createWalletServerSide({
-          clerkUserId: user.id,
-          email,
-          token,
-        });
-
+        const result = await createWalletServerSide({ clerkUserId: user.id, email, token });
         if (result.success && result.wallet) {
-          console.log('[Crossmint] Wallet created:', result.wallet.address.slice(0, 12));
           setServerWalletAddress(result.wallet.address);
         } else {
           console.error('[Crossmint] Wallet creation failed:', result.error);
-          walletAttempted.current = false;
+          attempted.current = false;
         }
       } catch (error) {
         console.error('[Crossmint] Wallet init error:', error);
-        walletAttempted.current = false;
+        attempted.current = false;
       } finally {
-        setIsCreatingServerWallet(false);
+        setIsCreating(false);
       }
     };
 
-    initWallet();
+    init();
   }, [isSignedIn, user, serverWalletAddress, getUserEmail, getToken]);
 
-  // Clear state on sign out
   useEffect(() => {
     if (!isSignedIn && serverWalletAddress) {
       setServerWalletAddress(null);
-      walletAttempted.current = false;
+      attempted.current = false;
     }
   }, [isSignedIn, serverWalletAddress]);
 
-  const ctxValue: CrossmintWalletContextType = {
-    sdkWallet: null,
-    serverWalletAddress,
-    isCreatingServerWallet,
-    isSDKActive: false,
-  };
-
   return (
-    <CrossmintWalletContext.Provider value={ctxValue}>
+    <CrossmintWalletContext.Provider value={{
+      sdkWallet: null,
+      serverWalletAddress,
+      isCreatingServerWallet: isCreating,
+      isSDKActive: false,
+    }}>
       {children}
     </CrossmintWalletContext.Provider>
   );
 }
 
-export function CrossmintProvider({ children }: { children: React.ReactNode }) {
+export function CrossmintProvider({ children }: { children: ReactNode }) {
   const { isSignedIn } = useClerkAuth();
 
   if (!isCrossmintConfigured || !isSignedIn) {

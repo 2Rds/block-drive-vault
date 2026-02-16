@@ -1,15 +1,15 @@
 /**
  * Username NFT Service
  *
- * Handles minting BlockDrive username subdomain NFTs via Crossmint.
- * Mints compressed NFTs on Solana for cost efficiency.
+ * Handles minting BlockDrive username subdomain NFTs via Solana native operations.
+ * Creates SNS subdomains + soulbound Bubblegum V2 compressed NFTs.
  *
  * Flow:
  * 1. User selects username during signup
  * 2. Frontend calls this service with username
- * 3. Service calls Supabase Edge Function
- * 4. Edge Function calls Crossmint API to mint compressed NFT
- * 5. NFT is minted to user's Crossmint wallet
+ * 3. Service calls API gateway (Cloudflare Worker at user's nearest POP)
+ * 4. Gateway creates SNS subdomain + mints soulbound cNFT on Solana
+ * 5. NFT is minted to user's wallet, subdomain resolves on-chain
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -41,8 +41,9 @@ interface MintUsernameNFTResult {
   success: boolean;
   username?: string;
   fullDomain?: string;
-  actionId?: string;
-  crossmintId?: string;
+  txSignature?: string;
+  assetId?: string;
+  snsAccountKey?: string;
   status?: string;
   error?: string;
 }
@@ -144,28 +145,28 @@ export async function mintUsernameNFT(params: MintUsernameNFTParams): Promise<Mi
       ? `${normalized}.${organizationSubdomain.toLowerCase()}.${DOMAIN_SUFFIX}`
       : `${normalized}.${DOMAIN_SUFFIX}`;
 
-    // Call edge function to mint NFT
-    const response = await supabase.functions.invoke('mint-username-nft', {
-      body: {
-        clerkUserId,
-        username: normalized,
-        recipientEmail,
-        recipientWalletAddress,
-        // Organization context
-        organizationId,
-        organizationSubdomain,
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.error) {
-      console.error('[usernameNFT] Edge function error:', response.error);
-      return { success: false, error: response.error.message || 'Failed to mint username NFT' };
+    // Call API gateway for minting (runs at user's nearest Cloudflare POP)
+    const workerUrl = import.meta.env.VITE_WORKER_URL;
+    if (!workerUrl) {
+      return { success: false, error: 'VITE_WORKER_URL not configured' };
     }
 
-    const data = response.data;
+    const response = await fetch(`${workerUrl}/solana/onboard-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        clerkUserId,
+        username: normalized,
+        recipientWalletAddress,
+        organizationId,
+        organizationSubdomain,
+      }),
+    });
+
+    const data = await response.json();
 
     if (!data.success) {
       return { success: false, error: data.error || 'Minting failed' };
@@ -175,9 +176,10 @@ export async function mintUsernameNFT(params: MintUsernameNFTParams): Promise<Mi
       success: true,
       username: data.nft.username,
       fullDomain: data.nft.fullDomain,
-      actionId: data.nft.actionId,
-      crossmintId: data.nft.crossmintId,
-      status: data.nft.status,
+      txSignature: data.nft.txSignature,
+      assetId: data.nft.assetId,
+      snsAccountKey: data.nft.snsAccountKey,
+      status: data.nft.status, // 'confirmed' immediately (not 'pending')
     };
   } catch (error) {
     console.error('[usernameNFT] Mint error:', error);
@@ -227,28 +229,29 @@ export async function getUsernameNFT(clerkUserId: string): Promise<{
 }
 
 /**
- * Check mint status via Crossmint API
- * Can be used to poll for completion
+ * Resolve an SNS domain to its owner address
  */
-export async function checkMintStatus(actionId: string): Promise<{
-  status: string;
-  completed: boolean;
-  tokenId?: string;
+export async function resolveSNSDomain(domain: string): Promise<{
+  domain: string;
+  owner: string | null;
   error?: string;
 }> {
   try {
-    // This would need to call a backend endpoint that checks Crossmint
-    // For now, return pending - the webhook will update the status
+    const workerUrl = import.meta.env.VITE_WORKER_URL;
+    if (!workerUrl) {
+      return { domain, owner: null, error: 'VITE_WORKER_URL not configured' };
+    }
+
+    const response = await fetch(`${workerUrl}/solana/resolve/${encodeURIComponent(domain)}`);
+    const data = await response.json();
+
     return {
-      status: 'pending',
-      completed: false,
+      domain: data.domain || domain,
+      owner: data.owner || null,
+      error: data.error,
     };
   } catch (error) {
-    console.error('[usernameNFT] Status check error:', error);
-    return {
-      status: 'unknown',
-      completed: false,
-      error: 'Failed to check mint status',
-    };
+    console.error('[usernameNFT] Resolve error:', error);
+    return { domain, owner: null, error: 'Failed to resolve domain' };
   }
 }

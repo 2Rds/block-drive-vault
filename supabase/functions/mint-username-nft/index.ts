@@ -1,5 +1,7 @@
 /**
- * Mint Username Subdomain NFT
+ * DEPRECATED: Replaced by Worker /solana/onboard-user (Bubblegum V2 + SNS native)
+ *
+ * Mint Username Subdomain NFT (legacy Crossmint path)
  *
  * Mints a compressed NFT on Solana representing the user's username subdomain.
  *
@@ -18,6 +20,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCrossmintMintingUrl } from '../_shared/crossmint.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -294,7 +297,7 @@ serve(async (req) => {
     }
 
     // Call Crossmint API to mint compressed NFT
-    const crossmintUrl = `https://${crossmintEnv}.crossmint.com/api/2022-06-09/collections/${collectionId}/nfts`;
+    const crossmintUrl = getCrossmintMintingUrl(crossmintEnv, `collections/${collectionId}/nfts`);
 
     const mintResponse = await fetch(crossmintUrl, {
       method: 'POST',

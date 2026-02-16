@@ -13,6 +13,9 @@ import { AwsClient } from 'aws4fetch';
 import { handleRateLimit } from './rateLimit';
 import { handleCORS, getCORSHeaders } from './cors';
 import { addSecurityHeaders } from './security';
+import { handleSolanaRequest } from './solana';
+import { handleMetadataRequest } from './metadata';
+import { handleWebhookRequest } from './webhooks';
 
 export interface Env {
   // KV Namespace for rate limiting
@@ -33,6 +36,22 @@ export interface Env {
   FILEBASE_BUCKET: string;
   FILEBASE_ACCESS_KEY: string;
   FILEBASE_SECRET_KEY: string;
+
+  // Crossmint NFT minting (secrets set via `wrangler secret put`)
+  CROSSMINT_SERVER_API_KEY: string;
+  CROSSMINT_ENVIRONMENT: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
+
+  // Solana native minting (SNS + Bubblegum V2)
+  SOLANA_RPC_URL: string;
+  SOLANA_NETWORK: string;
+  MERKLE_TREE_ADDRESS: string;
+  GLOBAL_COLLECTION_ADDRESS: string;
+  SNS_PARENT_DOMAIN_KEY: string;
+  TREASURY_PRIVATE_KEY: string;
+
+  // Clerk webhooks
+  CLERK_WEBHOOK_SECRET: string;
 }
 
 // ============================================
@@ -151,12 +170,18 @@ export default {
     try {
       let response: Response;
 
-      if (url.pathname.startsWith('/r2/')) {
+      if (url.pathname.startsWith('/webhooks/')) {
+        response = await handleWebhookRequest(request, env, url);
+      } else if (url.pathname.startsWith('/r2/')) {
         response = await handleR2Request(request, env, url);
       } else if (url.pathname.startsWith('/ipfs/')) {
         response = await handleIPFSRequest(request, env, url, ctx);
       } else if (url.pathname.startsWith('/filebase/')) {
         response = await handleFilebaseRequest(request, env, url);
+      } else if (url.pathname.startsWith('/solana/')) {
+        response = await handleSolanaRequest(request, env, url);
+      } else if (url.pathname.startsWith('/metadata/')) {
+        response = await handleMetadataRequest(request, env, url);
       } else if (url.pathname.startsWith('/functions/')) {
         response = await forwardToSupabase(request, env, url);
       } else {

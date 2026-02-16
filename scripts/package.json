@@ -1,0 +1,21 @@
+{
+  "name": "blockdrive-solana-setup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-time devnet setup for BlockDrive Solana infrastructure (Bubblegum V2 tree, MPL-Core collection, SNS parent domain)",
+  "type": "commonjs",
+  "scripts": {
+    "setup": "npx tsx setup-devnet.ts"
+  },
+  "dependencies": {
+    "@metaplex-foundation/umi": "^1.5.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
+    "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
+    "@metaplex-foundation/mpl-core": "^1.7.0",
+    "@bonfida/spl-name-service": "^3.0.19",
+    "@solana/web3.js": "^1.98.2",
+    "bs58": "^6.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

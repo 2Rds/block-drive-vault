@@ -129,7 +129,7 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
         setHasUsernameNFT(true);
         setUsername(result.username || null);
         setFullDomain(result.fullDomain || null);
-        setMintStatus(result.status || 'pending');
+        setMintStatus(result.status || 'confirmed');
         return { success: true };
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to mint username NFT';

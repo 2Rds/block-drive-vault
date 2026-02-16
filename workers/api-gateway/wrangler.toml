@@ -14,7 +14,17 @@ FILEBASE_BUCKET = "blockdrive-storage"
 ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173,http://localhost:8080,http://localhost:8081,http://localhost:8082"
 RATE_LIMIT_PER_MINUTE = "100"
 RATE_LIMIT_BURST = "20"
-# FILEBASE_ACCESS_KEY and FILEBASE_SECRET_KEY set via `wrangler secret put`
+CROSSMINT_ENVIRONMENT = "staging"
+SOLANA_RPC_URL = "https://api.mainnet-beta.solana.com"
+SOLANA_NETWORK = "mainnet-beta"
+MERKLE_TREE_ADDRESS = "78WsTpeUP1iWn56MDGV1uMMGyaZKVAo3vDbytbF15V3p"
+GLOBAL_COLLECTION_ADDRESS = "Ek47a7mDSruWu7eKT5Y75re2Yvpd3PH8xvCwU8aBTxat"
+SNS_PARENT_DOMAIN_KEY = "8Xu281pCh9L6iV8KM948hABcWcQkr7YjN7S1ruPoGUcz"
+# Secrets set via `wrangler secret put`:
+#   FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY
+#   CROSSMINT_SERVER_API_KEY, SUPABASE_SERVICE_ROLE_KEY
+#   TREASURY_PRIVATE_KEY (base58 encoded)
+#   CLERK_WEBHOOK_SECRET (from Clerk Dashboard → Webhooks → Signing Secret)
 
 # KV Namespace for rate limiting
 [[kv_namespaces]]

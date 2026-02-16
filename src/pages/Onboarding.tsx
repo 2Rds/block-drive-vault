@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useUsernameNFT } from '@/hooks/useUsernameNFT';
 import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
-import { OrganizationJoinStep } from '@/components/onboarding/OrganizationJoinStep';
-import { OrganizationContext } from '@/hooks/useOrgInviteCode';
+import { OrganizationJoinStep, OrganizationContext } from '@/components/onboarding/OrganizationJoinStep';
 import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +35,7 @@ function validateUsername(username: string): string | null {
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const { hasUsernameNFT, isLoading: isLoadingNFT, mintUsername, isMinting } = useUsernameNFT();
   const { walletAddress, isLoading: isLoadingWallet, isInitialized: isWalletReady } = useCrossmintWallet();
@@ -45,7 +44,7 @@ export default function Onboarding() {
   const [mintAttempted, setMintAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Organization context - set when user joins via invite code or email verification
+  // Organization context - set when user joins via email domain auto-detect
   const [organizationContext, setOrganizationContext] = useState<OrganizationContext | null>(null);
   const [orgStepCompleted, setOrgStepCompleted] = useState(false);
 
@@ -58,7 +57,6 @@ export default function Onboarding() {
   const clerkUsername = user?.username;
   const [confirmedUsername, setConfirmedUsername] = useState<string | null>(null);
   const effectiveUsername = confirmedUsername || clerkUsername;
-
 
   // Handle username confirmation for users who didn't set one in Clerk
   const handleConfirmUsername = async () => {
@@ -232,24 +230,18 @@ export default function Onboarding() {
         <StepDivider />
         <StepIndicator
           number={2}
-          label="Org"
-          status={getStepStatus('organization', currentStep, orgStepCompleted)}
-        />
-        <StepDivider />
-        <StepIndicator
-          number={3}
           label="Username"
           status={getStepStatus('username', currentStep, Boolean(effectiveUsername))}
         />
         <StepDivider />
         <StepIndicator
-          number={4}
+          number={3}
           label="Wallet"
           status={getStepStatus('wallet', currentStep, isWalletReady || Boolean(walletAddress))}
         />
         <StepDivider />
         <StepIndicator
-          number={5}
+          number={4}
           label="NFT"
           status={getStepStatus('minting', currentStep, hasUsernameNFT || currentStep === 'complete')}
         />
@@ -362,7 +354,7 @@ export default function Onboarding() {
             <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-primary animate-pulse" />
             </div>
-            <h2 className="text-xl font-semibold">Minting Your Username NFT</h2>
+            <h2 className="text-xl font-semibold">Creating Your SNS Domain</h2>
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
               <p className="font-mono text-primary font-semibold text-sm sm:text-base break-all">
                 {getFullDomain()}
@@ -375,7 +367,7 @@ export default function Onboarding() {
               </div>
             )}
             <p className="text-muted-foreground text-sm">
-              Creating your unique BlockDrive identity as a compressed NFT on Solana...
+              Registering your SNS subdomain and minting your soulbound membership NFT on Solana...
             </p>
             <Loader2 className="w-6 h-6 mx-auto animate-spin text-primary" />
           </div>

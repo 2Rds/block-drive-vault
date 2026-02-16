@@ -89,6 +89,12 @@ export default function SignUp(): JSX.Element | null {
             path="/sign-up"
             signInUrl="/sign-in"
             afterSignUpUrl="/onboarding"
+            appearance={{
+              elements: {
+                socialButtons: { display: 'none' },
+                dividerRow: { display: 'none' },
+              },
+            }}
           />
         </div>
       </div>

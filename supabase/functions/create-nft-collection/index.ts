@@ -12,12 +12,14 @@
  * - CROSSMINT_ENVIRONMENT: 'staging' or 'www'
  * - SUPABASE_URL
  * - SUPABASE_SERVICE_ROLE_KEY
+ * - CROSSMINT_PROXY_URL (optional): Cloudflare Worker proxy for Crossmint minting API
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getClerkUserId } from '../_shared/auth.ts';
+import { getCrossmintMintingUrl } from '../_shared/crossmint.ts';
 
 const BLOCKDRIVE_LOGO_URL = 'https://blockdrive.sol/logo.png';
 
@@ -44,10 +46,7 @@ serve(async (req) => {
       throw new Error('CROSSMINT_SERVER_API_KEY not configured');
     }
 
-    // Authenticate
-    const clerkUserId = getClerkUserId(req);
-
-    // Parse request
+    // Parse request body first (needed for auth decision)
     const {
       type,
       organizationId,
@@ -55,6 +54,15 @@ serve(async (req) => {
       orgSlug,
       logoUrl,
     }: CreateCollectionRequest = await req.json();
+
+    // Authenticate (skip for global collection setup - one-time admin operation)
+    let clerkUserId: string | null = null;
+    try {
+      clerkUserId = getClerkUserId(req);
+    } catch (_authErr) {
+      if (type !== 'global') throw _authErr;
+      console.log('[create-nft-collection] Auth skipped for global collection setup');
+    }
 
     if (!type || !['global', 'organization'].includes(type)) {
       throw new Error('Invalid type: must be "global" or "organization"');
@@ -141,7 +149,7 @@ serve(async (req) => {
 
     console.log(`[create-nft-collection] Creating ${type} collection: "${truncatedName}" (${symbol})`);
 
-    const crossmintUrl = `https://${crossmintEnv}.crossmint.com/api/2022-06-09/collections/`;
+    const crossmintUrl = getCrossmintMintingUrl(crossmintEnv, 'collections/');
 
     const collectionPayload = {
       chain: 'solana',
@@ -152,6 +160,8 @@ serve(async (req) => {
         imageUrl,
       },
     };
+
+    console.log('[create-nft-collection] URL:', crossmintUrl);
 
     const createResponse = await fetch(crossmintUrl, {
       method: 'POST',
@@ -165,8 +175,8 @@ serve(async (req) => {
 
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
-      console.error('[create-nft-collection] Crossmint API error:', errorText);
-      throw new Error(`Crossmint collection creation failed: ${errorText}`);
+      console.error('[create-nft-collection] Crossmint API error (status', createResponse.status, '):', errorText);
+      throw new Error(`Crossmint collection creation failed (${createResponse.status}): ${errorText}`);
     }
 
     const collectionResult = await createResponse.json();

@@ -339,63 +339,50 @@ export const useOrganizations = () => {
 
       await setActive?.({ organization: clerkOrg.id });
 
-      // Fire-and-forget: create org NFT collection + mint org domain NFT
-      // These run in the background — errors are logged, not shown to user
+      // Fire-and-forget: create org SNS subdomain + soulbound cNFT
+      // Single call replaces the 3-step Crossmint chain
       const token = await getToken();
-      if (token) {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        };
+      const workerUrl = import.meta.env.VITE_WORKER_URL;
+      if (token && workerUrl) {
+        // Get wallet address for org domain ownership
+        const walletRes = await supabase
+          .from('crossmint_wallets')
+          .select('wallet_address')
+          .eq('clerk_user_id', userId)
+          .maybeSingle();
 
-        const callEdgeFn = (fn: string, body: Record<string, unknown>) =>
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn}`, {
+        const recipientWalletAddress = walletRes.data?.wallet_address;
+
+        if (recipientWalletAddress) {
+          fetch(`${workerUrl}/solana/create-org-domain`, {
             method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-          }).then(res => res.json());
-
-        // Step 1: Ensure global collection exists (idempotent — returns early if already created)
-        callEdgeFn('create-nft-collection', { type: 'global' })
-          .then(result => {
-            console.log('[useOrganizations] Global collection:', result.collectionId,
-              result.alreadyExists ? '(existing)' : '(created)');
-
-            // Step 2: Create per-org NFT collection
-            return callEdgeFn('create-nft-collection', {
-              type: 'organization',
-              organizationId: data.id,
-              orgName: params.name,
-              orgSlug: subdomain,
-              logoUrl: clerkOrg.imageUrl || undefined,
-            });
-          })
-          .then(result => {
-            if (result.success) {
-              console.log('[useOrganizations] Org NFT collection:', result.collectionId);
-            } else {
-              console.error('[useOrganizations] Failed to create org NFT collection:', result.error);
-            }
-
-            // Step 3: Mint org domain NFT (needs global collection from step 1)
-            return callEdgeFn('mint-org-domain-nft', {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
               organizationId: data.id,
               orgName: params.name,
               orgSubdomain: subdomain,
+              recipientWalletAddress,
               logoUrl: clerkOrg.imageUrl || undefined,
+            }),
+          })
+            .then(res => res.json())
+            .then(result => {
+              if (result.success) {
+                console.log('[useOrganizations] Org domain created:', result.nft?.fullDomain,
+                  result.alreadyExists ? '(existing)' : '(new)');
+              } else {
+                console.error('[useOrganizations] Failed to create org domain:', result.error);
+              }
+            })
+            .catch(err => {
+              console.error('[useOrganizations] Org domain setup error:', err);
             });
-          })
-          .then(result => {
-            if (result.success) {
-              console.log('[useOrganizations] Org domain NFT minted:', result.nft?.fullDomain);
-            } else {
-              console.error('[useOrganizations] Failed to mint org domain NFT:', result.error);
-            }
-          })
-          .catch(err => {
-            console.error('[useOrganizations] NFT collection/domain setup error:', err);
-          });
+        } else {
+          console.warn('[useOrganizations] No wallet address found, skipping org domain creation');
+        }
       }
 
       toast.success(`Organization "${params.name}" created successfully`);

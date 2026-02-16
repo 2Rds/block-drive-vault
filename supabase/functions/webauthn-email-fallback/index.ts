@@ -3,7 +3,7 @@ import { getSupabaseServiceClient, getClerkUserId, getClerkUserEmail } from '../
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 import { EmailService } from '../_shared/emailService.ts';
 
-const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://blockdrive.app';
+const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://app.blockdrive.co';
 const EMAIL_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 serve(async (req) => {

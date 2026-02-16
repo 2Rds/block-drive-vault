@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# MCP config (contains API keys — NEVER commit)
+.mcp.json
+mcp.json
+
 # Logs
 logs
 *.log

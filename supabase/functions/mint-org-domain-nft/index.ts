@@ -1,5 +1,7 @@
 /**
- * Mint Organization Domain NFT
+ * DEPRECATED: Replaced by Worker /solana/create-org-domain (Bubblegum V2 + SNS native)
+ *
+ * Mint Organization Domain NFT (legacy Crossmint path)
  *
  * Mints the org's root domain NFT (e.g. "acme.blockdrive.sol") to the
  * org creator's embedded wallet. Uses the global BlockDrive collection.
@@ -19,6 +21,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getClerkUserId } from '../_shared/auth.ts';
+import { getCrossmintMintingUrl } from '../_shared/crossmint.ts';
 
 const BLOCKDRIVE_LOGO_URL = 'https://blockdrive.sol/logo.png';
 
@@ -138,7 +141,7 @@ serve(async (req) => {
     };
 
     // Mint via Crossmint API using global collection
-    const crossmintUrl = `https://${crossmintEnv}.crossmint.com/api/2022-06-09/collections/${globalCollectionId}/nfts`;
+    const crossmintUrl = getCrossmintMintingUrl(crossmintEnv, `collections/${globalCollectionId}/nfts`);
 
     const mintResponse = await fetch(crossmintUrl, {
       method: 'POST',

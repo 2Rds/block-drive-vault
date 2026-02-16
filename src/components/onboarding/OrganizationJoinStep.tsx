@@ -1,28 +1,37 @@
 /**
  * OrganizationJoinStep Component
  *
- * Onboarding step for joining an organization via:
- * 1. Invite Code - Enter organization-specific code
- * 2. Business Email - Verify via magic link to business email domain
- * 3. Skip - Continue without joining an organization
+ * Auto-detects if the user's email domain matches a verified organization.
+ * - If match found: offers the user a one-click join
+ * - If no match: auto-skips (invisible step)
+ *
+ * Users can always create or join orgs later from the dashboard.
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useOrgInviteCode, OrganizationContext } from '@/hooks/useOrgInviteCode';
-import { useOrgEmailVerification } from '@/hooks/useOrgEmailVerification';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Loader2,
-  KeyRound,
-  Mail,
   Building2,
   CheckCircle2,
   AlertCircle,
   ArrowRight,
-  RefreshCw,
 } from 'lucide-react';
+
+export interface OrganizationContext {
+  id: string;
+  name: string;
+  subdomain: string;
+  role: string;
+}
+
+interface OrganizationMatch {
+  id: string;
+  name: string;
+  subdomain: string;
+  defaultRole?: string;
+}
 
 interface OrganizationJoinStepProps {
   onComplete: (orgContext: OrganizationContext | null) => void;
@@ -30,370 +39,179 @@ interface OrganizationJoinStepProps {
 }
 
 export function OrganizationJoinStep({ onComplete, onSkip }: OrganizationJoinStepProps) {
-  const [activeTab, setActiveTab] = useState<'code' | 'email'>('code');
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const [match, setMatch] = useState<OrganizationMatch | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Invite code hook
-  const {
-    validateCode,
-    useCode,
-    formatCode,
-    isValidating: isValidatingCode,
-    isUsing: isUsingCode,
-    validationResult,
-    organization: codeOrganization,
-    error: codeError,
-    reset: resetCode,
-  } = useOrgInviteCode();
-
-  // Email verification hook
-  const {
-    checkEmail,
-    sendVerification,
-    resendVerification,
-    status: emailStatus,
-    emailCheckResult,
-    organization: emailOrganization,
-    error: emailError,
-    isLoading: isEmailLoading,
-    canResend,
-    getResendCooldown,
-    reset: resetEmail,
-  } = useOrgEmailVerification();
-
-  // Local state
-  const [inviteCode, setInviteCode] = useState('');
-  const [businessEmail, setBusinessEmail] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // Update resend cooldown timer
+  // Auto-check email domain on mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      setResendCooldown(getResendCooldown());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [getResendCooldown]);
-
-  // Handle invite code input with formatting
-  const handleCodeChange = useCallback((value: string) => {
-    const formatted = value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    setInviteCode(formatted);
-
-    // Auto-validate when code looks complete (has dashes and sufficient length)
-    if (formatted.length >= 12 && formatted.includes('-')) {
-      validateCode(formatted);
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) {
+      onSkip();
+      return;
     }
-  }, [validateCode]);
 
-  // Handle using invite code
-  const handleUseCode = async () => {
-    const result = await useCode(inviteCode);
-    if (result.success && codeOrganization) {
-      onComplete(codeOrganization);
+    const checkDomain = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-email-org-membership`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ email: email.toLowerCase() }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.hasOrganization && result.organization) {
+          setMatch({
+            id: result.organization.id,
+            name: result.organization.name,
+            subdomain: result.organization.subdomain,
+            defaultRole: result.defaultRole,
+          });
+          setIsChecking(false);
+        } else {
+          // No match — skip silently
+          onSkip();
+        }
+      } catch {
+        // On error, skip — user can join later from dashboard
+        onSkip();
+      }
+    };
+
+    checkDomain();
+  }, [user, onSkip]);
+
+  const handleJoin = useCallback(async () => {
+    if (!match) return;
+    setIsJoining(true);
+    setError(null);
+
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-org-by-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.joined || result.success) {
+        setJoined(true);
+        const orgContext: OrganizationContext = {
+          id: result.organization?.id || match.id,
+          name: result.organization?.name || match.name,
+          subdomain: result.organization?.subdomain || match.subdomain,
+          role: result.role || match.defaultRole || 'member',
+        };
+        setTimeout(() => onComplete(orgContext), 800);
+      } else {
+        setError(result.error || 'Failed to join organization');
+        setIsJoining(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join organization');
+      setIsJoining(false);
     }
-  };
+  }, [match, getToken, onComplete]);
 
-  // Handle email check
-  const handleCheckEmail = async () => {
-    const result = await checkEmail(businessEmail);
-    if (result.hasOrganization && result.requiresVerification) {
-      // Automatically send verification
-      await sendVerification(businessEmail);
-    }
-  };
-
-  // Handle email verification complete
-  useEffect(() => {
-    if (emailStatus === 'verified' && emailOrganization) {
-      onComplete(emailOrganization);
-    }
-  }, [emailStatus, emailOrganization, onComplete]);
-
-  // Reset when switching tabs
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab as 'code' | 'email');
-    if (tab === 'code') {
-      resetEmail();
-    } else {
-      resetCode();
-      setInviteCode('');
-    }
-  };
-
-  return (
-    <div className="bg-card border border-border rounded-xl p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-          <Building2 className="w-8 h-8 text-primary" />
-        </div>
-        <h2 className="text-xl font-semibold">Join an Organization?</h2>
-        <p className="text-muted-foreground text-sm mt-2">
-          If you have an organization invite code or business email, enter it below.
-          Otherwise, you can skip this step.
-        </p>
+  // Loading state while checking domain
+  if (isChecking) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 text-center space-y-4">
+        <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
+        <p className="text-muted-foreground text-sm">Checking your account...</p>
       </div>
+    );
+  }
 
-      {/* Tab Switcher */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="code" className="gap-2">
-            <KeyRound className="w-4 h-4" />
-            Invite Code
-          </TabsTrigger>
-          <TabsTrigger value="email" className="gap-2">
-            <Mail className="w-4 h-4" />
-            Business Email
-          </TabsTrigger>
-        </TabsList>
+  // Joined successfully
+  if (joined && match) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 text-center space-y-4">
+        <div className="w-16 h-16 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-green-500" />
+        </div>
+        <h2 className="text-xl font-semibold">Joined {match.name}!</h2>
+        <p className="text-muted-foreground text-sm">You're now part of the team</p>
+      </div>
+    );
+  }
 
-        {/* Invite Code Tab */}
-        <TabsContent value="code" className="space-y-4 mt-4">
-          <div className="space-y-3">
+  // Match found — show join offer
+  if (match) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 space-y-5">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold">Organization Found</h2>
+          <p className="text-muted-foreground text-sm mt-2">
+            Your email matches a registered organization
+          </p>
+        </div>
+
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Organization Invite Code
-              </label>
-              <Input
-                type="text"
-                placeholder="ACME-2026-X7K9M2"
-                value={inviteCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                className="font-mono text-center text-lg tracking-widest uppercase"
-                maxLength={20}
-              />
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Enter the code provided by your organization
+              <p className="font-semibold text-foreground">{match.name}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {match.subdomain}.blockdrive.sol
               </p>
             </div>
-
-            {/* Validation Status */}
-            {isValidatingCode && (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Validating code...
-              </div>
-            )}
-
-            {/* Valid Code - Show Organization Preview */}
-            {validationResult?.valid && validationResult.organization && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  {validationResult.organization.imageUrl ? (
-                    <img
-                      src={validationResult.organization.imageUrl}
-                      alt={validationResult.organization.name}
-                      className="w-10 h-10 rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-green-500" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-semibold text-green-500">
-                      {validationResult.organization.name}
-                    </p>
-                    <p className="text-xs text-green-500/70 font-mono">
-                      {validationResult.organization.subdomain}.blockdrive.sol
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-green-600">
-                  You'll join as: <span className="font-medium">{validationResult.defaultRole}</span>
-                </p>
-              </div>
-            )}
-
-            {/* Invalid Code */}
-            {validationResult && !validationResult.valid && (
-              <div className="flex items-center gap-2 text-destructive text-sm">
-                <AlertCircle className="w-4 h-4" />
-                {validationResult.error || 'Invalid or expired code'}
-              </div>
-            )}
-
-            {/* Error */}
-            {codeError && (
-              <div className="flex items-center gap-2 text-destructive text-sm">
-                <AlertCircle className="w-4 h-4" />
-                {codeError}
-              </div>
-            )}
-
-            {/* Join Button */}
-            <Button
-              onClick={handleUseCode}
-              disabled={!validationResult?.valid || isUsingCode}
-              className="w-full"
-            >
-              {isUsingCode ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Joining Organization...
-                </>
-              ) : (
-                <>
-                  Join Organization
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
           </div>
-        </TabsContent>
+        </div>
 
-        {/* Business Email Tab */}
-        <TabsContent value="email" className="space-y-4 mt-4">
-          <div className="space-y-3">
-            {emailStatus === 'idle' || emailStatus === 'checking' || emailStatus === 'error' ? (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                    Business Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="you@company.com"
-                    value={businessEmail}
-                    onChange={(e) => setBusinessEmail(e.target.value.toLowerCase())}
-                    className="font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    If your company uses BlockDrive, we'll detect it automatically
-                  </p>
-                </div>
-
-                {/* Error */}
-                {emailError && (
-                  <div className="flex items-center gap-2 text-destructive text-sm">
-                    <AlertCircle className="w-4 h-4" />
-                    {emailError}
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleCheckEmail}
-                  disabled={!businessEmail || !businessEmail.includes('@') || isEmailLoading}
-                  className="w-full"
-                >
-                  {emailStatus === 'checking' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Checking...
-                    </>
-                  ) : (
-                    <>
-                      Check Email Domain
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : emailStatus === 'found' || emailStatus === 'sending' ? (
-              <>
-                {/* Organization Found */}
-                {emailCheckResult?.organization && (
-                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      {emailCheckResult.organization.imageUrl ? (
-                        <img
-                          src={emailCheckResult.organization.imageUrl}
-                          alt={emailCheckResult.organization.name}
-                          className="w-10 h-10 rounded-lg"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-primary" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-semibold text-primary">
-                          {emailCheckResult.organization.name}
-                        </p>
-                        <p className="text-xs text-primary/70 font-mono">
-                          {emailCheckResult.organization.subdomain}.blockdrive.sol
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="text-center text-sm text-muted-foreground">
-                  <Loader2 className="w-5 h-5 mx-auto animate-spin text-primary mb-2" />
-                  Sending verification email to <strong>{businessEmail}</strong>...
-                </div>
-              </>
-            ) : emailStatus === 'pending' ? (
-              <>
-                {/* Verification Pending */}
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-center space-y-3">
-                  <Mail className="w-10 h-10 mx-auto text-amber-500" />
-                  <div>
-                    <p className="font-semibold text-amber-600">Check Your Email</p>
-                    <p className="text-sm text-amber-600/80 mt-1">
-                      We've sent a verification link to <strong>{businessEmail}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                {emailCheckResult?.organization && (
-                  <div className="bg-muted/50 rounded-lg p-3 flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {emailCheckResult.organization.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {emailCheckResult.organization.subdomain}.blockdrive.sol
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Click the link in the email to verify and join the organization.
-                  The link expires in 24 hours.
-                </p>
-
-                <Button
-                  onClick={resendVerification}
-                  disabled={!canResend() || isEmailLoading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {resendCooldown > 0 ? (
-                    `Resend in ${resendCooldown}s`
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Resend Verification Email
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : emailStatus === 'verified' ? (
-              <>
-                {/* Verification Complete */}
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center space-y-3">
-                  <CheckCircle2 className="w-10 h-10 mx-auto text-green-500" />
-                  <div>
-                    <p className="font-semibold text-green-600">Email Verified!</p>
-                    <p className="text-sm text-green-600/80 mt-1">
-                      You've joined {emailOrganization?.name}
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : null}
+        {error && (
+          <div className="flex items-center gap-2 text-destructive text-sm">
+            <AlertCircle className="w-4 h-4" />
+            {error}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
 
-      {/* Skip Button */}
-      <div className="pt-2 border-t border-border">
-        <Button onClick={onSkip} variant="ghost" className="w-full text-muted-foreground">
-          Skip - Continue without an organization
-        </Button>
+        <div className="space-y-2">
+          <Button onClick={handleJoin} disabled={isJoining} className="w-full">
+            {isJoining ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Joining...
+              </>
+            ) : (
+              <>
+                Join {match.name}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
+          </Button>
+          <Button onClick={onSkip} variant="ghost" className="w-full text-muted-foreground">
+            Skip — I'll do this later
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
