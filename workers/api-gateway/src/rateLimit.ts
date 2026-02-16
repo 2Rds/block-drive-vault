@@ -50,7 +50,7 @@ export async function handleRateLimit(clientIP: string, env: Env): Promise<RateL
   if (data.count >= limit) {
     return {
       allowed: false,
-      remaining: 0,
+      remaining,
       resetAt,
       retryAfter,
     };
