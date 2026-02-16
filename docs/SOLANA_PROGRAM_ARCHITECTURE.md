@@ -1,6 +1,6 @@
 # BlockDrive Solana Program Architecture
 
-> **Version**: v1.0.0 (February 2026)
+> **Version**: v1.1.0 (February 2026)
 
 ## Overview
 
@@ -757,7 +757,60 @@ pub struct FileAccessed {
 
 ---
 
-## Implementation Status (v1.0.0)
+## SNS + Bubblegum V2 + MPL-Core (v1.1.0)
+
+v1.1.0 adds Solana native minting via the Cloudflare Worker API Gateway (`workers/api-gateway/src/solana.ts`), replacing Crossmint for on-chain identity operations.
+
+### SNS Subdomain Hierarchy
+
+All domains are subdomains of `blockdrive.sol` (owned by the treasury wallet):
+
+| Type | Format | Example |
+|------|--------|---------|
+| Individual | `username.blockdrive.sol` | `alice.blockdrive.sol` |
+| Org Root | `orgname.blockdrive.sol` | `acme.blockdrive.sol` |
+| Org Member | `username.orgname.blockdrive.sol` | `alice.acme.blockdrive.sol` |
+
+Operations: `createSubdomain()` → `transferSubdomain()` to user wallet. Revocation transfers back to treasury.
+
+### Bubblegum V2 Compressed NFTs
+
+All membership cNFTs are minted into a **single shared Merkle tree** via `mintV2()`:
+- Soulbound (non-transferable)
+- Creator: treasury wallet (100% share, verified)
+- Metadata stored in R2, served via `/metadata/cnft/{domain}` endpoint
+- Leaf parsed post-mint for asset ID
+
+### MPL-Core Per-Org Collections
+
+Each organization gets its own MPL-Core collection via `createCollectionV2()`:
+- **Cost**: ~0.003 SOL per collection (vs ~1.6 SOL for a new Merkle tree)
+- **Created during**: `POST /solana/create-org-domain` (Step 1.5)
+- **Used by**: Org root cNFT + all org member cNFTs
+- **Fallback**: Global collection used if per-org creation fails
+- **Update**: `POST /solana/update-org-collection` — merges R2 metadata + calls `updateCollectionV1()`
+- **Archival**: On org deletion, renamed to `[ARCHIVED] OrgName` with URI cleared
+
+### Deletion & Revocation
+
+**User deletion** (`deleteUserAssets`):
+1. Revoke all SNS subdomains → treasury
+2. Mark cNFTs as `pending_burn` (actual burn requires DAS API Merkle proof)
+3. Clean up DB records (profile, org member FKs)
+
+**Org deletion** (`deleteOrgAssets`):
+1. Revoke member SNS subdomains → treasury
+2. Revoke org root SNS subdomain → treasury
+3. Archive org MPL-Core collection (rename + clear URI)
+4. Mark all org cNFTs as `pending_burn`, clear `organization_id` FK
+5. Clear org member FKs → DELETE organizations row (CASCADEs)
+6. Clean up R2 metadata (best-effort)
+
+**Note on cNFT burning**: Bubblegum `burnV2` requires a Merkle proof from a DAS-compatible RPC (Helius, QuickNode). Until one is configured, cNFTs are marked `pending_burn` in the DB. Soulbound cNFTs on dead wallets are harmless — they cannot be transferred.
+
+---
+
+## Implementation Status (v1.1.0)
 
 ### Completed ✅
 1. **Multi-PDA Sharding Architecture**: UserVaultMaster, Shard, Index PDAs
@@ -769,10 +822,16 @@ pub struct FileAccessed {
 7. **FileRecord Integration**: With encryption/critical bytes commitments
 8. **End-to-end Encrypted Download**: Full ZK proof verification path
 9. **Groth16 ZK Proofs**: Real proof generation and verification via snarkjs
+10. **SNS Subdomain Registration**: Individual + org hierarchical domains (v1.1.0)
+11. **Bubblegum V2 cNFT Minting**: Soulbound compressed membership NFTs (v1.1.0)
+12. **Per-Org MPL-Core Collections**: Branded org collections (~0.003 SOL each) (v1.1.0)
+13. **Organization Deletion Handler**: 10-step on-chain + DB cleanup (v1.1.0)
+14. **Svix Webhook Verification**: HMAC-SHA256 signature validation (v1.1.0)
 
 ### Planned 📋
 1. **Mainnet Deployment**: After security audit
 2. **Migration Tools**: For legacy UserVault accounts
+3. **cNFT Batch Burn**: Process `pending_burn` NFTs via DAS API
 
 ### Note on Key Derivation (v1.0.0)
 Key derivation has moved from wallet signatures to security questions. This change is transparent to the on-chain program -- the program only stores and verifies SHA-256 commitments of encryption keys and critical bytes. The source of the key material (previously wallet signatures, now security question answer hash via `derive-key-material` edge function) does not affect on-chain state.

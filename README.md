@@ -1,4 +1,4 @@
-# BlockDrive v1.0.0
+# BlockDrive v1.1.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
@@ -17,7 +17,8 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 - **Solana Anchor Program**: On-chain file records, commitments, and access delegation
 - **Multi-PDA Sharding**: Supports 1000+ files per user (10 shards × 100 files)
 - **SNS Subdomains**: Human-readable addresses (`username.blockdrive.sol`)
-- **Soulbound NFT Membership**: Token-2022 non-transferable membership tokens
+- **Soulbound NFT Membership**: Bubblegum V2 compressed soulbound NFTs
+- **Per-Org NFT Collections**: MPL-Core collections for branded org membership
 
 ### Organizations & Collaboration
 - **Clerk Organizations**: Native team management with role-based access
@@ -57,7 +58,7 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 | Auth | Clerk + Crossmint Embedded Wallets |
 | Backend | Supabase Edge Functions (Deno) |
 | Database | PostgreSQL + RLS |
-| Blockchain | Solana Anchor |
+| Blockchain | Solana (SNS + Bubblegum V2 + MPL-Core) |
 | Storage | Filebase + R2 + Arweave |
 | Cryptography | AES-256-GCM + Groth16 |
 | Payments | Stripe + Crossmint |
@@ -210,7 +211,15 @@ plaintext = recover_file(
 
 ## Development Status
 
-**v1.0.0 Released** — February 2026
+**v1.1.0** — February 16, 2026
+
+- ✅ Per-org MPL-Core NFT collections (~0.003 SOL each)
+- ✅ Organization deletion handler (on-chain + DB cleanup)
+- ✅ Svix-signed Clerk webhook handlers (user.deleted, organization.deleted)
+- ✅ Intercom messenger with JWT identity verification
+- ✅ Release automation (`/release` slash command + pre-push hook)
+
+**v1.0.0** — February 9, 2026
 
 - ✅ Multi-PDA Sharding (1000+ files/user)
 - ✅ Metadata Privacy v2

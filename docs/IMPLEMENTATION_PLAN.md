@@ -1,17 +1,18 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: COMPLETE - v1.0.0 Released
+> **Status**: ACTIVE - v1.1.0 Released
 >
-> **Last Updated**: February 2026
+> **Last Updated**: February 16, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are now complete for the v1.0.0 release.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management.
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [Implementation Phases Overview](#implementation-phases-overview)
+2. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
+3. [v1.0.0 Implementation Phases Overview](#v100-implementation-phases-overview)
 3. [Phase 1: On-Chain Infrastructure](#phase-1-on-chain-infrastructure)
 4. [Phase 2: Relayer Service](#phase-2-relayer-service)
 5. [Phase 3: Radom Crypto Payments](#phase-3-radom-crypto-payments)
@@ -65,7 +66,46 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 
 ---
 
-## Implementation Phases Overview
+## v1.1.0 — Per-Org NFT Collections + Org Deletion (February 16, 2026)
+
+### Completed ✅
+
+| Feature | Implementation | Status |
+|---------|---------------|--------|
+| **Per-org MPL-Core collections** | `createCollectionV2()` in `solana.ts` Step 1.5 | ✅ Complete |
+| **Org member cNFTs mint into org collection** | `handleOnboardUser()` looks up `org_collection_address` | ✅ Complete |
+| **Update org collection branding** | `POST /solana/update-org-collection` endpoint | ✅ Complete |
+| **`organization.deleted` webhook handler** | `deleteOrgAssets()` — 10-step on-chain + DB cleanup | ✅ Complete |
+| **Svix webhook signature verification** | HMAC-SHA256 in `webhooks.ts` | ✅ Complete |
+| **207 Multi-Status responses** | Webhooks return 207 on partial failure | ✅ Complete |
+| **Defense-in-depth Edge Function fallback** | `clerk-webhook/index.ts` handles DB-only cleanup | ✅ Complete |
+| **FK constraint fixes** | RESTRICT → ON DELETE SET NULL for resilient deletion | ✅ Complete |
+| **Conditional unique indexes** | Per-scope username uniqueness (individual vs per-org) | ✅ Complete |
+| **Intercom messenger integration** | JWT identity verification via `generate-intercom-jwt` | ✅ Complete |
+| **Release automation** | `/release` slash command + pre-push hook reminder | ✅ Complete |
+
+### v1.1.0 DB Schema Changes
+- Added `org_collection_address` column to `organizations` table
+- Fixed `mint_status` CHECK to include `confirmed`, `pending_burn`, `deleted`
+- Fixed `domain_type` CHECK to include `organization_root`
+- Added `idx_username_nfts_org_active` partial index
+- Added `idx_username_nfts_pending_burn` partial index
+
+### Known Limitations
+- **cNFT burning**: Requires DAS-compatible RPC; cNFTs marked `pending_burn` until batch job added
+- **Large org deletion**: >50 members may approach Worker timeout (20-100s wall time)
+- **Collection fallback**: If per-org collection creation fails, org cNFTs fall back to global collection
+
+### Future Work (Post-v1.1.0)
+1. Batch burn job for `pending_burn` cNFTs (needs DAS API)
+2. WebAuthn biometric vault unlock integration
+3. On-chain file sharing delegation via Anchor program
+4. Mainnet deployment after security audit
+5. Large org deletion via Durable Objects (chunked processing)
+
+---
+
+## v1.0.0 Implementation Phases Overview
 
 | Phase | Focus Area | Duration | Status |
 |-------|-----------|----------|--------|

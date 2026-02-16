@@ -1,7 +1,7 @@
 # BlockDrive Security Model
 
-> **Version**: 1.0.0
-> **Last Updated**: February 9, 2026
+> **Version**: 1.1.0
+> **Last Updated**: February 16, 2026
 > **Classification**: Technical Security Documentation
 
 ---
@@ -724,6 +724,52 @@ USING (
   )
 );
 ```
+
+---
+
+## Webhook Security (v1.1.0)
+
+### Svix Signature Verification
+
+All Clerk webhook events are verified using Svix HMAC-SHA256 signatures before processing:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              WEBHOOK SIGNATURE VERIFICATION                          │
+│                                                                     │
+│  Clerk → Svix Delivery → BlockDrive API Gateway                    │
+│                                                                     │
+│  Headers validated:                                                 │
+│  ├── svix-id         — Unique event identifier                     │
+│  ├── svix-timestamp  — Event timestamp (reject if >5 min old)      │
+│  └── svix-signature  — v1,{base64-hmac-sha256} (may be multiple)   │
+│                                                                     │
+│  Signing payload: "{svix-id}.{svix-timestamp}.{raw-body}"          │
+│  Key: base64-decode(secret.replace("whsec_", ""))                  │
+│  Algorithm: HMAC-SHA256                                             │
+│                                                                     │
+│  Rejection triggers: missing headers, stale timestamp, bad sig     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Organization Deletion Security
+
+The `organization.deleted` webhook handler enforces strict FK ordering (children before parent) and provides defense-in-depth:
+
+- **Worker handler**: Full on-chain + DB cleanup (10 steps, SNS revocation, collection archival)
+- **Edge Function fallback**: DB-only cleanup (defense-in-depth if Worker fails)
+- **Both are idempotent**: Safe to fire concurrently or replay
+- **207 Multi-Status**: Returned on partial failure (some steps succeed, others fail)
+- **Error isolation**: Each step is try/caught independently — one failure doesn't block others
+
+### User Deletion Security
+
+The `user.deleted` webhook handler revokes all on-chain assets:
+
+- SNS subdomains transferred back to treasury wallet
+- cNFTs marked `pending_burn` (soulbound, so dead wallets are harmless)
+- Profile and org member records cleaned up
+- Soulbound NFTs cannot be transferred, so the SNS revocation is the critical security step
 
 ---
 

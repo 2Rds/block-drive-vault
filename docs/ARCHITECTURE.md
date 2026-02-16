@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 1.0.0 (v1.0.0 Release)
-**Date**: February 9, 2026
-**Status**: ACTIVE - v1.0.0 Release
+**Version**: 1.1.0 (v1.1.0 Release)
+**Date**: February 16, 2026
+**Status**: ACTIVE - v1.1.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -57,7 +57,7 @@
 | **Edge** | Cloudflare Workers + R2 + WAF | CDN, storage, security |
 | **Database** | Supabase PostgreSQL + RLS | User data, metadata |
 | **Storage** | Cloudflare R2 + IPFS + Arweave | Encrypted file storage |
-| **Blockchain** | Solana (Anchor framework) | On-chain state |
+| **Blockchain** | Solana (SNS + Bubblegum V2 + MPL-Core) | On-chain identity & NFTs |
 | **Cryptography** | AES-256-GCM + Groth16 (snarkjs) | Encryption + ZK proofs |
 | **Payments** | Stripe + Crossmint | Fiat + crypto subscriptions |
 | **Sharding** | Multi-PDA Sharding | 1000+ files per user |
@@ -933,6 +933,7 @@ CREATE TABLE public.organizations (
   subdomain TEXT UNIQUE,              -- SNS subdomain
   sns_registry_key TEXT,              -- On-chain registry
   org_nft_mint TEXT,                  -- Organization NFT
+  org_collection_address TEXT,        -- Per-org MPL-Core collection (v1.1.0)
   subscription_tier TEXT,             -- 'business' | 'enterprise'
   settings JSONB DEFAULT '{}',
   owner_clerk_id TEXT,                    -- Nullable; webhook-created orgs use data.created_by
@@ -982,6 +983,78 @@ ALTER TABLE public.organization_members
   ADD COLUMN join_method TEXT,        -- invite_code, email_domain, direct_invite, owner
   ADD COLUMN org_username TEXT,       -- e.g., alice (for alice.acme.blockdrive.sol)
   ADD COLUMN org_subdomain_nft_id UUID REFERENCES username_nfts(id);
+```
+
+### Per-Org NFT Collections (v1.1.0)
+
+Each organization gets its own **MPL-Core collection** (~0.003 SOL), while individual user NFTs stay in the global collection. All cNFTs still go into the single shared **Merkle tree** (efficient), only the collection association differs.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    NFT COLLECTION ARCHITECTURE (v1.1.0)                          │
+│                                                                                 │
+│  GLOBAL COLLECTION:                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  alice.blockdrive.sol     (individual user cNFT)                       │   │
+│  │  bob.blockdrive.sol       (individual user cNFT)                       │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  PER-ORG COLLECTIONS:                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  "Acme — BlockDrive" collection:                                       │   │
+│  │    acme.blockdrive.sol         (org root cNFT)                         │   │
+│  │    alice.acme.blockdrive.sol   (org member cNFT)                       │   │
+│  │    bob.acme.blockdrive.sol     (org member cNFT)                       │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  SHARED MERKLE TREE:                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  All cNFTs (individual + org) → single Bubblegum V2 Merkle tree        │   │
+│  │  (Creating per-org trees would cost ~1.6 SOL each — not feasible)      │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**API Endpoints**:
+- `POST /solana/create-org-domain` — Creates org SNS subdomain + MPL-Core collection + org root cNFT
+- `POST /solana/update-org-collection` — Updates collection branding (name, logo, description)
+- Collection metadata stored in R2: `metadata/cnfts/collection-{orgSubdomain}.json`
+
+### Organization Deletion (v1.1.0)
+
+When an org is deleted in Clerk, the `organization.deleted` webhook triggers a 10-step cleanup:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    ORGANIZATION DELETION FLOW (v1.1.0)                           │
+│                                                                                 │
+│  Clerk fires organization.deleted webhook                                        │
+│       │                                                                          │
+│       ▼                                                                          │
+│  ┌──────────────────────────────────────┐                                       │
+│  │ Step 1: Lookup org by clerk_org_id   │ → Not found? Return early (idempotent)│
+│  │ Step 2: Fetch all org NFTs           │                                       │
+│  │ Step 3: Partition member vs root     │                                       │
+│  └──────────────────┬───────────────────┘                                       │
+│                     │                                                            │
+│  ┌──────────────────▼───────────────────┐                                       │
+│  │ Step 4: Revoke member SNS subdomains │ → Transfer back to treasury           │
+│  │ Step 5: Revoke org root SNS subdomain│                                       │
+│  │ Step 6: Archive org MPL-Core collect │ → Rename to "[ARCHIVED]", clear URI   │
+│  └──────────────────┬───────────────────┘                                       │
+│                     │                                                            │
+│  ┌──────────────────▼───────────────────┐                                       │
+│  │ Step 7: Mark NFTs as pending_burn    │ → Clear organization_id FK            │
+│  │ Step 8: Clear org member FKs         │                                       │
+│  │ Step 9: DELETE organizations row     │ → CASCADEs to members, invites, etc   │
+│  │ Step 10: Clean up R2 metadata        │ → Best-effort                         │
+│  └──────────────────────────────────────┘                                       │
+│                                                                                 │
+│  Defense-in-depth: Edge Function fallback handles DB-only cleanup               │
+│  Both handlers are idempotent — safe to fire concurrently                       │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Organization Hooks & Services
@@ -1447,6 +1520,14 @@ BlockDrive provides an open-source Python SDK for file recovery without the Bloc
 | `/functions/v1/stripe-webhook` | POST | Stripe events | Webhook sig |
 | `/functions/v1/check-subscription` | POST | Check subscription | Clerk JWT |
 | `/functions/v1/crossmint-create-checkout` | POST | Crypto checkout | Clerk JWT |
+| **Solana (API Gateway Worker)** | | | |
+| `/solana/onboard-user` | POST | SNS subdomain + cNFT mint | Clerk JWT |
+| `/solana/create-org-domain` | POST | Org subdomain + collection + cNFT | Clerk JWT (admin) |
+| `/solana/resolve/:domain` | GET | SNS domain resolution | None |
+| `/solana/revoke-subdomain` | POST | Admin subdomain revocation | Clerk JWT |
+| `/solana/update-org-collection` | POST | Update org collection branding | Clerk JWT (admin) |
+| **Webhooks (API Gateway Worker)** | | | |
+| `/webhooks/clerk` | POST | Clerk lifecycle events | Svix signature |
 
 ### WebSocket Events (Planned)
 
@@ -1564,7 +1645,11 @@ jobs:
 | @crossmint/client-sdk-react-ui | latest | Embedded wallets |
 | @crossmint/client-sdk-auth | latest | Wallet authentication |
 | @crossmint/wallets-sdk | latest | Wallet operations |
-| @solana/web3.js | ^1.95 | Solana SDK |
+| @solana/web3.js | ^1.98 | Solana SDK |
+| @bonfida/spl-name-service | ^3.0 | SNS subdomain management |
+| @metaplex-foundation/mpl-bubblegum | ^5.0 | Bubblegum V2 cNFT minting |
+| @metaplex-foundation/mpl-core | ^1.1 | MPL-Core collection management |
+| @metaplex-foundation/umi | ^1.5 | Metaplex unified interface |
 | @coral-xyz/anchor | ^0.30 | Anchor framework |
 | snarkjs | ^0.7 | ZK proof generation |
 | @aws-sdk/client-s3 | ^3.x | S3/R2 SDK |
@@ -1586,4 +1671,7 @@ jobs:
 | **Metadata v2** | Privacy-enhanced metadata with HMAC search tokens |
 | **Stripe Sync Engine** | Real-time Stripe data mirroring to Supabase |
 | **Token-2022** | Solana token program with transfer hooks (soulbound NFTs) |
+| **Bubblegum V2** | Metaplex compressed NFT protocol for efficient minting |
+| **MPL-Core** | Metaplex collection standard for grouping NFTs |
+| **Svix** | Webhook delivery/verification service used by Clerk |
 | **Crossmint Embedded** | Non-custodial MPC wallets with gas sponsorship |
