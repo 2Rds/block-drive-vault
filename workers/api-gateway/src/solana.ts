@@ -20,7 +20,6 @@ import {
   Keypair,
   PublicKey,
   Transaction,
-  sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import {
@@ -34,17 +33,17 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import {
   mintV2,
   parseLeafFromMintV2Transaction,
+  createTreeV2,
   mplBubblegum,
 } from '@metaplex-foundation/mpl-bubblegum';
 import {
-  createCollectionV2,
+  createCollection,
   updateCollectionV1,
 } from '@metaplex-foundation/mpl-core';
 import {
   keypairIdentity,
   publicKey as umiPublicKey,
   generateSigner,
-  some,
 } from '@metaplex-foundation/umi';
 import bs58 from 'bs58';
 import { SupabaseClient } from './supabase';
@@ -163,6 +162,64 @@ async function storeMetadataInR2(
   });
 }
 
+/**
+ * Send a transaction and confirm via polling (no WebSocket).
+ * CF Workers can't use WS subscriptions, so we poll getSignatureStatuses.
+ */
+async function sendAndConfirmTx(
+  connection: Connection,
+  tx: Transaction,
+  signers: Keypair[],
+  maxRetries = 30
+): Promise<string> {
+  const sig = await connection.sendTransaction(tx, signers, {
+    skipPreflight: false,
+    preflightCommitment: 'confirmed',
+  });
+  console.log(`[solana] TX sent: ${sig}, polling for confirmation...`);
+
+  for (let i = 0; i < maxRetries; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const resp = await connection.getSignatureStatus(sig);
+    if (resp?.value?.confirmationStatus === 'confirmed' || resp?.value?.confirmationStatus === 'finalized') {
+      console.log(`[solana] TX confirmed: ${sig} (${resp.value.confirmationStatus})`);
+      return sig;
+    }
+    if (resp?.value?.err) {
+      throw new Error(`Transaction failed: ${JSON.stringify(resp.value.err)}`);
+    }
+  }
+  throw new Error(`Transaction not confirmed after ${maxRetries * 1.5}s: ${sig}`);
+}
+
+/**
+ * Send a Umi TransactionBuilder and confirm via polling (no WebSocket).
+ * Umi's .sendAndConfirm() uses WS subscriptions which hang in CF Workers.
+ */
+async function sendAndConfirmUmi(
+  umi: any,
+  builder: any,
+  connection: Connection,
+  maxRetries = 30
+): Promise<{ signature: Uint8Array }> {
+  const signature = await builder.send(umi);
+  const sigStr = bs58.encode(signature);
+  console.log(`[solana] Umi TX sent: ${sigStr}, polling for confirmation...`);
+
+  for (let i = 0; i < maxRetries; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const resp = await connection.getSignatureStatus(sigStr);
+    if (resp?.value?.confirmationStatus === 'confirmed' || resp?.value?.confirmationStatus === 'finalized') {
+      console.log(`[solana] Umi TX confirmed: ${sigStr} (${resp.value.confirmationStatus})`);
+      return { signature };
+    }
+    if (resp?.value?.err) {
+      throw new Error(`Transaction failed: ${JSON.stringify(resp.value.err)}`);
+    }
+  }
+  throw new Error(`Umi TX not confirmed after ${maxRetries * 1.5}s: ${sigStr}`);
+}
+
 /** Check treasury balance and warn if low */
 async function checkTreasuryBalance(connection: Connection, treasury: PublicKey): Promise<void> {
   const balance = await connection.getBalance(treasury);
@@ -199,6 +256,10 @@ export async function handleSolanaRequest(
         return await handleRevokeSubdomain(request, env);
       case request.method === 'POST' && route === 'update-org-collection':
         return await handleUpdateOrgCollection(request, env);
+      case request.method === 'POST' && route === 'create-tree-v2':
+        return await handleCreateTreeV2(request, env);
+      case request.method === 'POST' && route === 'create-collection':
+        return await handleCreateCollection(request, env);
       default:
         return json({ error: `Unknown solana route: ${route}` }, 404);
     }
@@ -300,7 +361,7 @@ async function handleOnboardUser(
       );
 
       const createTx = new Transaction().add(...createIxs);
-      const createSig = await sendAndConfirmTransaction(snsConnection, createTx, [treasury]);
+      const createSig = await sendAndConfirmTx(snsConnection, createTx, [treasury]);
       console.log(`[solana/onboard-user] SNS subdomain created. TX: ${createSig}`);
 
       // Get the subdomain's account key
@@ -317,7 +378,7 @@ async function handleOnboardUser(
     );
 
     const transferTx = new Transaction().add(transferIx);
-    const transferSig = await sendAndConfirmTransaction(snsConnection, transferTx, [treasury]);
+    const transferSig = await sendAndConfirmTx(snsConnection, transferTx, [treasury]);
     console.log(`[solana/onboard-user] SNS subdomain transferred. TX: ${transferSig}`);
   } catch (snsErr) {
     console.error('[solana/onboard-user] SNS error (non-fatal):', snsErr);
@@ -355,8 +416,9 @@ async function handleOnboardUser(
   try {
     const umi = getUmi(env);
     const merkleTree = umiPublicKey(env.MERKLE_TREE_ADDRESS);
+    const leafOwner = umiPublicKey(recipientWalletAddress);
 
-    // Use org-specific collection when minting org membership NFTs
+    // Look up org collection for org domains, fall back to global
     let collectionAddress = env.GLOBAL_COLLECTION_ADDRESS;
     if (isOrgDomain && organizationId) {
       const org = await db.selectOne<{ org_collection_address: string | null }>(
@@ -367,29 +429,27 @@ async function handleOnboardUser(
       }
     }
     const coreCollection = umiPublicKey(collectionAddress);
-    const leafOwner = umiPublicKey(recipientWalletAddress);
 
-    console.log(`[solana/onboard-user] Minting cNFT to ${recipientWalletAddress} (tree: ${env.MERKLE_TREE_ADDRESS})`);
+    console.log(`[solana/onboard-user] Minting V2 cNFT to ${recipientWalletAddress} (tree: ${env.MERKLE_TREE_ADDRESS}, collection: ${collectionAddress})`);
 
-    const mintResult = await mintV2(umi, {
+    const mintResult = await sendAndConfirmUmi(umi, mintV2(umi, {
       leafOwner,
       merkleTree,
-      collectionAuthority: umi.identity,
       coreCollection,
       metadata: {
         name: fullDomain,
         uri: metadataUri,
         sellerFeeBasisPoints: 0,
-        collection: some(coreCollection),
+        collection: coreCollection,
         creators: [
           {
             address: umi.identity.publicKey,
-            verified: true,
+            verified: false,
             share: 100,
           },
         ],
       },
-    }).sendAndConfirm(umi);
+    }), snsConnection);
 
     txSignature = bs58.encode(mintResult.signature);
     console.log(`[solana/onboard-user] cNFT minted. TX: ${txSignature}`);
@@ -566,7 +626,7 @@ async function handleCreateOrgDomain(
         treasury.publicKey
       );
       const createTx = new Transaction().add(...createIxs);
-      await sendAndConfirmTransaction(snsConnection, createTx, [treasury]);
+      await sendAndConfirmTx(snsConnection, createTx, [treasury]);
 
       const { pubkey } = getDomainKeySync(subdomainName);
       snsAccountKey = pubkey.toBase58();
@@ -580,7 +640,7 @@ async function handleCreateOrgDomain(
       true
     );
     const transferTx = new Transaction().add(transferIx);
-    await sendAndConfirmTransaction(snsConnection, transferTx, [treasury]);
+    await sendAndConfirmTx(snsConnection, transferTx, [treasury]);
 
     console.log(`[solana/create-org-domain] SNS subdomain created + transferred: ${snsAccountKey}`);
   } catch (snsErr) {
@@ -602,11 +662,12 @@ async function handleCreateOrgDomain(
     await storeMetadataInR2(env.R2_STORAGE, `collection-${orgSubdomain.toLowerCase()}`, collectionMetadata);
     const collectionUri = buildMetadataUri(env, `collection-${orgSubdomain.toLowerCase()}`);
 
-    await createCollectionV2(umi, {
+    await sendAndConfirmUmi(umi, createCollection(umi, {
       collection: orgCollectionSigner,
       name: `${orgName} — BlockDrive`,
       uri: collectionUri,
-    }).sendAndConfirm(umi);
+      plugins: [{ type: 'BubblegumV2' }],
+    }), snsConnection);
 
     orgCollectionAddress = orgCollectionSigner.publicKey.toString();
     console.log(`[solana/create-org-domain] Org collection created: ${orgCollectionAddress}`);
@@ -639,28 +700,30 @@ async function handleCreateOrgDomain(
   try {
     const umi = getUmi(env);
     const merkleTree = umiPublicKey(env.MERKLE_TREE_ADDRESS);
-    const coreCollection = umiPublicKey(orgCollectionAddress || env.GLOBAL_COLLECTION_ADDRESS);
     const leafOwner = umiPublicKey(recipientWalletAddress);
 
-    const mintResult = await mintV2(umi, {
+    // Use per-org collection if created, fall back to global
+    const mintCollection = orgCollectionAddress || env.GLOBAL_COLLECTION_ADDRESS;
+    const coreCollection = umiPublicKey(mintCollection);
+
+    const mintResult = await sendAndConfirmUmi(umi, mintV2(umi, {
       leafOwner,
       merkleTree,
-      collectionAuthority: umi.identity,
       coreCollection,
       metadata: {
         name: fullDomain,
         uri: metadataUri,
         sellerFeeBasisPoints: 0,
-        collection: some(coreCollection),
+        collection: coreCollection,
         creators: [
           {
             address: umi.identity.publicKey,
-            verified: true,
+            verified: false,
             share: 100,
           },
         ],
       },
-    }).sendAndConfirm(umi);
+    }), snsConnection);
 
     txSignature = bs58.encode(mintResult.signature);
     console.log(`[solana/create-org-domain] cNFT minted. TX: ${txSignature}`);
@@ -751,17 +814,19 @@ async function handleResolve(
   const domainName = domain.replace(/\.sol$/, '');
 
   try {
+    console.log(`[solana/resolve] Resolving: ${domainName}`);
     const owner = await resolve(snsConnection, domainName);
+    console.log(`[solana/resolve] Resolved ${domainName} → ${owner.toBase58()}`);
     return json({
       domain: `${domainName}.sol`,
       owner: owner.toBase58(),
     });
   } catch (err) {
-    // Domain not found
+    console.error(`[solana/resolve] Failed for ${domainName}:`, err instanceof Error ? err.message : err);
     return json({
       domain: `${domainName}.sol`,
       owner: null,
-      error: 'Domain not found',
+      error: err instanceof Error ? err.message : 'Domain not found',
     }, 404);
   }
 }
@@ -796,7 +861,7 @@ async function handleRevokeSubdomain(
     );
 
     const tx = new Transaction().add(transferIx);
-    const sig = await sendAndConfirmTransaction(connection, tx, [treasury]);
+    const sig = await sendAndConfirmTx(connection, tx, [treasury]);
 
     console.log(`[solana/revoke-subdomain] Subdomain revoked. TX: ${sig}`);
 
@@ -877,11 +942,12 @@ async function handleUpdateOrgCollection(
       const collectionPubkey = umiPublicKey(org.org_collection_address);
       const collectionUri = buildMetadataUri(env, `collection-${orgSubdomain}`);
 
-      await updateCollectionV1(umi, {
+      const updateConnection = getConnection(env);
+      await sendAndConfirmUmi(umi, updateCollectionV1(umi, {
         collection: collectionPubkey,
         newName: `${name} — BlockDrive`,
         newUri: collectionUri,
-      }).sendAndConfirm(umi);
+      }), updateConnection);
 
       console.log(`[solana/update-org-collection] On-chain name updated for ${organizationId}`);
     } catch (err) {
@@ -982,7 +1048,7 @@ export async function deleteOrgAssets(
         true
       );
       const tx = new Transaction().add(transferIx);
-      await sendAndConfirmTransaction(connection, tx, [treasury]);
+      await sendAndConfirmTx(connection, tx, [treasury]);
       memberSubdomainsRevoked.push(nft.full_domain);
       console.log(`[delete-org-assets] Revoked member SNS: ${nft.full_domain}`);
     } catch (err) {
@@ -1004,7 +1070,7 @@ export async function deleteOrgAssets(
         true
       );
       const tx = new Transaction().add(transferIx);
-      await sendAndConfirmTransaction(connection, tx, [treasury]);
+      await sendAndConfirmTx(connection, tx, [treasury]);
       rootDomainRevoked = nft.full_domain;
       console.log(`[delete-org-assets] Revoked root SNS: ${nft.full_domain}`);
     } catch (err) {
@@ -1020,11 +1086,11 @@ export async function deleteOrgAssets(
       const umi = getUmi(env);
       const collectionPubkey = umiPublicKey(org.org_collection_address);
 
-      await updateCollectionV1(umi, {
+      await sendAndConfirmUmi(umi, updateCollectionV1(umi, {
         collection: collectionPubkey,
         newName: `[ARCHIVED] ${org.name} — BlockDrive`,
         newUri: '',
-      }).sendAndConfirm(umi);
+      }), connection);
 
       collectionArchived = true;
       console.log(`[delete-org-assets] Collection archived: ${org.org_collection_address}`);
@@ -1154,7 +1220,7 @@ export async function deleteUserAssets(
           true
         );
         const tx = new Transaction().add(transferIx);
-        await sendAndConfirmTransaction(connection, tx, [treasury]);
+        await sendAndConfirmTx(connection, tx, [treasury]);
         revoked.push(nft.full_domain);
         console.log(`[delete-user-assets] Revoked SNS: ${nft.full_domain}`);
       } catch (err) {
@@ -1208,4 +1274,117 @@ export async function deleteUserAssets(
 
   console.log(`[delete-user-assets] Done for ${clerkUserId}: ${revoked.length} revoked, ${errors.length} errors`);
   return { revoked, burned, errors };
+}
+
+// ─── POST /solana/create-tree-v2 ─────────────────────────
+
+/**
+ * Creates a new Bubblegum V2 Merkle tree.
+ * Admin-only. Required for mintV2 + soulbound cNFT support.
+ *
+ * Body: { maxDepth?: number, maxBufferSize?: number, canopyDepth?: number }
+ * Defaults: (10, 32, 0) → 1,024 leaves, ~0.044 SOL
+ */
+async function handleCreateTreeV2(
+  request: Request,
+  env: SolanaEnv
+): Promise<Response> {
+  parseClerkToken(request);
+
+  const body = await request.json() as {
+    maxDepth?: number;
+    maxBufferSize?: number;
+    canopyDepth?: number;
+  };
+
+  const maxDepth = body.maxDepth || 10;
+  const maxBufferSize = body.maxBufferSize || 32;
+  const canopyDepth = body.canopyDepth || 0;
+
+  console.log(`[solana/create-tree-v2] Creating V2 tree: depth=${maxDepth}, buffer=${maxBufferSize}, canopy=${canopyDepth}`);
+
+  const umi = getUmi(env);
+  const connection = getConnection(env);
+  const merkleTreeSigner = generateSigner(umi);
+
+  const treeBuilder = await createTreeV2(umi, {
+    merkleTree: merkleTreeSigner,
+    maxDepth,
+    maxBufferSize,
+    public: false,
+    canopyDepth,
+  });
+
+  const result = await sendAndConfirmUmi(umi, treeBuilder, connection);
+  const txSignature = bs58.encode(result.signature);
+  const treeAddress = merkleTreeSigner.publicKey.toString();
+
+  console.log(`[solana/create-tree-v2] Tree created: ${treeAddress}, TX: ${txSignature}`);
+
+  return json({
+    success: true,
+    merkleTreeAddress: treeAddress,
+    txSignature,
+    maxDepth,
+    maxBufferSize,
+    canopyDepth,
+    maxLeaves: Math.pow(2, maxDepth),
+  });
+}
+
+// ─── POST /solana/create-collection ──────────────────────
+
+/**
+ * Creates an MPL-Core collection with the BubblegumV2 plugin.
+ * Required for mintV2 — collections without this plugin are rejected.
+ *
+ * Body: { name: string, uri?: string }
+ */
+async function handleCreateCollection(
+  request: Request,
+  env: SolanaEnv
+): Promise<Response> {
+  parseClerkToken(request);
+
+  const body = await request.json() as {
+    name: string;
+    uri?: string;
+  };
+
+  if (!body.name) throw new Error('Missing required field: name');
+
+  const uri = body.uri || buildMetadataUri(env, 'global-collection');
+
+  // Store default metadata in R2
+  const metadata = {
+    name: body.name,
+    description: `${body.name} — Membership NFT collection`,
+    image: 'https://blockdrive.io/logo.png',
+  };
+  await storeMetadataInR2(env.R2_STORAGE, 'global-collection', metadata);
+
+  console.log(`[solana/create-collection] Creating collection: ${body.name}`);
+
+  const umi = getUmi(env);
+  const connection = getConnection(env);
+  const collectionSigner = generateSigner(umi);
+
+  const result = await sendAndConfirmUmi(umi, createCollection(umi, {
+    collection: collectionSigner,
+    name: body.name,
+    uri,
+    plugins: [{ type: 'BubblegumV2' }],
+  }), connection);
+
+  const txSignature = bs58.encode(result.signature);
+  const collectionAddress = collectionSigner.publicKey.toString();
+
+  console.log(`[solana/create-collection] Collection created: ${collectionAddress}, TX: ${txSignature}`);
+
+  return json({
+    success: true,
+    collectionAddress,
+    txSignature,
+    name: body.name,
+  });
 }
