@@ -1,87 +1,36 @@
-import { useEffect, useState } from 'react';
-import { IntercomUser } from '@/services/intercomService';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { useEffect } from 'react';
+import Intercom from '@intercom/messenger-js-sdk';
 
-interface OptimizedIntercomMessengerProps {
-  user?: IntercomUser;
+interface IntercomBootProps {
+  userId?: string;
+  email?: string;
+  name?: string;
+  createdAt?: number;
   isAuthenticated?: boolean;
-  supabase?: SupabaseClient;
 }
 
-async function fetchIntercomJwt(supabase: SupabaseClient | undefined): Promise<string | undefined> {
-  if (!supabase) return undefined;
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-intercom-jwt');
-    if (error) {
-      console.error('Failed to fetch Intercom JWT:', error);
-      return undefined;
-    }
-    return data?.jwt;
-  } catch (e) {
-    console.error('Intercom JWT fetch error:', e);
-    return undefined;
-  }
-}
-
-export const OptimizedIntercomMessenger = ({ user, isAuthenticated, supabase }: OptimizedIntercomMessengerProps) => {
-  const [isIntercomReady, setIsIntercomReady] = useState(false);
-
+export const OptimizedIntercomMessenger = ({ userId, email, name, createdAt, isAuthenticated }: IntercomBootProps) => {
   useEffect(() => {
-    const initializeIntercom = async () => {
-      try {
-        const { intercomService } = await import('@/services/intercomService');
-
-        if (isAuthenticated && user) {
-          const jwt = await fetchIntercomJwt(supabase);
-          await intercomService.boot({ ...user, jwt });
-        } else if (isAuthenticated === false) {
-          await intercomService.initialize();
-        }
-        setIsIntercomReady(true);
-      } catch (error) {
-        console.error('Intercom initialization failed:', error);
-      }
-    };
-
-    // Defer to avoid blocking TBT
-    const deferredInit = () => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          requestIdleCallback(initializeIntercom, { timeout: 5000 });
-        }, { timeout: 3000 });
+    console.log('[Intercom] Booting, authenticated:', isAuthenticated, 'userId:', userId);
+    try {
+      if (isAuthenticated && userId) {
+        Intercom({
+          app_id: 'jdnu2ajy',
+          user_id: userId,
+          name,
+          email,
+          created_at: createdAt,
+        });
       } else {
-        setTimeout(() => {
-          setTimeout(initializeIntercom, 2000);
-        }, 1000);
+        Intercom({
+          app_id: 'jdnu2ajy',
+        });
       }
-    };
-
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(deferredInit, { timeout: 10000 });
-    } else {
-      setTimeout(deferredInit, 5000);
+      console.log('[Intercom] Boot successful');
+    } catch (error) {
+      console.error('[Intercom] Boot failed:', error);
     }
-  }, [user, isAuthenticated, supabase]);
-
-  useEffect(() => {
-    if (isIntercomReady && isAuthenticated && user) {
-      const updateUser = async () => {
-        try {
-          const jwt = await fetchIntercomJwt(supabase);
-          const { intercomService } = await import('@/services/intercomService');
-          await intercomService.update({ ...user, jwt });
-        } catch (error) {
-          console.error('Intercom update failed:', error);
-        }
-      };
-
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(updateUser, { timeout: 2000 });
-      } else {
-        setTimeout(updateUser, 1000);
-      }
-    }
-  }, [user, isAuthenticated, isIntercomReady, supabase]);
+  }, [userId, email, name, createdAt, isAuthenticated]);
 
   return null;
 };

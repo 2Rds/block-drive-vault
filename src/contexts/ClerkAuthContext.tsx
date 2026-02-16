@@ -157,22 +157,14 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
     signOut: handleSignOut,
   };
 
-  const intercomUser = useMemo(() => {
-    if (!user) return undefined;
-    return {
-      userId: user.id,
-      email: user.primaryEmailAddress?.emailAddress,
-      name: user.fullName ?? undefined,
-      createdAt: user.createdAt ? Math.floor(new Date(user.createdAt).getTime() / 1000) : undefined,
-    };
-  }, [user]);
-
   return (
     <ClerkAuthContext.Provider value={value}>
       <OptimizedIntercomMessenger
-        user={intercomUser}
+        userId={user?.id}
+        email={user?.primaryEmailAddress?.emailAddress}
+        name={user?.fullName ?? undefined}
+        createdAt={user?.createdAt ? Math.floor(new Date(user.createdAt).getTime() / 1000) : undefined}
         isAuthenticated={isSignedIn ?? false}
-        supabase={supabase}
       />
       {children}
     </ClerkAuthContext.Provider>
