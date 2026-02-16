@@ -172,6 +172,7 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
       <OptimizedIntercomMessenger
         user={intercomUser}
         isAuthenticated={isSignedIn ?? false}
+        supabase={supabase}
       />
       {children}
     </ClerkAuthContext.Provider>

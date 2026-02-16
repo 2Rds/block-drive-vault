@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { IntercomUser } from '@/services/intercomService';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface OptimizedIntercomMessengerProps {
   user?: IntercomUser;
   isAuthenticated?: boolean;
+  supabase?: SupabaseClient;
 }
 
-async function fetchIntercomJwt(supabase: any): Promise<string | undefined> {
+async function fetchIntercomJwt(supabase: SupabaseClient | undefined): Promise<string | undefined> {
+  if (!supabase) return undefined;
   try {
     const { data, error } = await supabase.functions.invoke('generate-intercom-jwt');
     if (error) {
@@ -21,9 +23,8 @@ async function fetchIntercomJwt(supabase: any): Promise<string | undefined> {
   }
 }
 
-export const OptimizedIntercomMessenger = ({ user, isAuthenticated }: OptimizedIntercomMessengerProps) => {
+export const OptimizedIntercomMessenger = ({ user, isAuthenticated, supabase }: OptimizedIntercomMessengerProps) => {
   const [isIntercomReady, setIsIntercomReady] = useState(false);
-  const { supabase } = useClerkAuth();
 
   useEffect(() => {
     const initializeIntercom = async () => {
