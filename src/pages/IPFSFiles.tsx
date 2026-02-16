@@ -292,22 +292,6 @@ function IPFSFiles(): JSX.Element {
     setDragOver(false);
   };
 
-  const handleInitializeVault = async () => {
-    if (!signTransaction) {
-      toast.error('Wallet signing not available');
-      return;
-    }
-    setInitializingVault(true);
-    try {
-      const success = await initializeVault(signTransaction);
-      if (success) {
-        setVaultExists(true);
-        toast.success('Vault initialized on Solana');
-      }
-    } finally {
-      setInitializingVault(false);
-    }
-  };
 
   const handleCreateFolder = async (name: string) => {
     if (!userId || !supabase) return;
@@ -644,30 +628,14 @@ function IPFSFiles(): JSX.Element {
           </div>
         )}
 
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {vaultExists && (
-            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-xs">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Vault Active
-            </Badge>
-          )}
-          {isInOrganization && (
+        {isInOrganization && (
+          <div className="flex items-center gap-2 mb-4">
             <Badge variant="outline" className="bg-zinc-800 text-zinc-400 border-zinc-700 text-xs">
               <Users className="w-3 h-3 mr-1" />
               {organization.name}
             </Badge>
-          )}
-          {vaultExists === false && signTransaction && (
-            <Badge
-              variant="outline"
-              className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs cursor-pointer hover:bg-amber-500/20"
-              onClick={handleInitializeVault}
-            >
-              <Link2 className="w-3 h-3 mr-1" />
-              {initializingVault ? 'Initializing...' : 'Initialize Vault'}
-            </Badge>
-          )}
-        </div>
+          </div>
+        )}
 
         {isUploading && progress && (
           <div className="mb-4 bg-zinc-900 rounded-lg border border-zinc-800 px-4 py-3">
