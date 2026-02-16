@@ -7,6 +7,7 @@ export interface IntercomUser {
   email?: string;
   name?: string;
   createdAt?: number;
+  jwt?: string;
 }
 
 class IntercomService {
@@ -19,21 +20,23 @@ class IntercomService {
 
     try {
       if (user?.userId) {
-        // Initialize with user data directly - no JWT needed with Dynamic SDK
-        await Intercom({
+        const bootConfig: Record<string, unknown> = {
           app_id: APP_ID,
           user_id: user.userId,
           name: user.name,
           email: user.email,
           created_at: user.createdAt,
-        });
+        };
+        if (user.jwt) {
+          bootConfig.intercom_user_jwt = user.jwt;
+        }
+        await Intercom(bootConfig);
       } else {
-        // For anonymous users
         await Intercom({
           app_id: APP_ID,
         });
       }
-      
+
       this.isInitialized = true;
     } catch (error) {
       console.error('Failed to initialize Intercom:', error);
@@ -48,13 +51,17 @@ class IntercomService {
 
     try {
       if (user?.userId) {
-        await Intercom({
+        const bootConfig: Record<string, unknown> = {
           app_id: APP_ID,
           user_id: user.userId,
           name: user.name,
           email: user.email,
           created_at: user.createdAt,
-        });
+        };
+        if (user.jwt) {
+          bootConfig.intercom_user_jwt = user.jwt;
+        }
+        await Intercom(bootConfig);
       } else {
         await Intercom({
           app_id: APP_ID,
@@ -72,13 +79,17 @@ class IntercomService {
 
     try {
       if (user.userId) {
-        Intercom({
+        const updateConfig: Record<string, unknown> = {
           app_id: APP_ID,
           user_id: user.userId,
           name: user.name,
           email: user.email,
           created_at: user.createdAt,
-        });
+        };
+        if (user.jwt) {
+          updateConfig.intercom_user_jwt = user.jwt;
+        }
+        Intercom(updateConfig);
       }
     } catch (error) {
       console.error('Failed to update Intercom user:', error);
@@ -91,7 +102,6 @@ class IntercomService {
     }
 
     try {
-      // Note: Intercom doesn't have a direct shutdown method in this SDK
       this.isInitialized = false;
     } catch (error) {
       console.error('Failed to shutdown Intercom:', error);
@@ -104,7 +114,6 @@ class IntercomService {
     }
 
     try {
-      // Note: Use window.Intercom for show/hide commands
       if (window.Intercom) {
         window.Intercom('show');
       }
@@ -119,7 +128,6 @@ class IntercomService {
     }
 
     try {
-      // Note: Use window.Intercom for show/hide commands
       if (window.Intercom) {
         window.Intercom('hide');
       }

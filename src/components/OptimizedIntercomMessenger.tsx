@@ -1,23 +1,38 @@
 import { useEffect, useState } from 'react';
 import { IntercomUser } from '@/services/intercomService';
+import { useClerkAuth } from '@/contexts/ClerkAuthContext';
 
 interface OptimizedIntercomMessengerProps {
   user?: IntercomUser;
   isAuthenticated?: boolean;
 }
 
+async function fetchIntercomJwt(supabase: any): Promise<string | undefined> {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-intercom-jwt');
+    if (error) {
+      console.error('Failed to fetch Intercom JWT:', error);
+      return undefined;
+    }
+    return data?.jwt;
+  } catch (e) {
+    console.error('Intercom JWT fetch error:', e);
+    return undefined;
+  }
+}
+
 export const OptimizedIntercomMessenger = ({ user, isAuthenticated }: OptimizedIntercomMessengerProps) => {
   const [isIntercomReady, setIsIntercomReady] = useState(false);
+  const { supabase } = useClerkAuth();
 
   useEffect(() => {
-    // More aggressive deferring to reduce TBT impact
     const initializeIntercom = async () => {
       try {
-        // Dynamic import to avoid blocking main thread
         const { intercomService } = await import('@/services/intercomService');
-        
+
         if (isAuthenticated && user) {
-          await intercomService.boot(user);
+          const jwt = await fetchIntercomJwt(supabase);
+          await intercomService.boot({ ...user, jwt });
         } else if (isAuthenticated === false) {
           await intercomService.initialize();
         }
@@ -27,7 +42,7 @@ export const OptimizedIntercomMessenger = ({ user, isAuthenticated }: OptimizedI
       }
     };
 
-    // Use multiple levels of deferring to ensure Intercom doesn't block TBT
+    // Defer to avoid blocking TBT
     const deferredInit = () => {
       if ('requestIdleCallback' in window) {
         requestIdleCallback(() => {
@@ -40,34 +55,32 @@ export const OptimizedIntercomMessenger = ({ user, isAuthenticated }: OptimizedI
       }
     };
 
-    // Only initialize after page has been interactive for a while
     if ('requestIdleCallback' in window) {
       requestIdleCallback(deferredInit, { timeout: 10000 });
     } else {
       setTimeout(deferredInit, 5000);
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, supabase]);
 
   useEffect(() => {
-    // Update user data when it changes, but only after Intercom is ready
     if (isIntercomReady && isAuthenticated && user) {
       const updateUser = async () => {
         try {
+          const jwt = await fetchIntercomJwt(supabase);
           const { intercomService } = await import('@/services/intercomService');
-          await intercomService.update(user);
+          await intercomService.update({ ...user, jwt });
         } catch (error) {
           console.error('Intercom update failed:', error);
         }
       };
-      
-      // Defer updates to avoid blocking
+
       if ('requestIdleCallback' in window) {
         requestIdleCallback(updateUser, { timeout: 2000 });
       } else {
         setTimeout(updateUser, 1000);
       }
     }
-  }, [user, isAuthenticated, isIntercomReady]);
+  }, [user, isAuthenticated, isIntercomReady, supabase]);
 
   return null;
 };
