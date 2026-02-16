@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useMemo, useEffect } from 'react';
 import { useUser, useSession, useClerk, useOrganization, useOrganizationList } from '@clerk/clerk-react';
 import { createClerkSupabaseClient, supabaseAnon } from '@/integrations/clerk/ClerkSupabaseClient';
+import { OptimizedIntercomMessenger } from '@/components/OptimizedIntercomMessenger';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Organization context type
@@ -156,8 +157,22 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
     signOut: handleSignOut,
   };
 
+  const intercomUser = useMemo(() => {
+    if (!user) return undefined;
+    return {
+      userId: user.id,
+      email: user.primaryEmailAddress?.emailAddress,
+      name: user.fullName ?? undefined,
+      createdAt: user.createdAt ? Math.floor(new Date(user.createdAt).getTime() / 1000) : undefined,
+    };
+  }, [user]);
+
   return (
     <ClerkAuthContext.Provider value={value}>
+      <OptimizedIntercomMessenger
+        user={intercomUser}
+        isAuthenticated={isSignedIn ?? false}
+      />
       {children}
     </ClerkAuthContext.Provider>
   );
