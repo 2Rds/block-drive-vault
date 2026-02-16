@@ -157,8 +157,9 @@ export class FileDatabaseService {
     }
   }
 
-  static async loadUserFiles(clerkUserId: string): Promise<IPFSFile[]> {
-    const { data: files, error } = await supabase
+  static async loadUserFiles(clerkUserId: string, client?: SupabaseClient): Promise<IPFSFile[]> {
+    const db = client || supabase;
+    const { data: files, error } = await db
       .from('files')
       .select('*')
       .eq('clerk_user_id', clerkUserId)
@@ -182,8 +183,9 @@ export class FileDatabaseService {
     }));
   }
 
-  static async deleteFile(fileId: string, clerkUserId: string) {
-    const { error: dbError } = await supabase
+  static async deleteFile(fileId: string, clerkUserId: string, client?: SupabaseClient) {
+    const db = client || supabase;
+    const { error: dbError } = await db
       .from('files')
       .delete()
       .eq('id', fileId)

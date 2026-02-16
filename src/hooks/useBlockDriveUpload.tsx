@@ -232,7 +232,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
           const isInOrg = !!organization;
           const ipfsUrl = `https://ipfs.filebase.io/ipfs/${result.contentCID}`;
 
-          await supabase.from('files').insert({
+          const { error: dbError } = await supabase.from('files').insert({
             clerk_user_id: clerkUserId,
             filename: file.name,
             file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
@@ -256,8 +256,14 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
               provider: 'filebase',
             },
           });
+
+          if (dbError) {
+            console.error('[useBlockDriveUpload] DB insert failed:', dbError);
+            toast.error('File uploaded but failed to save record — check Clerk JWT template');
+          }
         } catch (dbError) {
           console.error('[useBlockDriveUpload] Failed to save file record:', dbError);
+          toast.error('File uploaded but failed to save record');
         }
       }
 
