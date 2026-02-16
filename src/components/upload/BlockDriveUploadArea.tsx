@@ -1,15 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Upload,
   Plus,
   Globe,
   Shield,
   Zap,
-  CheckCircle,
   Key,
   Lock,
   AlertCircle,
-  Link2,
   Users,
   User
 } from 'lucide-react';
@@ -54,8 +52,6 @@ export function BlockDriveUploadArea({
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
-  const [initializingVault, setInitializingVault] = useState(false);
   const securityLevel = SecurityLevel.MAXIMUM;
   const storageConfig = DEFAULT_STORAGE_CONFIG;
 
@@ -67,34 +63,7 @@ export function BlockDriveUploadArea({
     progress,
     hasKeys,
     uploadFiles,
-    initializeVault,
-    checkVaultExists,
-    solanaLoading
-  } = useBlockDriveUpload({ enableOnChainRegistration: true });
-
-  useEffect(() => {
-    if (walletData?.connected && hasKeys) {
-      checkVaultExists().then(setVaultExists);
-    }
-  }, [walletData?.connected, hasKeys, checkVaultExists]);
-
-  const handleInitializeVault = async () => {
-    if (!signTransaction) {
-      toast.error('Wallet signing not available');
-      return;
-    }
-    
-    setInitializingVault(true);
-    try {
-      const success = await initializeVault(signTransaction);
-      if (success) {
-        setVaultExists(true);
-        toast.success('Vault initialized on Solana');
-      }
-    } finally {
-      setInitializingVault(false);
-    }
-  };
+  } = useBlockDriveUpload({ enableOnChainRegistration: false });
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -115,16 +84,6 @@ export function BlockDriveUploadArea({
 
   const processUpload = async (files: FileList, _toTeam: boolean) => {
     setShowDestinationModal(false);
-
-    if (!vaultExists && signTransaction) {
-      toast.info('Initializing your vault first...');
-      const success = await initializeVault(signTransaction);
-      if (!success) {
-        toast.error('Could not initialize vault. Uploading without on-chain registration.');
-      } else {
-        setVaultExists(true);
-      }
-    }
 
     const folderPath = selectedFolder && selectedFolder !== 'all' ? `/${selectedFolder}` : '/';
 
@@ -264,39 +223,12 @@ export function BlockDriveUploadArea({
   return (
     <SubscriptionGate>
       <div className="space-y-4">
-        {vaultExists === false && signTransaction && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link2 className="w-5 h-5 text-amber-500" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Solana Vault Not Initialized</p>
-                <p className="text-xs text-muted-foreground">Initialize to register files on-chain</p>
-              </div>
-            </div>
-            <Button 
-              size="sm" 
-              onClick={handleInitializeVault}
-              disabled={initializingVault || solanaLoading}
-            >
-              {initializingVault ? 'Initializing...' : 'Initialize Vault'}
-            </Button>
-          </div>
-        )}
-
-        {(vaultExists || isInOrganization) && (
+        {isInOrganization && (
           <div className="flex items-center gap-2">
-            {vaultExists && (
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Solana Vault Active
-              </Badge>
-            )}
-            {isInOrganization && (
-              <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
-                <Users className="w-3 h-3 mr-1" />
-                {organization.name}
-              </Badge>
-            )}
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+              <Users className="w-3 h-3 mr-1" />
+              {organization.name}
+            </Badge>
           </div>
         )}
 

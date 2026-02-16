@@ -110,9 +110,7 @@ function IPFSFiles(): JSX.Element {
     progress,
     hasKeys,
     uploadFiles,
-    initializeVault,
-    checkVaultExists,
-  } = useBlockDriveUpload({ enableOnChainRegistration: true });
+  } = useBlockDriveUpload({ enableOnChainRegistration: false });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,17 +140,9 @@ function IPFSFiles(): JSX.Element {
   const [movingFile, setMovingFile] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
-  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
-  const [initializingVault, setInitializingVault] = useState(false);
   const [showDestinationModal, setShowDestinationModal] = useState(false);
 
   const isInOrganization = !!organization;
-
-  useEffect(() => {
-    if (walletData?.connected && hasKeys) {
-      checkVaultExists().then(setVaultExists);
-    }
-  }, [walletData?.connected, hasKeys, checkVaultExists]);
 
   useEffect(() => {
     if (isTrashView) {
@@ -255,16 +245,6 @@ function IPFSFiles(): JSX.Element {
 
   const processUpload = async (files: FileList | File[], targetPath?: string) => {
     setShowDestinationModal(false);
-
-    if (!vaultExists && signTransaction) {
-      toast.info('Initializing your vault first...');
-      const success = await initializeVault(signTransaction);
-      if (!success) {
-        toast.error('Could not initialize vault. Uploading without on-chain registration.');
-      } else {
-        setVaultExists(true);
-      }
-    }
 
     const folderPath = targetPath || currentPath || '/';
 
