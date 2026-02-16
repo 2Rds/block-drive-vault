@@ -264,7 +264,11 @@ async function handleOrganizationDeleted(data: { id: string }) {
     .eq('clerk_org_id', clerkOrgId)
     .maybeSingle();
 
-  if (orgError || !org) {
+  if (orgError) {
+    console.error(`[clerk-webhook] Error looking up org ${clerkOrgId}:`, orgError);
+    throw orgError; // Return 500 so Clerk retries
+  }
+  if (!org) {
     console.log(`[clerk-webhook] Organization ${clerkOrgId} not found (already deleted?)`);
     return;
   }
@@ -277,6 +281,7 @@ async function handleOrganizationDeleted(data: { id: string }) {
 
   if (nftErr) {
     console.error('[clerk-webhook] Failed to clear username_nfts.organization_id:', nftErr);
+    throw nftErr; // FK cleanup must succeed before org deletion
   }
 
   // NULL out org_subdomain_nft_id on organization_members
@@ -287,6 +292,7 @@ async function handleOrganizationDeleted(data: { id: string }) {
 
   if (memberErr) {
     console.error('[clerk-webhook] Failed to clear organization_members FKs:', memberErr);
+    throw memberErr; // FK cleanup must succeed before org deletion
   }
 
   // Delete organizations row — CASCADEs to members, invites, etc.

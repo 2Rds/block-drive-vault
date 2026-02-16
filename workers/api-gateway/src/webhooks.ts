@@ -153,16 +153,23 @@ async function handleClerkWebhook(
         return json({ error: 'Missing user ID in event' }, 400);
       }
 
-      const result = await deleteUserAssets(env, clerkUserId);
+      try {
+        const result = await deleteUserAssets(env, clerkUserId);
+        const hasErrors = result.errors.length > 0;
 
-      console.log(`[webhook/clerk] user.deleted processed:`, result);
+        console.log(`[webhook/clerk] user.deleted processed:`, result);
 
-      return json({
-        success: true,
-        event: 'user.deleted',
-        clerkUserId,
-        ...result,
-      });
+        return json({
+          success: !hasErrors,
+          event: 'user.deleted',
+          clerkUserId,
+          ...result,
+        }, hasErrors ? 207 : 200);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`[webhook/clerk] user.deleted FAILED for ${clerkUserId}:`, msg);
+        return json({ success: false, event: 'user.deleted', error: msg }, 500);
+      }
     }
 
     case 'organization.deleted': {
@@ -171,16 +178,23 @@ async function handleClerkWebhook(
         return json({ error: 'Missing organization ID in event' }, 400);
       }
 
-      const result = await deleteOrgAssets(env, clerkOrgId);
+      try {
+        const result = await deleteOrgAssets(env, clerkOrgId);
+        const hasErrors = result.errors.length > 0;
 
-      console.log(`[webhook/clerk] organization.deleted processed:`, result);
+        console.log(`[webhook/clerk] organization.deleted processed:`, result);
 
-      return json({
-        success: true,
-        event: 'organization.deleted',
-        clerkOrgId,
-        ...result,
-      });
+        return json({
+          success: !hasErrors,
+          event: 'organization.deleted',
+          clerkOrgId,
+          ...result,
+        }, hasErrors ? 207 : 200);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`[webhook/clerk] organization.deleted FAILED for ${clerkOrgId}:`, msg);
+        return json({ success: false, event: 'organization.deleted', error: msg }, 500);
+      }
     }
 
     default:

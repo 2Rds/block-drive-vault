@@ -677,6 +677,7 @@ async function handleCreateOrgDomain(
   }
 
   // ─── Step 4: Update DB ──────────────────────────────
+  // Hard failure — if this fails, the on-chain collection address is lost forever
   try {
     await db.update(
       'organizations',
@@ -689,6 +690,7 @@ async function handleCreateOrgDomain(
     );
   } catch (err) {
     console.error('[solana/create-org-domain] Org update error:', err);
+    throw new Error(`Failed to persist org data (collection address would be lost): ${err instanceof Error ? err.message : 'Unknown'}`);
   }
 
   // Get profile for NFT record
@@ -1048,7 +1050,9 @@ export async function deleteOrgAssets(
       );
       nftsMarkedForBurn++;
     } catch (err) {
-      errors.push(`NFT status update failed for ${nft.id}`);
+      const msg = `NFT status update failed for ${nft.id}: ${err instanceof Error ? err.message : 'Unknown'}`;
+      errors.push(msg);
+      console.error(`[delete-org-assets] ${msg}`);
     }
   }
 
@@ -1060,7 +1064,9 @@ export async function deleteOrgAssets(
       { org_username: null, org_subdomain_nft_id: null }
     );
   } catch (err) {
-    errors.push('Org member FK cleanup failed');
+    const msg = `Org member FK cleanup failed: ${err instanceof Error ? err.message : 'Unknown'}`;
+    errors.push(msg);
+    console.error(`[delete-org-assets] ${msg}`);
   }
 
   // Step 9: Delete organizations row (CASCADEs to members, invites, etc.)
