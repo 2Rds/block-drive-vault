@@ -690,9 +690,8 @@ function IPFSFiles(): JSX.Element {
 
           <TabsContent value="my-files" className="mt-6">
             <FileGridContent
-              files={isInOrganization ? myOrgFilesForDisplay : blockDriveFiles}
-              isPrivate={isInOrganization}
-              onRefresh={isInOrganization ? loadOrgFiles : loadUserFiles}
+              files={blockDriveFiles}
+              onRefresh={loadUserFiles}
             />
           </TabsContent>
 

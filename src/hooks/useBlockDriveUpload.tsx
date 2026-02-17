@@ -229,7 +229,6 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
 
       if (clerkUserId && supabase) {
         try {
-          const isInOrg = !!organization;
           const ipfsUrl = `https://ipfs.filebase.io/ipfs/${result.contentCID}`;
 
           const { error: dbError } = await supabase.from('files').insert({
@@ -243,8 +242,6 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
             ipfs_cid: result.contentCID,
             ipfs_url: ipfsUrl,
             is_encrypted: true,
-            ...(isInOrg && { clerk_org_id: organization.id }),
-            ...(isInOrg && { visibility: 'private' }),
             metadata: {
               blockdrive: 'true',
               encrypted: 'true',
