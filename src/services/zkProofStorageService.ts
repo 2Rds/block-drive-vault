@@ -7,7 +7,8 @@
 
 import { ZKProofPackage, AnyZKProofPackage, zkProofService } from './crypto/zkProofService';
 import { storageOrchestrator } from './storage/storageOrchestrator';
-import { StorageConfig, R2_PRIMARY_CONFIG, StorageProviderType } from '@/types/storageProvider';
+import { isR2Configured } from './storage/r2Provider';
+import { StorageConfig, R2_PRIMARY_CONFIG, DEFAULT_STORAGE_CONFIG, StorageProviderType } from '@/types/storageProvider';
 
 export interface ZKProofUploadResult {
   success: boolean;
@@ -44,16 +45,20 @@ class ZKProofStorageService {
       const proofData = zkProofService.serializeForStorage(proofPackage);
 
       // Upload to storage providers.
-      // ZK proofs MUST land on R2 — they contain the encrypted critical bytes
-      // that are stripped from the content on IPFS. If both end up on the same
-      // provider, Programmed Incompleteness is broken.
+      // Prefer R2 for Programmed Incompleteness (content on Filebase, proof on R2).
+      // Fall back to Filebase if R2 isn't configured (dev mode / missing VITE_WORKER_URL).
+      const effectiveConfig = isR2Configured() ? storageConfig : DEFAULT_STORAGE_CONFIG;
+      if (!isR2Configured()) {
+        console.warn('[ZKProofStorage] R2 not configured — falling back to Filebase for ZK proof (Programmed Incompleteness degraded)');
+      }
+
       const result = await storageOrchestrator.uploadWithRedundancy(
         proofData,
         `${fileId}_zkproof.json`,
         'application/json',
         {
-          ...storageConfig,
-          redundancyLevel: 2
+          ...effectiveConfig,
+          redundancyLevel: isR2Configured() ? 2 : 1
         },
         {
           type: 'zkproof',
@@ -66,31 +71,30 @@ class ZKProofStorageService {
 
       const uploadTime = performance.now() - startTime;
 
-      // R2 is the primary for proofs — require it specifically.
-      // Falling back to Filebase would put critical bytes on the same
-      // provider as the content, defeating Programmed Incompleteness.
+      // Use R2 result if available, otherwise use primary (Filebase fallback)
       const r2Result = result.primaryResult.provider === 'r2'
         ? result.primaryResult
         : result.backupResults.find(r => r.provider === 'r2');
+      const bestResult = r2Result?.success ? r2Result : result.primaryResult;
 
-      if (!r2Result?.success) {
+      if (!bestResult?.success) {
         return {
           success: false,
           proofCid: '',
           commitment: proofPackage.commitment,
           proofHash: proofPackage.proofHash,
-          provider: storageConfig.primaryProvider,
+          provider: effectiveConfig.primaryProvider,
           uploadTimeMs: Math.round(uploadTime),
-          error: r2Result?.error || 'R2 upload failed — ZK proofs require R2 for Programmed Incompleteness'
+          error: bestResult?.error || 'All providers failed for ZK proof upload'
         };
       }
 
       return {
         success: true,
-        proofCid: r2Result.identifier,
+        proofCid: bestResult.identifier,
         commitment: proofPackage.commitment,
         proofHash: proofPackage.proofHash,
-        provider: 'r2',
+        provider: bestResult.provider,
         uploadTimeMs: Math.round(uploadTime)
       };
     } catch (error) {
