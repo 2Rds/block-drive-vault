@@ -14,13 +14,19 @@ import {
   ProviderDownloadResult,
 } from '@/types/storageProvider';
 
-const WORKER_URL = import.meta.env.VITE_WORKER_URL || '';
+/**
+ * Lazy getter for Worker URL — avoids module-level const capturing
+ * an empty value if the env var isn't resolved yet at import time.
+ */
+function getWorkerUrl(): string {
+  return import.meta.env.VITE_WORKER_URL || '';
+}
 
 /**
  * Check if R2 provider is configured (Worker URL must be set)
  */
 export function isR2Configured(): boolean {
-  return Boolean(WORKER_URL);
+  return Boolean(getWorkerUrl());
 }
 
 // Org context for hierarchical key generation (resolved server-side)
@@ -51,7 +57,7 @@ export class R2Provider extends StorageProviderBase {
     const startTime = performance.now();
 
     try {
-      const response = await fetch(`${WORKER_URL}/health`, {
+      const response = await fetch(`${getWorkerUrl()}/health`, {
         signal: AbortSignal.timeout(5000),
       });
 
@@ -94,7 +100,7 @@ export class R2Provider extends StorageProviderBase {
         // Get auth token from Clerk session
         const authToken = await this.getAuthToken();
 
-        const response = await fetch(`${WORKER_URL}/r2/put`, {
+        const response = await fetch(`${getWorkerUrl()}/r2/put`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -145,7 +151,7 @@ export class R2Provider extends StorageProviderBase {
   async download(identifier: string): Promise<ProviderDownloadResult> {
     const { result, timeMs } = await this.measureTime(async () => {
       try {
-        const response = await fetch(`${WORKER_URL}/r2/${identifier}`);
+        const response = await fetch(`${getWorkerUrl()}/r2/${identifier}`);
 
         if (!response.ok) {
           return { success: false, data: new Uint8Array(), error: `Download failed: ${response.status}` };
@@ -182,7 +188,7 @@ export class R2Provider extends StorageProviderBase {
    * Get access URL for R2 object (via Worker gateway)
    */
   getAccessUrl(identifier: string): string {
-    return `${WORKER_URL}/r2/${identifier}`;
+    return `${getWorkerUrl()}/r2/${identifier}`;
   }
 
   /**
@@ -192,7 +198,7 @@ export class R2Provider extends StorageProviderBase {
     try {
       const authToken = await this.getAuthToken();
 
-      const response = await fetch(`${WORKER_URL}/r2/${identifier}`, {
+      const response = await fetch(`${getWorkerUrl()}/r2/${identifier}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -211,7 +217,7 @@ export class R2Provider extends StorageProviderBase {
    */
   async exists(identifier: string): Promise<boolean> {
     try {
-      const response = await fetch(`${WORKER_URL}/r2/${identifier}`, {
+      const response = await fetch(`${getWorkerUrl()}/r2/${identifier}`, {
         method: 'GET',
       });
       return response.ok;
@@ -227,7 +233,7 @@ export class R2Provider extends StorageProviderBase {
     try {
       const authToken = await this.getAuthToken();
 
-      const response = await fetch(`${WORKER_URL}/r2/list`, {
+      const response = await fetch(`${getWorkerUrl()}/r2/list`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,

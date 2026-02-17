@@ -50,9 +50,20 @@ class StorageOrchestratorService {
   }
 
   /**
+   * Ensure R2 is registered if it became available after initial load
+   */
+  private ensureR2(): void {
+    if (!this.providers.has('r2') && isR2Configured()) {
+      this.providers.set('r2', new R2Provider());
+      console.log('[StorageOrchestrator] R2 provider registered (late init)');
+    }
+  }
+
+  /**
    * Get a specific provider
    */
   getProvider(type: StorageProviderType): IStorageProvider | undefined {
+    if (type === 'r2') this.ensureR2();
     return this.providers.get(type);
   }
 
@@ -112,6 +123,7 @@ class StorageOrchestratorService {
     contentType: string,
     metadata?: Record<string, string>
   ): Promise<ProviderUploadResult> {
+    if (providerType === 'r2') this.ensureR2();
     const provider = this.providers.get(providerType);
     if (!provider) {
       return {
@@ -206,6 +218,7 @@ class StorageOrchestratorService {
       const identifier = identifiers.get(providerType);
       if (!identifier) continue;
 
+      if (providerType === 'r2') this.ensureR2();
       const provider = this.providers.get(providerType);
       if (!provider) continue;
 
