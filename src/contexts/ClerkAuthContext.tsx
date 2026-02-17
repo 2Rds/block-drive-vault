@@ -92,9 +92,14 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = useMemo(() => {
     if (session) {
       return createClerkSupabaseClient(async () => {
-        return await session.getToken({ template: 'supabase' });
+        const token = await session.getToken({ template: 'supabase' });
+        if (!token) {
+          console.error('[ClerkAuth] session.getToken({ template: "supabase" }) returned null — JWT template may not exist in Clerk Dashboard');
+        }
+        return token;
       });
     }
+    console.warn('[ClerkAuth] No session — using anon Supabase client');
     return supabaseAnon;
   }, [session]);
 

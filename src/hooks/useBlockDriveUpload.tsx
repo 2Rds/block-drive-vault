@@ -231,7 +231,13 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         try {
           const ipfsUrl = `https://ipfs.filebase.io/ipfs/${result.contentCID}`;
 
-          const { error: dbError } = await supabase.from('files').insert({
+          console.log('[useBlockDriveUpload] Inserting file record:', {
+            clerk_user_id: clerkUserId,
+            filename: file.name,
+            ipfs_cid: result.contentCID,
+          });
+
+          const { data: insertedRow, error: dbError } = await supabase.from('files').insert({
             clerk_user_id: clerkUserId,
             filename: file.name,
             file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
@@ -252,16 +258,21 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
               fileId: result.fileId,
               provider: 'filebase',
             },
-          });
+          }).select().single();
 
           if (dbError) {
-            console.error('[useBlockDriveUpload] DB insert failed:', dbError);
-            toast.error('File uploaded but failed to save record — check Clerk JWT template');
+            console.error('[useBlockDriveUpload] DB insert FAILED:', dbError.message, dbError.code, dbError.details);
+            toast.error(`DB save failed: ${dbError.message}`);
+          } else {
+            console.log('[useBlockDriveUpload] DB insert OK:', insertedRow?.id);
           }
         } catch (dbError) {
-          console.error('[useBlockDriveUpload] Failed to save file record:', dbError);
-          toast.error('File uploaded but failed to save record');
+          console.error('[useBlockDriveUpload] DB insert exception:', dbError);
+          toast.error(`DB save error: ${dbError instanceof Error ? dbError.message : 'Unknown'}`);
         }
+      } else {
+        console.warn('[useBlockDriveUpload] Skipping DB insert — clerkUserId:', clerkUserId, 'supabase:', !!supabase);
+        toast.warning('File uploaded but not saved — not authenticated');
       }
 
       const isRegistered = result.onChainRegistration?.registered;
