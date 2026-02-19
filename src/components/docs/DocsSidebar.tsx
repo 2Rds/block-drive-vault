@@ -43,9 +43,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
         { title: "Clerk + Crossmint", id: "clerk-crossmint-integration" },
         { title: "Embedded Wallets", id: "wallet-auth" },
         { title: "Authentication Flow", id: "auth-flow" },
-        { title: "Multichain Auth (MCA)", id: "mca-auth" },
-        { title: "SNS Domain Verification", id: "sns-verification" },
-        { title: "Basenames Verification", id: "basenames-verification" }
+        { title: "SNS Domain Verification", id: "sns-verification" }
       ]
     },
     {
@@ -92,10 +90,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       title: "Integrations",
       icon: <Globe className="w-4 h-4" />,
       items: [
-        { title: "Slack", id: "slack" },
-        { title: "Box", id: "box-integration" },
-        { title: "Google Drive", id: "google-drive" },
-        { title: "OneDrive", id: "onedrive" }
+        { title: "Slack", id: "slack" }
       ]
     },
     {

@@ -344,17 +344,17 @@ import { SignInButton } from '@clerk/clerk-react';
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="w-5 h-5" />
-                Multi-Chain Support
+                Solana Blockchain
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Crossmint embedded wallets supporting Solana and EVM chains out of the box.
+                Solana-native architecture with SNS domains, soulbound cNFTs, and MPC wallets via Crossmint.
               </p>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Solana, Ethereum, Base, Polygon, Arbitrum, Optimism
+                  SNS subdomain identity (label.blockdrive.sol)
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
@@ -362,16 +362,16 @@ import { SignInButton } from '@clerk/clerk-react';
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Secure authentication without private keys
+                  Soulbound cNFTs for access credentials
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  Cross-chain compatibility
+                  Treasury-signed transactions (gas-free for users)
                 </li>
               </ul>
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                  Supported: Solana • Ethereum • Base • Polygon • Arbitrum • Optimism
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+                  Powered by Solana • Bubblegum V2 cNFTs • MPL-Core Collections
                 </p>
               </div>
             </CardContent>
@@ -1420,63 +1420,6 @@ const isValid = await snarkjsService.verifyProof(
     );
   }
 
-  if (activeSection === 'mca-auth') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Multichain Authentication (MCA)</h1>
-          <p className="text-lg text-muted-foreground">
-            Dual-chain verification requiring ownership of both Solana and Base domain names.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>MCA Requirements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                <h4 className="font-medium mb-2">Solana Domain</h4>
-                <p className="font-mono text-sm text-purple-400">label.blockdrive.sol</p>
-                <p className="text-xs text-muted-foreground mt-2">SNS subdomain verification</p>
-              </div>
-              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                <h4 className="font-medium mb-2">Base Domain</h4>
-                <p className="font-mono text-sm text-blue-400">label.blockdrive.base</p>
-                <p className="text-xs text-muted-foreground mt-2">Basenames subdomain verification</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Flow</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { step: 1, title: "POST /mca/start", desc: "Returns canonical challenge with nonce" },
-              { step: 2, title: "Sign Challenge", desc: "User signs with both Solana and EVM wallets" },
-              { step: 3, title: "POST /mca/verify", desc: "Validates signatures and domain ownership" },
-              { step: 4, title: "JWT Issued", desc: "Short-lived JWT (TTL ≤ 15 min) returned" },
-              { step: 5, title: "GET /mca/check", desc: "Validates JWT for subsequent API calls" }
-            ].map((item) => (
-              <div key={item.step} className="flex gap-4">
-                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  {item.step}
-                </div>
-                <div>
-                  <h4 className="font-medium font-mono text-sm">{item.title}</h4>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (activeSection === 'otoco') {
     return (
@@ -1728,55 +1671,6 @@ const isOwner = await snsSubdomainService.verifyOwnership('myname', walletAddres
     );
   }
 
-  if (activeSection === 'basenames-verification') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Basenames Verification</h1>
-          <p className="text-lg text-muted-foreground">
-            Base chain domain verification for dual-chain identity as part of Multichain Authentication.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Base Chain Identity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Basenames provide human-readable identities on the Base L2 network. Combined with SNS domains on Solana,
-              they form BlockDrive's dual-chain verification for the MCA authentication system.
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                <h4 className="font-medium mb-2">Base Domain</h4>
-                <p className="font-mono text-sm text-blue-400">label.blockdrive.base</p>
-                <p className="text-xs text-muted-foreground mt-2">EVM-based domain verification</p>
-              </div>
-              <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
-                <h4 className="font-medium mb-2">Solana Domain</h4>
-                <p className="font-mono text-sm text-purple-400">label.blockdrive.sol</p>
-                <p className="text-xs text-muted-foreground mt-2">SNS-based domain verification</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>MCA Requirement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Multichain Authentication requires proving ownership of matching subdomains on both chains.
-              The user signs a canonical challenge with both their Solana and EVM wallets, and the backend
-              verifies domain ownership on both chains before issuing a short-lived JWT.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (activeSection === 'onchain-registry') {
     return (
@@ -2334,129 +2228,15 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
     );
   }
 
-  if (activeSection === 'box-integration') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Box Integration</h1>
-          <p className="text-lg text-muted-foreground">
-            Connect your Box account to import files into BlockDrive's encrypted storage.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">OAuth Connection</h4>
-                <p className="text-sm text-muted-foreground">Secure Box OAuth 2.0 authentication</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">File Browsing</h4>
-                <p className="text-sm text-muted-foreground">Browse and select Box files for import</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Import to IPFS</h4>
-                <p className="text-sm text-muted-foreground">Import Box files into BlockDrive's encrypted IPFS storage</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Sync Status</h4>
-                <p className="text-sm text-muted-foreground">Real-time connection status monitoring</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (activeSection === 'google-drive') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Google Drive Integration</h1>
-          <p className="text-lg text-muted-foreground">
-            Import files from Google Drive and re-encrypt them with BlockDrive's security architecture.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Google OAuth</h4>
-                <p className="text-sm text-muted-foreground">Secure Google OAuth 2.0 connection</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">File Browser</h4>
-                <p className="text-sm text-muted-foreground">Browse Google Drive files and folders</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Selective Import</h4>
-                <p className="text-sm text-muted-foreground">Choose specific files to import</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Encrypted Migration</h4>
-                <p className="text-sm text-muted-foreground">Files re-encrypted with wallet-derived keys</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (activeSection === 'onedrive') {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">OneDrive Integration</h1>
-          <p className="text-lg text-muted-foreground">
-            Import files from Microsoft OneDrive into BlockDrive's decentralized storage.
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Microsoft OAuth</h4>
-                <p className="text-sm text-muted-foreground">Microsoft Graph API authentication</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">File Browser</h4>
-                <p className="text-sm text-muted-foreground">Browse OneDrive files and folders</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Selective Import</h4>
-                <p className="text-sm text-muted-foreground">Choose specific files to import</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Encrypted Migration</h4>
-                <p className="text-sm text-muted-foreground">Files re-encrypted with BlockDrive security</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (activeSection === 'recovery-sdk') {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Recovery SDK</h1>
-          <p className="text-lg text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground">Recovery SDK</h1>
+            <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+          </div>
+          <p className="text-lg text-muted-foreground mt-4">
             Open-source Python SDK for recovering files encrypted with BlockDrive, ensuring users are never locked in.
           </p>
         </div>
