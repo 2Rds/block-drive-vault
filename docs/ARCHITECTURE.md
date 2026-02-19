@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 1.1.0 (v1.1.0 Release)
-**Date**: February 16, 2026
-**Status**: ACTIVE - v1.1.0 Release
+**Version**: 1.2.0 (v1.2.0 Release)
+**Date**: February 19, 2026
+**Status**: ACTIVE - v1.2.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -1447,43 +1447,51 @@ Internal File Move:
 
 ---
 
-## Python Recovery SDK
+## Python Recovery SDK (v1.2.0)
 
 ### Independent File Recovery
 
-BlockDrive provides an open-source Python SDK for file recovery without the BlockDrive app:
+BlockDrive provides an open-source Python SDK (`recovery-sdk/`) for file recovery without the BlockDrive app. The SDK exactly replicates the frontend's cryptographic operations.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      PYTHON RECOVERY SDK                                         │
-│                                                                                 │
-│  REQUIRED INPUTS:                                                               │
-│  ├── file_id: UUID of the file                                                 │
-│  ├── encryption_key: Derived AES-256 key (from security question)              │
-│  └── storage_access: IPFS gateway or Filebase credentials                      │
-│                                                                                 │
-│  OPTIONAL INPUTS:                                                               │
-│  └── solana_rpc: For on-chain commitment verification                          │
-│                                                                                 │
-│  RECOVERY FLOW:                                                                 │
-│  1. Fetch FileRecord from Solana (optional verification)                       │
-│  2. Download encrypted content from IPFS                                       │
-│  3. Download ZK proof package from R2                                          │
-│  4. Verify commitment (SHA-256 comparison)                                     │
-│  5. Decrypt critical bytes from proof                                          │
-│  6. Reconstruct file (critical bytes + content)                                │
-│  7. Decrypt with AES-256-GCM                                                   │
-│  8. Return original file                                                       │
-│                                                                                 │
-│  INSTALLATION:                                                                  │
-│  pip install blockdrive-recovery[solana]                                       │
-│                                                                                 │
-│  USAGE:                                                                         │
-│  from blockdrive import recover_file                                           │
-│  plaintext = recover_file(file_id, encryption_key, ipfs_gateway)               │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+recovery-sdk/
+├── pyproject.toml              # Package: blockdrive-recovery
+├── blockdrive/
+│   ├── __init__.py             # Public API exports
+│   ├── wallet.py               # HKDF key derivation from wallet signatures
+│   ├── crypto.py               # AES-256-GCM decryption + ZK proof verification
+│   ├── storage.py              # IPFS/R2 multi-provider downloads with fallback
+│   ├── solana.py               # On-chain PDA verification (optional dep)
+│   └── recovery.py             # Main orchestration (sync + async)
+├── examples/
+│   ├── recover_single_file.py
+│   └── recover_all_files.py
+└── tests/                      # 39 tests (wallet, crypto, storage)
 ```
+
+**Installation**:
+```bash
+pip install blockdrive-recovery           # Core (HKDF + AES-GCM + IPFS)
+pip install blockdrive-recovery[solana]   # With Solana on-chain verification
+```
+
+**Usage**:
+```python
+from blockdrive import BlockDriveRecovery, SecurityLevel
+
+recovery = BlockDriveRecovery(
+    signatures={SecurityLevel.STANDARD: sig_bytes},
+)
+result = recovery.recover_file(
+    content_cid="bafybeig...",
+    proof_cid="proof-abc123",
+    security_level=SecurityLevel.STANDARD,
+)
+with open("recovered.pdf", "wb") as f:
+    f.write(result.data)
+```
+
+**Crypto compatibility**: HKDF salt `BlockDrive-HKDF-Salt-v1`, info `blockdrive-level-{1|2|3}-encryption`, AES-256-GCM with 12-byte IV, ZK proof hash verification (v1 + v2 formats), commitment normalization (lowercase hex).
 
 ---
 

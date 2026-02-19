@@ -75,7 +75,7 @@ class BlockDriveStorage:
         Returns:
             DownloadResult with the raw encrypted bytes.
         """
-        last_error: Optional[str] = None
+        errors: List[str] = []
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             for gateway in self.ipfs_gateways:
@@ -88,20 +88,20 @@ class BlockDriveStorage:
                             data=resp.content,
                             provider=gateway,
                         )
-                    last_error = f"HTTP {resp.status_code} from {gateway}"
+                    errors.append(f"HTTP {resp.status_code} from {gateway}")
                 except httpx.HTTPError as exc:
-                    last_error = f"{gateway}: {exc}"
+                    errors.append(f"{gateway}: {exc}")
 
         return DownloadResult(
             success=False,
             data=b"",
             provider="",
-            error=last_error or "All IPFS gateways failed",
+            error="; ".join(errors) if errors else "No IPFS gateways configured",
         )
 
     def download_ipfs_sync(self, cid: str) -> DownloadResult:
         """Synchronous wrapper around download_ipfs."""
-        last_error: Optional[str] = None
+        errors: List[str] = []
 
         with httpx.Client(timeout=self.timeout) as client:
             for gateway in self.ipfs_gateways:
@@ -114,15 +114,15 @@ class BlockDriveStorage:
                             data=resp.content,
                             provider=gateway,
                         )
-                    last_error = f"HTTP {resp.status_code} from {gateway}"
+                    errors.append(f"HTTP {resp.status_code} from {gateway}")
                 except httpx.HTTPError as exc:
-                    last_error = f"{gateway}: {exc}"
+                    errors.append(f"{gateway}: {exc}")
 
         return DownloadResult(
             success=False,
             data=b"",
             provider="",
-            error=last_error or "All IPFS gateways failed",
+            error="; ".join(errors) if errors else "No IPFS gateways configured",
         )
 
     # ------------------------------------------------------------------
@@ -197,18 +197,24 @@ class BlockDriveStorage:
 
     async def download_proof_with_fallback(self, proof_cid: str) -> DownloadResult:
         """Try R2 first, then fall back to IPFS for proof retrieval."""
-        result = await self.download_proof(proof_cid)
-        if result.success:
-            return result
-        # Fall back to IPFS
-        return await self.download_ipfs(proof_cid)
+        r2_result = await self.download_proof(proof_cid)
+        if r2_result.success:
+            return r2_result
+        # Fall back to IPFS, preserving R2 error context
+        ipfs_result = await self.download_ipfs(proof_cid)
+        if not ipfs_result.success:
+            ipfs_result.error = f"R2: {r2_result.error}; IPFS: {ipfs_result.error}"
+        return ipfs_result
 
     def download_proof_with_fallback_sync(self, proof_cid: str) -> DownloadResult:
         """Synchronous version of download_proof_with_fallback."""
-        result = self.download_proof_sync(proof_cid)
-        if result.success:
-            return result
-        return self.download_ipfs_sync(proof_cid)
+        r2_result = self.download_proof_sync(proof_cid)
+        if r2_result.success:
+            return r2_result
+        ipfs_result = self.download_ipfs_sync(proof_cid)
+        if not ipfs_result.success:
+            ipfs_result.error = f"R2: {r2_result.error}; IPFS: {ipfs_result.error}"
+        return ipfs_result
 
     @staticmethod
     def parse_proof_json(data: bytes) -> Dict[str, Any]:

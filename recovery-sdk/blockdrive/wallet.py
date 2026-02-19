@@ -70,7 +70,12 @@ class BlockDriveWallet:
 
         Returns:
             32-byte AES-256 key.
+
+        Raises:
+            KeyError: If level is not a valid SecurityLevel.
         """
+        if level not in HKDF_INFO:
+            raise KeyError(f"Unknown security level: {level}")
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
@@ -109,7 +114,13 @@ class BlockDriveWallet:
 
     @staticmethod
     def get_sign_message(level: SecurityLevel) -> str:
-        """Get the message a user must sign to derive a key for this level."""
+        """Get the message a user must sign to derive a key for this level.
+
+        Raises:
+            KeyError: If level is not a valid SecurityLevel.
+        """
+        if level not in SECURITY_MESSAGES:
+            raise KeyError(f"Unknown security level: {level}")
         return SECURITY_MESSAGES[level]
 
     @staticmethod

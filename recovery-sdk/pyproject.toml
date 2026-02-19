@@ -59,9 +59,6 @@ Homepage = "https://github.com/blockdrive/recovery-sdk"
 Documentation = "https://docs.blockdrive.co/recovery-sdk"
 Issues = "https://github.com/blockdrive/recovery-sdk/issues"
 
-[project.scripts]
-blockdrive-recover = "blockdrive.cli:main"
-
 [tool.hatch.build.targets.wheel]
 packages = ["blockdrive"]
 

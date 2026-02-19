@@ -1,4 +1,4 @@
-# BlockDrive v1.1.0
+# BlockDrive v1.2.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
@@ -199,17 +199,28 @@ pip install blockdrive-recovery[solana]
 ```
 
 ```python
-from blockdrive import recover_file
+from blockdrive import BlockDriveRecovery, SecurityLevel
 
-# Recover without BlockDrive app
-plaintext = recover_file(
-    file_id="...",
-    encryption_key="...",
-    ipfs_gateway="https://ipfs.filebase.io"
+recovery = BlockDriveRecovery(
+    signatures={SecurityLevel.STANDARD: sig_bytes},
 )
+result = recovery.recover_file(
+    content_cid="bafybeig...",
+    proof_cid="proof-abc123",
+    security_level=SecurityLevel.STANDARD,
+)
+with open("recovered.pdf", "wb") as f:
+    f.write(result.data)
 ```
 
 ## Development Status
+
+**v1.2.0** — February 19, 2026
+
+- ✅ Python Recovery SDK (`recovery-sdk/`) — HKDF + AES-256-GCM + ZK proof verification
+- ✅ Frontend migration to Solana native minting via Worker API gateway
+- ✅ Session sign-in requirement on each new browser visit
+- ✅ 12 bug fixes (R2 fallback, Bubblegum V2 tree, Clerk JWT, rate limiting)
 
 **v1.1.0** — February 16, 2026
 

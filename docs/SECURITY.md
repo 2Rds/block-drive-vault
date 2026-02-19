@@ -1,7 +1,7 @@
 # BlockDrive Security Model
 
-> **Version**: 1.1.0
-> **Last Updated**: February 16, 2026
+> **Version**: 1.2.0
+> **Last Updated**: February 19, 2026
 > **Classification**: Technical Security Documentation
 
 ---

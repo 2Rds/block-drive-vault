@@ -8,8 +8,9 @@ Requires: pip install blockdrive-recovery[solana]
 from __future__ import annotations
 
 import hashlib
+import logging
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from .wallet import SecurityLevel
@@ -145,7 +146,9 @@ class BlockDriveSolana:
         Fetch all FileRecords for an owner using getProgramAccounts.
 
         This is an expensive RPC call. Use sparingly.
+        Accounts that fail to deserialize are logged and skipped.
         """
+        logger = logging.getLogger(__name__)
         owner_pubkey = Pubkey.from_string(vault_owner)
 
         # Filter by owner field (offset 41 = 8 discriminator + 1 bump + 32 vault)
@@ -164,8 +167,12 @@ class BlockDriveSolana:
             try:
                 record = self._deserialize(account.account.data, vault_owner)
                 records.append(record)
-            except Exception:
-                continue
+            except (struct.error, IndexError, ValueError) as exc:
+                logger.warning(
+                    "Skipping account %s: deserialization failed: %s",
+                    getattr(account, "pubkey", "unknown"),
+                    exc,
+                )
         return records
 
     def _deserialize(self, data: bytes, owner: str) -> FileRecord:
@@ -234,30 +241,31 @@ class BlockDriveSolana:
         """
         try:
             record = self.fetch_file_record(vault_owner, file_id_hex)
-            if record is None:
-                return VerificationResult(
-                    verified=False, on_chain=False,
-                    commitment_matches=False, owner_matches=False,
-                    error="File not found on-chain",
-                )
-
-            matches = (
-                expected_commitment.lower() == record.critical_bytes_commitment.lower()
-            )
-
-            return VerificationResult(
-                verified=matches,
-                on_chain=True,
-                commitment_matches=matches,
-                owner_matches=True,
-                record=record,
-            )
-        except Exception as exc:
+        except (ConnectionError, OSError) as exc:
             return VerificationResult(
                 verified=False, on_chain=False,
                 commitment_matches=False, owner_matches=False,
-                error=str(exc),
+                error=f"RPC connection error: {exc}",
             )
+
+        if record is None:
+            return VerificationResult(
+                verified=False, on_chain=False,
+                commitment_matches=False, owner_matches=False,
+                error="File not found on-chain",
+            )
+
+        matches = (
+            expected_commitment.lower() == record.critical_bytes_commitment.lower()
+        )
+
+        return VerificationResult(
+            verified=matches,
+            on_chain=True,
+            commitment_matches=matches,
+            owner_matches=True,
+            record=record,
+        )
 
 
 def is_solana_available() -> bool:

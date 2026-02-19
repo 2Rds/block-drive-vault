@@ -1,18 +1,19 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: ACTIVE - v1.1.0 Released
+> **Status**: ACTIVE - v1.2.0 Released
 >
-> **Last Updated**: February 16, 2026
+> **Last Updated**: February 19, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration.
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
-3. [v1.0.0 Implementation Phases Overview](#v100-implementation-phases-overview)
+2. [v1.2.0 — Recovery SDK + Solana Native Minting](#v120--recovery-sdk--solana-native-minting-february-19-2026)
+3. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
+4. [v1.0.0 Implementation Phases Overview](#v100-implementation-phases-overview)
 3. [Phase 1: On-Chain Infrastructure](#phase-1-on-chain-infrastructure)
 4. [Phase 2: Relayer Service](#phase-2-relayer-service)
 5. [Phase 3: Radom Crypto Payments](#phase-3-radom-crypto-payments)
@@ -63,6 +64,61 @@ BlockDrive uses Crossmint Embedded Wallets with gas sponsorship for all user tra
 - **No Per-User Accounting**: Single BlockDrive operational wallet handles edge cases
 
 This eliminates the need for on-chain per-user gas credits accounting (GasCreditsAccount PDAs, USDC swaps, etc.), significantly simplifying the architecture.
+
+---
+
+## v1.2.0 — Recovery SDK + Solana Native Minting (February 19, 2026)
+
+### Completed ✅
+
+| Feature | Implementation | Status |
+|---------|---------------|--------|
+| **Python Recovery SDK** | `recovery-sdk/blockdrive/` — wallet, crypto, storage, solana, recovery modules | ✅ Complete |
+| **HKDF key derivation** | Matches `keyDerivationService.ts` exactly: salt, info, 3 security levels | ✅ Complete |
+| **AES-256-GCM decryption** | 12-byte IV, 128-bit tag, no AAD — matches `blockDriveCryptoService.ts` | ✅ Complete |
+| **ZK proof verification** | v1 + v2 proof hash formats, `JSON.stringify` compatible (`separators=(',',':')`) | ✅ Complete |
+| **Multi-provider downloads** | IPFS gateway fallback (Filebase → Cloudflare → Protocol Labs → Pinata) + R2 | ✅ Complete |
+| **Solana on-chain verification** | PDA derivation, FileRecord deserialization, commitment verification (optional dep) | ✅ Complete |
+| **Async + sync APIs** | `recover_file()` and `recover_file_async()` with concurrent downloads | ✅ Complete |
+| **39 unit tests** | `test_wallet.py`, `test_crypto.py`, `test_storage.py` — all passing | ✅ Complete |
+| **Frontend Solana native minting** | Migrated from Edge Functions to Worker API gateway for SNS + cNFT minting | ✅ Complete |
+| **Session sign-in enforcement** | Require sign-in on each new browser visit | ✅ Complete |
+| **Bubblegum V2 tree migration** | New Merkle tree + polling-based TX confirmation | ✅ Complete |
+| **R2/Filebase proof fallback** | Fall back to Filebase when R2 is unavailable for ZK proof downloads | ✅ Complete |
+
+### Recovery SDK Package Structure
+
+```
+recovery-sdk/
+├── pyproject.toml              # blockdrive-recovery (Python >=3.9)
+├── blockdrive/
+│   ├── __init__.py             # Exports: BlockDriveRecovery, BlockDriveWallet, BlockDriveCrypto,
+│   │                           #          BlockDriveStorage, DownloadResult, SecurityLevel
+│   ├── wallet.py               # HKDF-SHA256 key derivation (3 security levels)
+│   ├── crypto.py               # AES-256-GCM + ZK proof hash verification (v1/v2)
+│   ├── storage.py              # IPFS + R2 multi-provider with gateway fallback
+│   ├── solana.py               # PDA derivation, FileRecord deserialization (optional)
+│   └── recovery.py             # Main orchestration (sync + async)
+├── examples/
+│   ├── recover_single_file.py
+│   └── recover_all_files.py
+└── tests/
+    ├── test_wallet.py          # 15 tests
+    ├── test_crypto.py          # 14 tests
+    └── test_storage.py         # 10 tests
+```
+
+### Bug Fixes Included
+
+- Replace all `blockdrive.io` references with `blockdrive.co`
+- Node polyfills, WebAuthn localhost support, R2 proof metadata, Worker CORS
+- Lazy R2 provider initialization — resolve "Provider r2 not found"
+- Detailed DB insert error logging and Clerk JWT diagnostics
+- Stop setting `clerk_org_id` on uploads, show personal files in org mode
+- Use Clerk-authenticated Supabase client for file reads/deletes
+- Remove remaining `vaultExists` references in IPFSFiles
+- Remove vault initialization gate blocking file uploads
+- Use computed remaining count in rate limit response
 
 ---
 

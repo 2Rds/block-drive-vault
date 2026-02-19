@@ -11,11 +11,14 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .wallet import BlockDriveWallet, SecurityLevel
 from .crypto import BlockDriveCrypto
 from .storage import BlockDriveStorage, DownloadResult
+
+if TYPE_CHECKING:
+    from .solana import FileRecord
 
 
 @dataclass
@@ -74,7 +77,6 @@ class BlockDriveRecovery:
         self._owner_pubkey = owner_pubkey
 
         # Derive keys from signatures
-        self._keys: Dict[SecurityLevel, bytes] = {}
         self._crypto: Dict[SecurityLevel, BlockDriveCrypto] = {}
 
         if signatures:
@@ -83,7 +85,6 @@ class BlockDriveRecovery:
 
     def _add_key(self, level: SecurityLevel, signature: bytes) -> None:
         key = BlockDriveWallet.derive_key(signature, level)
-        self._keys[level] = key
         self._crypto[level] = BlockDriveCrypto(key)
 
     def add_signature(self, signature: bytes, level: SecurityLevel) -> None:
@@ -92,7 +93,7 @@ class BlockDriveRecovery:
 
     def has_key(self, level: SecurityLevel) -> bool:
         """Check if a key has been derived for the given security level."""
-        return level in self._keys
+        return level in self._crypto
 
     # ------------------------------------------------------------------
     # Single-file recovery (sync)
@@ -234,7 +235,7 @@ class BlockDriveRecovery:
 
     def recover_file_record(
         self,
-        record: Any,  # FileRecord from solana module
+        record: FileRecord,
         output_dir: Optional[Path] = None,
     ) -> RecoveryResult:
         """
@@ -283,7 +284,7 @@ class BlockDriveRecovery:
                 filepath.write_bytes(result.data)
 
             return result
-        except Exception as exc:
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
             return RecoveryResult(
                 success=False, data=b"",
                 error=f"Recovery failed: {exc}",
@@ -326,13 +327,8 @@ class BlockDriveRecovery:
                 commitment=proof_json["commitment"],
                 verified=True,
             )
-        except ValueError as exc:
+        except (ValueError, KeyError) as exc:
             return RecoveryResult(
                 success=False, data=b"",
                 error=str(exc),
-            )
-        except Exception as exc:
-            return RecoveryResult(
-                success=False, data=b"",
-                error=f"Decryption failed: {exc}",
             )

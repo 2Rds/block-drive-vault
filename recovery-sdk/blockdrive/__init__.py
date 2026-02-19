@@ -22,7 +22,7 @@ Quick start:
 
 from .wallet import BlockDriveWallet, SecurityLevel
 from .crypto import BlockDriveCrypto
-from .storage import BlockDriveStorage
+from .storage import BlockDriveStorage, DownloadResult
 from .recovery import BlockDriveRecovery, RecoveryResult
 
 __version__ = "1.0.0"
@@ -31,6 +31,7 @@ __all__ = [
     "BlockDriveWallet",
     "BlockDriveCrypto",
     "BlockDriveStorage",
+    "DownloadResult",
     "SecurityLevel",
     "RecoveryResult",
 ]

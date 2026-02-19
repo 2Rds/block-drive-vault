@@ -2,7 +2,7 @@
 BlockDrive Recovery SDK — Cryptography Module
 
 AES-256-GCM decryption and ZK proof verification.
-Must match src/services/crypto/zkProofService.ts and aesEncryptionService.ts exactly.
+Must match src/services/crypto/zkProofService.ts and blockDriveCryptoService.ts.
 
 Compatibility notes (matching TypeScript Web Crypto API behavior):
   - AES-GCM: 12-byte IV, 128-bit auth tag appended to ciphertext, no AAD
@@ -16,6 +16,7 @@ import base64
 import json
 from typing import Tuple, Any, Dict, Optional
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # Layout constants (must match TypeScript)
@@ -55,11 +56,15 @@ class BlockDriveCrypto:
         """
         Verify a ZK proof package and extract critical bytes + file IV.
 
-        Matches zkProofService.ts::verifyAndExtract() exactly:
+        Matches zkProofService.ts::verifyAndExtract() flow:
           1. Verify proof hash integrity
           2. Decrypt encryptedCriticalBytes payload with encryptionIv
           3. Split payload → critical_bytes[16] + file_iv[12]
           4. Verify commitment matches SHA-256(critical_bytes)
+
+        Note: The TypeScript version also handles browser-specific WebCrypto
+        operations (CryptoKey import, subtle.decrypt). This SDK uses the
+        `cryptography` library's AESGCM directly for the same result.
 
         Args:
             proof_json: Parsed ZK proof package (v1 or v2 format).
@@ -101,7 +106,7 @@ class BlockDriveCrypto:
         file_iv = bytes(payload[CRITICAL_BYTES_LENGTH:CRITICAL_BYTES_LENGTH + FILE_IV_LENGTH])
 
         # Step 4: Verify commitment
-        commitment = proof_json["commitment"]
+        commitment = proof_json["commitment"].lower()
         actual_commitment = hashlib.sha256(critical_bytes).hexdigest()
         if actual_commitment != commitment:
             raise ValueError(
@@ -142,7 +147,7 @@ class BlockDriveCrypto:
         """
         # Step 1: Verify commitment
         actual_commitment = hashlib.sha256(critical_bytes).hexdigest()
-        if actual_commitment != commitment:
+        if actual_commitment != commitment.lower():
             raise ValueError(
                 "Commitment verification failed — data may be tampered. "
                 f"Expected: {commitment}, Got: {actual_commitment}"
@@ -152,7 +157,12 @@ class BlockDriveCrypto:
         full_encrypted = critical_bytes + encrypted_content
 
         # Step 3: Decrypt
-        decrypted = self._aesgcm.decrypt(file_iv, full_encrypted, None)
+        try:
+            decrypted = self._aesgcm.decrypt(file_iv, full_encrypted, None)
+        except InvalidTag as exc:
+            raise ValueError(
+                "AES-GCM decryption failed — wrong key or corrupted data"
+            ) from exc
 
         # Step 4: Verify content hash if provided
         if expected_hash:
@@ -184,20 +194,21 @@ class BlockDriveCrypto:
         """
         version = proof.get("version", 1)
 
+        # int() cast prevents float serialization mismatch (e.g. 1700000000000.0)
         if version == 2:
             hash_content = {
                 "commitment": proof["commitment"],
                 "groth16Proof": proof.get("groth16Proof"),
                 "publicSignals": proof.get("publicSignals", []),
                 "encryptedCriticalBytes": proof["encryptedCriticalBytes"],
-                "proofTimestamp": proof["proofTimestamp"],
+                "proofTimestamp": int(proof["proofTimestamp"]),
             }
         else:
             # V1 legacy format
             hash_content = {
                 "commitment": proof["commitment"],
                 "encryptedCriticalBytes": proof["encryptedCriticalBytes"],
-                "proofTimestamp": proof["proofTimestamp"],
+                "proofTimestamp": int(proof["proofTimestamp"]),
             }
 
         # JSON.stringify uses no whitespace and preserves key order
@@ -206,12 +217,14 @@ class BlockDriveCrypto:
 
     @staticmethod
     def verify_proof_integrity(proof: Dict[str, Any]) -> bool:
-        """Check proof hash without decrypting."""
-        try:
-            computed = BlockDriveCrypto._compute_proof_hash(proof)
-            return computed == proof.get("proofHash", "")
-        except Exception:
-            return False
+        """Check proof hash without decrypting.
+
+        Raises:
+            KeyError: If required proof fields are missing.
+            TypeError: If proof values have unexpected types.
+        """
+        computed = BlockDriveCrypto._compute_proof_hash(proof)
+        return computed == proof.get("proofHash", "")
 
     # ------------------------------------------------------------------
     # Standalone helpers

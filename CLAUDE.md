@@ -1,7 +1,7 @@
 # Block-Drive-Vault — Claude Code Instructions
 
 ## Project Context
-Web3 encrypted file storage platform (v1.1.0).
+Web3 encrypted file storage platform (v1.2.0).
 Clerk auth + Crossmint embedded Solana wallets. Supabase backend + Cloudflare Worker API Gateway.
 
 ## mem0 Memory
@@ -24,6 +24,10 @@ cd workers/api-gateway && npm install
 npx wrangler dev                 # Local worker dev
 npx wrangler deploy              # Deploy to Cloudflare
 npx tsc --noEmit                 # Type check
+
+# Recovery SDK (Python)
+cd recovery-sdk && pip install -e ".[solana]"   # Dev install
+pytest tests/                                    # Run 39 tests
 ```
 
 ## Key Paths
@@ -38,6 +42,7 @@ npx tsc --noEmit                 # Type check
 - Hooks: `src/hooks/`
 - UI: shadcn/ui in `src/components/ui/`
 - Docs: `docs/` (ARCHITECTURE.md, SECURITY.md, SOLANA_PROGRAM_ARCHITECTURE.md, IMPLEMENTATION_PLAN.md)
+- Recovery SDK: `recovery-sdk/blockdrive/` (Python — wallet, crypto, storage, solana, recovery)
 
 ## Conventions
 - Design system: "Vault Noir" dark theme

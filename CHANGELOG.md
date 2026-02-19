@@ -2,6 +2,29 @@
 
 All notable changes to BlockDrive Vault are documented here.
 
+## [v1.2.0] - 2026-02-19
+
+### Added
+- Python Recovery SDK (`recovery-sdk/`) — full implementation with HKDF key derivation, AES-256-GCM decryption, ZK proof verification, IPFS/R2 multi-provider downloads, and optional Solana on-chain verification
+- Require sign-in on each new browser visit (session security hardening)
+- Frontend migration to Solana native minting via Worker API gateway
+
+### Fixed
+- Replace all blockdrive.io references with blockdrive.co
+- Node polyfills, WebAuthn localhost support, R2 proof metadata, Worker CORS
+- Lazy R2 provider initialization — resolve "Provider r2 not found"
+- Fall back to Filebase for ZK proofs when R2 is unavailable
+- Detailed DB insert error logging and Clerk JWT diagnostics
+- Stop setting clerk_org_id on uploads, show personal files in org mode
+- Use Clerk-authenticated Supabase client for file reads/deletes
+- Remove remaining vaultExists references in IPFSFiles
+- Remove vault initialization gate blocking file uploads
+- Migrate to Bubblegum V2 tree + polling-based TX confirmation
+- Use computed remaining count in rate limit response
+
+### Changed
+- Removed non-existent features from docs, added Coming Soon badge to Recovery SDK section
+
 ## [v1.1.0] - 2026-02-16
 
 ### Added
