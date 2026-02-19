@@ -132,7 +132,10 @@ export default {
     // Health check endpoint
     if (url.pathname === '/health') {
       return new Response(JSON.stringify({ status: 'ok', timestamp: Date.now() }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCORSHeaders(request, env),
+        },
       });
     }
 

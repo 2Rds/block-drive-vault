@@ -256,7 +256,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
               proofCid: result.proofCid,
               metadataCID: result.metadataCID,
               fileId: result.fileId,
-              provider: 'filebase',
+              proofProvider: result.proofUpload?.success ? 'r2' : 'filebase',
             },
           }).select().single();
 

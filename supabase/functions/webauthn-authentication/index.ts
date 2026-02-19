@@ -9,11 +9,20 @@ import type {
   AuthenticationResponseJSON,
 } from 'https://esm.sh/@simplewebauthn/server@13.2.2';
 
-const RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.co';
-const ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://app.blockdrive.co';
+const PROD_RP_ID = Deno.env.get('WEBAUTHN_RP_ID') || 'blockdrive.co';
+const PROD_ORIGIN = Deno.env.get('WEBAUTHN_ORIGIN') || 'https://app.blockdrive.co';
 const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://app.blockdrive.co';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const ASSERTION_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Derive RP ID and expected origin from request Origin header (supports localhost dev) */
+function resolveWebAuthnParams(req: Request): { rpId: string; origin: string } {
+  const reqOrigin = req.headers.get('origin') || '';
+  if (/^http:\/\/localhost(:\d+)?$/.test(reqOrigin)) {
+    return { rpId: 'localhost', origin: reqOrigin };
+  }
+  return { rpId: PROD_RP_ID, origin: PROD_ORIGIN };
+}
 
 /** Convert base64 string to Uint8Array (Buffer.from is not available in Deno) */
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -40,6 +49,7 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabaseServiceClient();
+    const { rpId: RP_ID, origin: ORIGIN } = resolveWebAuthnParams(req);
     const body = await req.json();
     const { action } = body;
 
