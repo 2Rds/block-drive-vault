@@ -81,7 +81,7 @@
     {
       "id": "blockdrive-hotlink-protection",
       "description": "Prevent hotlinking of stored files",
-      "expression": "http.request.uri.path contains \"/r2/\" and not http.referer contains \"blockdrive.io\" and not http.referer eq \"\"",
+      "expression": "http.request.uri.path contains \"/r2/\" and not http.referer contains \"blockdrive.co\" and not http.referer eq \"\"",
       "action": "block",
       "enabled": true
     }

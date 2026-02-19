@@ -389,7 +389,7 @@ async function handleOnboardUser(
   const nftMetadata = {
     name: fullDomain,
     description: `BlockDrive Membership — ${fullDomain}`,
-    image: 'https://blockdrive.io/logo.png',
+    image: 'https://blockdrive.co/logo.png',
     attributes: [
       { trait_type: 'domain', value: fullDomain },
       { trait_type: 'username', value: normalized },
@@ -656,7 +656,7 @@ async function handleCreateOrgDomain(
     const collectionMetadata = {
       name: `${orgName} — BlockDrive`,
       description: `Official membership collection for ${orgName} on BlockDrive`,
-      image: logoUrl || 'https://blockdrive.io/logo.png',
+      image: logoUrl || 'https://blockdrive.co/logo.png',
       external_url: `https://app.blockdrive.co/org/${orgSubdomain.toLowerCase()}`,
     };
     await storeMetadataInR2(env.R2_STORAGE, `collection-${orgSubdomain.toLowerCase()}`, collectionMetadata);
@@ -680,7 +680,7 @@ async function handleCreateOrgDomain(
   const nftMetadata = {
     name: fullDomain,
     description: `${orgName} — Organization domain on BlockDrive`,
-    image: logoUrl || 'https://blockdrive.io/logo.png',
+    image: logoUrl || 'https://blockdrive.co/logo.png',
     attributes: [
       { trait_type: 'domain', value: fullDomain },
       { trait_type: 'organization', value: orgName },
@@ -1359,7 +1359,7 @@ async function handleCreateCollection(
   const metadata = {
     name: body.name,
     description: `${body.name} — Membership NFT collection`,
-    image: 'https://blockdrive.io/logo.png',
+    image: 'https://blockdrive.co/logo.png',
   };
   await storeMetadataInR2(env.R2_STORAGE, 'global-collection', metadata);
 

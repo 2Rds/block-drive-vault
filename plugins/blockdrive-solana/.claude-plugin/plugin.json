@@ -4,7 +4,7 @@
   "description": "Solana blockchain development toolkit for BlockDrive with Crossmint embedded wallets, Clerk authentication, and Supabase integration",
   "author": {
     "name": "BlockDrive",
-    "email": "dev@blockdrive.io"
+    "email": "dev@blockdrive.co"
   },
   "keywords": [
     "solana",

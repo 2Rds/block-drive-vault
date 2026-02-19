@@ -199,7 +199,7 @@ If there's evidence the ceremony was compromised:
 For ceremony coordination:
 - GitHub Issues: [repository issues]
 - Discord: [BlockDrive Discord]
-- Email: security@blockdrive.io
+- Email: security@blockdrive.co
 
 ## References
 

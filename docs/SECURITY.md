@@ -974,7 +974,7 @@ const SECURITY_HEADERS = {
 
 ### Security Contacts
 
-- **Security Issues**: security@blockdrive.io
+- **Security Issues**: security@blockdrive.co
 - **Bug Bounty**: Via HackerOne (when established)
 - **Urgent Issues**: On-call via PagerDuty
 
@@ -1118,9 +1118,9 @@ workers/api-gateway/
 
 | Role | Contact | Availability |
 |------|---------|--------------|
-| Security Lead | security@blockdrive.io | 24/7 |
-| Infrastructure | ops@blockdrive.io | Business hours |
-| Legal | legal@blockdrive.io | Business hours |
+| Security Lead | security@blockdrive.co | 24/7 |
+| Infrastructure | ops@blockdrive.co | Business hours |
+| Legal | legal@blockdrive.co | Business hours |
 
 ---
 

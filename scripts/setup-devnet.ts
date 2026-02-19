@@ -61,7 +61,7 @@ const TREE_MAX_BUFFER_SIZE = 32;
 const COLLECTION_NAME = 'BlockDrive Membership';
 const COLLECTION_SYMBOL = 'BDRIVE';
 const COLLECTION_DESCRIPTION = 'BlockDrive membership and username domain NFTs — soulbound cNFTs on Solana';
-const COLLECTION_IMAGE = 'https://blockdrive.io/logo.png';
+const COLLECTION_IMAGE = 'https://blockdrive.co/logo.png';
 
 const SNS_PARENT_DOMAIN = 'blockdrive';
 

@@ -63,7 +63,7 @@ function isOriginAllowed(origin: string | null, env: Env): boolean {
   // Check exact match
   if (allowedOrigins.includes(origin)) return true;
 
-  // Check wildcard patterns (e.g., *.blockdrive.io)
+  // Check wildcard patterns (e.g., *.blockdrive.co)
   for (const allowed of allowedOrigins) {
     if (allowed.startsWith('*.')) {
       const domain = allowed.slice(2);

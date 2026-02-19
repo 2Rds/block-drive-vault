@@ -363,7 +363,7 @@ spl-token create-token \
   --decimals 0
 
 # Initialize metadata
-spl-token initialize-metadata <MINT> "BlockDrive Membership" "BDM" "https://blockdrive.io/token-metadata.json"
+spl-token initialize-metadata <MINT> "BlockDrive Membership" "BDM" "https://blockdrive.co/token-metadata.json"
 ```
 
 ## Common Commands Quick Reference

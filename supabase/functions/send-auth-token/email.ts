@@ -80,7 +80,7 @@ export const sendAuthTokenEmail = async (
 
         <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e5e7eb;">
           <p style="color: #6b7280; font-size: 14px; margin: 0;">
-            Questions? Contact us at support@blockdrive.io
+            Questions? Contact us at support@blockdrive.co
           </p>
         </div>
       </div>

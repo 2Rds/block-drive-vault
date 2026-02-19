@@ -26,7 +26,7 @@ cloudflare/
 ### 1. Create Cloudflare Account
 
 1. Sign up at https://cloudflare.com
-2. Add your domain (blockdrive.io)
+2. Add your domain (blockdrive.co)
 3. Update DNS nameservers
 
 ### 2. Configure R2 Storage

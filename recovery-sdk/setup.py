@@ -11,14 +11,14 @@ setup(
     name="blockdrive-recovery",
     version="1.0.0",
     author="BlockDrive",
-    author_email="support@blockdrive.io",
+    author_email="support@blockdrive.co",
     description="Open-source recovery tool for BlockDrive encrypted files",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/blockdrive/recovery-sdk",
     project_urls={
         "Bug Tracker": "https://github.com/blockdrive/recovery-sdk/issues",
-        "Documentation": "https://docs.blockdrive.io/recovery-sdk",
+        "Documentation": "https://docs.blockdrive.co/recovery-sdk",
     },
     classifiers=[
         "Development Status :: 4 - Beta",

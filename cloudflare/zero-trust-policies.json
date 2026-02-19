@@ -28,7 +28,7 @@
       "description": "Allow authenticated users to access BlockDrive API endpoints",
       "decision": "allow",
       "precedence": 1,
-      "applications": ["api.blockdrive.io/*"],
+      "applications": ["api.blockdrive.co/*"],
       "include": [
         {
           "oidc": {
@@ -47,7 +47,7 @@
       "description": "Restrict admin access to verified team members only",
       "decision": "allow",
       "precedence": 1,
-      "applications": ["admin.blockdrive.io/*"],
+      "applications": ["admin.blockdrive.co/*"],
       "include": [
         {
           "oidc": {
@@ -59,7 +59,7 @@
         },
         {
           "email_domain": {
-            "domain": "blockdrive.io"
+            "domain": "blockdrive.co"
           }
         }
       ],
@@ -77,7 +77,7 @@
       "description": "Additional verification for premium subscription features",
       "decision": "allow",
       "precedence": 2,
-      "applications": ["api.blockdrive.io/premium/*"],
+      "applications": ["api.blockdrive.co/premium/*"],
       "include": [
         {
           "oidc": {
@@ -104,9 +104,9 @@
       "decision": "bypass",
       "precedence": 0,
       "applications": [
-        "api.blockdrive.io/health",
-        "api.blockdrive.io/docs/*",
-        "api.blockdrive.io/.well-known/*"
+        "api.blockdrive.co/health",
+        "api.blockdrive.co/docs/*",
+        "api.blockdrive.co/.well-known/*"
       ],
       "include": [
         {
@@ -121,7 +121,7 @@
       "description": "Block access from high-risk countries (compliance requirement)",
       "decision": "deny",
       "precedence": 100,
-      "applications": ["*.blockdrive.io/*"],
+      "applications": ["*.blockdrive.co/*"],
       "include": [
         {
           "geo": {

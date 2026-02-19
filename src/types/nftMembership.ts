@@ -125,7 +125,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       slaGuarantee: false,
     },
     nftSymbol: 'BLKD-TRIAL',
-    nftUri: 'https://blockdrive.io/nft/trial.json',
+    nftUri: 'https://blockdrive.co/nft/trial.json',
   },
   pro: {
     tier: 'pro',
@@ -148,7 +148,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       slaGuarantee: false,
     },
     nftSymbol: 'BLKD-PRO',
-    nftUri: 'https://blockdrive.io/nft/pro.json',
+    nftUri: 'https://blockdrive.co/nft/pro.json',
   },
   scale: {
     tier: 'scale',
@@ -171,7 +171,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       slaGuarantee: false,
     },
     nftSymbol: 'BLKD-SCALE',
-    nftUri: 'https://blockdrive.io/nft/scale.json',
+    nftUri: 'https://blockdrive.co/nft/scale.json',
   },
   enterprise: {
     tier: 'enterprise',
@@ -194,7 +194,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
       slaGuarantee: true,
     },
     nftSymbol: 'BLKD-ENT',
-    nftUri: 'https://blockdrive.io/nft/enterprise.json',
+    nftUri: 'https://blockdrive.co/nft/enterprise.json',
   },
 };
 

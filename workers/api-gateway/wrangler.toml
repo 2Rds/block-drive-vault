@@ -11,7 +11,7 @@ compatibility_flags = ["nodejs_compat"]
 SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co"
 FILEBASE_GATEWAY = "https://ipfs.filebase.io"
 FILEBASE_BUCKET = "blockdrive-storage"
-ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io,http://localhost:5173,http://localhost:8080,http://localhost:8081,http://localhost:8082"
+ALLOWED_ORIGINS = "https://blockdrive.co,https://app.blockdrive.co,http://localhost:5173,http://localhost:8080,http://localhost:8081,http://localhost:8082"
 RATE_LIMIT_PER_MINUTE = "100"
 RATE_LIMIT_BURST = "20"
 CROSSMINT_ENVIRONMENT = "staging"
@@ -60,14 +60,14 @@ id = "5498fac94ce44412b2f1fc542d7449f2"
 [env.staging]
 name = "blockdrive-api-gateway-staging"
 routes = [
-  { pattern = "api-staging.blockdrive.io/*", zone_name = "blockdrive.io" }
+  { pattern = "api-staging.blockdrive.co/*", zone_name = "blockdrive.co" }
 ]
 
 # Production environment
 [env.production]
 name = "blockdrive-api-gateway"
 routes = [
-  { pattern = "api.blockdrive.io/*", zone_name = "blockdrive.io" }
+  { pattern = "api.blockdrive.co/*", zone_name = "blockdrive.co" }
 ]
 
 # Observability

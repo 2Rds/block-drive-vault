@@ -129,6 +129,11 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    // Handle CORS preflight (must run before any other handler)
+    if (request.method === 'OPTIONS') {
+      return handleCORS(request, env);
+    }
+
     // Health check endpoint
     if (url.pathname === '/health') {
       return new Response(JSON.stringify({ status: 'ok', timestamp: Date.now() }), {
@@ -137,11 +142,6 @@ export default {
           ...getCORSHeaders(request, env),
         },
       });
-    }
-
-    // Handle CORS preflight
-    if (request.method === 'OPTIONS') {
-      return handleCORS(request, env);
     }
 
     // Get client IP for rate limiting

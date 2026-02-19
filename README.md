@@ -242,6 +242,6 @@ Proprietary - All Rights Reserved
 
 ## Links
 
-- **Website**: https://blockdrive.io
-- **Documentation**: https://docs.blockdrive.io
-- **Support**: support@blockdrive.io
+- **Website**: https://blockdrive.co
+- **Documentation**: https://docs.blockdrive.co
+- **Support**: support@blockdrive.co

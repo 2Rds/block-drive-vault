@@ -1234,7 +1234,7 @@ compatibility_date = "2024-01-01"
 
 [vars]
 SUPABASE_URL = "https://your-project.supabase.co"
-ALLOWED_ORIGINS = "https://blockdrive.io,https://app.blockdrive.io"
+ALLOWED_ORIGINS = "https://blockdrive.co,https://app.blockdrive.co"
 
 [[kv_namespaces]]
 binding = "RATE_LIMITS"
@@ -1242,12 +1242,12 @@ id = "your-kv-namespace-id"
 
 [env.production]
 routes = [
-  { pattern = "api.blockdrive.io/*", zone_name = "blockdrive.io" }
+  { pattern = "api.blockdrive.co/*", zone_name = "blockdrive.co" }
 ]
 
 [env.staging]
 routes = [
-  { pattern = "api-staging.blockdrive.io/*", zone_name = "blockdrive.io" }
+  { pattern = "api-staging.blockdrive.co/*", zone_name = "blockdrive.co" }
 ]
 ```
 
@@ -1270,7 +1270,7 @@ access_policies:
   - name: "Admin Dashboard"
     decision: allow
     include:
-      - email_domain: "blockdrive.io"
+      - email_domain: "blockdrive.co"
     require:
       - device_posture:
           - disk_encryption: true

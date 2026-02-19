@@ -40,7 +40,7 @@ export const COLLECTION_METADATA = {
   symbol: 'BDRIVE',
   description:
     'Soulbound NFT membership token for BlockDrive decentralized storage platform',
-  external_url: 'https://blockdrive.io',
+  external_url: 'https://blockdrive.co',
 };
 
 /**
