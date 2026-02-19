@@ -8,19 +8,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, lazy, Suspense, startTransition } from 'react';
-import { ClerkAuthProvider } from '@/contexts/ClerkAuthContext';
+import { DynamicAuthProvider } from '@/contexts/DynamicAuthContext';
 import Index from "./pages/Index";
 import { SecurityHeaders } from "./components/SecurityHeaders";
 import { SecurityService } from "./services/securityService";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingScreen } from "./components/LoadingScreen";
-import { CrossmintProvider } from "./providers/CrossmintProvider";
 
-const ClerkProtectedRoute = lazy(() =>
-  import("./components/auth/ClerkProtectedRoute").then(m => ({ default: m.ClerkProtectedRoute }))
+const ProtectedRoute = lazy(() =>
+  import("./components/auth/ProtectedRoute").then(m => ({ default: m.ProtectedRoute }))
 );
-const SignIn = lazy(() => import("./pages/SignIn"));
-const SignUp = lazy(() => import("./pages/SignUp"));
+const SignIn = lazy(() => import("./pages/DynamicSignIn"));
+const SignUp = lazy(() => import("./pages/DynamicSignUp"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const IPFSFiles = lazy(() => import("./pages/IPFSFiles"));
 const Integrations = lazy(() => import("./pages/Integrations"));
@@ -100,8 +99,7 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <Suspense fallback={<LoadingScreen />}>
-            <ClerkAuthProvider>
-            <CrossmintProvider>
+            <DynamicAuthProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/sign-in/*" element={<SignIn />} />
@@ -117,64 +115,63 @@ function App() {
                 <Route
                   path="/onboarding"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <Onboarding />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/onboarding/create-team"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <CreateTeamOnboarding />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
 
                 <Route
                   path="/dashboard"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <Dashboard />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/files"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <IPFSFiles />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/integrations"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <Integrations />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/account"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <Account />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="/team-settings"
                   element={
-                    <ClerkProtectedRoute>
+                    <ProtectedRoute>
                       <TeamSettings />
-                    </ClerkProtectedRoute>
+                    </ProtectedRoute>
                   }
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </CrossmintProvider>
-            </ClerkAuthProvider>
+            </DynamicAuthProvider>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>

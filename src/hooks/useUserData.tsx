@@ -1,6 +1,6 @@
-// Simplified user data hook for Clerk auth
+// Simplified user data hook for Dynamic auth
 import { useState, useEffect } from 'react';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 interface UserStats {
   totalFiles: number;
@@ -16,7 +16,7 @@ interface UserStats {
 }
 
 export const useUserData = () => {
-  const { user, supabase } = useClerkAuth();
+  const { user, supabase } = useDynamicAuth();
   const [userStats, setUserStats] = useState<UserStats>({
     totalFiles: 0,
     totalStorage: 0,
@@ -108,7 +108,7 @@ export const useUserData = () => {
       const { data: files, error: filesError } = await supabase
         .from('files')
         .select('file_size, filename, created_at, content_type')
-        .eq('clerk_user_id', user.id);
+        .eq('user_id', user.id);
 
       if (filesError) {
         console.error('Error fetching files:', filesError);

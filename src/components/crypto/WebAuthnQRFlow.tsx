@@ -4,7 +4,7 @@ import { QrCode, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
 import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/clerk/ClerkSupabaseClient';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/dynamic/DynamicSupabaseClient';
 import type { QRAuthCompletedPayload } from '@/types/webauthn';
 
 const QR_EXPIRY_SECONDS = 300; // 5 minutes

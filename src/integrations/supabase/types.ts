@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       files: {
         Row: {
-          clerk_user_id: string
+          user_id: string
           content_type: string | null
           created_at: string
           file_path: string | null
@@ -39,7 +39,7 @@ export type Database = {
           size_bucket: string | null
         }
         Insert: {
-          clerk_user_id: string
+          user_id: string
           content_type?: string | null
           created_at?: string
           file_path?: string | null
@@ -62,7 +62,7 @@ export type Database = {
           size_bucket?: string | null
         }
         Update: {
-          clerk_user_id?: string
+          user_id?: string
           content_type?: string | null
           created_at?: string
           file_path?: string | null
@@ -89,7 +89,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          clerk_user_id: string
+          user_id: string
           created_at: string
           email: string | null
           first_name: string | null
@@ -102,7 +102,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          clerk_user_id: string
+          user_id: string
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -115,7 +115,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          clerk_user_id?: string
+          user_id?: string
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -174,21 +174,21 @@ export type Database = {
       }
       team_members: {
         Row: {
-          clerk_user_id: string
+          user_id: string
           created_at: string
           id: string
           role: string | null
           team_id: string
         }
         Insert: {
-          clerk_user_id: string
+          user_id: string
           created_at?: string
           id?: string
           role?: string | null
           team_id: string
         }
         Update: {
-          clerk_user_id?: string
+          user_id?: string
           created_at?: string
           id?: string
           role?: string | null
@@ -210,7 +210,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          owner_clerk_id: string
+          owner_id: string
           updated_at: string
         }
         Insert: {
@@ -218,7 +218,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          owner_clerk_id: string
+          owner_id: string
           updated_at?: string
         }
         Update: {
@@ -226,7 +226,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          owner_clerk_id?: string
+          owner_id?: string
           updated_at?: string
         }
         Relationships: []

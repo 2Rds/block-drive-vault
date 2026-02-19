@@ -1,12 +1,12 @@
 /**
  * Solana Wallet Signing Hook
  *
- * Provides wallet signing capabilities using Crossmint embedded wallets.
- * Integrates with the CrossmintProvider for seamless transaction signing.
+ * Provides wallet signing capabilities using Dynamic embedded wallets.
+ * Integrates with the DynamicContextProvider for seamless transaction signing.
  */
 
 import { useCallback } from 'react';
-import { useCrossmintWallet } from './useCrossmintWallet';
+import { useDynamicWallet } from './useDynamicWallet';
 import { toast } from 'sonner';
 
 interface UseSolanaWalletSigningReturn {
@@ -19,11 +19,11 @@ interface UseSolanaWalletSigningReturn {
 }
 
 export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
-  const crossmintWallet = useCrossmintWallet();
+  const dynamicWallet = useDynamicWallet();
 
-  const hasSolanaWallet = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
-  const solanaAddress = crossmintWallet.walletAddress;
-  const isReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
+  const hasSolanaWallet = dynamicWallet.isInitialized && !!dynamicWallet.walletAddress;
+  const solanaAddress = dynamicWallet.walletAddress;
+  const isReady = dynamicWallet.isInitialized && !!dynamicWallet.walletAddress;
 
   const signTransaction = useCallback(async (transaction: any): Promise<any> => {
     if (!hasSolanaWallet) {
@@ -31,14 +31,14 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      return await crossmintWallet.signTransaction(transaction);
+      return await dynamicWallet.signTransaction(transaction);
     } catch (err) {
       toast.error('Transaction signing failed', {
         description: err instanceof Error ? err.message : 'Unknown error'
       });
       throw err;
     }
-  }, [hasSolanaWallet, crossmintWallet]);
+  }, [hasSolanaWallet, dynamicWallet]);
 
   const signAndSendTransaction = useCallback(async (transaction: any): Promise<string> => {
     if (!hasSolanaWallet) {
@@ -46,14 +46,14 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      return await crossmintWallet.signAndSendTransaction(transaction);
+      return await dynamicWallet.signAndSendTransaction(transaction);
     } catch (err) {
       toast.error('Transaction failed', {
         description: err instanceof Error ? err.message : 'Unknown error'
       });
       throw err;
     }
-  }, [hasSolanaWallet, crossmintWallet]);
+  }, [hasSolanaWallet, dynamicWallet]);
 
   const signMessage = useCallback(async (message: string): Promise<string> => {
     if (!hasSolanaWallet) {
@@ -61,8 +61,7 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
     }
 
     try {
-      const messageBytes = new TextEncoder().encode(message);
-      const signature = await crossmintWallet.signMessage(messageBytes);
+      const signature = await dynamicWallet.signMessage(message);
       // Convert signature to base64 string
       return btoa(String.fromCharCode(...signature));
     } catch (err) {
@@ -71,7 +70,7 @@ export function useSolanaWalletSigning(): UseSolanaWalletSigningReturn {
       });
       throw err;
     }
-  }, [hasSolanaWallet, crossmintWallet]);
+  }, [hasSolanaWallet, dynamicWallet]);
 
   return {
     hasSolanaWallet,

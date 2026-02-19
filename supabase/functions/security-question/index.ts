@@ -14,7 +14,7 @@ async function sha256Hex(input: string): Promise<string> {
     .join('');
 }
 
-function getClerkUserId(req: Request): string {
+function getUserId(req: Request): string {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) throw new Error('Missing authorization header');
   const token = authHeader.replace('Bearer ', '');
@@ -34,7 +34,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const clerkUserId = getClerkUserId(req);
+    const userId = getUserId(req);
     const body = await req.json();
     const { action } = body;
 
@@ -49,11 +49,11 @@ serve(async (req) => {
       const { error } = await supabase
         .from('security_questions')
         .upsert({
-          clerk_user_id: clerkUserId,
+          user_id: userId,
           question,
           answer_hash: answerHash,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'clerk_user_id' });
+        }, { onConflict: 'user_id' });
 
       if (error) throw new Error(`Database error: ${error.message}`);
 
@@ -72,7 +72,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('security_questions')
         .select('answer_hash')
-        .eq('clerk_user_id', clerkUserId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) throw new Error(`Database error: ${error.message}`);
@@ -90,7 +90,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('security_questions')
         .select('question')
-        .eq('clerk_user_id', clerkUserId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) throw new Error(`Database error: ${error.message}`);
@@ -117,11 +117,11 @@ serve(async (req) => {
       const { error } = await supabase
         .from('security_questions')
         .upsert({
-          clerk_user_id: clerkUserId,
+          user_id: userId,
           question: new_question,
           answer_hash: answerHash,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'clerk_user_id' });
+        }, { onConflict: 'user_id' });
 
       if (error) throw new Error(`Database error: ${error.message}`);
 

@@ -42,17 +42,17 @@ serve(async (req) => {
     const supabaseAuthClient = getSupabaseClient();
     const supabaseClient = getSupabaseServiceClient();
 
-    let clerkUserId: string;
+    let authUserId: string;
     const isUUID = WALLET_ADDRESS_PATTERNS.UUID.test(token);
 
     if (isUUID) {
-      clerkUserId = token;
+      authUserId = token;
     } else {
       const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-      clerkUserId = (userError || !user) ? token : user.id;
+      authUserId = (userError || !user) ? token : user.id;
     }
 
-    if (!clerkUserId) {
+    if (!authUserId) {
       return createResponse({
         success: false,
         error: "Authentication failed",
@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const { data, error } = await supabaseClient.rpc("use_invite_code", {
       p_code: cleanCode,
-      p_clerk_user_id: clerkUserId,
+      p_user_id: authUserId,
     });
 
     if (error) {

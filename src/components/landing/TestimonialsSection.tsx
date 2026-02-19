@@ -19,7 +19,7 @@ const comparisons = [
   {
     category: 'Authentication',
     traditional: 'Email + password. Phishable. Provider controls access.',
-    blockdrive: 'Clerk SSO + Crossmint MPC wallets. Cryptographic identity. No passwords.',
+    blockdrive: 'Dynamic SSO + Fireblocks MPC wallets. Cryptographic identity. No passwords.',
   },
   {
     category: 'Compliance',

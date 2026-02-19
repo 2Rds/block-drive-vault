@@ -24,10 +24,11 @@ export function extractBearerToken(req: Request): string | null {
 }
 
 /**
- * Extract Clerk user ID (sub claim) from the JWT in the Authorization header.
+ * Extract user ID (sub claim) from the JWT in the Authorization header.
+ * Works with Dynamic JWT (sub = Dynamic user ID).
  * JWT signature is verified by the Supabase API gateway; we only extract claims here.
  */
-export function getClerkUserId(req: Request): string {
+export function getUserId(req: Request): string {
   const token = extractBearerToken(req);
   if (!token) throw new Error('Missing authorization header');
   try {
@@ -41,9 +42,9 @@ export function getClerkUserId(req: Request): string {
 }
 
 /**
- * Extract email from Clerk JWT claims. Returns null if unavailable.
+ * Extract email from JWT claims. Returns null if unavailable.
  */
-export function getClerkUserEmail(req: Request): string | null {
+export function getUserEmail(req: Request): string | null {
   const token = extractBearerToken(req);
   if (!token) return null;
   try {

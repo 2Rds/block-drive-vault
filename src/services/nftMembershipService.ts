@@ -3,7 +3,7 @@
  *
  * Read-only membership verification and display for BlockDrive's NFT-based
  * subscription system. All minting operations are handled server-side via
- * Crossmint API (edge functions).
+ * edge functions.
  *
  * Features:
  * - Verify membership validity from wallet (on-chain Token-2022 check)
@@ -29,7 +29,7 @@ import {
   isMembershipExpired,
   getDaysRemaining,
 } from '@/types/nftMembership';
-import { createSolanaConnection } from '@/config/crossmint';
+import { createSolanaConnection } from '@/config/dynamic';
 
 // PDA seeds for membership accounts
 const MEMBERSHIP_SEED = 'blockdrive_membership';
@@ -52,7 +52,7 @@ const TIER_ICONS: Record<SubscriptionTier, string> = {
   enterprise: '',
 };
 
-// Get Crossmint-configured Solana connection (Devnet for MVP)
+// Get Solana connection (Devnet for MVP)
 const getConnection = () => createSolanaConnection();
 
 class NFTMembershipService {
@@ -99,7 +99,7 @@ class NFTMembershipService {
   }
 
   /**
-   * Verify membership validity for a wallet (using Crossmint embedded wallet address)
+   * Verify membership validity for a wallet
    * Checks if the wallet owns a valid BlockDrive membership NFT
    */
   async verifyMembership(walletAddress: string): Promise<MembershipVerification> {

@@ -24,13 +24,13 @@ export const usePricingSubscription = () => {
     setLoading(tier.name);
 
     try {
-      // Pass Clerk user ID as auth token for Clerk users
-      // This ensures the edge function can identify the user and store clerk_user_id
+      // Pass user ID as auth token for authenticated users
+      // This ensures the edge function can identify the user and store user_id
       const result = await paymentService.subscribeFiat({
         tier: tier.name as SubscriptionTier,
         billingPeriod: mapPeriodToBillingPeriod(option.period),
         priceId: option.paymentLink,
-        authToken: user?.id, // Clerk user ID
+        authToken: user?.id, // Dynamic user ID
       });
 
       if (!result.success || !result.url) {
@@ -52,7 +52,7 @@ export const usePricingSubscription = () => {
   }, [user]);
 
   /**
-   * Handle crypto subscription (Crossmint)
+   * Handle crypto subscription
    * Returns the result so the UI can handle insufficient balance vs success
    */
   const handleSubscribeCrypto = useCallback(async (
@@ -102,7 +102,7 @@ export const usePricingSubscription = () => {
       return {
         success: false,
         error: errorMessage,
-        provider: 'crossmint',
+        provider: 'crypto',
       };
     } finally {
       setLoading(null);
@@ -117,7 +117,7 @@ export const usePricingSubscription = () => {
     option: PricingOption,
     provider: PaymentProvider = 'stripe'
   ): Promise<CryptoCheckoutResult | void> => {
-    if (provider === 'crossmint') {
+    if (provider === 'crypto') {
       return handleSubscribeCrypto(tier, option);
     }
     return handleSubscribe(tier, option);

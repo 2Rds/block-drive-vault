@@ -62,7 +62,7 @@ export interface TierConfig {
 }
 
 // Membership NFT on-chain structure (Solana PDA)
-// Note: Gas sponsorship handled by Crossmint, not per-user credits
+// Note: Gas sponsorship handled by treasury wallet, not per-user credits
 export interface MembershipNFT {
   bump: number;
   mint: string;               // SPL token mint address

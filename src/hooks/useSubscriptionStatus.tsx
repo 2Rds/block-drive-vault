@@ -33,16 +33,16 @@ export const useSubscriptionStatus = () => {
       
       // Determine auth token based on user type:
       // 1. Wallet users (@blockdrive.wallet) - use user ID
-      // 2. Clerk users (have email, app_metadata.provider === 'clerk') - use email
+      // 2. Dynamic users (have email, app_metadata.provider === 'dynamic') - use user ID
       // 3. Supabase users - use session access token
       let authToken;
 
       // Check if this is a wallet user (email ends with @blockdrive.wallet)
       if (user.email?.endsWith('@blockdrive.wallet')) {
         authToken = user.id;
-      } else if (user.app_metadata?.provider === 'clerk') {
-        // Clerk users: pass user ID (check-subscription looks up by clerk_user_id first)
-        // This handles cases where Stripe checkout email differs from Clerk auth email
+      } else if (user.app_metadata?.provider === 'dynamic') {
+        // Dynamic users: pass user ID (check-subscription looks up by user_id first)
+        // This handles cases where Stripe checkout email differs from auth email
         authToken = user.id;
       } else {
         // Supabase users: get auth token from current session

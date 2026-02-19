@@ -92,21 +92,21 @@ serve(async (req) => {
     let userId: string | null = null;
     let subscriber = null;
 
-    // First, try looking up by clerk_user_id (handles Clerk users where email may not match)
+    // First, try looking up by dynamic_user_id (handles auth users where email may not match)
     // This is tried BEFORE email lookup to ensure we find subscriptions even when
-    // Stripe checkout email differs from Clerk auth email
+    // Stripe checkout email differs from auth email
     if (token && !token.includes('@')) {
-      const { data: clerkSubscriber, error: clerkError } = await supabaseService
+      const { data: authSubscriber, error: authError } = await supabaseService
         .from('subscribers')
         .select('*')
-        .eq('clerk_user_id', token)
+        .eq('dynamic_user_id', token)
         .maybeSingle();
 
-      if (!clerkError && clerkSubscriber) {
-        log("Found subscriber by clerk_user_id", { clerkUserId: token.substring(0, 10), email: clerkSubscriber.email });
-        return buildResponse(clerkSubscriber, clerkSubscriber.email as string, supabaseService);
+      if (!authError && authSubscriber) {
+        log("Found subscriber by dynamic_user_id", { userId: token.substring(0, 10), email: authSubscriber.email });
+        return buildResponse(authSubscriber, authSubscriber.email as string, supabaseService);
       }
-      log("No subscriber found by clerk_user_id, continuing with other methods");
+      log("No subscriber found by dynamic_user_id, continuing with other methods");
     }
 
     // Try Supabase auth
@@ -122,7 +122,7 @@ serve(async (req) => {
         userEmail = result.email;
         userId = result.userId;
       } catch (findError) {
-        // If findUserEmail fails (e.g., Clerk user ID without email), return unsubscribed
+        // If findUserEmail fails (e.g., auth user ID without email), return unsubscribed
         log("findUserEmail failed", { error: findError, tokenPrefix: token.substring(0, 10) });
         return jsonResponse({
           subscribed: false,

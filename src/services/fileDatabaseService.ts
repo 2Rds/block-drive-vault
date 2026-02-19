@@ -15,7 +15,7 @@ export type FileVisibility = 'team' | 'private';
  */
 export interface PrivacyEnhancedFileData {
   // Required identifiers
-  clerk_user_id: string;
+  user_id: string;
   ipfs_cid: string;
   ipfs_url: string;
   storage_provider: string;
@@ -31,9 +31,9 @@ export interface PrivacyEnhancedFileData {
   is_encrypted: boolean;
 
   // Organization support (optional)
-  clerk_org_id?: string;
+  organization_id?: string;
   visibility?: FileVisibility;
-  owner_clerk_id?: string;
+  owner_id?: string;
 }
 
 function toIPFSFile(file: any): IPFSFile {
@@ -45,24 +45,24 @@ function toIPFSFile(file: any): IPFSFile {
     contentType: file.content_type || 'application/octet-stream',
     ipfsUrl: file.ipfs_url || '',
     uploadedAt: file.created_at,
-    userId: file.clerk_user_id,
+    userId: file.user_id,
     folderPath: file.folder_path,
     metadata: file.metadata as IPFSFile['metadata'],
     visibility: file.visibility as FileVisibility | undefined,
-    clerkOrgId: file.clerk_org_id,
-    ownerClerkId: file.owner_clerk_id,
+    orgId: file.organization_id,
+    ownerId: file.owner_id,
   };
 }
 
 export class FileDatabaseService {
   static async saveFileMetadata(
-    clerkUserId: string,
+    userId: string,
     ipfsResult: any,
     originalFile: File,
     folderPath?: string
   ) {
     const fileData = {
-      clerk_user_id: clerkUserId,
+      user_id: userId,
       filename: ipfsResult.filename,
       file_path: `/${ipfsResult.filename}`,
       content_type: ipfsResult.contentType,
@@ -103,22 +103,22 @@ export class FileDatabaseService {
     filename: string;
     file_size: number;
     content_type: string;
-    clerk_user_id: string;
+    user_id: string;
     folder_path?: string;
     storage_provider: string;
     ipfs_cid: string;
     ipfs_url: string;
     metadata?: any;
-    clerk_org_id?: string;
+    organization_id?: string;
     visibility?: FileVisibility;
-    owner_clerk_id?: string;
+    owner_id?: string;
   }) {
     try {
       const insertData: Record<string, unknown> = {
         filename: fileData.filename,
         file_size: fileData.file_size,
         content_type: fileData.content_type,
-        clerk_user_id: fileData.clerk_user_id,
+        user_id: fileData.user_id,
         storage_provider: fileData.storage_provider,
         ipfs_cid: fileData.ipfs_cid,
         ipfs_url: fileData.ipfs_url,
@@ -128,14 +128,14 @@ export class FileDatabaseService {
         folder_path: fileData.folder_path || '/'
       };
 
-      if (fileData.clerk_org_id) {
-        insertData.clerk_org_id = fileData.clerk_org_id;
+      if (fileData.organization_id) {
+        insertData.organization_id = fileData.organization_id;
       }
       if (fileData.visibility) {
         insertData.visibility = fileData.visibility;
       }
-      if (fileData.owner_clerk_id) {
-        insertData.owner_clerk_id = fileData.owner_clerk_id;
+      if (fileData.owner_id) {
+        insertData.owner_id = fileData.owner_id;
       }
 
       const { data: dbFile, error: dbError } = await supabase
@@ -157,12 +157,12 @@ export class FileDatabaseService {
     }
   }
 
-  static async loadUserFiles(clerkUserId: string, client?: SupabaseClient): Promise<IPFSFile[]> {
+  static async loadUserFiles(userId: string, client?: SupabaseClient): Promise<IPFSFile[]> {
     const db = client || supabase;
     const { data: files, error } = await db
       .from('files')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -177,19 +177,19 @@ export class FileDatabaseService {
       contentType: file.content_type || 'application/octet-stream',
       ipfsUrl: file.ipfs_url || '',
       uploadedAt: file.created_at,
-      userId: file.clerk_user_id,
+      userId: file.user_id,
       folderPath: file.folder_path,
       metadata: file.metadata as IPFSFile['metadata']
     }));
   }
 
-  static async deleteFile(fileId: string, clerkUserId: string, client?: SupabaseClient) {
+  static async deleteFile(fileId: string, userId: string, client?: SupabaseClient) {
     const db = client || supabase;
     const { error: dbError } = await db
       .from('files')
       .delete()
       .eq('id', fileId)
-      .eq('clerk_user_id', clerkUserId);
+      .eq('user_id', userId);
 
     if (dbError) {
       throw new Error('Failed to delete file record');
@@ -202,15 +202,15 @@ export class FileDatabaseService {
 
   static async createFolder(
     client: SupabaseClient,
-    clerkUserId: string,
+    userId: string,
     folderName: string,
     parentPath: string = '/',
-    clerkOrgId?: string,
+    orgId?: string,
     visibility?: FileVisibility
   ): Promise<any> {
     const fullPath = `${parentPath}${parentPath.endsWith('/') ? '' : '/'}${folderName}`;
     const insertData: Record<string, unknown> = {
-      clerk_user_id: clerkUserId,
+      user_id: userId,
       filename: folderName,
       file_path: fullPath,
       folder_path: parentPath,
@@ -221,7 +221,7 @@ export class FileDatabaseService {
       storage_provider: 'local',
       is_encrypted: false,
     };
-    if (clerkOrgId) insertData.clerk_org_id = clerkOrgId;
+    if (orgId) insertData.organization_id = orgId;
     if (visibility) insertData.visibility = visibility;
 
     const { data, error } = await client
@@ -236,13 +236,13 @@ export class FileDatabaseService {
   static async deleteFolder(
     client: SupabaseClient,
     folderId: string,
-    clerkUserId: string
+    userId: string
   ): Promise<void> {
     const { error } = await client
       .from('files')
       .delete()
       .eq('id', folderId)
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .eq('content_type', 'application/x-directory');
     if (error) throw new Error(`Failed to delete folder: ${error.message}`);
   }
@@ -250,7 +250,7 @@ export class FileDatabaseService {
   static async moveFileToFolder(
     client: SupabaseClient,
     fileId: string,
-    clerkUserId: string,
+    userId: string,
     targetFolderPath: string,
     filename: string
   ): Promise<void> {
@@ -259,7 +259,7 @@ export class FileDatabaseService {
       .from('files')
       .update({ folder_path: targetFolderPath, file_path: filePath })
       .eq('id', fileId)
-      .eq('clerk_user_id', clerkUserId);
+      .eq('user_id', userId);
     if (error) throw new Error(`Failed to move file: ${error.message}`);
   }
 
@@ -273,12 +273,12 @@ export class FileDatabaseService {
    */
   static async loadTeamFiles(
     client: SupabaseClient,
-    clerkOrgId: string
+    orgId: string
   ): Promise<IPFSFile[]> {
     const { data: files, error } = await client
       .from('files')
       .select('*')
-      .eq('clerk_org_id', clerkOrgId)
+      .eq('organization_id', orgId)
       .eq('visibility', 'team')
       .order('created_at', { ascending: false });
 
@@ -296,15 +296,15 @@ export class FileDatabaseService {
    */
   static async loadMyOrgFiles(
     client: SupabaseClient,
-    clerkOrgId: string,
-    clerkUserId: string
+    orgId: string,
+    userId: string
   ): Promise<IPFSFile[]> {
     const { data: files, error } = await client
       .from('files')
       .select('*')
-      .eq('clerk_org_id', clerkOrgId)
+      .eq('organization_id', orgId)
       .eq('visibility', 'private')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -320,13 +320,13 @@ export class FileDatabaseService {
    */
   static async loadPersonalFiles(
     client: SupabaseClient,
-    clerkUserId: string
+    userId: string
   ): Promise<IPFSFile[]> {
     const { data: files, error } = await client
       .from('files')
       .select('*')
-      .is('clerk_org_id', null)
-      .eq('clerk_user_id', clerkUserId)
+      .is('organization_id', null)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -362,13 +362,13 @@ export class FileDatabaseService {
   static async moveFileToOrg(
     client: SupabaseClient,
     fileId: string,
-    clerkOrgId: string,
+    orgId: string,
     visibility: FileVisibility = 'team'
   ): Promise<void> {
     const { error } = await client
       .from('files')
       .update({
-        clerk_org_id: clerkOrgId,
+        organization_id: orgId,
         visibility
       })
       .eq('id', fileId);
@@ -392,7 +392,7 @@ export class FileDatabaseService {
   static async saveFileWithPrivacy(fileData: PrivacyEnhancedFileData) {
     try {
       const insertData: Record<string, unknown> = {
-        clerk_user_id: fileData.clerk_user_id,
+        user_id: fileData.user_id,
 
         // Plaintext fields (required for operation)
         ipfs_cid: fileData.ipfs_cid,
@@ -416,14 +416,14 @@ export class FileDatabaseService {
         metadata: null
       };
 
-      if (fileData.clerk_org_id) {
-        insertData.clerk_org_id = fileData.clerk_org_id;
+      if (fileData.organization_id) {
+        insertData.organization_id = fileData.organization_id;
       }
       if (fileData.visibility) {
         insertData.visibility = fileData.visibility;
       }
-      if (fileData.owner_clerk_id) {
-        insertData.owner_clerk_id = fileData.owner_clerk_id;
+      if (fileData.owner_id) {
+        insertData.owner_id = fileData.owner_id;
       }
 
       const { data: dbFile, error: dbError } = await supabase
@@ -448,18 +448,18 @@ export class FileDatabaseService {
   /**
    * Search for files by filename hash (exact match only)
    *
-   * @param clerkUserId - User ID
+   * @param userId - User ID
    * @param filenameHash - HMAC token of the filename to search for
    * @returns Matching files (may need decryption for full metadata)
    */
   static async searchByFilename(
-    clerkUserId: string,
+    userId: string,
     filenameHash: string
   ): Promise<any[]> {
     const { data, error } = await supabase
       .from('files')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .eq('filename_hash', filenameHash);
 
     if (error) {
@@ -473,18 +473,18 @@ export class FileDatabaseService {
   /**
    * List files in a folder by folder path hash
    *
-   * @param clerkUserId - User ID
+   * @param userId - User ID
    * @param folderPathHash - HMAC token of the folder path
    * @returns Files in the folder (may need decryption for full metadata)
    */
   static async listFolder(
-    clerkUserId: string,
+    userId: string,
     folderPathHash: string
   ): Promise<any[]> {
     const { data, error } = await supabase
       .from('files')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .eq('folder_path_hash', folderPathHash)
       .order('created_at', { ascending: false });
 
@@ -502,11 +502,11 @@ export class FileDatabaseService {
    * Returns raw database records. Use metadataPrivacyService.getFileDetails()
    * to decrypt v2 metadata for display.
    */
-  static async getAllFilesRaw(clerkUserId: string): Promise<any[]> {
+  static async getAllFilesRaw(userId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('files')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {

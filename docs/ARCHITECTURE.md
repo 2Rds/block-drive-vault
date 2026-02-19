@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 1.2.0 (v1.2.0 Release)
+**Version**: 2.0.0
 **Date**: February 19, 2026
-**Status**: ACTIVE - v1.2.0 Release
+**Status**: ACTIVE - v2.0.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -38,9 +38,9 @@
 │         │                    │                          │                       │
 │         ▼                    ▼                          ▼                       │
 │  ┌─────────────┐    ┌──────────────────┐    ┌──────────────────────────────┐   │
-│  │ Crossmint   │    │   Cloudflare R2  │    │      Solana Blockchain       │   │
-│  │ Embedded    │    │  + IPFS Gateway  │    │    (Anchor Programs)         │   │
-│  │  Wallet     │    │  + Arweave       │    │                              │   │
+│  │  Dynamic    │    │   Cloudflare R2  │    │      Solana Blockchain       │   │
+│  │  (Auth +    │    │  + IPFS Gateway  │    │    (Anchor Programs)         │   │
+│  │  Wallets)   │    │  + Arweave       │    │                              │   │
 │  └─────────────┘    └──────────────────┘    └──────────────────────────────┘   │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
@@ -52,14 +52,14 @@
 |-------|------------|---------|
 | **Frontend** | React 18.3.1 + TypeScript + Vite | Single-page application |
 | **Styling** | Tailwind CSS + shadcn/ui | Component library |
-| **Auth** | Clerk + Crossmint | OAuth + embedded Solana wallets |
+| **Auth** | Dynamic SDK (Fireblocks TSS-MPC) | Email/social/passkey auth + embedded wallets |
 | **Backend** | Supabase Edge Functions (Deno) | Serverless API |
 | **Edge** | Cloudflare Workers + R2 + WAF | CDN, storage, security |
 | **Database** | Supabase PostgreSQL + RLS | User data, metadata |
 | **Storage** | Cloudflare R2 + IPFS + Arweave | Encrypted file storage |
 | **Blockchain** | Solana (SNS + Bubblegum V2 + MPL-Core) | On-chain identity & NFTs |
 | **Cryptography** | AES-256-GCM + Groth16 (snarkjs) | Encryption + ZK proofs |
-| **Payments** | Stripe + Crossmint | Fiat + crypto subscriptions |
+| **Payments** | Stripe | Fiat subscriptions |
 | **Sharding** | Multi-PDA Sharding | 1000+ files per user |
 
 ---
@@ -71,7 +71,7 @@
 ```
 src/
 ├── components/             # 151 total components
-│   ├── auth/               # Authentication (Clerk + Crossmint)
+│   ├── auth/               # Authentication (Dynamic SDK)
 │   │   ├── AuthHeader.tsx, AuthHero.tsx
 │   │   ├── MultichainAuthModal.tsx
 │   │   └── WalletConnectionStatus.tsx
@@ -113,13 +113,13 @@ src/
 │   │   ├── shardingClient.ts         # Multi-PDA Sharding
 │   │   ├── blockDriveClient.ts       # Anchor client
 │   │   └── pdaUtils.ts               # PDA derivation
-│   ├── crossmint/          # Wallet & NFT services
+│   ├── wallet/             # Wallet & NFT services
 │   │   ├── walletSync.ts
 │   │   └── usernameNFTService.ts
 │   ├── blockDriveUploadService.ts    # Main upload pipeline
 │   └── blockDriveDownloadService.ts  # Verified download
 ├── hooks/                  # React state management
-│   ├── useCrossmintWallet.tsx        # Embedded wallet
+│   ├── useDynamicWallet.tsx          # Embedded wallet
 │   ├── useWalletCrypto.tsx           # 3-level key derivation (security questions)
 │   ├── useOrganizations.tsx          # Org management
 │   ├── useOrgInviteCode.tsx          # Invite code validation
@@ -129,7 +129,7 @@ src/
 │   ├── useStripePricing.tsx          # Dynamic pricing
 │   └── useNFTMembership.tsx          # NFT verification
 ├── contexts/
-│   └── ClerkAuthContext.tsx          # Clerk + Org state
+│   └── DynamicAuthContext.tsx        # Dynamic + Org state
 ├── pages/                  # 18 route components
 │   ├── Dashboard.tsx, Index.tsx
 │   ├── Onboarding.tsx      # 5-step org-aware onboarding
@@ -137,7 +137,7 @@ src/
 │   └── Pricing.tsx, Account.tsx
 └── integrations/
     ├── supabase/           # Supabase client + types
-    └── clerk/              # Clerk-Supabase bridge
+    └── dynamic/            # Dynamic-Supabase bridge
 ```
 
 ### Backend Architecture (Supabase Edge Functions)
@@ -145,7 +145,7 @@ src/
 ```
 supabase/functions/                 # 41 edge functions
 ├── auth/
-│   ├── clerk-webhook/              # Clerk user/org events, storage provisioning
+│   ├── dynamic-webhook/            # Dynamic user/org events, storage provisioning
 │   ├── secure-wallet-auth/         # Wallet signature verification
 │   ├── secure-auth-token-verify/   # Email token validation
 │   ├── send-auth-token/            # Email auth token generation
@@ -154,8 +154,8 @@ supabase/functions/                 # 41 edge functions
 │   ├── security-question/          # Get/set/verify security questions
 │   └── derive-key-material/        # Derive key materials from answer hash
 ├── wallet/
-│   ├── sync-crossmint-wallet/      # Crossmint wallet DB sync
-│   ├── create-crossmint-wallet/    # Crossmint embedded wallet creation
+│   ├── sync-dynamic-wallet/        # Dynamic wallet DB sync
+│   ├── create-dynamic-wallet/      # Dynamic embedded wallet creation
 │   └── create-wallet/              # Generic wallet creation
 ├── organization/
 │   ├── generate-org-invite-code/   # Admin invite code generation
@@ -177,14 +177,14 @@ supabase/functions/                 # 41 edge functions
 │   ├── stripe-webhook/             # Stripe event handler
 │   ├── check-subscription/         # Subscription status
 │   ├── verify-subscription/        # Detailed subscription check
-│   ├── crossmint-create-checkout/  # Crypto checkout
-│   └── crossmint-process-recurring/# Crypto auto-renewal (pg_cron)
+│   ├── verify-subscription/        # Detailed subscription check
+│   └── sync-stripe-data/           # Stripe data sync
 ├── solana/
 │   └── verify-token-security/      # Token security validation
 ├── admin/
 │   ├── generate-intercom-jwt/      # Intercom authentication
 │   ├── log-security-event/         # Security audit logging
-│   └── get-clerk-publishable-key/  # Config serving
+│   └── get-dynamic-environment-id/ # Config serving
 └── _shared/
     ├── cors.ts                     # CORS configuration
     └── bucketStrategy.ts           # IPFS bucket path generation
@@ -748,92 +748,81 @@ pub mod blockdrive {
 │                         AUTHENTICATION ARCHITECTURE                             │
 │                                                                                 │
 │  ┌───────────────┐    ┌──────────────────┐    ┌────────────────────────────┐   │
-│  │    User       │────│     Clerk        │────│   Crossmint Embedded       │   │
-│  │  (Email/      │    │  (OAuth/JWT)     │    │   Wallet SDK               │   │
-│  │   Social)     │    │                  │    │                            │   │
+│  │    User       │────│    Dynamic SDK   │────│   Fireblocks TSS-MPC       │   │
+│  │  (Email/      │    │  (Auth + JWT)    │    │   Embedded Wallets         │   │
+│  │ Social/Passkey)    │                  │    │                            │   │
 │  └───────────────┘    └──────────────────┘    └────────────────────────────┘   │
 │                              │                            │                     │
 │                              ▼                            ▼                     │
 │                    ┌──────────────────┐        ┌────────────────────────────┐  │
 │                    │    Supabase      │        │  Embedded Solana Wallets   │  │
-│                    │  (user profile)  │◄───────│  (Crossmint MPC)           │  │
+│                    │  (user profile)  │◄───────│  (Fireblocks TSS-MPC)      │  │
 │                    └──────────────────┘        └────────────────────────────┘  │
 │                                                           │                     │
 │                                                           ▼                     │
 │                                                 ┌────────────────────────────┐ │
 │                                                 │   Gas Sponsored Wallets    │ │
-│                                                 │  (Crossmint - Solana)      │ │
+│                                                 │  (Dynamic - Solana)        │ │
 │                                                 │                            │ │
 │                                                 │  - Sign transactions       │ │
 │                                                 │  - Hold membership NFT     │ │
-│                                                 │  Note: EVM wallets are     │ │
-│                                                 │  Clerk auth-only           │ │
+│                                                 │  - Multi-chain support     │ │
+│                                                 │                            │ │
 │                                                 └────────────────────────────┘ │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Clerk Configuration
+### Dynamic SDK Configuration
 
 ```typescript
-// src/components/auth/ClerkProvider.tsx
+// src/components/auth/DynamicProvider.tsx
 
-const CLERK_CONFIG = {
-  publishableKey: 'pk_...',
-  issuer: 'https://good-squirrel-87.clerk.accounts.dev/',
-  signInUrl: '/sign-in',
-  signUpUrl: '/sign-up',
-  afterSignInUrl: '/dashboard',
-  afterSignUpUrl: '/onboarding',
+const DYNAMIC_CONFIG = {
+  environmentId: 'DYNAMIC_ENVIRONMENT_ID',
+  walletConnectors: [SolanaWalletConnectors],
+  eventsCallbacks: {
+    onAuthSuccess: () => navigate('/dashboard'),
+    onSignOut: () => navigate('/'),
+  },
 };
 ```
 
-### Crossmint Embedded Wallet
+### Dynamic Fireblocks TSS-MPC Wallets
 
 **Status**: ✅ **ACTIVE - Production Wallet Infrastructure**
-**Location**: `plugins/crossmint-fullstack/`
 
-Crossmint is BlockDrive's embedded wallet solution for **Solana wallets**:
+Dynamic provides BlockDrive's embedded wallet solution via **Fireblocks TSS-MPC**:
 
 ```typescript
-// src/components/auth/CrossmintProvider.tsx
+// src/components/auth/DynamicProvider.tsx
 
-import { CrossmintWalletProvider } from '@crossmint/client-sdk-react-ui';
+import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
+import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 
-<CrossmintProvider apiKey={CROSSMINT_API_KEY}>
-  <CrossmintAuthProvider>
-    <CrossmintWalletProvider createOnLogin={{
-      chain: 'solana:devnet',
-      signer: { type: 'email', email: user.email },
-    }}>
-      {children}
-    </CrossmintWalletProvider>
-  </CrossmintAuthProvider>
-</CrossmintProvider>
+<DynamicContextProvider
+  settings={{
+    environmentId: DYNAMIC_ENVIRONMENT_ID,
+    walletConnectors: [SolanaWalletConnectors],
+  }}
+>
+  {children}
+</DynamicContextProvider>
 
-// Embedded wallet creation for Solana only
-// EVM wallets (MetaMask/Coinbase) are Clerk auth-only, NOT embedded wallets
+// Embedded wallets auto-created on auth via Fireblocks TSS-MPC
+// Supports email, social, and passkey authentication
 ```
 
 **Key Features**:
 
-| Feature | Crossmint |
-|---------|-----------|
-| Embedded Wallets | Solana only (EVM wallets are Clerk auth-only) |
-| NFT Minting | Built-in API |
-| AML/KYC | Built-in compliance |
-| Payment Rails | Stablecoin orchestration (USDC/USDT) |
+| Feature | Dynamic (Fireblocks TSS-MPC) |
+|---------|------------------------------|
+| Embedded Wallets | Multi-chain (Solana + EVM) |
+| NFT Minting | Via Solana program integration |
+| Authentication | Email, social, passkey, wallet |
 | Gas Sponsorship | Built-in gasless transactions |
-| MPC Security | Non-custodial multi-party computation |
-
-**Plugin Resources**:
-- **Setup**: `/crossmint:setup` - Interactive configuration wizard
-- **Skills**: 5 comprehensive skills (wallets, NFTs, payments, smart wallets, Supabase)
-- **Agents**: Autonomous agents for wallet, NFT, and integration tasks
-- **Commands**: 4 commands including Alchemy migration tool
-- **Documentation**: `plugins/crossmint-fullstack/README.md`
-
-**See**: `docs/CROSSMINT_INTEGRATION_PLAN.md` for complete technical specification
+| MPC Security | Fireblocks TSS (Threshold Signature Scheme) |
+| Key Management | Non-custodial, distributed key shares |
 
 ---
 
@@ -868,23 +857,23 @@ BlockDrive implements a hierarchical organization system with Solana Name Servic
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Clerk Organizations Integration
+### Supabase Organizations
 
-BlockDrive bridges Clerk's native Organizations feature with Supabase for extended functionality:
+BlockDrive manages organizations entirely in Supabase:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    CLERK + SUPABASE ORGANIZATION BRIDGE                          │
+│                    SUPABASE ORGANIZATION MANAGEMENT                              │
 │                                                                                 │
-│  ┌───────────────────┐                      ┌────────────────────────────────┐ │
-│  │   CLERK (Native)   │                      │   SUPABASE (Extended Data)    │ │
-│  │                    │                      │                                │ │
-│  │  • User membership │◄────clerk_org_id────►│  • SNS subdomain records      │ │
-│  │  • Role management │                      │  • NFT ownership data         │ │
-│  │  • Org switching   │                      │  • Custom invite codes        │ │
-│  │  • Org metadata    │                      │  • Email domain verification  │ │
-│  │  • Invitations     │                      │  • Organization settings      │ │
-│  └───────────────────┘                      └────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │   SUPABASE (Full Organization Data)                                       │ │
+│  │                                                                            │ │
+│  │  • User membership & roles      • SNS subdomain records                   │ │
+│  │  • Org switching                 • NFT ownership data                     │ │
+│  │  • Org metadata                  • Custom invite codes                    │ │
+│  │  • Invitations                   • Email domain verification              │ │
+│  │  • Organization settings         • Dynamic user_id linking               │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -927,7 +916,7 @@ Two methods for joining organizations during onboarding:
 -- Organizations (renamed from teams)
 CREATE TABLE public.organizations (
   id UUID PRIMARY KEY,
-  clerk_org_id TEXT UNIQUE,           -- Links to Clerk
+  dynamic_org_id TEXT UNIQUE,         -- Links to Dynamic
   name TEXT NOT NULL,
   slug TEXT UNIQUE,
   subdomain TEXT UNIQUE,              -- SNS subdomain
@@ -936,7 +925,7 @@ CREATE TABLE public.organizations (
   org_collection_address TEXT,        -- Per-org MPL-Core collection (v1.1.0)
   subscription_tier TEXT,             -- 'business' | 'enterprise'
   settings JSONB DEFAULT '{}',
-  owner_clerk_id TEXT,                    -- Nullable; webhook-created orgs use data.created_by
+  owner_dynamic_id TEXT,                  -- Nullable; webhook-created orgs use data.created_by
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -971,7 +960,7 @@ CREATE TABLE public.organization_email_verifications (
   id UUID PRIMARY KEY,
   organization_id UUID REFERENCES organizations(id),
   email TEXT NOT NULL,
-  clerk_user_id TEXT,
+  dynamic_user_id TEXT,
   token TEXT UNIQUE NOT NULL,
   status TEXT DEFAULT 'pending',      -- pending, verified, expired, used
   expires_at TIMESTAMPTZ NOT NULL,
@@ -1023,17 +1012,17 @@ Each organization gets its own **MPL-Core collection** (~0.003 SOL), while indiv
 
 ### Organization Deletion (v1.1.0)
 
-When an org is deleted in Clerk, the `organization.deleted` webhook triggers a 10-step cleanup:
+When an org is deleted in Dynamic, the `organization.deleted` webhook triggers a 10-step cleanup:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                    ORGANIZATION DELETION FLOW (v1.1.0)                           │
 │                                                                                 │
-│  Clerk fires organization.deleted webhook                                        │
+│  Dynamic fires organization.deleted webhook                                      │
 │       │                                                                          │
 │       ▼                                                                          │
 │  ┌──────────────────────────────────────┐                                       │
-│  │ Step 1: Lookup org by clerk_org_id   │ → Not found? Return early (idempotent)│
+│  │ Step 1: Lookup org by dynamic_org_id │ → Not found? Return early (idempotent)│
 │  │ Step 2: Fetch all org NFTs           │                                       │
 │  │ Step 3: Partition member vs root     │                                       │
 │  └──────────────────┬───────────────────┘                                       │
@@ -1061,7 +1050,7 @@ When an org is deleted in Clerk, the `organization.deleted` webhook triggers a 1
 
 ```
 src/hooks/
-├── useOrganizations.tsx          # Bridge Clerk + Supabase org data
+├── useOrganizations.tsx          # Bridge Dynamic + Supabase org data
 ├── useOrgInviteCode.tsx          # Invite code validation & usage
 ├── useOrgEmailVerification.tsx   # Email domain verification flow
 └── useUsernameNFT.tsx            # Updated with org context support
@@ -1261,7 +1250,7 @@ access_policies:
     decision: allow
     include:
       - oidc:
-          identity_provider_id: "clerk-blockdrive"
+          identity_provider_id: "dynamic-blockdrive"
           claims:
             email_verified: true
     require:
@@ -1277,14 +1266,14 @@ access_policies:
           - os_version: ">= 10.0"
 
 identity_providers:
-  - name: "clerk-blockdrive"
+  - name: "dynamic-blockdrive"
     type: "oidc"
     config:
-      client_id: "${CLERK_CLIENT_ID}"
-      client_secret: "${CLERK_CLIENT_SECRET}"
-      auth_url: "https://good-squirrel-87.clerk.accounts.dev/oauth/authorize"
-      token_url: "https://good-squirrel-87.clerk.accounts.dev/oauth/token"
-      certs_url: "https://good-squirrel-87.clerk.accounts.dev/.well-known/jwks.json"
+      client_id: "${DYNAMIC_ENVIRONMENT_ID}"
+      client_secret: "${DYNAMIC_API_KEY}"
+      auth_url: "https://app.dynamic.xyz/oauth/authorize"
+      token_url: "https://app.dynamic.xyz/oauth/token"
+      certs_url: "https://app.dynamic.xyz/.well-known/jwks.json"
 ```
 
 ---
@@ -1502,40 +1491,39 @@ with open("recovered.pdf", "wb") as f:
 | Endpoint | Method | Description | Auth |
 |----------|--------|-------------|------|
 | **Authentication** | | | |
-| `/functions/v1/clerk-webhook` | POST | Clerk user sync | Webhook sig |
+| `/functions/v1/dynamic-webhook` | POST | Dynamic user sync | Webhook sig |
 | `/functions/v1/secure-wallet-auth` | POST | Wallet signature auth | None |
 | `/functions/v1/send-auth-token` | POST | Send email auth token | None |
 | `/functions/v1/secure-auth-token-verify` | POST | Verify email token | Token |
 | **Wallet** | | | |
-| `/functions/v1/sync-crossmint-wallet` | POST | Sync Crossmint wallet | Clerk JWT |
-| `/functions/v1/create-crossmint-wallet` | POST | Create Crossmint wallet | Clerk JWT |
+| `/functions/v1/sync-dynamic-wallet` | POST | Sync Dynamic wallet | Dynamic JWT |
+| `/functions/v1/create-dynamic-wallet` | POST | Create Dynamic wallet | Dynamic JWT |
 | **Organization** | | | |
-| `/functions/v1/generate-org-invite-code` | POST | Generate invite code | Clerk JWT (admin) |
+| `/functions/v1/generate-org-invite-code` | POST | Generate invite code | Dynamic JWT (admin) |
 | `/functions/v1/validate-org-invite-code` | POST | Validate invite code | None |
-| `/functions/v1/use-org-invite-code` | POST | Use invite code | Clerk JWT |
+| `/functions/v1/use-org-invite-code` | POST | Use invite code | Dynamic JWT |
 | `/functions/v1/check-email-org-membership` | POST | Check email domain | None |
 | `/functions/v1/send-org-email-verification` | POST | Send magic link | None |
 | `/functions/v1/verify-org-email-token` | POST | Verify magic link | Token |
 | **NFT** | | | |
-| `/functions/v1/mint-solbound-nft` | POST | Mint membership NFT | Clerk JWT |
-| `/functions/v1/mint-username-nft` | POST | Mint username NFT | Clerk JWT |
+| `/functions/v1/mint-solbound-nft` | POST | Mint membership NFT | Dynamic JWT |
+| `/functions/v1/mint-username-nft` | POST | Mint username NFT | Dynamic JWT |
 | **Storage** | | | |
-| `/functions/v1/upload-to-ipfs` | POST | Upload to IPFS | Clerk JWT |
-| `/functions/v1/ipfs-pin` | POST | Pin IPFS content | Clerk JWT |
+| `/functions/v1/upload-to-ipfs` | POST | Upload to IPFS | Dynamic JWT |
+| `/functions/v1/ipfs-pin` | POST | Pin IPFS content | Dynamic JWT |
 | **Payments** | | | |
-| `/functions/v1/create-checkout` | POST | Stripe checkout | Clerk JWT |
-| `/functions/v1/customer-portal` | POST | Stripe portal | Clerk JWT |
+| `/functions/v1/create-checkout` | POST | Stripe checkout | Dynamic JWT |
+| `/functions/v1/customer-portal` | POST | Stripe portal | Dynamic JWT |
 | `/functions/v1/stripe-webhook` | POST | Stripe events | Webhook sig |
-| `/functions/v1/check-subscription` | POST | Check subscription | Clerk JWT |
-| `/functions/v1/crossmint-create-checkout` | POST | Crypto checkout | Clerk JWT |
+| `/functions/v1/check-subscription` | POST | Check subscription | Dynamic JWT |
 | **Solana (API Gateway Worker)** | | | |
-| `/solana/onboard-user` | POST | SNS subdomain + cNFT mint | Clerk JWT |
-| `/solana/create-org-domain` | POST | Org subdomain + collection + cNFT | Clerk JWT (admin) |
+| `/solana/onboard-user` | POST | SNS subdomain + cNFT mint | Dynamic JWT |
+| `/solana/create-org-domain` | POST | Org subdomain + collection + cNFT | Dynamic JWT (admin) |
 | `/solana/resolve/:domain` | GET | SNS domain resolution | None |
-| `/solana/revoke-subdomain` | POST | Admin subdomain revocation | Clerk JWT |
-| `/solana/update-org-collection` | POST | Update org collection branding | Clerk JWT (admin) |
+| `/solana/revoke-subdomain` | POST | Admin subdomain revocation | Dynamic JWT |
+| `/solana/update-org-collection` | POST | Update org collection branding | Dynamic JWT (admin) |
 | **Webhooks (API Gateway Worker)** | | | |
-| `/webhooks/clerk` | POST | Clerk lifecycle events | Svix signature |
+| `/webhooks/dynamic` | POST | Dynamic lifecycle events | HMAC-SHA256 signature |
 
 ### WebSocket Events (Planned)
 
@@ -1555,15 +1543,10 @@ with open("recovered.pdf", "wb") as f:
 ```env
 # .env.example
 
-# Clerk Authentication
-VITE_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
-
-# Crossmint
-VITE_CROSSMINT_CLIENT_API_KEY=...
-CROSSMINT_SERVER_API_KEY=...
-VITE_CROSSMINT_ENVIRONMENT=staging
-CROSSMINT_WEBHOOK_SECRET=...
+# Dynamic Authentication
+VITE_DYNAMIC_ENVIRONMENT_ID=...
+DYNAMIC_API_KEY=...
+DYNAMIC_WEBHOOK_SECRET=...
 
 # Solana
 SOLANA_RPC_DEVNET=https://api.devnet.solana.com
@@ -1643,16 +1626,15 @@ jobs:
 - [PRD.md](./prd.md) - Product Requirements Document
 - [SECURITY.md](./security.md) - Security Model
 - [SOLANA_PROGRAM_ARCHITECTURE.md](./solana_program_architecture.md) - On-chain program design
-- [CROSSMINT_INTEGRATION_PLAN.md](./CROSSMINT_INTEGRATION_PLAN.md) - Wallet integration
+- [DYNAMIC_INTEGRATION.md](./DYNAMIC_INTEGRATION.md) - Dynamic SDK wallet integration
 
 ### B. External Dependencies
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| @clerk/clerk-react | ^5.x | Authentication |
-| @crossmint/client-sdk-react-ui | latest | Embedded wallets |
-| @crossmint/client-sdk-auth | latest | Wallet authentication |
-| @crossmint/wallets-sdk | latest | Wallet operations |
+| @dynamic-labs/sdk-react-core | latest | Authentication + embedded wallets |
+| @dynamic-labs/solana | latest | Solana wallet connectors |
+| @dynamic-labs/ethereum | latest | EVM wallet connectors |
 | @solana/web3.js | ^1.98 | Solana SDK |
 | @bonfida/spl-name-service | ^3.0 | SNS subdomain management |
 | @metaplex-foundation/mpl-bubblegum | ^5.0 | Bubblegum V2 cNFT minting |
@@ -1681,5 +1663,5 @@ jobs:
 | **Token-2022** | Solana token program with transfer hooks (soulbound NFTs) |
 | **Bubblegum V2** | Metaplex compressed NFT protocol for efficient minting |
 | **MPL-Core** | Metaplex collection standard for grouping NFTs |
-| **Svix** | Webhook delivery/verification service used by Clerk |
-| **Crossmint Embedded** | Non-custodial MPC wallets with gas sponsorship |
+| **HMAC-SHA256** | Webhook signature verification scheme used by Dynamic |
+| **Dynamic Fireblocks** | Non-custodial TSS-MPC wallets with gas sponsorship |

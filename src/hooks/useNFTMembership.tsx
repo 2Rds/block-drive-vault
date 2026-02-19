@@ -2,12 +2,12 @@
  * NFT Membership Hook
  *
  * Provides read-only NFT membership verification and display utilities.
- * All minting/purchasing is handled server-side via Crossmint edge functions.
+ * All minting/purchasing is handled server-side via edge functions.
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { useCrossmintWallet } from './useCrossmintWallet';
+import { useDynamicWallet } from './useDynamicWallet';
 import {
   SubscriptionTier,
   MembershipVerification,
@@ -34,13 +34,13 @@ interface UseNFTMembershipReturn {
 
 export function useNFTMembership(): UseNFTMembershipReturn {
   const { user } = useAuth();
-  const crossmintWallet = useCrossmintWallet();
+  const dynamicWallet = useDynamicWallet();
 
   const [membership, setMembership] = useState<MembershipVerification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Verify membership using Crossmint wallet address
+  // Verify membership using Dynamic wallet address
   const verifyMembership = useCallback(async (): Promise<MembershipVerification | null> => {
     if (!user) {
       setMembership(null);
@@ -48,10 +48,12 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       return null;
     }
 
-    // If wallet is still initializing, provide MVP fallback
-    const isWalletReady = crossmintWallet.isInitialized && !!crossmintWallet.walletAddress;
+    // If wallet is still initializing, provide MVP fallback.
+    // NOTE: Fireblocks TSS-MPC wallet init can take several seconds (longer than
+    // instant provisioning). This fallback prevents a flash of "no access"
+    // during that window. Once the wallet address resolves, real verification runs.
+    const isWalletReady = dynamicWallet.isInitialized && !!dynamicWallet.walletAddress;
     if (!isWalletReady) {
-      // Provide pro tier access while wallet initializes
       const mvpMembership: MembershipVerification = {
         isValid: true,
         tier: 'pro',
@@ -71,7 +73,7 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     setIsVerifying(true);
 
     try {
-      const verification = await nftMembershipService.verifyMembership(crossmintWallet.walletAddress!);
+      const verification = await nftMembershipService.verifyMembership(dynamicWallet.walletAddress!);
       setMembership(verification);
       return verification;
     } catch (error) {
@@ -82,7 +84,7 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setIsVerifying(false);
       setIsLoading(false);
     }
-  }, [user, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
+  }, [user, dynamicWallet.isInitialized, dynamicWallet.walletAddress]);
 
   // Auto-verify when user or wallet changes
   useEffect(() => {
@@ -93,7 +95,7 @@ export function useNFTMembership(): UseNFTMembershipReturn {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, crossmintWallet.isInitialized, crossmintWallet.walletAddress]);
+  }, [user?.id, dynamicWallet.isInitialized, dynamicWallet.walletAddress]);
 
   // Get tier configuration
   const getTierConfig = useCallback((tier: SubscriptionTier) => {
@@ -128,8 +130,8 @@ export function useNFTMembership(): UseNFTMembershipReturn {
     membership,
     isLoading,
     isVerifying,
-    walletAddress: crossmintWallet.walletAddress,
-    isWalletReady: crossmintWallet.isInitialized && !!crossmintWallet.walletAddress,
+    walletAddress: dynamicWallet.walletAddress,
+    isWalletReady: dynamicWallet.isInitialized && !!dynamicWallet.walletAddress,
     verifyMembership,
     getTierConfig,
     formatStorageSize,

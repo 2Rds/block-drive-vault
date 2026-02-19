@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useOrganization } from '@clerk/clerk-react';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -11,8 +11,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth, useOrganizationList } from '@clerk/clerk-react';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useAuth, useOrganizationList } from '@/hooks/useOrganizationCompat';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 // Constants
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
@@ -24,7 +24,7 @@ export interface EmailCheckResult {
   hasOrganization: boolean;
   organization?: {
     id: string;
-    clerkOrgId: string;
+    orgId: string;
     name: string;
     subdomain: string;
     imageUrl?: string;
@@ -47,7 +47,7 @@ export interface VerifyTokenResult {
   verified: boolean;
   organization?: {
     id: string;
-    clerkOrgId: string;
+    orgId: string;
     name: string;
     subdomain: string;
   };
@@ -58,7 +58,7 @@ export interface VerifyTokenResult {
 // Organization context for downstream use
 export interface OrganizationContext {
   id: string;
-  clerkOrgId: string;
+  orgId: string;
   name: string;
   subdomain: string;
   role: string;
@@ -68,7 +68,7 @@ export interface OrganizationContext {
 export type VerificationStatus = 'idle' | 'checking' | 'found' | 'sending' | 'pending' | 'verifying' | 'verified' | 'error';
 
 export const useOrgEmailVerification = () => {
-  const { userId, supabase } = useClerkAuth();
+  const { userId, supabase } = useDynamicAuth();
   const { getToken } = useAuth();
   const { setActive } = useOrganizationList();
 
@@ -111,7 +111,7 @@ export const useOrgEmailVerification = () => {
         hasOrganization: result.hasOrganization === true,
         organization: result.organization ? {
           id: result.organization.id,
-          clerkOrgId: result.organization.clerkOrgId,
+          orgId: result.organization.orgId,
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           imageUrl: result.organization.imageUrl,
@@ -219,7 +219,7 @@ export const useOrgEmailVerification = () => {
           },
           body: JSON.stringify({
             token,
-            clerkUserId: userId || undefined,
+            userId: userId || undefined,
           }),
         }
       );
@@ -240,7 +240,7 @@ export const useOrgEmailVerification = () => {
       if (result.organization) {
         const orgContext: OrganizationContext = {
           id: result.organization.id,
-          clerkOrgId: result.organization.clerkOrgId,
+          orgId: result.organization.orgId,
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           role: result.defaultRole || 'member',
@@ -248,12 +248,12 @@ export const useOrgEmailVerification = () => {
         };
         setOrganization(orgContext);
 
-        // Set as active organization in Clerk
-        if (result.organization.clerkOrgId && setActive) {
+        // Set as active organization
+        if (result.organization.orgId && setActive) {
           try {
-            await setActive({ organization: result.organization.clerkOrgId });
-          } catch (clerkErr) {
-            console.warn('[useOrgEmailVerification] Failed to set active org in Clerk:', clerkErr);
+            await setActive({ organization: result.organization.orgId });
+          } catch (err) {
+            console.warn('[useOrgEmailVerification] Failed to set active org:', err);
           }
         }
       }

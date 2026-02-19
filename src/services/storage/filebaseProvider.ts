@@ -88,11 +88,10 @@ export class FilebaseProvider extends StorageProviderBase {
       // Skip DB insert — the upload hook creates the proper file record
       formData.append('skipDbInsert', 'true');
 
-      // Get auth token (try Clerk first, fallback to Supabase)
       const authToken = await this.getAuthToken();
 
       if (!authToken) {
-        throw new Error('Not authenticated — no Clerk or Supabase token available');
+        throw new Error('Not authenticated — no auth token available');
       }
 
       const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-ipfs`;
@@ -183,12 +182,11 @@ export class FilebaseProvider extends StorageProviderBase {
   }
 
   /**
-   * Get auth token from Clerk session, fallback to Supabase
+   * Get auth token from Dynamic session, fallback to Supabase
    */
   private async getAuthToken(): Promise<string> {
-    // Try Clerk's getToken if available
-    if (typeof window !== 'undefined' && (window as any).__clerk_session?.getToken) {
-      const token = await (window as any).__clerk_session.getToken();
+    if (typeof window !== 'undefined' && window.__dynamic_session?.getToken) {
+      const token = await window.__dynamic_session.getToken();
       return token || '';
     }
     // Fallback to Supabase session token

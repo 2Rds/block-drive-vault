@@ -1,4 +1,4 @@
-// Stub - EmailWalletMatcher deprecated with Clerk auth
+// Stub - EmailWalletMatcher deprecated with Dynamic auth
 import React from 'react';
 
 interface EmailWalletMatcherProps {
@@ -6,9 +6,9 @@ interface EmailWalletMatcherProps {
 }
 
 export const EmailWalletMatcher = ({ onSuccess }: EmailWalletMatcherProps) => {
-  // This component is deprecated with Clerk authentication
+  // This component is deprecated with Dynamic authentication
   React.useEffect(() => {
-    console.warn('EmailWalletMatcher is deprecated. Use Clerk authentication.');
+    console.warn('EmailWalletMatcher is deprecated. Use Dynamic authentication.');
   }, []);
   
   return null;

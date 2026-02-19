@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ShieldCheck, Loader2 } from 'lucide-react';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 const PRESET_QUESTIONS = [
   'What is the name of your first pet?',
@@ -25,7 +25,7 @@ interface SecurityQuestionSetupProps {
 }
 
 export function SecurityQuestionSetup({ onComplete }: SecurityQuestionSetupProps) {
-  const { supabase } = useClerkAuth();
+  const { supabase } = useDynamicAuth();
   const [question, setQuestion] = useState('');
   const [customQuestion, setCustomQuestion] = useState('');
   const [answer, setAnswer] = useState('');

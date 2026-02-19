@@ -1,7 +1,7 @@
 /**
  * Solana Native Minting Routes (SNS + Bubblegum V2)
  *
- * Replaces Crossmint minting with direct on-chain operations:
+ * Direct on-chain operations:
  * - SNS subdomains: username.blockdrive.sol
  * - Bubblegum V2 soulbound cNFTs: membership NFTs tied to SNS domains
  *
@@ -63,7 +63,7 @@ export interface SolanaEnv {
 }
 
 interface OnboardUserBody {
-  clerkUserId: string;
+  userId: string;
   username: string;
   recipientWalletAddress: string;
   organizationId?: string;
@@ -98,8 +98,8 @@ function json(body: Record<string, unknown>, status = 200): Response {
   });
 }
 
-/** Decode Clerk JWT payload to extract sub (user ID). No verification — auth validated upstream. */
-function parseClerkToken(request: Request): string {
+/** Decode JWT payload to extract sub (user ID). No verification — auth validated upstream. */
+function parseAuthToken(request: Request): string {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) {
     throw new Error('Missing authorization header');
@@ -276,15 +276,15 @@ async function handleOnboardUser(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  const tokenUserId = parseClerkToken(request);
+  const tokenUserId = parseAuthToken(request);
   const body: OnboardUserBody = await request.json();
   const {
-    clerkUserId, username, recipientWalletAddress,
+    userId, username, recipientWalletAddress,
     organizationId, organizationSubdomain,
   } = body;
 
-  if (!clerkUserId || !username) throw new Error('Missing required fields: clerkUserId and username');
-  if (tokenUserId !== clerkUserId) throw new Error('User ID mismatch — unauthorized');
+  if (!userId || !username) throw new Error('Missing required fields: userId and username');
+  if (tokenUserId !== userId) throw new Error('User ID mismatch — unauthorized');
   if (!recipientWalletAddress) throw new Error('Missing recipientWalletAddress');
 
   const validation = validateUsername(username);
@@ -471,12 +471,12 @@ async function handleOnboardUser(
   // ─── Step 4: Update DB ──────────────────────────────
   // Get or create profile
   let profile = await db.selectOne<{ id: string }>(
-    'profiles', `clerk_user_id=eq.${clerkUserId}&select=id`
+    'profiles', `user_id=eq.${userId}&select=id`
   );
   if (!profile) {
     try {
       profile = await db.insert<{ id: string }>('profiles', {
-        clerk_user_id: clerkUserId,
+        user_id: userId,
         username: normalized,
       });
     } catch (err) {
@@ -488,8 +488,8 @@ async function handleOnboardUser(
   let nftRecord: { id: string } | null = null;
   try {
     nftRecord = await db.insert<{ id: string }>('username_nfts', {
-      user_id: profile?.id || null,
-      clerk_user_id: clerkUserId,
+      profile_id: profile?.id || null,
+      user_id: userId,
       username: normalized,
       full_domain: fullDomain,
       tx_signature: txSignature,
@@ -516,7 +516,7 @@ async function handleOnboardUser(
     try {
       await db.update(
         'profiles',
-        `clerk_user_id=eq.${clerkUserId}`,
+        `user_id=eq.${userId}`,
         { username: normalized, sns_domain: fullDomain }
       );
     } catch (err) {
@@ -529,7 +529,7 @@ async function handleOnboardUser(
     try {
       await db.update(
         'organization_members',
-        `organization_id=eq.${organizationId}&clerk_user_id=eq.${clerkUserId}`,
+        `organization_id=eq.${organizationId}&user_id=eq.${userId}`,
         { org_username: normalized, org_subdomain_nft_id: nftRecord.id }
       );
     } catch (err) {
@@ -561,7 +561,7 @@ async function handleCreateOrgDomain(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  const clerkUserId = parseClerkToken(request);
+  const authUserId = parseAuthToken(request);
   const body: CreateOrgDomainBody = await request.json();
   const { organizationId, orgName, orgSubdomain, recipientWalletAddress, logoUrl } = body;
 
@@ -580,7 +580,7 @@ async function handleCreateOrgDomain(
   // Verify org membership (owner/admin)
   const membership = await db.selectOne<{ role: string }>(
     'organization_members',
-    `organization_id=eq.${organizationId}&clerk_user_id=eq.${clerkUserId}&select=role`
+    `organization_id=eq.${organizationId}&user_id=eq.${authUserId}&select=role`
   );
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
     throw new Error('Only organization owners/admins can create org domains');
@@ -758,13 +758,13 @@ async function handleCreateOrgDomain(
 
   // Get profile for NFT record
   const profile = await db.selectOne<{ id: string }>(
-    'profiles', `clerk_user_id=eq.${clerkUserId}&select=id`
+    'profiles', `user_id=eq.${authUserId}&select=id`
   );
 
   try {
     await db.insert('username_nfts', {
-      user_id: profile?.id || null,
-      clerk_user_id: clerkUserId,
+      profile_id: profile?.id || null,
+      user_id: authUserId,
       username: orgSubdomain.toLowerCase(),
       full_domain: fullDomain,
       tx_signature: txSignature,
@@ -837,7 +837,7 @@ async function handleRevokeSubdomain(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  parseClerkToken(request);
+  parseAuthToken(request);
 
   const body: RevokeSubdomainBody = await request.json();
   const { fullDomain } = body;
@@ -882,7 +882,7 @@ async function handleUpdateOrgCollection(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  const clerkUserId = parseClerkToken(request);
+  const authUserId = parseAuthToken(request);
   const body: UpdateOrgCollectionBody = await request.json();
   const { organizationId, name, logoUrl, description } = body;
 
@@ -895,7 +895,7 @@ async function handleUpdateOrgCollection(
   // Verify org membership (owner/admin)
   const membership = await db.selectOne<{ role: string }>(
     'organization_members',
-    `organization_id=eq.${organizationId}&clerk_user_id=eq.${clerkUserId}&select=role`
+    `organization_id=eq.${organizationId}&user_id=eq.${authUserId}&select=role`
   );
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
     throw new Error('Only organization owners/admins can update org collections');
@@ -966,7 +966,7 @@ async function handleUpdateOrgCollection(
   });
 }
 
-// ─── Delete Org Assets (called by Clerk webhook) ────────
+// ─── Delete Org Assets (called by Dynamic webhook) ──────
 
 /**
  * Deletes all on-chain assets for an organization:
@@ -982,7 +982,7 @@ async function handleUpdateOrgCollection(
  */
 export async function deleteOrgAssets(
   env: SolanaEnv,
-  clerkOrgId: string
+  orgId: string
 ): Promise<{
   orgId: string | null;
   memberSubdomainsRevoked: string[];
@@ -1008,15 +1008,14 @@ export async function deleteOrgAssets(
     slug: string;
   }>(
     'organizations',
-    `clerk_org_id=eq.${clerkOrgId}&select=id,org_collection_address,name,slug`
+    `id=eq.${orgId}&select=id,org_collection_address,name,slug`
   );
 
   if (!org) {
-    console.log(`[delete-org-assets] No org found for clerk_org_id=${clerkOrgId} (already deleted?)`);
+    console.log(`[delete-org-assets] No org found for id=${orgId} (already deleted?)`);
     return { orgId: null, memberSubdomainsRevoked, rootDomainRevoked, nftsMarkedForBurn, collectionArchived, errors };
   }
 
-  const orgId = org.id;
   console.log(`[delete-org-assets] Deleting org ${orgId} (${org.slug})`);
 
   // Step 2: Fetch all org NFTs
@@ -1162,11 +1161,11 @@ export async function deleteOrgAssets(
     }
   }
 
-  console.log(`[delete-org-assets] Done for ${clerkOrgId}: ${memberSubdomainsRevoked.length} members revoked, ${nftsMarkedForBurn} NFTs marked, ${errors.length} errors`);
+  console.log(`[delete-org-assets] Done for org ${orgId}: ${memberSubdomainsRevoked.length} members revoked, ${nftsMarkedForBurn} NFTs marked, ${errors.length} errors`);
   return { orgId, memberSubdomainsRevoked, rootDomainRevoked, nftsMarkedForBurn, collectionArchived, errors };
 }
 
-// ─── Delete User Assets (called by Clerk webhook) ───────
+// ─── Delete User Assets (called by Dynamic webhook) ─────
 
 /**
  * Deletes all on-chain assets for a user:
@@ -1182,7 +1181,7 @@ export async function deleteOrgAssets(
  */
 export async function deleteUserAssets(
   env: SolanaEnv,
-  clerkUserId: string
+  userId: string
 ): Promise<{ revoked: string[]; burned: string[]; errors: string[] }> {
   const db = newSupabase(env);
   const connection = getConnection(env);
@@ -1200,11 +1199,11 @@ export async function deleteUserAssets(
     mint_status: string;
   }>(
     'username_nfts',
-    `clerk_user_id=eq.${clerkUserId}&mint_status=neq.deleted&select=id,full_domain,asset_id,sns_account_key,mint_status`
+    `user_id=eq.${userId}&mint_status=neq.deleted&select=id,full_domain,asset_id,sns_account_key,mint_status`
   );
 
   if (!nfts || nfts.length === 0) {
-    console.log(`[delete-user-assets] No NFT records found for ${clerkUserId}`);
+    console.log(`[delete-user-assets] No NFT records found for ${userId}`);
     return { revoked, burned, errors };
   }
 
@@ -1254,7 +1253,7 @@ export async function deleteUserAssets(
   try {
     await db.update(
       'profiles',
-      `clerk_user_id=eq.${clerkUserId}`,
+      `user_id=eq.${userId}`,
       { username: null, sns_domain: null }
     );
   } catch (err) {
@@ -1265,14 +1264,14 @@ export async function deleteUserAssets(
   try {
     await db.update(
       'organization_members',
-      `clerk_user_id=eq.${clerkUserId}`,
+      `user_id=eq.${userId}`,
       { org_username: null, org_subdomain_nft_id: null }
     );
   } catch (err) {
     errors.push('Org member cleanup failed');
   }
 
-  console.log(`[delete-user-assets] Done for ${clerkUserId}: ${revoked.length} revoked, ${errors.length} errors`);
+  console.log(`[delete-user-assets] Done for ${userId}: ${revoked.length} revoked, ${errors.length} errors`);
   return { revoked, burned, errors };
 }
 
@@ -1289,7 +1288,7 @@ async function handleCreateTreeV2(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  parseClerkToken(request);
+  parseAuthToken(request);
 
   const body = await request.json() as {
     maxDepth?: number;
@@ -1344,7 +1343,7 @@ async function handleCreateCollection(
   request: Request,
   env: SolanaEnv
 ): Promise<Response> {
-  parseClerkToken(request);
+  parseAuthToken(request);
 
   const body = await request.json() as {
     name: string;

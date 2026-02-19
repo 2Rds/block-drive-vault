@@ -61,9 +61,9 @@ You are a coding assistant for the BlockDrive project, a blockchain-based storag
 Project Context:
 - This is a React + TypeScript + Vite application
 - Uses Web3 technologies for blockchain integration
-- Uses Crossmint embedded wallets for multichain support (Solana + EVM)
+- Uses Dynamic SDK with Fireblocks TSS-MPC embedded wallets (Solana + EVM)
 - Uses Supabase for backend services
-- Uses Clerk for authentication
+- Uses Dynamic for authentication
 
 When working on code:
 - Follow existing code patterns and conventions

@@ -40,7 +40,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       title: "Authentication",
       icon: <Shield className="w-4 h-4" />,
       items: [
-        { title: "Clerk + Crossmint", id: "clerk-crossmint-integration" },
+        { title: "Dynamic Auth + Wallets", id: "dynamic-auth-integration" },
         { title: "Embedded Wallets", id: "wallet-auth" },
         { title: "Authentication Flow", id: "auth-flow" },
         { title: "SNS Domain Verification", id: "sns-verification" }
@@ -73,7 +73,7 @@ export const DocsSidebar = ({ activeSection, onSectionClick }: DocsSidebarProps)
       title: "Teams & Organizations",
       icon: <Users className="w-4 h-4" />,
       items: [
-        { title: "Clerk Organizations", id: "team-management" },
+        { title: "Organizations", id: "team-management" },
         { title: "Access Control", id: "access-control" }
       ]
     },

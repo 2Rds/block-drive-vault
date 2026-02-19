@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
-import { getSupabaseServiceClient, getClerkUserId, getClerkUserEmail } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getUserId, getUserEmail } from '../_shared/auth.ts';
 import { HTTP_STATUS } from '../_shared/constants.ts';
 
 serve(async (req) => {
@@ -9,8 +9,8 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabaseServiceClient();
-    const clerkUserId = getClerkUserId(req);
-    const email = getClerkUserEmail(req);
+    const userId = getUserId(req);
+    const email = getUserEmail(req);
 
     if (!email) {
       return errorResponse('No email found in authentication token', HTTP_STATUS.BAD_REQUEST);
@@ -54,7 +54,7 @@ serve(async (req) => {
       .from('organization_members')
       .select('id')
       .eq('organization_id', org.id)
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .maybeSingle();
 
     const role = domainRow.default_role || 'member';
@@ -73,7 +73,7 @@ serve(async (req) => {
       .from('organization_members')
       .insert({
         organization_id: org.id,
-        clerk_user_id: clerkUserId,
+        user_id: userId,
         role,
         join_method: 'email_domain_auto',
       });

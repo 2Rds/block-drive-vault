@@ -1,18 +1,19 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: ACTIVE - v1.2.0 Released
+> **Status**: ACTIVE - v2.0.0 Released
 >
 > **Last Updated**: February 19, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets).
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [v1.2.0 — Recovery SDK + Solana Native Minting](#v120--recovery-sdk--solana-native-minting-february-19-2026)
-3. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
+2. [v2.0.0 — Dynamic SDK Migration](#v200--dynamic-sdk-migration-february-19-2026)
+3. [v1.2.0 — Recovery SDK + Solana Native Minting](#v120--recovery-sdk--solana-native-minting-february-19-2026)
+4. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
 4. [v1.0.0 Implementation Phases Overview](#v100-implementation-phases-overview)
 3. [Phase 1: On-Chain Infrastructure](#phase-1-on-chain-infrastructure)
 4. [Phase 2: Relayer Service](#phase-2-relayer-service)
@@ -31,7 +32,7 @@
 
 This plan details the implementation of **9 major features** to complete the BlockDrive platform. The existing codebase has solid foundations including:
 
-- ✅ Wallet authentication (Clerk + Crossmint Embedded Wallets)
+- ✅ Wallet authentication (Dynamic SDK + Fireblocks TSS-MPC Wallets)
 - ✅ Soulbound NFT membership with SNS integration
 - ✅ Client-side encryption (AES-256-GCM with 3 security levels)
 - ✅ 16-byte critical data separation for ZK proofs
@@ -46,7 +47,7 @@ This implementation plan focuses on the **core storage infrastructure** features
 1. **Multi-PDA Sharding** - Scale to 1000+ files per user
 2. **Session Key Delegation** - Gasless operations via relayer (optional future enhancement)
 3. **Relayer Service** - Backend service for advanced operations (optional)
-4. **Crypto Payments** - Radom integration alongside Stripe
+4. **Crypto Payments** - Radom integration alongside Stripe (historical; Crossmint dependency removed in v2.0.0)
 5. **Enhanced Metadata Privacy** - Encrypted metadata blobs
 6. **Security Question Key Derivation** - Complete security question-based HKDF flow
 7. **Download Verification** - End-to-end commitment verification
@@ -54,16 +55,49 @@ This implementation plan focuses on the **core storage infrastructure** features
 
 ### Gas Management Architecture
 
-**Decision: Use Crossmint Gas Sponsorship (No Per-User Gas Credits)**
+**Decision: Use Treasury Wallet Gas Sponsorship (No Per-User Gas Credits)**
 
-BlockDrive uses Crossmint Embedded Wallets with gas sponsorship for all user transactions:
+BlockDrive uses treasury wallet gas sponsorship for all user transactions:
 
-- **Gas Sponsorship**: Crossmint pays SOL gas fees for all user operations
+- **Gas Sponsorship**: Treasury wallet pays SOL gas fees for all user operations
 - **Billing Model**: Monthly aggregated USD billing (~$0.001-0.002 per transaction)
 - **Cost**: ~$10-30/month for typical usage (~10,000-30,000 transactions)
 - **No Per-User Accounting**: Single BlockDrive operational wallet handles edge cases
 
 This eliminates the need for on-chain per-user gas credits accounting (GasCreditsAccount PDAs, USDC swaps, etc.), significantly simplifying the architecture.
+
+---
+
+## v2.0.0 — Dynamic SDK Migration (February 19, 2026)
+
+### Completed ✅
+
+| Feature | Implementation | Status |
+|---------|---------------|--------|
+| **Replace Clerk with Dynamic SDK** | `DynamicProvider.tsx`, `DynamicAuthContext.tsx` — email/social/passkey auth | ✅ Complete |
+| **Replace Crossmint with Fireblocks wallets** | `useDynamicWallet.tsx` — TSS-MPC wallets with `signMessage()` support | ✅ Complete |
+| **Dynamic JWT for Supabase** | `DynamicSupabaseClient.ts` — JWT injection for RLS | ✅ Complete |
+| **Auth UI components** | `ConnectButton`, `ProtectedRoute`, `UserButton`, `DynamicSignIn/SignUp` | ✅ Complete |
+| **Dynamic webhook handler** | HMAC-SHA256 signature verification (`x-dynamic-signature-256`) | ✅ Complete |
+| **Provider-agnostic DB schema** | `auth_provider_id` column, `wallets` table (renamed from `crossmint_wallets`) | ✅ Complete |
+| **52+ file migration** | All Clerk/Crossmint imports replaced with Dynamic equivalents | ✅ Complete |
+| **16 Edge Functions updated** | Dynamic JWT verification instead of Clerk JWT | ✅ Complete |
+| **Org compatibility shim** | `useOrganizationCompat.tsx` — stub for Supabase-backed orgs (WS6) | ✅ Complete |
+| **Full stale reference cleanup** | Zero Clerk/Crossmint references in src/, supabase/functions/, workers/ | ✅ Complete |
+
+### Breaking Changes
+- `VITE_CLERK_PUBLISHABLE_KEY` → `VITE_DYNAMIC_ENVIRONMENT_ID`
+- All `VITE_CROSSMINT_*` and `CROSSMINT_*` env vars removed
+- `@clerk/clerk-react` removed, `@dynamic-labs/sdk-react-core` + `@dynamic-labs/solana` + `@dynamic-labs/ethereum` added
+- DB: `clerk_user_id` → `auth_provider_id`, `crossmint_wallets` → `wallets`
+- Webhook format: Svix → Dynamic HMAC-SHA256
+
+### Remaining Work (Post-v2.0.0)
+1. **WS1**: Client-side wallet signature key derivation (replaces server-side `derive-key-material`)
+2. **WS3**: Remove sessionStorage key caching (keys in memory only)
+3. **WS6**: Supabase-backed org management (replace org compatibility shim)
+4. **WS4**: Solana program deployment to mainnet
+5. **WS5**: ZK circuit trusted setup ceremony
 
 ---
 
@@ -167,7 +201,7 @@ recovery-sdk/
 |-------|-----------|----------|--------|
 | **Phase 1** | On-Chain Infrastructure (Multi-PDA Sharding) | 1-2 weeks | ✅ COMPLETE |
 | **Phase 2** | Relayer Service (Optional) | 1 week | ✅ COMPLETE |
-| **Phase 3** | Crypto Payments (Crossmint) | 1 week | ✅ COMPLETE |
+| **Phase 3** | Crypto Payments | 1 week | ✅ COMPLETE |
 | **Phase 4** | Enhanced Metadata Privacy | 1 week | ✅ COMPLETE |
 | **Phase 5** | Security Question Key Derivation | 0.5 week | ✅ COMPLETE |
 | **Phase 6** | Commitment Verification | 0.5 week | ✅ COMPLETE |
@@ -176,7 +210,7 @@ recovery-sdk/
 
 **All phases complete for v1.0.0 release (February 2026).**
 
-**Note**: Gas Credits System removed - Crossmint gas sponsorship with USD billing used instead.
+**Note**: Gas Credits System removed - treasury wallet gas sponsorship with USD billing used instead.
 Key derivation now uses security questions + HKDF instead of wallet signatures.
 
 ---
@@ -186,7 +220,7 @@ Key derivation now uses security questions + HKDF instead of wallet signatures.
 **Duration**: Weeks 1-2
 **Status**: ✅ COMPLETE
 
-> **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses Crossmint gas sponsorship with USD billing instead of per-user on-chain accounting.
+> **Note**: Gas Credits System (Phase 1.1) has been removed from this plan. BlockDrive uses treasury wallet gas sponsorship with USD billing instead of per-user on-chain accounting.
 
 ### 1.1 Multi-PDA Sharding System
 
@@ -267,7 +301,7 @@ pub fn rebalance_shards(ctx: Context<RebalanceShards>) -> Result<()>
 
 ### 1.2 Session Key Delegation (Relayer Authority) - OPTIONAL
 
-> **Note**: With Crossmint gas sponsorship handling all user operations, session key delegation is now an **optional future enhancement** rather than a core requirement. This would only be needed if BlockDrive wants to offer additional relayer-based features beyond what Crossmint provides.
+> **Note**: With treasury wallet gas sponsorship handling all user operations, session key delegation is now an **optional future enhancement** rather than a core requirement. This would only be needed if BlockDrive wants to offer additional relayer-based features beyond what the treasury wallet provides.
 
 **Current State**: Delegation exists for file sharing (grantee can download). No session key delegation for gasless operations.
 
@@ -930,7 +964,7 @@ class MetadataService {
 **Duration**: Week 5
 **Status**: ✅ COMPLETE
 
-> **Note**: Key derivation was updated from wallet signatures to security questions in v1.0.0. Users set a security question on first use; the answer hash is sent to the `derive-key-material` edge function, which returns key material for 3 security levels. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256. Answer hash is cached in sessionStorage with 4-hour session expiry.
+> **Note**: Key derivation was updated from wallet signatures to security questions in v1.0.0. Users set a security question on first use; the answer hash is sent to the `derive-key-material` edge function, which returns key material for 3 security levels. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256. Answer hash is cached in sessionStorage with 4-hour session expiry. In v2.0.0 (post-migration work item WS1), key derivation will move to client-side wallet signatures via Dynamic's `signMessage()`, eliminating the server-side `derive-key-material` edge function.
 
 ### 5.1 Complete Key Derivation Implementation
 
@@ -2050,7 +2084,7 @@ COMMIT;
 | **1** | Multi-PDA Sharding | 2 weeks | None | ✅ COMPLETE |
 | **2** | Session Key Delegation | 1 week | None | ✅ COMPLETE |
 | **3** | Relayer Service | 1 week | Session Keys | ✅ COMPLETE |
-| **4** | Crypto Payments (Crossmint) | 1 week | None | ✅ COMPLETE |
+| **4** | Crypto Payments | 1 week | None | ✅ COMPLETE |
 | **5** | Enhanced Metadata | 1 week | None (parallel) | ✅ COMPLETE |
 | **6** | Security Question Key Derivation | 0.5 week | None | ✅ COMPLETE |
 | **7** | Download Verification | 0.5 week | None | ✅ COMPLETE |
@@ -2221,8 +2255,8 @@ All implementation phases are complete. The v1.0.0 release includes:
 - Security question-based key derivation (replaced wallet signatures)
 - End-to-end encrypted file upload/download with Groth16 ZK proofs
 - Persistent folder management with drag-and-drop
-- Crossmint gas-sponsored Solana wallets
-- Clerk authentication with Organizations
+- Treasury-sponsored Solana wallets (via Dynamic Fireblocks)
+- Dynamic authentication
 
 ### Pricing (v1.0.0)
 - **Pro**: $15/mo, 1TB, +$10/mo per additional TB (quarterly $40, annual $149)
@@ -2239,10 +2273,10 @@ All implementation phases are complete. The v1.0.0 release includes:
 1. **Key derivation**: Security questions + HKDF replaced wallet signature-based derivation
 2. **Folder management**: Full folder CRUD with Supabase persistence (sentinel rows)
 3. **File page redesign**: Compact upload button, separate folder/file sections, drag-and-drop
-4. **EVM wallets**: Clerk auth-only (not embedded wallets); only Solana uses Crossmint embedded wallets
+4. **EVM wallets**: Dynamic SDK handles both EVM and Solana wallets via Fireblocks TSS-MPC (replaced Clerk + Crossmint in v2.0.0)
 
 ---
 
-**Last Updated**: February 9, 2026
-**Document Version**: 1.0.0
-**Status**: COMPLETE - v1.0.0 Released
+**Last Updated**: February 19, 2026
+**Document Version**: 2.0.0
+**Status**: ACTIVE - v2.0.0 Released

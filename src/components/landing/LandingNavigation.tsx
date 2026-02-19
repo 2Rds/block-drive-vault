@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
+import { ConnectButton } from '@/components/auth/ConnectButton';
 import { useState, useEffect } from 'react';
 
 export const LandingNavigation = () => {
@@ -62,7 +62,7 @@ export const LandingNavigation = () => {
           {/* Right side */}
           <div className="flex items-center gap-3">
             <div className="hidden md:block">
-              <ClerkConnectButton />
+              <ConnectButton />
             </div>
 
             {/* Mobile menu button */}
@@ -110,7 +110,7 @@ export const LandingNavigation = () => {
             </button>
           ))}
           <div className="pt-3 border-t border-border/30">
-            <ClerkConnectButton />
+            <ConnectButton />
           </div>
         </div>
       )}

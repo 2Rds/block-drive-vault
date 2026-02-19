@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@/hooks/useOrganizationCompat';
 import { Button } from '@/components/ui/button';
 import {
   Loader2,

@@ -26,7 +26,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { token, clerkUserId } = await req.json();
+    const { token, userId } = await req.json();
 
     if (!token || typeof token !== "string") {
       return createResponse({
@@ -96,17 +96,17 @@ serve(async (req) => {
       .update({
         status: "verified",
         verified_at: new Date().toISOString(),
-        clerk_user_id: clerkUserId || verification.clerk_user_id,
+        user_id: userId || verification.user_id,
       })
       .eq("id", verification.id);
 
     let alreadyMember = false;
-    if (clerkUserId) {
+    if (userId) {
       const { data: existingMember } = await supabaseClient
         .from("organization_members")
         .select("id")
         .eq("organization_id", verification.organization_id)
-        .eq("clerk_user_id", clerkUserId)
+        .eq("user_id", userId)
         .single();
 
       alreadyMember = !!existingMember;
@@ -116,7 +116,7 @@ serve(async (req) => {
           .from("organization_members")
           .insert({
             organization_id: verification.organization_id,
-            clerk_user_id: clerkUserId,
+            user_id: userId,
             role: defaultRole,
             join_method: "email_domain",
           });

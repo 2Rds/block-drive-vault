@@ -1,4 +1,4 @@
-// Simplified upload permissions hook for Clerk auth
+// Simplified upload permissions hook for Dynamic auth
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -17,7 +17,7 @@ export const useUploadPermissions = () => {
         return;
       }
 
-      // With Clerk, if user is signed in they can upload
+      // With Dynamic, if user is signed in they can upload
       // Subscription status can further restrict this if needed
       const hasValidSubscription = 
         subscriptionStatus?.subscribed || 
@@ -34,7 +34,7 @@ export const useUploadPermissions = () => {
   return {
     canUpload,
     loading,
-    signupData: null, // Deprecated with Clerk
+    signupData: null, // Deprecated with Dynamic auth
     needsSignup: !isSignedIn,
     needsSubscription: isSignedIn && !canUpload
   };

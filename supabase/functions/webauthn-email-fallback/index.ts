@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseServiceClient, getClerkUserId, getClerkUserEmail } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getUserId, getUserEmail } from '../_shared/auth.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 import { EmailService } from '../_shared/emailService.ts';
 
@@ -12,20 +12,20 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabaseServiceClient();
-    const clerkUserId = getClerkUserId(req);
+    const userId = getUserId(req);
     const body = await req.json();
     const { action } = body;
 
     if (action === 'send-link') {
       // Get user email from JWT or DB
-      let email = getClerkUserEmail(req);
+      let email = getUserEmail(req);
 
       if (!email) {
-        // Try to get from crossmint_wallets or Clerk user data
+        // Try to get from wallets table
         const { data: walletRow } = await supabase
-          .from('crossmint_wallets')
+          .from('wallets')
           .select('email')
-          .eq('clerk_user_id', clerkUserId)
+          .eq('user_id', userId)
           .maybeSingle();
 
         email = walletRow?.email;
@@ -37,7 +37,7 @@ serve(async (req) => {
       const { count } = await supabase
         .from('webauthn_credentials')
         .select('id', { count: 'exact', head: true })
-        .eq('clerk_user_id', clerkUserId);
+        .eq('user_id', userId);
 
       if (!count || count === 0) {
         throw new Error('No biometric credentials registered. Please set up biometric auth first.');
@@ -47,7 +47,7 @@ serve(async (req) => {
       const token = crypto.randomUUID();
 
       const { error: tokenInsertErr } = await supabase.from('webauthn_email_tokens').insert({
-        clerk_user_id: clerkUserId,
+        user_id: userId,
         token,
         expires_at: new Date(Date.now() + EMAIL_TOKEN_TTL_MS).toISOString(),
       });

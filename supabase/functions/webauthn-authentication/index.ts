@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseServiceClient, getClerkUserId } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getUserId } from '../_shared/auth.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 import {
   generateAuthenticationOptions,
@@ -34,10 +34,10 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-/** Try to extract Clerk user ID; returns null instead of throwing if missing. */
-function tryGetClerkUserId(req: Request): string | null {
+/** Try to extract user ID from JWT; returns null instead of throwing if missing. */
+function tryGetUserId(req: Request): string | null {
   try {
-    return getClerkUserId(req);
+    return getUserId(req);
   } catch {
     return null;
   }
@@ -53,16 +53,16 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // ── Generate authentication challenge (desktop, requires Clerk auth) ──
+    // ── Generate authentication challenge (desktop, requires auth) ──
     if (action === 'generate-challenge') {
-      const clerkUserId = getClerkUserId(req); // Required — desktop is authenticated
+      const authUserId =getUserId(req); // Required — desktop is authenticated
       const { create_session } = body;
 
       // Get user's registered credentials
       const { data: creds, error: credErr } = await supabase
         .from('webauthn_credentials')
         .select('credential_id')
-        .eq('clerk_user_id', clerkUserId);
+        .eq('user_id', authUserId);
 
       if (credErr) throw new Error(credErr.message);
       if (!creds || creds.length === 0) throw new Error('No credentials registered');
@@ -79,7 +79,7 @@ serve(async (req) => {
       const sessionId = create_session ? crypto.randomUUID() : null;
 
       const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
-        clerk_user_id: clerkUserId,
+        user_id: authUserId,
         challenge: options.challenge,
         challenge_type: 'authentication',
         session_id: sessionId,
@@ -93,18 +93,18 @@ serve(async (req) => {
     }
 
     // ── Generate challenge for QR/email session (mobile side) ──
-    // Clerk auth is OPTIONAL here — mobile user may not have a Clerk session.
+    // Auth is OPTIONAL here — mobile user may not have an auth session.
     // The session_id (created by the authenticated desktop user) acts as the auth token.
     if (action === 'get-session-challenge') {
       const { session_id, email_token } = body;
-      const clerkUserId = tryGetClerkUserId(req);
+      const authUserId =tryGetUserId(req);
 
       // Must have at least one form of identification
-      if (!clerkUserId && !session_id && !email_token) {
+      if (!authUserId && !session_id && !email_token) {
         throw new Error('Authentication required');
       }
 
-      let targetUserId: string | null = clerkUserId;
+      let targetUserId: string | null = authUserId;
 
       // If email_token provided, look up the user from the token
       if (email_token) {
@@ -118,7 +118,7 @@ serve(async (req) => {
         if (tokenRow.used_at) throw new Error('Email token already used');
         if (new Date(tokenRow.expires_at) < new Date()) throw new Error('Email token expired');
 
-        targetUserId = tokenRow.clerk_user_id;
+        targetUserId = tokenRow.user_id;
 
         // Mark token as used — conditional update prevents race condition
         const { data: usedRows } = await supabase
@@ -146,12 +146,12 @@ serve(async (req) => {
         if (new Date(sessionRow.expires_at) < new Date()) throw new Error('Session expired');
 
         // If the mobile user IS authenticated, verify they own the session
-        if (clerkUserId && clerkUserId !== sessionRow.clerk_user_id) {
+        if (authUserId && authUserId !== sessionRow.user_id) {
           throw new Error('Session belongs to a different user');
         }
 
-        // Use the session owner's user ID (works even without Clerk auth on mobile)
-        targetUserId = sessionRow.clerk_user_id;
+        // Use the session owner's user ID (works even without auth on mobile)
+        targetUserId = sessionRow.user_id;
       }
 
       if (!targetUserId) throw new Error('Could not determine user identity');
@@ -160,7 +160,7 @@ serve(async (req) => {
       const { data: creds } = await supabase
         .from('webauthn_credentials')
         .select('credential_id')
-        .eq('clerk_user_id', targetUserId);
+        .eq('user_id', targetUserId);
 
       if (!creds || creds.length === 0) throw new Error('No credentials found');
 
@@ -174,7 +174,7 @@ serve(async (req) => {
 
       // Store new challenge (linked to session if QR flow)
       const { error: sessionChallengeErr } = await supabase.from('webauthn_challenges').insert({
-        clerk_user_id: targetUserId,
+        user_id: targetUserId,
         challenge: options.challenge,
         challenge_type: 'authentication',
         session_id: session_id || null,
@@ -208,7 +208,7 @@ serve(async (req) => {
     }
 
     // ── Verify assertion ──
-    // Clerk auth is OPTIONAL here — mobile QR flow provides session_id instead.
+    // Auth is OPTIONAL here — mobile QR flow provides session_id instead.
     if (action === 'verify-assertion') {
       const { assertion, session_id } = body as {
         assertion: AuthenticationResponseJSON;
@@ -217,29 +217,29 @@ serve(async (req) => {
 
       if (!assertion) throw new Error('Missing assertion');
 
-      const clerkUserId = tryGetClerkUserId(req);
+      const authUserId =tryGetUserId(req);
 
       // Must have at least one form of identification
-      if (!clerkUserId && !session_id) {
+      if (!authUserId && !session_id) {
         throw new Error('Authentication required');
       }
 
       // Determine which user we're verifying for
-      let targetUserId: string | null = clerkUserId;
+      let targetUserId: string | null = authUserId;
 
       if (session_id) {
         const { data: sessionRow } = await supabase
           .from('webauthn_challenges')
-          .select('clerk_user_id')
+          .select('user_id')
           .eq('session_id', session_id)
           .maybeSingle();
 
         if (sessionRow) {
           // If the mobile user IS authenticated, verify they own the session
-          if (clerkUserId && clerkUserId !== sessionRow.clerk_user_id) {
+          if (authUserId && authUserId !== sessionRow.user_id) {
             throw new Error('Session belongs to a different user');
           }
-          targetUserId = sessionRow.clerk_user_id;
+          targetUserId = sessionRow.user_id;
         }
       }
 
@@ -249,7 +249,7 @@ serve(async (req) => {
       const { data: challengeRow, error: challengeErr } = await supabase
         .from('webauthn_challenges')
         .select('*')
-        .eq('clerk_user_id', targetUserId)
+        .eq('user_id', targetUserId)
         .eq('challenge_type', 'authentication')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -263,7 +263,7 @@ serve(async (req) => {
         .from('webauthn_credentials')
         .select('*')
         .eq('credential_id', assertion.id)
-        .eq('clerk_user_id', targetUserId)
+        .eq('user_id', targetUserId)
         .maybeSingle();
 
       if (credErr || !credRow) throw new Error('Credential not found');
@@ -296,7 +296,7 @@ serve(async (req) => {
           last_used_at: new Date().toISOString(),
         })
         .eq('id', credRow.id)
-        .eq('clerk_user_id', targetUserId);
+        .eq('user_id', targetUserId);
 
       if (counterErr) {
         console.error('[webauthn-authentication] Counter update failed:', counterErr);
@@ -311,7 +311,7 @@ serve(async (req) => {
       const assertionToken = crypto.randomUUID();
 
       const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({
-        clerk_user_id: targetUserId,
+        user_id: targetUserId,
         token: assertionToken,
         session_id: session_id || null,
         expires_at: new Date(Date.now() + ASSERTION_TOKEN_TTL_MS).toISOString(),

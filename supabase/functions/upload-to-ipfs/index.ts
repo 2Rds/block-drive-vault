@@ -175,9 +175,8 @@ serve(async (req) => {
     if (isUUID) {
       userId = token;
     } else {
-      // Decode Clerk JWT to extract user ID from claims.
-      // Clerk JWTs have sub = "user_xxx" (not a UUID), so supabase.auth.getUser() rejects them.
-      // We decode the payload directly since the function is deployed with --no-verify-jwt.
+      // Decode JWT to extract user ID from claims.
+      // Dynamic JWTs have sub = Dynamic user ID. We decode the payload directly.
       try {
         const parts = token.split('.');
         if (parts.length !== 3) throw new Error('Invalid JWT format');
@@ -208,7 +207,7 @@ serve(async (req) => {
         .from('organization_members')
         .select('organization_id, role')
         .eq('organization_id', teamId)
-        .eq('clerk_user_id', userId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (membershipError) {
@@ -282,7 +281,7 @@ serve(async (req) => {
         file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
         file_size: file.size,
         content_type: file.type || 'application/octet-stream',
-        clerk_user_id: userId,
+        user_id: userId,
         folder_path: folderPath,
         storage_provider: 'ipfs',
         ipfs_cid: cid,
@@ -330,7 +329,7 @@ serve(async (req) => {
         contentType: savedFile.content_type,
         ipfsUrl: savedFile.ipfs_url,
         uploadedAt: savedFile.created_at,
-        userId: savedFile.clerk_user_id,
+        userId: savedFile.user_id,
         folderPath: savedFile.folder_path,
         metadata: savedFile.metadata,
         storageContext,

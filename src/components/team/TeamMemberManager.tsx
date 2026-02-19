@@ -35,8 +35,8 @@ interface TeamMemberManagerProps {
   members: OrganizationMember[];
   currentUserId: string | null;
   loading: boolean;
-  onRemoveMember: (clerkUserId: string) => Promise<void>;
-  onUpdateRole: (clerkUserId: string, newRole: 'org:admin' | 'org:member') => Promise<void>;
+  onRemoveMember: (userId: string) => Promise<void>;
+  onUpdateRole: (userId: string, newRole: 'org:admin' | 'org:member') => Promise<void>;
 }
 
 const JOIN_METHOD_LABELS: Record<string, string> = {
@@ -99,9 +99,9 @@ export function TeamMemberManager({
   const [removing, setRemoving] = useState(false);
 
   const handleRoleChange = async (member: OrganizationMember, newRole: 'org:admin' | 'org:member') => {
-    setUpdatingRole(member.clerkUserId);
+    setUpdatingRole(member.userId);
     try {
-      await onUpdateRole(member.clerkUserId, newRole);
+      await onUpdateRole(member.userId, newRole);
     } finally {
       setUpdatingRole(null);
     }
@@ -111,7 +111,7 @@ export function TeamMemberManager({
     if (!memberToRemove) return;
     setRemoving(true);
     try {
-      await onRemoveMember(memberToRemove.clerkUserId);
+      await onRemoveMember(memberToRemove.userId);
       setMemberToRemove(null);
     } finally {
       setRemoving(false);
@@ -119,7 +119,7 @@ export function TeamMemberManager({
   };
 
   const isOwner = (member: OrganizationMember) => member.role === 'org:owner';
-  const isSelf = (member: OrganizationMember) => member.clerkUserId === currentUserId;
+  const isSelf = (member: OrganizationMember) => member.userId === currentUserId;
   const canModify = (member: OrganizationMember) => !isOwner(member) && !isSelf(member);
 
   if (loading) {
@@ -195,10 +195,10 @@ export function TeamMemberManager({
                     <Select
                       value={member.role === 'org:admin' || member.role === 'admin' ? 'org:admin' : 'org:member'}
                       onValueChange={(value) => handleRoleChange(member, value as 'org:admin' | 'org:member')}
-                      disabled={updatingRole === member.clerkUserId}
+                      disabled={updatingRole === member.userId}
                     >
                       <SelectTrigger className="w-[120px]">
-                        {updatingRole === member.clerkUserId ? (
+                        {updatingRole === member.userId ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <SelectValue />

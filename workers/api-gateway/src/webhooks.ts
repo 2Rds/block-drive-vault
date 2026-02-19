@@ -1,34 +1,47 @@
 /**
- * Clerk Webhook Handler
+ * Dynamic Webhook Handler
  *
- * Handles user lifecycle events from Clerk via Svix-signed webhooks.
+ * Handles user lifecycle events from Dynamic via HMAC-SHA256-signed webhooks.
  *
  * Events handled:
  *   user.deleted         — Burns cNFT + revokes SNS subdomain + cleans DB
  *   organization.deleted — Revokes org SNS subdomains + archives collection + cleans DB
  *
- * Setup in Clerk Dashboard → Webhooks:
- *   URL: https://blockdrive-api-gateway.workers.dev/webhooks/clerk
+ * Setup in Dynamic Dashboard → Webhooks:
+ *   URL: https://blockdrive-api-gateway.workers.dev/webhooks/dynamic
  *   Events: user.deleted, organization.deleted
  *
- * Secret: Set via `wrangler secret put CLERK_WEBHOOK_SECRET`
- *   (Copy the signing secret from Clerk Dashboard → Webhooks → your endpoint)
+ * Secret: Set via `wrangler secret put DYNAMIC_WEBHOOK_SECRET`
  */
 
 import { deleteUserAssets, deleteOrgAssets, SolanaEnv } from './solana';
 
 export interface WebhookEnv extends SolanaEnv {
-  CLERK_WEBHOOK_SECRET: string;
+  DYNAMIC_WEBHOOK_SECRET: string;
 }
 
-interface ClerkWebhookPayload {
-  type: string;
-  data: {
-    id: string;           // Clerk user ID (user_xxx)
-    deleted?: boolean;
-    [key: string]: unknown;
-  };
+interface WebhookPayloadBase {
+  messageId: string;
+  timestamp: string;
+  environmentId: string;
 }
+
+interface UserDeletedPayload extends WebhookPayloadBase {
+  eventName: 'user.deleted';
+  data: { userId?: string; user?: { id: string; [key: string]: unknown }; [key: string]: unknown };
+}
+
+interface OrgDeletedPayload extends WebhookPayloadBase {
+  eventName: 'organization.deleted';
+  data: { organizationId?: string; id?: string; [key: string]: unknown };
+}
+
+interface UnknownEventPayload extends WebhookPayloadBase {
+  eventName: string;
+  data: Record<string, unknown>;
+}
+
+type DynamicWebhookPayload = UserDeletedPayload | OrgDeletedPayload | UnknownEventPayload;
 
 function json(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,59 +50,39 @@ function json(body: Record<string, unknown>, status = 200): Response {
   });
 }
 
-// ─── Svix Signature Verification ────────────────────────
+// ─── HMAC-SHA256 Signature Verification ─────────────────
 
-async function verifySvixSignature(
+async function verifyDynamicSignature(
   secret: string,
   payload: string,
   headers: Headers
 ): Promise<boolean> {
-  const svixId = headers.get('svix-id');
-  const svixTimestamp = headers.get('svix-timestamp');
-  const svixSignature = headers.get('svix-signature');
+  const signature = headers.get('x-dynamic-signature-256');
+  if (!signature) return false;
 
-  if (!svixId || !svixTimestamp || !svixSignature) {
-    return false;
-  }
-
-  // Reject timestamps older than 5 minutes
-  const now = Math.floor(Date.now() / 1000);
-  const ts = parseInt(svixTimestamp, 10);
-  if (isNaN(ts) || Math.abs(now - ts) > 300) {
-    return false;
-  }
-
-  // Decode the webhook secret (strip "whsec_" prefix, base64 decode)
-  const secretBytes = Uint8Array.from(
-    atob(secret.replace(/^whsec_/, '')),
-    (c) => c.charCodeAt(0)
-  );
-
-  // Build signing payload: "{svix_id}.{svix_timestamp}.{body}"
-  const signingPayload = `${svixId}.${svixTimestamp}.${payload}`;
   const encoder = new TextEncoder();
-
-  // HMAC-SHA256
   const key = await crypto.subtle.importKey(
     'raw',
-    secretBytes,
+    encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   );
-  const signatureBytes = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(signingPayload)
-  );
-  const expectedSig = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
 
-  // Svix sends multiple signatures separated by space, each prefixed with "v1,"
-  const signatures = svixSignature.split(' ');
-  return signatures.some((sig) => {
-    const value = sig.replace(/^v1,/, '');
-    return value === expectedSig;
-  });
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const computed = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Constant-time comparison to prevent timing side-channel attacks
+  if (computed.length !== signature.length) return false;
+  const a = encoder.encode(computed);
+  const b = encoder.encode(signature);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
 }
 
 // ─── Router ─────────────────────────────────────────────
@@ -99,15 +92,15 @@ export async function handleWebhookRequest(
   env: WebhookEnv,
   url: URL
 ): Promise<Response> {
-  if (url.pathname === '/webhooks/clerk') {
-    return handleClerkWebhook(request, env);
+  if (url.pathname === '/webhooks/dynamic') {
+    return handleDynamicWebhook(request, env);
   }
   return json({ error: 'Unknown webhook endpoint' }, 404);
 }
 
-// ─── Clerk Webhook Handler ──────────────────────────────
+// ─── Dynamic Webhook Handler ────────────────────────────
 
-async function handleClerkWebhook(
+async function handleDynamicWebhook(
   request: Request,
   env: WebhookEnv
 ): Promise<Response> {
@@ -115,91 +108,100 @@ async function handleClerkWebhook(
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  if (!env.CLERK_WEBHOOK_SECRET) {
-    console.error('[webhook/clerk] CLERK_WEBHOOK_SECRET not configured');
+  if (!env.DYNAMIC_WEBHOOK_SECRET) {
+    console.error('[webhook/dynamic] DYNAMIC_WEBHOOK_SECRET not configured');
     return json({ error: 'Webhook not configured' }, 500);
   }
 
   // Read raw body for signature verification
   const rawBody = await request.text();
 
-  // Verify Svix signature
-  const isValid = await verifySvixSignature(
-    env.CLERK_WEBHOOK_SECRET,
+  // Verify HMAC-SHA256 signature
+  const isValid = await verifyDynamicSignature(
+    env.DYNAMIC_WEBHOOK_SECRET,
     rawBody,
     request.headers
   );
 
   if (!isValid) {
-    console.warn('[webhook/clerk] Invalid signature — rejecting');
+    console.warn('[webhook/dynamic] Invalid signature — rejecting');
     return json({ error: 'Invalid signature' }, 401);
   }
 
   // Parse event
-  let event: ClerkWebhookPayload;
+  let event: DynamicWebhookPayload;
   try {
     event = JSON.parse(rawBody);
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
   }
 
-  console.log(`[webhook/clerk] Event: ${event.type}, User: ${event.data.id}`);
+  // Validate timestamp to prevent replay attacks (5-minute window)
+  const eventTs = new Date(event.timestamp).getTime();
+  const now = Date.now();
+  if (isNaN(eventTs) || Math.abs(now - eventTs) > 5 * 60 * 1000) {
+    console.warn(`[webhook/dynamic] Stale or future timestamp: ${event.timestamp}`);
+    return json({ error: 'Webhook timestamp expired' }, 401);
+  }
+
+  const userId = event.data.userId || event.data.user?.id;
+
+  console.log(`[webhook/dynamic] Event: ${event.eventName}, User: ${userId || 'N/A'}`);
 
   // Dispatch by event type
-  switch (event.type) {
+  switch (event.eventName) {
     case 'user.deleted': {
-      const clerkUserId = event.data.id;
-      if (!clerkUserId) {
+      if (!userId) {
         return json({ error: 'Missing user ID in event' }, 400);
       }
 
       try {
-        const result = await deleteUserAssets(env, clerkUserId);
+        const result = await deleteUserAssets(env, userId);
         const hasErrors = result.errors.length > 0;
 
-        console.log(`[webhook/clerk] user.deleted processed:`, result);
+        console.log(`[webhook/dynamic] user.deleted processed:`, result);
 
         return json({
           success: !hasErrors,
           event: 'user.deleted',
-          clerkUserId,
+          userId,
           ...result,
         }, hasErrors ? 207 : 200);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`[webhook/clerk] user.deleted FAILED for ${clerkUserId}:`, msg);
+        console.error(`[webhook/dynamic] user.deleted FAILED for ${userId}:`, msg);
         return json({ success: false, event: 'user.deleted', error: msg }, 500);
       }
     }
 
     case 'organization.deleted': {
-      const clerkOrgId = event.data.id;
-      if (!clerkOrgId) {
+      const orgId = event.data.organizationId || event.data.id;
+      if (!orgId) {
         return json({ error: 'Missing organization ID in event' }, 400);
       }
 
       try {
-        const result = await deleteOrgAssets(env, clerkOrgId);
+        const result = await deleteOrgAssets(env, orgId);
         const hasErrors = result.errors.length > 0;
 
-        console.log(`[webhook/clerk] organization.deleted processed:`, result);
+        console.log(`[webhook/dynamic] organization.deleted processed:`, result);
 
         return json({
           success: !hasErrors,
           event: 'organization.deleted',
-          clerkOrgId,
+          organizationId: orgId,
           ...result,
         }, hasErrors ? 207 : 200);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`[webhook/clerk] organization.deleted FAILED for ${clerkOrgId}:`, msg);
+        console.error(`[webhook/dynamic] organization.deleted FAILED for ${orgId}:`, msg);
         return json({ success: false, event: 'organization.deleted', error: msg }, 500);
       }
     }
 
     default:
-      // Acknowledge unhandled events with 200 (Clerk retries on non-2xx)
-      console.log(`[webhook/clerk] Unhandled event type: ${event.type}`);
-      return json({ received: true, event: event.type });
+      // Acknowledge unhandled events with 200 (Dynamic retries on non-2xx)
+      console.log(`[webhook/dynamic] Unhandled event type: ${event.eventName}`);
+      return json({ received: true, event: event.eventName });
   }
 }

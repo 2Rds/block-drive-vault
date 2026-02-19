@@ -13,7 +13,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <LoadingScreen />;
   }
 
-  // Check authentication - user must be signed in via Clerk
+  // Check authentication - user must be signed in via Dynamic
   if (!isSignedIn || !user) {
     return <Navigate to="/" replace />;
   }

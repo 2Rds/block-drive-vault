@@ -91,7 +91,7 @@ export const DocsContent = ({ activeSection }: DocsContentProps) => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Learn how to integrate wallet authentication with support for multiple blockchains via Crossmint embedded wallets.
+                Learn how to integrate wallet authentication with support for multiple blockchains via Dynamic embedded wallets.
               </p>
               <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
                 View Docs <ArrowRight className="w-4 h-4 ml-2" />
@@ -191,15 +191,15 @@ export const DocsContent = ({ activeSection }: DocsContentProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Sign in with Clerk (email or social login). A Crossmint embedded wallet is automatically created for you.
+                Sign in with Dynamic (email, social login, or wallet). An embedded wallet is automatically created for you.
               </p>
               <CodeBlock id="connect-wallet">
-{`// Connect wallet using Clerk + Crossmint
-import { SignInButton } from '@clerk/clerk-react';
+{`// Connect wallet using Dynamic
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
-<SignInButton mode="modal">
+<DynamicWidget>
   Connect Wallet
-</SignInButton>`}
+</DynamicWidget>`}
               </CodeBlock>
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">Solana</Badge>
@@ -349,7 +349,7 @@ import { SignInButton } from '@clerk/clerk-react';
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Solana-native architecture with SNS domains, soulbound cNFTs, and MPC wallets via Crossmint.
+                Solana-native architecture with SNS domains, soulbound cNFTs, and embedded wallets via Dynamic.
               </p>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
@@ -358,7 +358,7 @@ import { SignInButton } from '@clerk/clerk-react';
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                  MPC-based embedded wallets via Crossmint
+                  Embedded wallets via Dynamic
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
@@ -500,7 +500,7 @@ import { SignInButton } from '@clerk/clerk-react';
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Wallet Authentication</h1>
           <p className="text-lg text-muted-foreground">
-            Crossmint MPC-based embedded wallets auto-created on Clerk sign-up.
+            Dynamic embedded wallets auto-created on sign-up.
           </p>
         </div>
 
@@ -516,9 +516,9 @@ import { SignInButton } from '@clerk/clerk-react';
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Embedded Wallets</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>Crossmint MPC Wallets</li>
+                  <li>Dynamic Embedded Wallets</li>
                   <li>Auto-created on sign-up</li>
-                  <li>Email-linked via Clerk</li>
+                  <li>Email-linked via Dynamic</li>
                   <li>Server-side fallback</li>
                 </ul>
               </div>
@@ -533,12 +533,12 @@ import { SignInButton } from '@clerk/clerk-react';
               </div>
             </div>
             <CodeBlock id="wallet-connect">
-{`// Connect wallet using Clerk + Crossmint
-import { SignInButton } from '@clerk/clerk-react';
+{`// Connect wallet using Dynamic
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
-<SignInButton mode="modal">
+<DynamicWidget>
   Connect Wallet
-</SignInButton>`}
+</DynamicWidget>`}
             </CodeBlock>
           </CardContent>
         </Card>
@@ -546,11 +546,11 @@ import { SignInButton } from '@clerk/clerk-react';
     );
   }
 
-  if (activeSection === 'clerk-crossmint-integration') {
+  if (activeSection === 'dynamic-auth-integration') {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Clerk + Crossmint Integration</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Dynamic Auth + Wallet Integration</h1>
           <p className="text-lg text-muted-foreground">
             Enterprise-grade authentication and embedded wallet infrastructure powering BlockDrive.
           </p>
@@ -561,17 +561,20 @@ import { SignInButton } from '@clerk/clerk-react';
             <CardTitle>Key Components</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <CodeBlock id="clerk-crossmint-components">
+            <CodeBlock id="dynamic-auth-components">
 {`// Core authentication setup in BlockDrive
-import { ClerkProvider, SignInButton, useUser } from '@clerk/clerk-react';
-import { CrossmintProvider, useCrossmintWallet } from '@crossmint/client-sdk-react-ui';
+import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
+import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 
 // Provider hierarchy in main.tsx
-<ClerkProvider publishableKey={CLERK_KEY}>
-  <CrossmintProvider apiKey={CROSSMINT_KEY}>
-    <App />
-  </CrossmintProvider>
-</ClerkProvider>
+<DynamicContextProvider
+  settings={{
+    environmentId: DYNAMIC_ENV_ID,
+    walletConnectors: [SolanaWalletConnectors],
+  }}
+>
+  <App />
+</DynamicContextProvider>
 
 // Using the auth hook
 const { user, isSignedIn, wallet } = useAuth();`}
@@ -579,12 +582,12 @@ const { user, isSignedIn, wallet } = useAuth();`}
 
             <div className="grid gap-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">🔐 ClerkProvider</h4>
-                <p className="text-sm text-muted-foreground">User authentication, session management, and social login support</p>
+                <h4 className="font-medium mb-2">🔐 DynamicContextProvider</h4>
+                <p className="text-sm text-muted-foreground">User authentication, session management, social login, and embedded wallet creation</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">💼 CrossmintProvider</h4>
-                <p className="text-sm text-muted-foreground">MPC-based embedded wallets with automatic creation on signup</p>
+                <h4 className="font-medium mb-2">💼 SolanaWalletConnectors</h4>
+                <p className="text-sm text-muted-foreground">Embedded wallets with automatic creation on signup</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">🎯 useAuth Hook</h4>
@@ -600,7 +603,7 @@ const { user, isSignedIn, wallet } = useAuth();`}
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Crossmint provides MPC-based embedded wallets supporting multiple chains out of the box.
+              Dynamic provides embedded wallets supporting multiple chains out of the box.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/30">
@@ -635,10 +638,10 @@ const { user, isSignedIn, wallet } = useAuth();`}
           <CardContent className="space-y-6">
             {[
               { step: 1, title: "User Initiation", desc: "User clicks 'Sign In' or 'Sign Up' button" },
-              { step: 2, title: "Clerk Authentication", desc: "Email, social login, or passkey via Clerk" },
-              { step: 3, title: "Wallet Creation", desc: "Crossmint auto-creates an MPC embedded wallet linked to the user's email" },
-              { step: 4, title: "Session Established", desc: "Clerk session token issued, Supabase client authenticated" },
-              { step: 5, title: "Wallet Ready", desc: "Solana and EVM addresses available via useCrossmintWallet hook" },
+              { step: 2, title: "Dynamic Authentication", desc: "Email, social login, or wallet connection via Dynamic" },
+              { step: 3, title: "Wallet Creation", desc: "Dynamic auto-creates an embedded wallet linked to the user's account" },
+              { step: 4, title: "Session Established", desc: "Dynamic session token issued, Supabase client authenticated" },
+              { step: 5, title: "Wallet Ready", desc: "Solana and EVM addresses available via useDynamicWallet hook" },
               { step: 6, title: "Redirect", desc: "User redirected to onboarding (new) or dashboard (returning)" }
             ].map((item) => (
               <div key={item.step} className="flex gap-4">
@@ -871,7 +874,7 @@ await FileDatabaseService.moveFileToFolder(
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Teams & Organizations</h1>
           <p className="text-lg text-muted-foreground">
-            Powered by Clerk Organizations with BlockDrive extensions for SNS subdomains, NFT ownership, and Supabase data.
+            Powered by Dynamic Organizations with BlockDrive extensions for SNS subdomains, NFT ownership, and Supabase data.
           </p>
         </div>
 
@@ -879,7 +882,7 @@ await FileDatabaseService.moveFileToFolder(
           <CardContent className="p-6">
             <h3 className="font-semibold text-foreground mb-2">Architecture</h3>
             <p className="text-muted-foreground">
-              Clerk handles organization membership, switching, metadata, and invitations natively.
+              Dynamic handles organization membership, switching, metadata, and invitations natively.
               Supabase stores BlockDrive-specific data: SNS subdomain records, NFT ownership, custom invite codes,
               email domain verification, and organization settings.
             </p>
@@ -894,7 +897,7 @@ await FileDatabaseService.moveFileToFolder(
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">Clerk Organizations</h4>
+                  <h4 className="font-medium mb-2">Dynamic Organizations</h4>
                   <p className="text-sm text-muted-foreground">Native org management with admin/member roles</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
@@ -907,7 +910,7 @@ await FileDatabaseService.moveFileToFolder(
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <h4 className="font-medium mb-2">Invite Codes</h4>
-                  <p className="text-sm text-muted-foreground">Custom invite codes alongside Clerk native invites</p>
+                  <p className="text-sm text-muted-foreground">Custom invite codes alongside native invites</p>
                 </div>
               </div>
             </CardContent>
@@ -921,7 +924,7 @@ await FileDatabaseService.moveFileToFolder(
               <CodeBlock id="team-ops">
 {`// Combined Organization type
 interface Organization {
-  // From Clerk
+  // From auth provider
   id: string;
   name: string;
   slug: string | null;
@@ -950,7 +953,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Scale Plan</h4>
-                  <p className="text-sm text-muted-foreground">$29/seat/month (2–99 seats) &middot; 2 TB/seat &middot; Team collaboration &middot; Clerk Organizations</p>
+                  <p className="text-sm text-muted-foreground">$29/seat/month (2–99 seats) &middot; 2 TB/seat &middot; Team collaboration &middot; Dynamic Organizations</p>
                 </div>
               </div>
             </CardContent>
@@ -1002,7 +1005,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
           <h1 className="text-3xl font-bold text-foreground mb-4">Pricing Plans</h1>
           <p className="text-lg text-muted-foreground">
             Flexible pricing with monthly, quarterly, and annual billing options.
-            Pay with card (Stripe) or crypto (USDC, SOL, ETH via Crossmint).
+            Pay with card (Stripe) or crypto (USDC, SOL, ETH via embedded wallet).
           </p>
         </div>
 
@@ -1023,7 +1026,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
               savings: { quarterly: "Save 9%", annual: "Save 14%" },
               storage: "2 TB storage & bandwidth per seat (+$10/seat/mo per additional TB)",
               users: "2–99 users (2 seat minimum)",
-              features: ["Team collaboration tools", "Clerk Organizations + SSO", "24/7 priority support", "Advanced integrations"],
+              features: ["Team collaboration tools", "Dynamic Organizations + SSO", "24/7 priority support", "Advanced integrations"],
               popular: true
             },
             {
@@ -1088,7 +1091,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
                 { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS via Worker gateway with metadata storage" },
                 { name: "derive-key-material", desc: "Derive encryption key materials from security answer hash for all 3 security levels" },
                 { name: "security-question", desc: "Get, set, and verify security questions for encryption key derivation" },
-                { name: "clerk-webhook", desc: "Handle Clerk user/org events, provision storage folders, sync profiles" },
+                { name: "auth-webhook", desc: "Handle user/org events, provision storage folders, sync profiles" },
                 { name: "check-subscription", desc: "Verify user subscription status and quotas" },
                 { name: "create-checkout", desc: "Process Stripe payments and subscriptions" },
                 { name: "send-team-invitation", desc: "Handle team member invitation emails" }
@@ -1620,7 +1623,7 @@ pub struct Delegation {
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">On-Chain Registration</h4>
-                <p className="text-sm text-muted-foreground">Signed via Crossmint embedded wallet</p>
+                <p className="text-sm text-muted-foreground">Signed via Dynamic embedded wallet</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Ownership Verification</h4>
@@ -1656,9 +1659,9 @@ import { snsSubdomainService } from '@/services/snsSubdomainService';
 const result = await snsSubdomainService.checkAvailability('myname');
 // { available: true, subdomain: 'myname', fullDomain: 'myname.blockdrive.sol' }
 
-// Register subdomain (requires Crossmint signer)
+// Register subdomain (requires Dynamic signer)
 const reg = await snsSubdomainService.registerSubdomain(
-  'myname', walletAddress, crossmintSigner
+  'myname', walletAddress, dynamicSigner
 );
 
 // Resolve to wallet address
@@ -2074,7 +2077,7 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Team Share</h4>
-                <p className="text-sm text-muted-foreground">Move files to team storage within a Clerk Organization</p>
+                <p className="text-sm text-muted-foreground">Move files to team storage within an organization</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Send to Teammate</h4>
@@ -2097,7 +2100,7 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Access Control</h1>
           <p className="text-lg text-muted-foreground">
-            Multi-layered access control combining Clerk auth, on-chain delegations, and cryptographic enforcement.
+            Multi-layered access control combining Dynamic auth, on-chain delegations, and cryptographic enforcement.
           </p>
         </div>
 
@@ -2108,12 +2111,12 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 border rounded-lg">
-                <h4 className="font-medium">Layer 1: Clerk Authentication</h4>
-                <p className="text-sm text-muted-foreground">Session-based auth with Clerk. ClerkProtectedRoute guards all app pages. Supabase client authenticated via Clerk JWT.</p>
+                <h4 className="font-medium">Layer 1: Dynamic Authentication</h4>
+                <p className="text-sm text-muted-foreground">Session-based auth with Dynamic. ProtectedRoute guards all app pages. Supabase client authenticated via Dynamic JWT.</p>
               </div>
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium">Layer 2: Organization Membership</h4>
-                <p className="text-sm text-muted-foreground">Clerk Organizations control team-level access. Admin vs member roles determine who can invite, manage settings, and access team files.</p>
+                <p className="text-sm text-muted-foreground">Dynamic Organizations control team-level access. Admin vs member roles determine who can invite, manage settings, and access team files.</p>
               </div>
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium">Layer 3: On-Chain Delegation</h4>
@@ -2425,7 +2428,7 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Payments & Billing</h1>
           <p className="text-lg text-muted-foreground">
-            Dual-rail payment system supporting both fiat (Stripe) and crypto (Crossmint) with automatic recurring billing.
+            Dual-rail payment system supporting both fiat (Stripe) and crypto (via embedded wallet) with automatic recurring billing.
           </p>
         </div>
 
@@ -2447,14 +2450,14 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
 
           <Card>
             <CardHeader>
-              <CardTitle>Crypto Payments (Crossmint)</CardTitle>
+              <CardTitle>Crypto Payments</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />USDC, SOL, ETH accepted</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />~1.3% processing fee</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Auto-debit via pg_cron scheduler</li>
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Crossmint embedded wallet integration</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />Dynamic embedded wallet integration</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-primary rounded-full" />On-ramp support for fiat-to-crypto</li>
               </ul>
             </CardContent>

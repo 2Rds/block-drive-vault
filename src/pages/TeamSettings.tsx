@@ -1,23 +1,16 @@
-import { OrganizationProfile, useOrganization } from '@clerk/clerk-react';
+/**
+ * Team Settings page — stub until WS6 (Supabase org management).
+ */
+
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { AppShell } from '@/components/layout';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { clerkAppearanceDeep as clerkAppearance } from '@/lib/clerkTheme';
-
-const LOCAL_APPEARANCE = {
-  elements: {
-    card: 'bg-transparent shadow-none border-0',
-    rootBox: 'w-full',
-    pageScrollBox: 'p-0',
-    page: 'p-0',
-  },
-};
 
 export default function TeamSettings(): JSX.Element | null {
   const { organization, isLoaded } = useOrganization();
   const navigate = useNavigate();
 
-  // Redirect to dashboard if no organization is active
   useEffect(() => {
     if (isLoaded && !organization) {
       navigate('/dashboard');
@@ -43,11 +36,13 @@ export default function TeamSettings(): JSX.Element | null {
       title="Team Settings"
       description="Manage your team members, invitations, and organization settings"
     >
-      <div className="bg-card border border-border/50 rounded-xl p-6">
-        <OrganizationProfile appearance={{
-          ...clerkAppearance,
-          elements: { ...clerkAppearance.elements, ...LOCAL_APPEARANCE.elements },
-        }} />
+      <div className="bg-card border border-border/50 rounded-xl p-6 text-center space-y-4">
+        <h2 className="text-xl font-semibold text-foreground">
+          {organization.name}
+        </h2>
+        <p className="text-muted-foreground">
+          Team management is being upgraded. Full settings will be available soon.
+        </p>
       </div>
     </AppShell>
   );

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseServiceClient, getClerkUserId, getClerkUserEmail } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getUserId, getUserEmail } from '../_shared/auth.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 import {
   generateRegistrationOptions,
@@ -43,7 +43,7 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // ── Session-based registration (mobile QR flow — Clerk auth NOT required) ──
+    // ── Session-based registration (mobile QR flow — auth NOT required) ──
     // The session_id was created by the authenticated desktop user and serves as
     // proof that this registration is authorized.
 
@@ -56,7 +56,7 @@ serve(async (req) => {
       // inserted additional authentication rows for the same session_id.
       const { data: sessionRows, error: sessionErr } = await supabase
         .from('webauthn_challenges')
-        .select('clerk_user_id')
+        .select('user_id')
         .eq('session_id', session_id)
         .eq('challenge_type', 'authentication')
         .order('created_at', { ascending: false })
@@ -64,13 +64,13 @@ serve(async (req) => {
       const sessionRow = sessionRows?.[0] ?? null;
 
       if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
-      const targetUserId = sessionRow.clerk_user_id;
+      const targetUserId = sessionRow.user_id;
 
       // Get existing credentials to exclude (prevent duplicate per-device registration)
       const { data: existingCreds } = await supabase
         .from('webauthn_credentials')
         .select('credential_id')
-        .eq('clerk_user_id', targetUserId);
+        .eq('user_id', targetUserId);
 
       const options = await generateRegistrationOptions({
         rpName: RP_NAME,
@@ -86,7 +86,7 @@ serve(async (req) => {
 
       // Store challenge linked to session
       const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
-        clerk_user_id: targetUserId,
+        user_id: targetUserId,
         challenge: options.challenge,
         challenge_type: 'registration',
         session_id,
@@ -108,7 +108,7 @@ serve(async (req) => {
       // challenge rows may exist for the same session_id).
       const { data: sessionRows, error: sessionErr } = await supabase
         .from('webauthn_challenges')
-        .select('clerk_user_id')
+        .select('user_id')
         .eq('session_id', session_id)
         .eq('challenge_type', 'authentication')
         .order('created_at', { ascending: false })
@@ -116,13 +116,13 @@ serve(async (req) => {
       const sessionRow = sessionRows?.[0] ?? null;
 
       if (sessionErr || !sessionRow) throw new Error('Invalid or expired session');
-      const targetUserId = sessionRow.clerk_user_id;
+      const targetUserId = sessionRow.user_id;
 
       // Get the registration challenge for this session
       const { data: challengeRow, error: challengeErr } = await supabase
         .from('webauthn_challenges')
         .select('*')
-        .eq('clerk_user_id', targetUserId)
+        .eq('user_id', targetUserId)
         .eq('challenge_type', 'registration')
         .eq('session_id', session_id)
         .order('created_at', { ascending: false })
@@ -155,7 +155,7 @@ serve(async (req) => {
       const { error: insertErr } = await supabase
         .from('webauthn_credentials')
         .insert({
-          clerk_user_id: targetUserId,
+          user_id: targetUserId,
           credential_id: credential.id,
           public_key: uint8ArrayToBase64(credential.publicKey),
           counter: credential.counter,
@@ -171,7 +171,7 @@ serve(async (req) => {
       // Generate assertion token (proves biometric was used — same as authentication flow)
       const assertionToken = crypto.randomUUID();
       const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({
-        clerk_user_id: targetUserId,
+        user_id: targetUserId,
         token: assertionToken,
         session_id,
         expires_at: new Date(Date.now() + ASSERTION_TOKEN_TTL_MS).toISOString(),
@@ -185,8 +185,8 @@ serve(async (req) => {
       });
     }
 
-    // ── Standard actions (require Clerk auth) ──
-    const clerkUserId = getClerkUserId(req);
+    // ── Standard actions (require auth) ──
+    const userId = getUserId(req);
 
     // ── Generate registration options ──
     if (action === 'generate-options') {
@@ -196,9 +196,9 @@ serve(async (req) => {
       const { data: existingCreds } = await supabase
         .from('webauthn_credentials')
         .select('credential_id')
-        .eq('clerk_user_id', clerkUserId);
+        .eq('user_id', userId);
 
-      const userEmail = getClerkUserEmail(req) || clerkUserId;
+      const userEmail = getUserEmail(req) || userId;
 
       const options = await generateRegistrationOptions({
         rpName: RP_NAME,
@@ -216,7 +216,7 @@ serve(async (req) => {
 
       // Store challenge for verification
       const { error: challengeInsertErr } = await supabase.from('webauthn_challenges').insert({
-        clerk_user_id: clerkUserId,
+        user_id: userId,
         challenge: options.challenge,
         challenge_type: 'registration',
         expires_at: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(),
@@ -239,7 +239,7 @@ serve(async (req) => {
       const { data: challengeRow, error: challengeErr } = await supabase
         .from('webauthn_challenges')
         .select('*')
-        .eq('clerk_user_id', clerkUserId)
+        .eq('user_id', userId)
         .eq('challenge_type', 'registration')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -271,7 +271,7 @@ serve(async (req) => {
       const { error: insertErr } = await supabase
         .from('webauthn_credentials')
         .insert({
-          clerk_user_id: clerkUserId,
+          user_id: userId,
           credential_id: credential.id,
           public_key: uint8ArrayToBase64(credential.publicKey),
           counter: credential.counter,
@@ -293,7 +293,7 @@ serve(async (req) => {
       const { count, error: countErr } = await supabase
         .from('webauthn_credentials')
         .select('id', { count: 'exact', head: true })
-        .eq('clerk_user_id', clerkUserId);
+        .eq('user_id', userId);
 
       if (countErr) throw new Error(countErr.message);
 

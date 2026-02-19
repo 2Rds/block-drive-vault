@@ -61,7 +61,7 @@ serve(async (req) => {
     // Get team/organization info
     const { data: team } = await supabaseClient
       .from("organizations")
-      .select("id, name, owner_clerk_id")
+      .select("id, name, owner_id")
       .eq("id", teamId)
       .single();
 

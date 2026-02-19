@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganization } from '@clerk/clerk-react';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { toast } from 'sonner';
 import { Search, Bell, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';

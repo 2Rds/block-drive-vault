@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
+import { ConnectButton } from '@/components/auth/ConnectButton';
 import { useEffect, useRef } from 'react';
 
 export const LandingHero = () => {
@@ -49,7 +49,7 @@ export const LandingHero = () => {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-fade-in-up delay-200">
-              <ClerkConnectButton variant="hero" />
+              <ConnectButton variant="hero" />
               <Button
                 variant="ghost"
                 size="lg"

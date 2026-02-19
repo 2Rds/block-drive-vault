@@ -6,12 +6,12 @@ import { CheckCircle, Crown, ArrowRight, Wallet, Loader2, Users } from 'lucide-r
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationList } from '@clerk/clerk-react';
+import { useOrganizationList } from '@/hooks/useOrganizationCompat';
 
 // Team-enabled subscription tiers
 const TEAM_TIERS = ['scale', 'growth', 'business', 'enterprise'];
 
-type PaymentProvider = 'stripe' | 'crossmint';
+type PaymentProvider = 'stripe' | 'crypto';
 
 interface SubscriptionDetails {
   tier: string;
@@ -73,7 +73,7 @@ function SubscriptionSuccess(): JSX.Element {
           } else if (cryptoSub) {
             setSubscriptionDetails({
               tier: cryptoSub.tier,
-              provider: 'crossmint',
+              provider: 'crypto',
               status: cryptoSub.status
             });
 

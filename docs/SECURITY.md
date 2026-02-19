@@ -1,6 +1,6 @@
 # BlockDrive Security Model
 
-> **Version**: 1.2.0
+> **Version**: 2.0.0
 > **Last Updated**: February 19, 2026
 > **Classification**: Technical Security Documentation
 
@@ -52,9 +52,9 @@ BlockDrive is built on four foundational security principles:
 | Asset | Value | Protection Mechanism |
 |-------|-------|---------------------|
 | User files | HIGH | AES-256-GCM + multi-provider storage |
-| Encryption keys | CRITICAL | Security question-derived via edge function, keys never stored server-side |
+| Encryption keys | CRITICAL | Wallet signature-derived via HKDF (client-side only), keys never leave the browser |
 | File metadata | MEDIUM | On-chain + ZK proofs |
-| User identity | HIGH | Clerk + embedded wallet |
+| User identity | HIGH | Dynamic SDK + Fireblocks TSS-MPC wallet |
 | Subscription data | MEDIUM | Supabase RLS + encryption |
 
 ### Threat Actors
@@ -129,7 +129,7 @@ BlockDrive implements a configurable security model with three levels:
 │  LEVEL 1: Standard Security                                        │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │ • AES-256-GCM encryption                                      │ │
-│  │ • Security question-derived keys (HKDF)                        │ │
+│  │ • Wallet signature-derived keys (HKDF)                          │ │
 │  │ • Single encryption pass                                      │ │
 │  │ • Fastest performance                                         │ │
 │  │ • Use case: General documents                                 │ │
@@ -155,38 +155,40 @@ BlockDrive implements a configurable security model with three levels:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Derivation (Security Question Based - v1.0.0)
+### Key Derivation (Wallet Signature Based - v2.0.0)
 
-As of v1.0.0, keys are derived from security question answers via a server-side edge function. The answer itself is never stored on the server -- only the hash is used.
+As of v2.0.0, keys are derived client-side from wallet signatures via HKDF-SHA256. The server never sees the signature or derived keys.
 
 **Flow:**
 
-1. **First Use**: User sets a security question via `SecurityQuestionSetup` component
-2. **Answer Hash**: Answer is hashed client-side and sent to the `derive-key-material` edge function
-3. **Server Response**: Edge function returns key material for 3 security levels
-4. **Client Derivation**: Client derives AES-256-GCM CryptoKeys via HKDF-SHA256
-5. **Session Caching**: Answer hash cached in `sessionStorage`
-6. **Session Boundaries**: Survives page refresh; clears on tab close; 4-hour expiry
+1. **Wallet Signature**: User's wallet signs a deterministic message via `signMessage("BlockDrive Key Derivation v1")`, producing an ed25519 signature
+2. **HKDF Extraction**: The signature is used as input keying material for HKDF-SHA256 with 3 distinct `info` strings, yielding 3 AES-256-GCM keys (one per security level)
+3. **In-Memory Only**: Keys are held in memory only (no `sessionStorage` or `localStorage`), re-derived via `signMessage` on each session start
 
 ```typescript
-// Key Derivation Flow (v1.0.0 - Security Questions)
-async function deriveEncryptionKeys(answerHash: string): Promise<EncryptionKeys> {
-  // 1. Send answer hash to edge function
-  const { keyMaterials } = await supabase.functions.invoke('derive-key-material', {
-    body: { answerHash }
-  });
+// Key Derivation Flow (v2.0.0 - Wallet Signatures)
+async function deriveEncryptionKeys(signMessage: (msg: Uint8Array) => Promise<Uint8Array>): Promise<EncryptionKeys> {
+  // 1. Sign deterministic message with wallet
+  const message = new TextEncoder().encode('BlockDrive Key Derivation v1');
+  const signature = await signMessage(message); // ed25519 signature
 
-  // 2. Derive AES-256-GCM keys client-side via HKDF
+  // 2. Import signature as HKDF key material
+  const baseKey = await crypto.subtle.importKey(
+    'raw', signature, 'HKDF', false, ['deriveKey']
+  );
+
+  // 3. Derive 3 AES-256-GCM keys via HKDF-SHA256 with distinct info strings
+  const infoStrings = ['blockdrive-level-1', 'blockdrive-level-2', 'blockdrive-level-3'];
   const keys = await Promise.all(
-    [1, 2, 3].map(async (level) => {
+    infoStrings.map(async (info) => {
       return crypto.subtle.deriveKey(
         {
           name: 'HKDF',
-          salt: new TextEncoder().encode(`blockdrive-level-${level}`),
-          info: new TextEncoder().encode('file-encryption'),
+          salt: new TextEncoder().encode('blockdrive-v2'),
+          info: new TextEncoder().encode(info),
           hash: 'SHA-256'
         },
-        keyMaterials[level],
+        baseKey,
         { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
@@ -194,20 +196,16 @@ async function deriveEncryptionKeys(answerHash: string): Promise<EncryptionKeys>
     })
   );
 
-  // 3. Cache answer hash in sessionStorage (4-hour expiry)
-  sessionStorage.setItem('bd-answer-hash', answerHash);
-  sessionStorage.setItem('bd-session-ts', Date.now().toString());
-
+  // Keys held in memory only — re-derived on session start
   return { level1: keys[0], level2: keys[1], level3: keys[2] };
 }
 ```
 
 **Session Security:**
-- Answer hash stored in `sessionStorage` (not `localStorage`) -- clears when tab closes
-- 4-hour session expiry enforced client-side with auto-restore
+- Keys held in memory only (no `sessionStorage` or `localStorage`) -- clears on page close or refresh
+- Keys re-derived via `signMessage` on each session start (wallet must be connected)
 - Module-level singleton via `useSyncExternalStore` ensures single source of truth
-- On session expiry, user must re-verify security question via `SecurityQuestionVerify` component
-- Server-side key material derivation prevents client-only key reconstruction
+- Fully client-side key derivation -- server never sees signature or keys
 
 ### AES-256-GCM Implementation
 
@@ -450,7 +448,7 @@ function generateSearchToken(value: string, key: CryptoKey): string {
 │                                                                     │
 │  ORGANIZATION DATA ISOLATION:                                       │
 │  ┌───────────────────────────────────────────────────────────────┐ │
-│  │ • Clerk handles membership (native org features)              │ │
+│  │ • Supabase manages membership (RLS-enforced)                  │ │
 │  │ • Supabase RLS enforces data access                           │ │
 │  │ • Organization-scoped file visibility                         │ │
 │  │ • Separate SNS subdomains per org                             │ │
@@ -470,7 +468,7 @@ USING (
   AND EXISTS (
     SELECT 1 FROM organization_members om
     WHERE om.organization_id = files.team_id
-    AND om.clerk_user_id = auth.jwt() ->> 'sub'
+    AND om.user_id = auth.jwt() ->> 'sub'
   )
 );
 
@@ -481,7 +479,7 @@ USING (
   EXISTS (
     SELECT 1 FROM organization_members om
     WHERE om.organization_id = organization_invite_codes.organization_id
-    AND om.clerk_user_id = auth.jwt() ->> 'sub'
+    AND om.user_id = auth.jwt() ->> 'sub'
     AND om.role IN ('admin', 'owner')
   )
 );
@@ -501,36 +499,36 @@ Folders are stored as sentinel rows in the Supabase `files` table with `content_
 4. **Move Operations**: Move-to-folder operations are atomic updates to the `folder_path` column, protected by RLS.
 5. **Deletion Cascade**: Folder deletion only removes the sentinel row; files within the folder retain their records but are no longer grouped visually.
 
-### Session Security for Key Derivation (v1.0.0)
+### Session Security for Key Derivation (v2.0.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │              SESSION SECURITY MODEL                                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  SECURITY QUESTION FLOW:                                             │
+│  WALLET SIGNATURE KEY DERIVATION FLOW:                               │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ 1. User sets security question on first use                   │  │
-│  │ 2. Answer hash sent to derive-key-material edge function      │  │
-│  │ 3. Server returns key material for 3 security levels          │  │
-│  │ 4. Client derives AES-256-GCM CryptoKeys via HKDF-SHA256     │  │
+│  │ 1. User connects wallet via Dynamic SDK                       │  │
+│  │ 2. signMessage("BlockDrive Key Derivation v1") → ed25519 sig │  │
+│  │ 3. HKDF-SHA256 derives 3 AES-256-GCM keys (client-side only) │  │
+│  │ 4. Keys held in memory, re-derived on session start           │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │  SESSION PERSISTENCE:                                                │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ Storage: sessionStorage (NOT localStorage)                    │  │
-│  │ Survives: Page refresh within same tab                        │  │
-│  │ Clears: Tab close, browser close                              │  │
-│  │ Expiry: 4 hours (enforced client-side)                        │  │
+│  │ Storage: In-memory only (no sessionStorage or localStorage)   │  │
+│  │ Survives: Navigation within SPA                               │  │
+│  │ Clears: Page close, refresh, or browser close                 │  │
+│  │ Re-derive: Automatic via signMessage on session start         │  │
 │  │ Singleton: Module-level via useSyncExternalStore               │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │  THREAT MITIGATIONS:                                                 │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ * Answer hash in sessionStorage, not the raw answer           │  │
-│  │ * 4-hour expiry limits exposure window                        │  │
-│  │ * Tab close guarantees session destruction                    │  │
-│  │ * Server-side key material prevents client-only reconstruction│  │
+│  │ * Keys in memory only — no persistent storage attack surface  │  │
+│  │ * Signature never sent to server — fully client-side          │  │
+│  │ * Page close guarantees key destruction                       │  │
+│  │ * Wallet must be connected to re-derive keys                  │  │
 │  │ * useSyncExternalStore prevents stale state across components │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
@@ -638,7 +636,7 @@ pub mod membership_transfer_hook {
 
 ## Authentication & Authorization
 
-### Clerk + Crossmint Architecture
+### Dynamic Authentication Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -647,15 +645,16 @@ pub mod membership_transfer_hook {
 │                                                                     │
 │  1. User Sign-In                                                    │
 │     ┌──────────┐    ┌─────────────┐    ┌──────────────────────┐   │
-│     │  User    │───►│   Clerk     │───►│  Session + JWT       │   │
-│     │ (email/  │    │  (OAuth/    │    │  (short-lived)       │   │
-│     │  social) │    │   MFA)      │    │  with 'sub' claim    │   │
+│     │  User    │───►│  Dynamic    │───►│  Session + JWT       │   │
+│     │ (email/  │    │  (email/    │    │  (short-lived)       │   │
+│     │  social/ │    │   social/   │    │  with 'sub' claim    │   │
+│     │  passkey)│    │   passkey)  │    │                      │   │
 │     └──────────┘    └─────────────┘    └──────────────────────┘   │
 │                                                                     │
-│  2. Crossmint Embedded Wallet                                       │
+│  2. Fireblocks TSS-MPC Wallet                                       │
 │     ┌──────────────────────────────────────────────────────────┐   │
-│     │  Clerk JWT ──► Crossmint JWKS ──► MPC Wallet Creation    │   │
-│     │                 (verifies sub)     (gas-sponsored)       │   │
+│     │  Dynamic JWT ──► Fireblocks TSS-MPC ──► Wallet Creation  │   │
+│     │                   (threshold signatures) (gas-sponsored) │   │
 │     │                                                          │   │
 │     │  Multichain Support:                                     │   │
 │     │  • Solana (devnet/mainnet)                               │   │
@@ -665,10 +664,10 @@ pub mod membership_transfer_hook {
 │  3. Authorization Layers                                            │
 │     ┌──────────────────────────────────────────────────────────┐   │
 │     │  Layer 1: Cloudflare Zero Trust (network)                │   │
-│     │  Layer 2: Clerk JWT verification (application)           │   │
+│     │  Layer 2: Dynamic JWT verification (application)         │   │
 │     │  Layer 3: Supabase RLS (database + auth.jwt() ->> 'sub') │   │
 │     │  Layer 4: Solana PDA ownership (blockchain)              │   │
-│     │  Layer 5: Clerk Organizations (team access)              │   │
+│     │  Layer 5: Supabase RLS (team access)                     │   │
 │     └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -677,12 +676,12 @@ pub mod membership_transfer_hook {
 
 ```typescript
 // Edge Function JWT verification
-async function verifyClerkJWT(token: string): Promise<ClerkSession> {
-  const CLERK_PUBLIC_KEY = await getClerkPublicKey();
+async function verifyDynamicJWT(token: string): Promise<DynamicSession> {
+  const DYNAMIC_PUBLIC_KEY = await getDynamicPublicKey();
 
   try {
-    const payload = await jose.jwtVerify(token, CLERK_PUBLIC_KEY, {
-      issuer: 'https://good-squirrel-87.clerk.accounts.dev/',
+    const payload = await jose.jwtVerify(token, DYNAMIC_PUBLIC_KEY, {
+      issuer: 'https://app.dynamic.xyz/',
       audience: 'blockdrive',
     });
 
@@ -691,7 +690,7 @@ async function verifyClerkJWT(token: string): Promise<ClerkSession> {
       throw new Error('Token expired');
     }
 
-    return payload as ClerkSession;
+    return payload as DynamicSession;
   } catch (error) {
     throw new Error('Invalid JWT');
   }
@@ -729,26 +728,24 @@ USING (
 
 ## Webhook Security (v1.1.0)
 
-### Svix Signature Verification
+### HMAC-SHA256 Signature Verification
 
-All Clerk webhook events are verified using Svix HMAC-SHA256 signatures before processing:
+All Dynamic webhook events are verified using HMAC-SHA256 signatures before processing:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │              WEBHOOK SIGNATURE VERIFICATION                          │
 │                                                                     │
-│  Clerk → Svix Delivery → BlockDrive API Gateway                    │
+│  Dynamic → HMAC-SHA256 → BlockDrive API Gateway                    │
 │                                                                     │
-│  Headers validated:                                                 │
-│  ├── svix-id         — Unique event identifier                     │
-│  ├── svix-timestamp  — Event timestamp (reject if >5 min old)      │
-│  └── svix-signature  — v1,{base64-hmac-sha256} (may be multiple)   │
+│  Header validated:                                                  │
+│  └── x-dynamic-signature-256  — HMAC-SHA256 of raw request body    │
 │                                                                     │
-│  Signing payload: "{svix-id}.{svix-timestamp}.{raw-body}"          │
-│  Key: base64-decode(secret.replace("whsec_", ""))                  │
+│  Signing payload: raw request body                                  │
+│  Key: Dynamic webhook secret                                        │
 │  Algorithm: HMAC-SHA256                                             │
 │                                                                     │
-│  Rejection triggers: missing headers, stale timestamp, bad sig     │
+│  Rejection triggers: missing header, invalid signature              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -808,7 +805,7 @@ The `user.deleted` webhook handler revokes all on-chain assets:
 │                                                                     │
 │  Layer 4: Zero Trust Access                                         │
 │  ┌───────────────────────────────────────────────────────────────┐ │
-│  │ • Clerk OIDC integration                                      │ │
+│  │ • Dynamic JWT integration                                      │ │
 │  │ • Device posture checks                                       │ │
 │  │ • Geo-restriction (OFAC compliance)                           │ │
 │  │ • Session-based access control                                │ │
@@ -836,10 +833,10 @@ const SECURITY_HEADERS = {
   // Content Security Policy
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.clerk.dev",
+    "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
-    "connect-src 'self' https://*.supabase.co https://*.clerk.dev https://*.alchemy.com",
+    "connect-src 'self' https://*.supabase.co https://app.dynamic.xyz https://*.alchemy.com",
     "frame-ancestors 'none'",
   ].join('; '),
 
@@ -880,7 +877,7 @@ const SECURITY_HEADERS = {
 │                                                                     │
 │  1. CREATION                                                        │
 │     • Encrypted client-side before transmission                     │
-│     • Keys derived from security question answer via edge function  │
+│     • Keys derived from wallet signature via HKDF (client-side)    │
 │                                                                     │
 │  2. TRANSMISSION                                                    │
 │     • TLS 1.3 encryption in transit                                │
@@ -892,7 +889,7 @@ const SECURITY_HEADERS = {
 │     • Immutable blockchain references                              │
 │                                                                     │
 │  4. ACCESS                                                          │
-│     • Security question verification required                      │
+│     • Wallet signature verification required                       │
 │     • ZK proof verification (Level 3)                              │
 │     • Delegation checking for shared files                         │
 │                                                                     │
@@ -911,7 +908,7 @@ const SECURITY_HEADERS = {
 ### Backup and Recovery
 
 **User Responsibility:**
-- Security question answer must be remembered (used for key derivation)
+- Wallet private key backup (used for key derivation via signMessage)
 - Wallet seed phrase backup (12/24 words) for blockchain operations
 - No platform recovery of encryption keys possible (by design)
 
@@ -1030,10 +1027,10 @@ interface AuditLog {
 | Cloudflare WAF integration | ✅ Complete | P1 |
 | Rate limiting (all endpoints) | ✅ Complete | P1 |
 | R2 storage migration | ✅ Complete | P1 |
-| Crossmint embedded wallets | ✅ Complete | P1 |
+| Dynamic SDK + Fireblocks wallets | ✅ Complete | P1 |
 | Metadata Privacy v2 | ✅ Complete | P1 |
 | Multi-PDA Sharding | ✅ Complete | P1 |
-| Organization security (Clerk) | ✅ Complete | P1 |
+| Dynamic auth migration | ✅ Complete | P1 |
 | Stripe Sync Engine | ✅ Complete | P2 |
 | Python Recovery SDK | ✅ Complete | P2 |
 

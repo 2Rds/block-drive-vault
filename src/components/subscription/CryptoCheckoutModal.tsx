@@ -89,9 +89,8 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
   };
 
   const openOnramp = () => {
-    if (walletAddress) {
-      window.open(`https://www.crossmint.com/user/collection?wallet=${walletAddress}`, '_blank');
-    }
+    // TODO: Replace with Dynamic funding rails (Banxa/Coinbase on-ramps) in Phase 2
+    console.warn('Crypto on-ramp not yet configured with Dynamic funding rails');
   };
 
   // Reset state when modal opens
@@ -263,7 +262,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
-              Fund Wallet with Crossmint
+              Fund Wallet
             </Button>
           )}
 

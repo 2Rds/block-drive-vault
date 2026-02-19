@@ -46,17 +46,17 @@ serve(async (req) => {
     const supabaseAuthClient = getSupabaseClient();
     const supabaseClient = getSupabaseServiceClient();
 
-    let clerkUserId: string;
+    let authUserId: string;
     const isUUID = WALLET_ADDRESS_PATTERNS.UUID.test(token);
 
     if (isUUID) {
-      clerkUserId = token;
+      authUserId = token;
     } else {
       const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-      clerkUserId = (userError || !user) ? token : user.id;
+      authUserId = (userError || !user) ? token : user.id;
     }
 
-    if (!clerkUserId) {
+    if (!authUserId) {
       return createResponse({
         success: false,
         error: "Authentication failed",
@@ -67,7 +67,7 @@ serve(async (req) => {
       .from("organization_members")
       .select("role")
       .eq("organization_id", organizationId)
-      .eq("clerk_user_id", clerkUserId)
+      .eq("user_id", authUserId)
       .single();
 
     if (membershipError || !membership) {
@@ -88,7 +88,7 @@ serve(async (req) => {
       "generate_invite_code",
       {
         p_organization_id: organizationId,
-        p_created_by: clerkUserId,
+        p_created_by: authUserId,
         p_max_uses: maxUses,
         p_expires_in_days: expiresInDays,
         p_default_role: defaultRole,

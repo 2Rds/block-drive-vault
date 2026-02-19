@@ -4,7 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { Button } from '@/components/ui/button';
 import { Fingerprint, Loader2, CheckCircle2, XCircle, AlertTriangle, Smartphone } from 'lucide-react';
 import { useWebAuthnAuthentication } from '@/hooks/useWebAuthnAuthentication';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 type VerifyStatus = 'loading' | 'ready' | 'verifying' | 'registering' | 'success' | 'error';
 
@@ -13,7 +13,7 @@ export default function WebAuthnMobileVerify() {
   const sessionId = searchParams.get('sid');
   const emailToken = searchParams.get('token');
   const { authenticateForSession, error, clearError } = useWebAuthnAuthentication();
-  const { supabase } = useClerkAuth();
+  const { supabase } = useDynamicAuth();
   const cleanupRef = useRef<Array<() => void>>([]);
 
   // Clean up any pending timeouts/channels on unmount

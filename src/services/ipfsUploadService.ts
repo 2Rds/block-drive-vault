@@ -31,7 +31,7 @@ export class IPFSUploadService {
           filename: uploadResult.filename,
           file_size: uploadResult.size,
           content_type: uploadResult.contentType,
-          clerk_user_id: user.id,
+          user_id: user.id,
           folder_path: folderPath,
           storage_provider: 'ipfs',
           ipfs_cid: uploadResult.cid,
@@ -54,7 +54,7 @@ export class IPFSUploadService {
             contentType: savedFile.content_type || 'application/octet-stream',
             ipfsUrl: savedFile.ipfs_url || '',
             uploadedAt: savedFile.created_at,
-            userId: savedFile.clerk_user_id,
+            userId: savedFile.user_id,
             folderPath: savedFile.folder_path,
             metadata: savedFile.metadata as IPFSFile['metadata']
           };

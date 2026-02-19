@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 export function useWebAuthnRegistration() {
-  const { supabase } = useClerkAuth();
+  const { supabase } = useDynamicAuth();
   const supabaseRef = useRef(supabase);
   supabaseRef.current = supabase;
   const [isRegistering, setIsRegistering] = useState(false);

@@ -6,8 +6,8 @@ import {
 } from '@/types/blockdriveCrypto';
 import { deriveKeyFromMaterial } from '@/services/crypto/keyDerivationService';
 import { hexToBytes } from '@/services/crypto/cryptoUtils';
-import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicWallet } from '@/hooks/useDynamicWallet';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
 const ALL_SECURITY_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLevel.MAXIMUM] as const;
@@ -92,14 +92,14 @@ interface UseWalletCryptoReturn {
 }
 
 export function useWalletCrypto(): UseWalletCryptoReturn {
-  const crossmintWallet = useCrossmintWallet();
-  const { supabase } = useClerkAuth();
+  const dynamicWallet = useDynamicWallet();
+  const { supabase } = useDynamicAuth();
 
-  // Stable refs — prevent Clerk token refresh (~60s) from cascading through callback deps
+  // Stable refs — prevent auth token refresh (~60s) from cascading through callback deps
   const supabaseRef = useRef(supabase);
   supabaseRef.current = supabase;
-  const walletRef = useRef(crossmintWallet);
-  walletRef.current = crossmintWallet;
+  const walletRef = useRef(dynamicWallet);
+  walletRef.current = dynamicWallet;
 
   // Re-render whenever the singleton store changes
   useSyncExternalStore(_subscribe, _getVersion, _getVersion);
@@ -145,7 +145,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
     });
   }, []);
 
-  const hasAnyWallet = crossmintWallet.isInitialized;
+  const hasAnyWallet = dynamicWallet.isInitialized;
 
   useEffect(() => {
     if (!hasAnyWallet) {
@@ -204,12 +204,12 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
       hasAnswerHash: !!answerHash,
     });
 
-    // If Crossmint SDK hasn't provided the wallet yet, try fetching from our DB
+    // If Dynamic SDK hasn't provided the wallet yet, try fetching from our DB
     if (!walletAddress) {
-      console.log('[useWalletCrypto] Crossmint SDK wallet not ready, fetching from DB...');
+      console.log('[useWalletCrypto] Dynamic SDK wallet not ready, fetching from DB...');
       try {
         const { data } = await supabaseRef.current
-          .from('crossmint_wallets')
+          .from('wallets')
           .select('wallet_address')
           .limit(1)
           .single();

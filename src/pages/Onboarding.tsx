@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@/hooks/useOrganizationCompat';
 import { useUsernameNFT } from '@/hooks/useUsernameNFT';
-import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
+import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 import { OrganizationJoinStep, OrganizationContext } from '@/components/onboarding/OrganizationJoinStep';
 import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ export default function Onboarding() {
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const { hasUsernameNFT, isLoading: isLoadingNFT, mintUsername, isMinting } = useUsernameNFT();
-  const { walletAddress, isLoading: isLoadingWallet, isInitialized: isWalletReady } = useCrossmintWallet();
+  const { walletAddress, isLoading: isLoadingWallet, isInitialized: isWalletReady } = useDynamicWallet();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('loading');
   const [mintAttempted, setMintAttempted] = useState(false);
@@ -53,12 +53,12 @@ export default function Onboarding() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
-  // Get the username from Clerk or use the one entered in onboarding
-  const clerkUsername = user?.username;
+  // Get the username from Dynamic auth or use the one entered in onboarding
+  const authUsername = user?.username;
   const [confirmedUsername, setConfirmedUsername] = useState<string | null>(null);
-  const effectiveUsername = confirmedUsername || clerkUsername;
+  const effectiveUsername = confirmedUsername || authUsername;
 
-  // Handle username confirmation for users who didn't set one in Clerk
+  // Handle username confirmation for users who didn't set one during signup
   const handleConfirmUsername = async () => {
     const validationError = validateUsername(inputUsername);
     if (validationError) {
@@ -71,7 +71,7 @@ export default function Onboarding() {
 
     try {
       // Check if username is available via the NFT service
-      const { checkUsernameAvailability } = await import('@/services/crossmint/usernameNFTService');
+      const { checkUsernameAvailability } = await import('@/services/usernameNFTService');
       const result = await checkUsernameAvailability(inputUsername.toLowerCase());
 
       if (!result.available) {
@@ -163,7 +163,7 @@ export default function Onboarding() {
       return;
     }
 
-    // Step 2: Check if we need username input (user didn't set one in Clerk)
+    // Step 2: Check if we need username input (user didn't set one during signup)
     if (!effectiveUsername) {
       setCurrentStep('username');
       return;

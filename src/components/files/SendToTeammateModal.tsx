@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useOrganization } from '@clerk/clerk-react';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ function getMemberInitials(member: TeamMember): string {
   return member.email[0].toUpperCase();
 }
 
-// Map Clerk membership data to TeamMember
+// Map membership data to TeamMember
 function mapMembershipToTeamMember(membership: any): TeamMember {
   return {
     id: membership.publicUserData?.userId || membership.id,

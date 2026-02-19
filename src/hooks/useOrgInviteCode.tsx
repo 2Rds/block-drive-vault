@@ -2,18 +2,18 @@
  * useOrgInviteCode Hook
  *
  * Handles organization invite code validation and usage during onboarding.
- * Integrates with Clerk Organizations and BlockDrive's Supabase infrastructure.
+ * Integrates with Dynamic auth and BlockDrive's Supabase infrastructure.
  *
  * Flow:
  * 1. User enters invite code during onboarding
  * 2. Code is validated against Supabase (organization_invite_codes)
- * 3. On use, user is added to both Clerk org and Supabase org_members
+ * 3. On use, user is added to Supabase org_members
  * 4. Returns organization context for subdomain NFT minting
  */
 
 import { useState, useCallback } from 'react';
-import { useAuth, useOrganizationList } from '@clerk/clerk-react';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useAuth, useOrganizationList } from '@/hooks/useOrganizationCompat';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 // Constants
 const MIN_CODE_LENGTH = 6;
@@ -24,7 +24,7 @@ export interface InviteCodeValidationResult {
   valid: boolean;
   organization?: {
     id: string;
-    clerkOrgId: string;
+    orgId: string;
     name: string;
     subdomain: string;
     imageUrl?: string;
@@ -39,7 +39,7 @@ export interface InviteCodeValidationResult {
 export interface UseCodeResult {
   success: boolean;
   organizationId?: string;
-  clerkOrgId?: string;
+  orgId?: string;
   subdomain?: string;
   role?: string;
   error?: string;
@@ -48,7 +48,7 @@ export interface UseCodeResult {
 // Organization context for downstream use (e.g., NFT minting)
 export interface OrganizationContext {
   id: string;
-  clerkOrgId: string;
+  orgId: string;
   name: string;
   subdomain: string;
   role: string;
@@ -56,7 +56,7 @@ export interface OrganizationContext {
 }
 
 export const useOrgInviteCode = () => {
-  const { userId, supabase } = useClerkAuth();
+  const { userId, supabase } = useDynamicAuth();
   const { getToken } = useAuth();
   const { setActive } = useOrganizationList();
 
@@ -98,7 +98,7 @@ export const useOrgInviteCode = () => {
         valid: result.valid === true,
         organization: result.organization ? {
           id: result.organization.id,
-          clerkOrgId: result.organization.clerkOrgId,
+          orgId: result.organization.orgId,
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           imageUrl: result.organization.imageUrl,
@@ -124,7 +124,7 @@ export const useOrgInviteCode = () => {
 
   /**
    * Use/redeem an invite code
-   * Adds user to the organization in both Clerk and Supabase
+   * Adds user to the organization in Supabase
    */
   const useCode = useCallback(async (code: string): Promise<UseCodeResult> => {
     if (!userId) {
@@ -149,7 +149,7 @@ export const useOrgInviteCode = () => {
           },
           body: JSON.stringify({
             code: code.toUpperCase().trim(),
-            clerkUserId: userId,
+            userId: userId,
           }),
         }
       );
@@ -168,7 +168,7 @@ export const useOrgInviteCode = () => {
       if (result.organization) {
         const orgContext: OrganizationContext = {
           id: result.organization.id,
-          clerkOrgId: result.organization.clerkOrgId,
+          orgId: result.organization.orgId,
           name: result.organization.name,
           subdomain: result.organization.subdomain,
           role: result.role || 'member',
@@ -176,12 +176,12 @@ export const useOrgInviteCode = () => {
         };
         setOrganization(orgContext);
 
-        // Set as active organization in Clerk
-        if (result.organization.clerkOrgId && setActive) {
+        // Set as active organization
+        if (result.organization.orgId && setActive) {
           try {
-            await setActive({ organization: result.organization.clerkOrgId });
-          } catch (clerkErr) {
-            console.warn('[useOrgInviteCode] Failed to set active org in Clerk:', clerkErr);
+            await setActive({ organization: result.organization.orgId });
+          } catch (err) {
+            console.warn('[useOrgInviteCode] Failed to set active org:', err);
           }
         }
       }
@@ -189,7 +189,7 @@ export const useOrgInviteCode = () => {
       return {
         success: true,
         organizationId: result.organization?.id,
-        clerkOrgId: result.organization?.clerkOrgId,
+        orgId: result.organization?.orgId,
         subdomain: result.organization?.subdomain,
         role: result.role,
       };

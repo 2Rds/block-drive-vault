@@ -40,8 +40,8 @@ import { useUploadPermissions } from '@/hooks/useUploadPermissions';
 import { useSolanaWalletSigning } from '@/hooks/useSolanaWalletSigning';
 import { useSharedFileDownload } from '@/hooks/useSharedFileDownload';
 import { useWalletCrypto } from '@/hooks/useWalletCrypto';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
-import { useOrganization } from '@clerk/clerk-react';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
 import { FileRecordData } from '@/services/blockDriveDownloadService';
@@ -91,7 +91,7 @@ function IPFSFiles(): JSX.Element {
   const { signTransaction } = useSolanaWalletSigning();
   const { downloadAndSave, previewSharedFile } = useSharedFileDownload();
   const { state: cryptoState, isSessionValid } = useWalletCrypto();
-  const { supabase, userId } = useClerkAuth();
+  const { supabase, userId } = useDynamicAuth();
   const { organization } = useOrganization();
   const { canUpload } = useUploadPermissions();
   const {

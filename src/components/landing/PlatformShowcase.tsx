@@ -3,8 +3,8 @@ import { useState } from 'react';
 const steps = [
   {
     number: '01',
-    title: 'Sign up with Clerk',
-    description: 'Email, social login, or SSO. Crossmint auto-creates an embedded Solana MPC wallet automatically.',
+    title: 'Sign up with Dynamic',
+    description: 'Email, social login, passkey, or wallet. Dynamic auto-creates an embedded Solana MPC wallet via Fireblocks.',
     mockContent: SignupMock,
   },
   {
@@ -160,7 +160,7 @@ function SignupMock() {
 
       <div className="text-center">
         <span className="text-[10px] text-muted-foreground/60">
-          Powered by Clerk + Crossmint embedded wallets
+          Powered by Dynamic + Fireblocks embedded wallets
         </span>
       </div>
     </div>

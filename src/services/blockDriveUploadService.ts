@@ -710,13 +710,13 @@ class BlockDriveUploadService {
    *
    * @param uploadResult - Result from uploadFile or uploadFileWithOnChainRegistration
    * @param encryptionKey - Wallet-derived encryption key
-   * @param clerkUserId - User's Clerk ID
+   * @param userId - User's auth ID
    * @param folderPath - Folder path for file organization
    */
   async saveToSupabaseWithPrivacy(
     uploadResult: BlockDriveUploadResult,
     encryptionKey: CryptoKey,
-    clerkUserId: string,
+    userId: string,
     folderPath: string = '/'
   ): Promise<any> {
     // Generate privacy-enhanced metadata
@@ -741,7 +741,7 @@ class BlockDriveUploadService {
 
     // Build database record
     const fileData: PrivacyEnhancedFileData = {
-      clerk_user_id: clerkUserId,
+      user_id: userId,
       ipfs_cid: uploadResult.contentCID,
       ipfs_url: uploadResult.contentUpload.primaryResult.url,
       storage_provider: uploadResult.contentUpload.primaryProvider,
@@ -774,7 +774,7 @@ class BlockDriveUploadService {
     encryptionKey: CryptoKey,
     securityLevel: SecurityLevel,
     walletAddress: string,
-    clerkUserId: string,
+    userId: string,
     storageConfig: StorageConfig = DEFAULT_STORAGE_CONFIG,
     folderPath: string = '/',
     orgContext?: OrgContext
@@ -799,7 +799,7 @@ class BlockDriveUploadService {
       const databaseRecord = await this.saveToSupabaseWithPrivacy(
         uploadResult,
         encryptionKey,
-        clerkUserId,
+        userId,
         folderPath
       );
 

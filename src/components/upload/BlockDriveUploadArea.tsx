@@ -26,7 +26,7 @@ import { SubscriptionGate } from '../SubscriptionGate';
 import { CryptoSetupModal } from '../crypto/CryptoSetupModal';
 import { useBlockDriveUpload } from '@/hooks/useBlockDriveUpload';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganization } from '@clerk/clerk-react';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { SecurityLevel } from '@/types/blockdriveCrypto';
 import { DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
 import { cn } from '@/lib/utils';

@@ -44,7 +44,8 @@ export const STRIPE_TIER_THRESHOLDS = {
   GROWTH_MAX: 99900,
 } as const;
 
-export const CROSSMINT_TIER_PRICING: Record<string, Record<string, number>> = {
+// Tier pricing (cents) — used for subscription verification
+export const TIER_PRICING: Record<string, Record<string, number>> = {
   Pro: { monthly: 900, quarterly: 2400, yearly: 8900 },
   Power: { monthly: 4900, quarterly: 13400, yearly: 49900 },
   Scale: { monthly: 2900, quarterly: 7900, yearly: 29900 },

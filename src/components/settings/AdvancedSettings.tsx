@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
+import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 import {
   ChevronDown,
   ChevronUp,
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export const AdvancedSettings: React.FC = () => {
-  const { walletAddress, isInitialized } = useCrossmintWallet();
+  const { walletAddress, isInitialized } = useDynamicWallet();
   const [isExpanded, setIsExpanded] = useState(false);
 
   /**

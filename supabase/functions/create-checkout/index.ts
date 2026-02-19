@@ -36,25 +36,23 @@ serve(async (req) => {
   try {
     log("Function started");
 
-    // Parse request body first to check for Clerk user ID
     const body = await req.json();
-    const { priceId, tier, hasTrial, clerkUserId } = body;
+    const { priceId, tier, hasTrial, userId: bodyUserId } = body;
 
     let userEmail: string;
     let userId: string;
 
-    // If Clerk user ID is provided in body, use it (for Clerk-authenticated users)
-    if (clerkUserId) {
-      userId = clerkUserId;
-      // Clerk users will provide email during Stripe checkout
-      // Use a placeholder that will be updated by Stripe
-      userEmail = `${clerkUserId}@clerk.placeholder`;
-      log("Clerk user ID provided", { userId, clerkUserId });
+    // If user ID is provided in body, use it (Dynamic-authenticated users)
+    if (bodyUserId) {
+      userId = bodyUserId;
+      // Dynamic users provide email during Stripe checkout
+      userEmail = `${userId}@blockdrive.auth`;
+      log("User ID provided in body", { userId });
     } else {
       // Fall back to token-based authentication
       const token = extractBearerToken(req);
       if (!token) {
-        log("No authorization header found and no Clerk user ID");
+        log("No authorization header found and no user ID");
         return errorResponse("No authorization provided", HTTP_STATUS.UNAUTHORIZED);
       }
 
@@ -97,12 +95,12 @@ serve(async (req) => {
     }
 
     const isWalletUser = userEmail.endsWith('@blockdrive.wallet');
-    const isClerkUser = userEmail.endsWith('@clerk.placeholder');
+    const isAuthUser = userEmail.endsWith('@blockdrive.auth');
     const supabaseService = getSupabaseServiceClient();
     let customerId: string | undefined;
 
-    // For regular users (not wallet or Clerk), try to find existing Stripe customer
-    if (!isWalletUser && !isClerkUser) {
+    // For regular users (not wallet or auth-placeholder), try to find existing Stripe customer
+    if (!isWalletUser && !isAuthUser) {
       const { customerId: foundCustomerId, fromSync } = await getStripeCustomerByEmail(
         supabaseService,
         userEmail,
@@ -115,10 +113,8 @@ serve(async (req) => {
       } else {
         log("No existing customer, will create during checkout");
       }
-    } else if (isClerkUser) {
-      log("Clerk user detected, will collect email during checkout");
     } else {
-      log("Wallet user detected, will collect email during checkout");
+      log("Auth/wallet user detected, will collect email during checkout");
     }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
@@ -148,8 +144,8 @@ serve(async (req) => {
 
     if (customerId) {
       sessionData.append('customer', customerId);
-    } else if (isWalletUser || isClerkUser) {
-      // For wallet and Clerk users, let Stripe collect email during checkout
+    } else if (isWalletUser || isAuthUser) {
+      // For wallet/auth users, let Stripe collect email during checkout
       sessionData.append('billing_address_collection', 'required');
     } else {
       sessionData.append('customer_email', userEmail);

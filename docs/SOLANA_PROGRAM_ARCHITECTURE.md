@@ -1,12 +1,12 @@
 # BlockDrive Solana Program Architecture
 
-> **Version**: v1.2.0 (February 2026)
+> **Version**: v2.0.0 (February 2026)
 
 ## Overview
 
 The BlockDrive Solana program manages on-chain file records, user vaults, cryptographic commitments, and access delegation using Anchor framework. The architecture implements **Multi-PDA Sharding** to support 1000+ files per user.
 
-As of v1.0.0, all core on-chain infrastructure is complete. Key derivation has moved from wallet signatures to security questions (processed via Supabase edge functions), but the on-chain commitment and verification model remains unchanged -- commitments are still SHA-256 hashes stored in FileRecord PDAs.
+As of v1.0.0, all core on-chain infrastructure is complete. Key derivation uses wallet signatures processed client-side via HKDF-SHA256, and the on-chain commitment and verification model remains unchanged -- commitments are still SHA-256 hashes stored in FileRecord PDAs.
 
 ## Program ID
 
@@ -93,7 +93,7 @@ pub struct UserVaultMaster {
     pub owner: Pubkey,
 
     /// Hash of the derived master encryption key
-    /// (Key derived from security question answer via edge function)
+    /// (Key derived from wallet signature via client-side HKDF)
     pub master_key_commitment: [u8; 32],
 
     /// Number of active shards
@@ -202,7 +202,7 @@ pub struct UserVault {
 
     /// Hash of the derived master encryption key
     /// SHA256(master_key) - proves key ownership without revealing key
-    /// (Key derived from security question answer via derive-key-material edge function)
+    /// (Key derived from wallet signature via client-side HKDF)
     pub master_key_commitment: [u8; 32],
 
     /// Total number of files in vault
@@ -759,7 +759,7 @@ pub struct FileAccessed {
 
 ## SNS + Bubblegum V2 + MPL-Core (v1.1.0)
 
-v1.1.0 adds Solana native minting via the Cloudflare Worker API Gateway (`workers/api-gateway/src/solana.ts`), replacing Crossmint for on-chain identity operations.
+v1.1.0 adds Solana native minting via the Cloudflare Worker API Gateway (`workers/api-gateway/src/solana.ts`).
 
 ### SNS Subdomain Hierarchy
 
@@ -826,15 +826,15 @@ Each organization gets its own MPL-Core collection via `createCollectionV2()`:
 11. **Bubblegum V2 cNFT Minting**: Soulbound compressed membership NFTs (v1.1.0)
 12. **Per-Org MPL-Core Collections**: Branded org collections (~0.003 SOL each) (v1.1.0)
 13. **Organization Deletion Handler**: 10-step on-chain + DB cleanup (v1.1.0)
-14. **Svix Webhook Verification**: HMAC-SHA256 signature validation (v1.1.0)
+14. **HMAC-SHA256 Webhook Verification (Dynamic)**: HMAC-SHA256 signature validation (v1.1.0)
 
 ### Planned 📋
 1. **Mainnet Deployment**: After security audit
 2. **Migration Tools**: For legacy UserVault accounts
 3. **cNFT Batch Burn**: Process `pending_burn` NFTs via DAS API
 
-### Note on Key Derivation (v1.0.0)
-Key derivation has moved from wallet signatures to security questions. This change is transparent to the on-chain program -- the program only stores and verifies SHA-256 commitments of encryption keys and critical bytes. The source of the key material (previously wallet signatures, now security question answer hash via `derive-key-material` edge function) does not affect on-chain state.
+### Note on Key Derivation (v2.0.0)
+Key derivation uses wallet signatures with HKDF-SHA256 (v2.0.0). This is transparent to the on-chain program -- the program only stores and verifies SHA-256 commitments of encryption keys and critical bytes. The source of the key material does not affect on-chain state.
 
 ## Client Usage Example
 

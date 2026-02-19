@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 import type { WebAuthnVerificationResult } from '@/types/webauthn';
 
 export function useWebAuthnAuthentication() {
-  const { supabase } = useClerkAuth();
-  // Stable ref so callbacks don't change when Clerk refreshes its token (~60s).
+  const { supabase } = useDynamicAuth();
+  // Stable ref so callbacks don't change when the auth provider refreshes its token (~60s).
   // Without this, every callback gets a new reference on token refresh, which
   // causes downstream useEffect chains to re-fire (e.g. createSession in QR flow).
   const supabaseRef = useRef(supabase);

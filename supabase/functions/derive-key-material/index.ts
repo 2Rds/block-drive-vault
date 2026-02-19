@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseServiceClient, getClerkUserId } from '../_shared/auth.ts';
+import { getSupabaseServiceClient, getUserId } from '../_shared/auth.ts';
 import { handleCors, successResponse, errorResponse } from '../_shared/response.ts';
 
 async function hmacSha256Hex(secret: string, data: string): Promise<string> {
@@ -32,7 +32,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseServiceClient();
-    const clerkUserId = getClerkUserId(req);
+    const userId = getUserId(req);
 
     // Parse request — supports either assertion_token (WebAuthn) or answer_hash (legacy)
     const { answer_hash, assertion_token } = await req.json();
@@ -42,9 +42,9 @@ serve(async (req) => {
 
     // Look up wallet address
     const { data: walletRow, error: walletError } = await supabase
-      .from('crossmint_wallets')
+      .from('wallets')
       .select('wallet_address')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (walletError) throw new Error(`Database error: ${walletError.message}`);
@@ -59,7 +59,7 @@ serve(async (req) => {
         .from('webauthn_assertion_tokens')
         .select('*')
         .eq('token', assertion_token)
-        .eq('clerk_user_id', clerkUserId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (tokenErr || !tokenRow) return errorResponse('Invalid assertion token', 403);
@@ -82,7 +82,7 @@ serve(async (req) => {
       const { data: sqRow, error: sqError } = await supabase
         .from('security_questions')
         .select('answer_hash')
-        .eq('clerk_user_id', clerkUserId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (sqError) throw new Error(`Database error: ${sqError.message}`);
@@ -98,7 +98,7 @@ serve(async (req) => {
     for (const level of ['1', '2', '3']) {
       keyMaterials[level] = await hmacSha256Hex(
         hmacSecret,
-        `${clerkUserId}|${walletAddress}|${level}`
+        `${userId}|${walletAddress}|${level}`
       );
     }
 

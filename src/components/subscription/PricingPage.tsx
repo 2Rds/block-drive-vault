@@ -6,7 +6,7 @@ import { PricingFooter } from './PricingFooter';
 import { PaymentMethodToggle, PaymentMethod } from './PaymentMethodToggle';
 import { CryptoCheckoutModal } from './CryptoCheckoutModal';
 import { usePricingSubscription, getTierPrice } from '@/hooks/usePricingSubscription';
-import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
+import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 // import { useStripePricing } from '@/hooks/useStripePricing'; // TODO: Re-enable when sync is configured
 import { BillingPeriod, PricingTier, PricingOption } from '@/types/pricing';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { GridPattern } from '@/components/effects/GridPattern';
 
 export const PricingPage = () => {
   const { loading, handleSubscribe, handleSubscribeCrypto } = usePricingSubscription();
-  const { walletAddress, isInitialized: walletConnected, getUsdcBalance } = useCrossmintWallet();
+  const { walletAddress, isInitialized: walletConnected, getUsdcBalance } = useDynamicWallet();
 
   // TODO: Re-enable dynamic pricing once Stripe Sync Engine is properly configured
   // const { pricingTiers: dynamicTiers, isLoading: pricingLoading } = useStripePricing();

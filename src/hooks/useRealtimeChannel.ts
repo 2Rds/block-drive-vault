@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 
 /**
  * Subscribe to a Supabase Realtime broadcast channel.
@@ -11,8 +11,8 @@ export function useRealtimeChannel(
   channelName: string | null,
   onMessage: (payload: Record<string, unknown>) => void
 ) {
-  const { supabase } = useClerkAuth();
-  // Stable ref so the channel doesn't tear down/recreate on Clerk token refresh
+  const { supabase } = useDynamicAuth();
+  // Stable ref so the channel doesn't tear down/recreate on auth token refresh
   const supabaseRef = useRef(supabase);
   supabaseRef.current = supabase;
   const channelRef = useRef<RealtimeChannel | null>(null);

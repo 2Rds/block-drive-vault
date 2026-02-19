@@ -1,22 +1,17 @@
 /**
  * Unified Payment Service
- * 
- * Purpose: Provides a unified interface for both fiat (Stripe) and crypto (Crossmint) payments.
- * 
- * Architecture (per investor document):
+ *
+ * Provides a unified interface for fiat (Stripe) and crypto payments.
+ *
  * - Fiat (Card/Bank): Stripe Checkout → 2.9% fees → Automatic recurring
- * - Crypto (USDC/SOL/ETH): Crossmint → ~1.3% fees → Automatic recurring via pg_cron
- * 
- * Flow:
- * - Fiat: Direct Stripe Checkout with recurring billing
- * - Crypto: Crossmint embedded wallet → pg_cron scheduler → Auto-debit to treasury
- * 
+ * - Crypto: Temporarily unavailable (rebuilding with Dynamic funding rails)
+ *
  * Treasury Wallet: GABYjW8LgkLBTFzkJSzTFZGnuZbZaw36xcDv6cVFRg2y (neo.blockdrive.sol)
  */
 
 import { supabase } from '@/integrations/supabase/client';
 
-export type PaymentProvider = 'stripe' | 'crossmint';
+export type PaymentProvider = 'stripe' | 'crypto';
 export type BillingPeriod = 'monthly' | 'quarterly' | 'yearly';
 export type SubscriptionTier = 'Pro' | 'Scale' | 'Enterprise';
 export type CryptoCurrency = 'USDC' | 'SOL' | 'ETH';
@@ -26,7 +21,7 @@ export interface PaymentOptions {
   billingPeriod: BillingPeriod;
   priceId?: string; // Stripe price ID for fiat
   paymentCurrency?: CryptoCurrency; // For crypto payments
-  authToken?: string; // Optional Clerk user ID for authentication
+  authToken?: string;
 }
 
 export interface CheckoutResult {
@@ -89,8 +84,7 @@ export interface SubscriptionStatus {
 }
 
 /**
- * Payment Service class for handling all payment operations
- * Uses Stripe for fiat and Crossmint for crypto
+ * Payment Service class for handling all payment operations.
  */
 class PaymentService {
   /**
@@ -99,17 +93,14 @@ class PaymentService {
    */
   async subscribeFiat(options: PaymentOptions): Promise<CheckoutResult> {
     try {
-      // Build request body - include Clerk user ID if available
       const requestBody: Record<string, unknown> = {
         priceId: options.priceId,
         tier: options.tier,
         billingPeriod: options.billingPeriod,
       };
 
-      // Pass Clerk user ID in body for edge function to use
-      // This is more reliable than custom Authorization header which can conflict with Supabase auth
       if (options.authToken) {
-        requestBody.clerkUserId = options.authToken;
+        requestBody.userId = options.authToken;
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', { body: requestBody });
@@ -148,112 +139,22 @@ class PaymentService {
   }
 
   /**
-   * Subscribe using cryptocurrency (Crossmint)
-   * Supports USDC, SOL, ETH on Solana (EVM chains coming soon)
-   * 
-   * Flow:
-   * 1. Creates/retrieves user's Crossmint embedded wallet
-   * 2. Creates crypto_subscription record in database
-   * 3. Returns wallet address for funding
-   * 4. Once funded, pg_cron scheduler processes recurring payments
+   * Subscribe using cryptocurrency
+   * Currently unavailable — will use Dynamic funding rails (Phase 2)
    */
-  async subscribeCrypto(options: PaymentOptions): Promise<CryptoCheckoutResult> {
-    try {
-      // Get current user (try Clerk first, then Supabase auth)
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Get profile for Clerk user ID
-      let clerkUserId: string | undefined;
-      let email: string | undefined = user?.email;
-      
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('clerk_user_id, email')
-          .eq('id', user.id)
-          .single();
-        
-        clerkUserId = profile?.clerk_user_id;
-        email = email || profile?.email;
-      }
-
-      if (!email) {
-        return {
-          success: false,
-          error: 'You must be logged in to subscribe',
-          provider: 'crossmint',
-        };
-      }
-
-      const { data, error } = await supabase.functions.invoke('crossmint-create-checkout', {
-        body: {
-          clerkUserId,
-          email,
-          tier: options.tier,
-          billingPeriod: options.billingPeriod,
-          paymentCurrency: options.paymentCurrency || 'USDC',
-        },
-      });
-
-      if (error) {
-        console.error('[PaymentService] Crypto checkout error:', error);
-        return {
-          success: false,
-          error: error.message || 'Failed to create crypto checkout',
-          provider: 'crossmint',
-        };
-      }
-
-      // Handle insufficient balance (402 Payment Required)
-      if (data?.error === 'insufficient_balance') {
-        return {
-          success: false,
-          error: data.message || 'Insufficient USDC balance',
-          errorType: 'insufficient_balance',
-          wallet: data.wallet,
-          walletAddress: data.wallet?.address,
-          payment: data.payment,
-          fundingInstructions: data.fundingInstructions,
-          provider: 'crossmint',
-        };
-      }
-
-      if (!data?.success) {
-        return {
-          success: false,
-          error: data?.error || data?.message || 'Failed to create crypto subscription',
-          errorType: 'unknown',
-          provider: 'crossmint',
-        };
-      }
-
-      return {
-        success: true,
-        subscriptionId: data.subscriptionId,
-        transactionHash: data.transactionHash,
-        walletAddress: data.wallet?.address,
-        wallet: data.wallet,
-        payment: data.payment,
-        subscription: data.subscription,
-        url: data.fundingInstructions?.onrampUrl, // For compatibility
-        provider: 'crossmint',
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      console.error('[PaymentService] Crypto subscription error:', error);
-      return {
-        success: false,
-        error: errorMessage,
-        provider: 'crossmint',
-      };
-    }
+  async subscribeCrypto(_options: PaymentOptions): Promise<CryptoCheckoutResult> {
+    return {
+      success: false,
+      error: 'Crypto subscriptions are temporarily unavailable during our platform upgrade. Please use card payment.',
+      provider: 'crypto',
+    };
   }
 
   /**
    * Unified subscribe method - automatically routes to correct provider
    */
   async subscribe(options: PaymentOptions, provider: PaymentProvider): Promise<CheckoutResult> {
-    if (provider === 'crossmint') {
+    if (provider === 'crypto') {
       return this.subscribeCrypto(options);
     }
     return this.subscribeFiat(options);
@@ -267,7 +168,7 @@ class PaymentService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      // Check subscribers table (fed by both Stripe and Crossmint triggers)
+      // Check subscribers table
       const { data: subscriber, error } = await supabase
         .from('subscribers')
         .select('*')
@@ -290,7 +191,7 @@ class PaymentService {
         expiresAt: subscriber.subscription_end,
         storageLimit: subscriber.storage_limit_bytes || 0,
         paymentProvider: subscriber.payment_provider as PaymentProvider,
-        walletAddress: subscriber.crossmint_wallet_address,
+        walletAddress: subscriber.wallet_address,
       };
     } catch (error) {
       console.error('[PaymentService] Error checking subscription:', error);

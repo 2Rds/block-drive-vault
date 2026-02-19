@@ -97,7 +97,7 @@ export class R2Provider extends StorageProviderBase {
         const isShared = metadata?.isShared === 'true';
         const folderPath = metadata?.folderPath;
 
-        // Get auth token from Clerk session
+        // Get auth token from Dynamic session
         const authToken = await this.getAuthToken();
 
         const response = await fetch(`${getWorkerUrl()}/r2/put`, {
@@ -252,12 +252,11 @@ export class R2Provider extends StorageProviderBase {
   }
 
   /**
-   * Get auth token from Clerk session (injected via window.__clerk_session)
+   * Get auth token from Dynamic session (injected via window.__dynamic_session)
    */
   private async getAuthToken(): Promise<string> {
-    // Try Clerk's getToken if available
-    if (typeof window !== 'undefined' && (window as any).__clerk_session?.getToken) {
-      const token = await (window as any).__clerk_session.getToken();
+    if (typeof window !== 'undefined' && window.__dynamic_session?.getToken) {
+      const token = await window.__dynamic_session.getToken();
       return token || '';
     }
     // Fallback to Supabase session token

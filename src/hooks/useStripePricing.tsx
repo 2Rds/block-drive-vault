@@ -74,7 +74,7 @@ const TIER_METADATA: Record<string, Partial<PricingTier>> = {
       '$10/seat/month per additional TB',
       '2 seat minimum, up to 99 seats',
       'Team collaboration tools',
-      'Clerk Organizations + SSO',
+      'Dynamic Organizations + SSO',
       '24/7 priority support',
       'Advanced integrations'
     ]

@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@/hooks/useOrganizationCompat';
 import {
   validateUsername,
   checkUsernameAvailability,
   mintUsernameNFT,
   getUsernameNFT,
-} from '@/services/crossmint/usernameNFTService';
-import { useCrossmintWallet } from '@/hooks/useCrossmintWallet';
+} from '@/services/usernameNFTService';
+import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 
 // Organization context for minting (optional)
 export interface MintOrganizationContext {
@@ -33,7 +33,7 @@ interface UseUsernameNFTReturn {
 export function useUsernameNFT(): UseUsernameNFTReturn {
   const { getToken, userId } = useAuth();
   const { user } = useUser();
-  const { walletAddress } = useCrossmintWallet();
+  const { walletAddress } = useDynamicWallet();
 
   const [hasUsernameNFT, setHasUsernameNFT] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export function useUsernameNFT(): UseUsernameNFTReturn {
         }
 
         const result = await mintUsernameNFT({
-          clerkUserId: userId,
+          userId,
           username: usernameToMint,
           recipientEmail: user.primaryEmailAddress?.emailAddress,
           recipientWalletAddress: walletAddress || undefined,

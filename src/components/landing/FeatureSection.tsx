@@ -43,10 +43,10 @@ const features: Feature[] = [
     tag: 'Solana',
     title: 'Embedded Wallet Authentication',
     description:
-      'Clerk handles identity. Crossmint auto-creates an embedded Solana MPC wallet. Users can also authenticate via MetaMask or Coinbase for EVM-based sign-in.',
+      'Dynamic handles identity and auto-creates an embedded Solana MPC wallet via Fireblocks TSS. Users can also authenticate via MetaMask or Coinbase for EVM-based sign-in.',
     details: [
-      'Clerk sign-in (email, social, SSO, or EVM wallet)',
-      'Crossmint embedded Solana MPC wallet on signup',
+      'Dynamic sign-in (email, social, passkey, or EVM wallet)',
+      'Fireblocks TSS-MPC embedded Solana wallet on signup',
       'Keys derived per-file for encryption',
       'No browser extension required',
     ],
@@ -273,16 +273,16 @@ function RevokeVisual() {
 function MultichainVisual() {
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Clerk → Crossmint flow */}
+      {/* Dynamic auth → wallet flow */}
       <div className="flex items-center gap-3">
         <div className="px-3 py-2 rounded-lg border border-border/40 bg-card/60">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-foreground/70">Clerk Auth</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-foreground/70">Dynamic Auth</span>
         </div>
         <svg width="24" height="12" viewBox="0 0 24 12" fill="none" className="text-muted-foreground/40">
           <path d="M0 6H20M20 6L16 2M20 6L16 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         <div className="px-3 py-2 rounded-lg border border-primary/30 bg-primary/5">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-primary">Crossmint MPC</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-primary">Fireblocks MPC</span>
         </div>
       </div>
 

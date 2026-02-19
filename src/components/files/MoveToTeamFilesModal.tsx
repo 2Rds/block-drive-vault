@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useOrganization } from '@clerk/clerk-react';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 import { FileDatabaseService } from '@/services/fileDatabaseService';
 import {
   Dialog,
@@ -31,7 +31,7 @@ export function MoveToTeamFilesModal({
   onMoveComplete,
 }: MoveToTeamFilesModalProps) {
   const { organization } = useOrganization();
-  const { supabase } = useClerkAuth();
+  const { supabase } = useDynamicAuth();
   const [isMoving, setIsMoving] = useState(false);
 
   const handleMove = async () => {

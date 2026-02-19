@@ -283,7 +283,7 @@ serve(async (req) => {
     // Create or update subscriber record
     // Note: user_id is set to null because:
     // 1. Wallet users don't have auth.users entries
-    // 2. Clerk users have Clerk IDs, not Supabase auth.users IDs
+    // 2. Dynamic users have Dynamic IDs, not Supabase auth.users IDs
     // 3. The user_id column has a FK constraint to auth.users
     // We rely on email for lookups instead
     //
@@ -306,9 +306,9 @@ serve(async (req) => {
 
     let subscriberError;
 
-    // Get Clerk user ID from session metadata (passed from checkout)
-    const clerkUserId = session.metadata?.user_id || userId || null;
-    logStep("Clerk user ID for subscriber", { clerkUserId });
+    // Get auth user ID from session metadata (passed from checkout)
+    const authUserId = session.metadata?.user_id || userId || null;
+    logStep("Auth user ID for subscriber", { authUserId });
 
     if (existingSubscriber) {
       // Update existing subscriber
@@ -322,7 +322,7 @@ serve(async (req) => {
           subscription_end: subscriptionEnd,
           can_upload_files: true,
           payment_provider: 'stripe',
-          clerk_user_id: clerkUserId, // Store Clerk ID for fallback lookups
+          dynamic_user_id: authUserId, // Store auth ID for fallback lookups
           updated_at: new Date().toISOString(),
         })
         .eq('email', customerEmail);
@@ -335,7 +335,7 @@ serve(async (req) => {
         .insert({
           email: customerEmail,
           user_id: null, // FK constraint requires valid auth.users ID - use email for lookups
-          clerk_user_id: clerkUserId, // Store Clerk ID for fallback lookups
+          dynamic_user_id: authUserId, // Store auth ID for fallback lookups
           stripe_customer_id: stripeCustomerId,
           subscribed: true,
           subscription_tier: subscriptionTier,

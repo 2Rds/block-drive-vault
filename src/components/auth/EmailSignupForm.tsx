@@ -1,4 +1,4 @@
-// Stub - EmailSignupForm deprecated with Clerk auth
+// Stub - EmailSignupForm deprecated with Dynamic auth
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,9 @@ interface EmailSignupFormProps {
 }
 
 export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) => {
-  // This form is deprecated - Clerk handles all signup flows
+  // This form is deprecated - Dynamic handles all signup flows
   React.useEffect(() => {
-    console.warn('EmailSignupForm is deprecated. Use Clerk authentication.');
+    console.warn('EmailSignupForm is deprecated. Use Dynamic authentication.');
   }, []);
 
   return (
@@ -23,7 +23,7 @@ export const EmailSignupForm = ({ onSuccess, onCancel }: EmailSignupFormProps) =
           Sign Up
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Please use the Clerk sign-up flow instead.
+          Please use the Dynamic sign-up flow instead.
         </CardDescription>
       </CardHeader>
       <CardContent>

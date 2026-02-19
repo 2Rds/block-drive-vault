@@ -3,7 +3,7 @@ import { AppShell } from "@/components/layout";
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager";
 import { AdvancedSettings } from "@/components/settings/AdvancedSettings";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
-import { useCrossmintWallet } from "@/hooks/useCrossmintWallet";
+import { useDynamicWallet } from "@/hooks/useDynamicWallet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const PERIOD_LABELS: Record<BillingPeriod, { label: string; discount?: string }>
 
 function BillingTab() {
   const { subscriptionStatus } = useSubscriptionStatus();
-  const { walletAddress, isInitialized } = useCrossmintWallet();
+  const { walletAddress, isInitialized } = useDynamicWallet();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
   const tier = subscriptionStatus?.subscription_tier || 'No Plan';

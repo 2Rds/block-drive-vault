@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 import { FileDatabaseService } from '@/services/fileDatabaseService';
 import { IPFSFile } from '@/types/ipfs';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const useIPFSUpload = () => {
   const { user, session } = useAuth();
-  const { supabase: clerkSupabase } = useClerkAuth();
+  const { supabase: authSupabase } = useDynamicAuth();
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -116,7 +116,7 @@ export const useIPFSUpload = () => {
     if (!user) return;
 
     try {
-      await FileDatabaseService.deleteFile(fileId, user.id, clerkSupabase);
+      await FileDatabaseService.deleteFile(fileId, user.id, authSupabase);
       
       // Update local state
       setUserFiles(prev => prev.filter(file => file.id !== fileId));
@@ -134,7 +134,7 @@ export const useIPFSUpload = () => {
 
     setLoading(true);
     try {
-      const ipfsFiles = await FileDatabaseService.loadUserFiles(user.id, clerkSupabase);
+      const ipfsFiles = await FileDatabaseService.loadUserFiles(user.id, authSupabase);
       setUserFiles(ipfsFiles);
     } catch (error) {
       console.error('Failed to load user files:', error);

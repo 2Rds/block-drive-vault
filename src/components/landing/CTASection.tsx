@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ClerkConnectButton } from '@/components/auth/ClerkConnectButton';
+import { ConnectButton } from '@/components/auth/ConnectButton';
 
 export const CTASection = () => {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export const CTASection = () => {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <ClerkConnectButton variant="hero" />
+          <ConnectButton variant="hero" />
           <Button
             variant="ghost"
             size="lg"

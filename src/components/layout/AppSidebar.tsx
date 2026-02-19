@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useOrganization, OrganizationSwitcher } from '@clerk/clerk-react';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserData } from '@/hooks/useUserData';
 import { cn } from '@/lib/utils';
@@ -106,28 +106,15 @@ export function AppSidebar() {
         </span>
       </div>
 
-      {hasTeamTier && (
+      {hasTeamTier && organization && (
         <div className="px-3 py-3 border-b border-sidebar-border">
-          <OrganizationSwitcher
-            hidePersonal={false}
-            afterCreateOrganizationUrl="/dashboard"
-            afterLeaveOrganizationUrl="/dashboard"
-            afterSelectOrganizationUrl="/dashboard"
-            appearance={{
-              elements: {
-                rootBox: 'w-full',
-                organizationSwitcherTrigger: cn(
-                  'w-full px-3 py-2 rounded-lg border border-sidebar-border',
-                  'bg-sidebar-accent/50 text-sidebar-foreground',
-                  'hover:bg-sidebar-accent transition-colors',
-                  'flex items-center justify-between'
-                ),
-                organizationPreviewMainIdentifier: 'text-sidebar-foreground text-sm font-medium',
-                organizationPreviewSecondaryIdentifier: 'text-foreground-muted text-xs',
-                organizationSwitcherTriggerIcon: 'text-foreground-muted',
-              },
-            }}
-          />
+          <div className={cn(
+            'w-full px-3 py-2 rounded-lg border border-sidebar-border',
+            'bg-sidebar-accent/50 text-sidebar-foreground',
+            'flex items-center justify-between'
+          )}>
+            <span className="text-sm font-medium truncate">{organization.name}</span>
+          </div>
         </div>
       )}
 

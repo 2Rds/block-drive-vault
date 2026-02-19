@@ -14,7 +14,7 @@ import { WebAuthnSetup } from './WebAuthnSetup';
 import { WebAuthnVerify } from './WebAuthnVerify';
 import { SecurityQuestionSetup } from './SecurityQuestionSetup';
 import { SecurityQuestionVerify } from './SecurityQuestionVerify';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
 import type { CryptoFlowStep } from '@/types/webauthn';
 
 interface CryptoSetupModalProps {
@@ -26,7 +26,7 @@ interface CryptoSetupModalProps {
 export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupModalProps) {
   const { state, initializeKeys } = useWalletCrypto();
   const { hasCredentials } = useWebAuthnRegistration();
-  const { supabase } = useClerkAuth();
+  const { supabase } = useDynamicAuth();
   const supabaseRef = useRef(supabase);
   supabaseRef.current = supabase;
 
@@ -89,7 +89,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
 
   // Determine which flow to show (WebAuthn, legacy security question, or first-time setup).
   // Uses a ref to ensure this only runs once per modal open — not when supabase/deps change.
-  // Without this guard, Clerk token refreshes (~60s) cause supabase to change, which
+  // Without this guard, token refreshes (~60s) cause supabase to change, which
   // re-triggers determineFlow, which calls setStep('loading'), which UNMOUNTS the QR flow
   // mid-session and destroys the polling interval + session_id.
   const flowDeterminedRef = useRef(false);

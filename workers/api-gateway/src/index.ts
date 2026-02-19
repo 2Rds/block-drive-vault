@@ -37,9 +37,6 @@ export interface Env {
   FILEBASE_ACCESS_KEY: string;
   FILEBASE_SECRET_KEY: string;
 
-  // Crossmint NFT minting (secrets set via `wrangler secret put`)
-  CROSSMINT_SERVER_API_KEY: string;
-  CROSSMINT_ENVIRONMENT: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
 
   // Solana native minting (SNS + Bubblegum V2)
@@ -50,8 +47,8 @@ export interface Env {
   SNS_PARENT_DOMAIN_KEY: string;
   TREASURY_PRIVATE_KEY: string;
 
-  // Clerk webhooks
-  CLERK_WEBHOOK_SECRET: string;
+  // Dynamic webhooks
+  DYNAMIC_WEBHOOK_SECRET: string;
 }
 
 // ============================================
@@ -253,7 +250,7 @@ async function handleR2Request(request: Request, env: Env, url: URL): Promise<Re
     return handleR2Get(key, env);
   }
 
-  // Direct key PUT — used by clerk-webhook for folder provisioning
+  // Direct key PUT — used by dynamic-webhook for folder provisioning
   if (request.method === 'PUT') {
     const authError = requireAuth(request);
     if (authError) return authError;

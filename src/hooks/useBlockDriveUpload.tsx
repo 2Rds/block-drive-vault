@@ -4,8 +4,8 @@ import { StorageConfig, DEFAULT_STORAGE_CONFIG } from '@/types/storageProvider';
 import { blockDriveUploadService, BlockDriveUploadResult } from '@/services/blockDriveUploadService';
 import { useWalletCrypto } from './useWalletCrypto';
 import { useAuth } from './useAuth';
-import { useClerkAuth } from '@/contexts/ClerkAuthContext';
-import { useOrganization } from '@clerk/clerk-react';
+import { useDynamicAuth } from '@/contexts/DynamicAuthContext';
+import { useOrganization } from '@/hooks/useOrganizationCompat';
 import { useBlockDriveSolana } from './useBlockDriveSolana';
 import { SecurityLevel as SolanaSecurityLevel } from '@/services/solana';
 import { toast } from 'sonner';
@@ -76,7 +76,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
   const { enableOnChainRegistration = true, solanaCluster = 'devnet' } = options;
   
   const { walletData } = useAuth();
-  const { supabase, userId: clerkUserId } = useClerkAuth();
+  const { supabase, userId } = useDynamicAuth();
   const { organization } = useOrganization();
   const walletCrypto = useWalletCrypto();
   const solana = useBlockDriveSolana({ cluster: solanaCluster });
@@ -227,18 +227,18 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
         proofUpload: result.proofUpload,
       });
 
-      if (clerkUserId && supabase) {
+      if (userId && supabase) {
         try {
           const ipfsUrl = `https://ipfs.filebase.io/ipfs/${result.contentCID}`;
 
           console.log('[useBlockDriveUpload] Inserting file record:', {
-            clerk_user_id: clerkUserId,
+            user_id: userId,
             filename: file.name,
             ipfs_cid: result.contentCID,
           });
 
           const { data: insertedRow, error: dbError } = await supabase.from('files').insert({
-            clerk_user_id: clerkUserId,
+            user_id: userId,
             filename: file.name,
             file_path: `${folderPath}${folderPath.endsWith('/') ? '' : '/'}${file.name}`,
             file_size: file.size,
@@ -271,7 +271,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
           toast.error(`DB save error: ${dbError instanceof Error ? dbError.message : 'Unknown'}`);
         }
       } else {
-        console.warn('[useBlockDriveUpload] Skipping DB insert — clerkUserId:', clerkUserId, 'supabase:', !!supabase);
+        console.warn('[useBlockDriveUpload] Skipping DB insert — userId:', userId, 'supabase:', !!supabase);
         toast.warning('File uploaded but not saved — not authenticated');
       }
 
@@ -297,7 +297,7 @@ export function useBlockDriveUpload(options: UseBlockDriveUploadOptions = {}): U
       setIsUploading(false);
       setTimeout(() => setProgress(null), PROGRESS_CLEAR_DELAY_MS);
     }
-  }, [walletData, walletCrypto, solana, enableOnChainRegistration, clerkUserId, supabase, organization]);
+  }, [walletData, walletCrypto, solana, enableOnChainRegistration, userId, supabase, organization]);
 
   const uploadFiles = useCallback(async (
     files: FileList | File[],

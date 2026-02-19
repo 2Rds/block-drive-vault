@@ -24,7 +24,7 @@ import {
   NAME_PROGRAM_ID,
   ROOT_DOMAIN_ACCOUNT,
 } from '@bonfida/spl-name-service';
-import { createSolanaConnection } from '@/config/crossmint';
+import { createSolanaConnection } from '@/config/dynamic';
 import {
   BLOCKDRIVE_PARENT_DOMAIN,
   SNS_PARENT_OWNER,
@@ -39,7 +39,7 @@ const BLOCKDRIVE_PARENT_KEY = getHashedNameSync('blockdrive');
 const MIN_SUBDOMAIN_LENGTH = 3;
 const MAX_SUBDOMAIN_LENGTH = 32;
 
-// Get Solana connection using Crossmint config
+// Get Solana connection
 const getConnection = () => createSolanaConnection();
 
 export interface SubdomainAvailability {
@@ -66,7 +66,7 @@ export interface SubdomainInfo {
   data?: string;
 }
 
-export interface CrossmintTransactionSigner {
+export interface TransactionSigner {
   signTransaction: (transaction: Transaction) => Promise<Transaction>;
   signAndSendTransaction: (transaction: Transaction) => Promise<string>;
   walletAddress: string | null;
@@ -240,7 +240,7 @@ class SNSSubdomainService {
   async registerSubdomain(
     subdomain: string,
     walletAddress: string,
-    crossmintSigner: CrossmintTransactionSigner,
+    signer: TransactionSigner,
     verifyNFT: boolean = true
   ): Promise<SubdomainRegistration> {
     const fullDomain = `${subdomain}.${BLOCKDRIVE_PARENT_DOMAIN}`;
@@ -325,8 +325,8 @@ class SNSSubdomainService {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
       transaction.feePayer = walletPubkey;
 
-      // Sign and send with Crossmint
-      const signature = await crossmintSigner.signAndSendTransaction(transaction);
+      // Sign and send via wallet
+      const signature = await signer.signAndSendTransaction(transaction);
 
       // Wait for confirmation
       const confirmation = await this.connection.confirmTransaction({
@@ -440,17 +440,17 @@ class SNSSubdomainService {
   async transferSubdomain(
     subdomain: string,
     newOwner: string,
-    crossmintSigner: CrossmintTransactionSigner
+    signer: TransactionSigner
   ): Promise<{ success: boolean; signature?: string; error?: string }> {
     try {
-      if (!crossmintSigner.walletAddress) {
+      if (!signer.walletAddress) {
         throw new Error('Wallet not connected');
       }
 
       // Verify current ownership
       const isOwner = await this.verifyOwnership(
         subdomain,
-        crossmintSigner.walletAddress
+        signer.walletAddress
       );
       if (!isOwner) {
         return {
@@ -463,7 +463,7 @@ class SNSSubdomainService {
         `${subdomain}.blockdrive`
       );
 
-      const currentOwner = new PublicKey(crossmintSigner.walletAddress);
+      const currentOwner = new PublicKey(signer.walletAddress);
       const newOwnerPubkey = new PublicKey(newOwner);
 
       // Build transfer instruction
@@ -483,7 +483,7 @@ class SNSSubdomainService {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
       transaction.feePayer = currentOwner;
 
-      const signature = await crossmintSigner.signAndSendTransaction(transaction);
+      const signature = await signer.signAndSendTransaction(transaction);
 
       await this.connection.confirmTransaction({
         signature,
@@ -509,17 +509,17 @@ class SNSSubdomainService {
    */
   async deleteSubdomain(
     subdomain: string,
-    crossmintSigner: CrossmintTransactionSigner
+    signer: TransactionSigner
   ): Promise<{ success: boolean; signature?: string; error?: string }> {
     try {
-      if (!crossmintSigner.walletAddress) {
+      if (!signer.walletAddress) {
         throw new Error('Wallet not connected');
       }
 
       // Verify ownership
       const isOwner = await this.verifyOwnership(
         subdomain,
-        crossmintSigner.walletAddress
+        signer.walletAddress
       );
       if (!isOwner) {
         return {
@@ -532,7 +532,7 @@ class SNSSubdomainService {
         `${subdomain}.blockdrive`
       );
 
-      const owner = new PublicKey(crossmintSigner.walletAddress);
+      const owner = new PublicKey(signer.walletAddress);
 
       // Build delete instruction
       const deleteIx = await deleteNameRegistry(
@@ -551,7 +551,7 @@ class SNSSubdomainService {
       transaction.lastValidBlockHeight = lastValidBlockHeight;
       transaction.feePayer = owner;
 
-      const signature = await crossmintSigner.signAndSendTransaction(transaction);
+      const signature = await signer.signAndSendTransaction(transaction);
 
       await this.connection.confirmTransaction({
         signature,

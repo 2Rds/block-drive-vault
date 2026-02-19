@@ -2,6 +2,56 @@
 
 All notable changes to BlockDrive Vault are documented here.
 
+## [v2.0.0] - 2026-02-19
+
+### Breaking Changes
+- **Auth provider migration**: Replaced Clerk with Dynamic SDK (`@dynamic-labs/sdk-react-core`)
+- **Wallet provider migration**: Replaced Crossmint embedded wallets with Dynamic Fireblocks TSS-MPC wallets
+- **Webhook format change**: Webhooks now use Dynamic HMAC-SHA256 (`x-dynamic-signature-256`) instead of Svix signatures
+- **Environment variables changed**: `VITE_CLERK_PUBLISHABLE_KEY` → `VITE_DYNAMIC_ENVIRONMENT_ID`, all `CROSSMINT_*` vars removed
+- **DB column renames**: `clerk_user_id` → `auth_provider_id` in subscribers table, `crossmint_wallet_address` → `wallet_address` in profiles
+
+### Added
+- Dynamic SDK integration with Fireblocks TSS-MPC embedded wallets (Solana + EVM)
+- `DynamicProvider.tsx` — DynamicContextProvider with passkey, email, and social auth
+- `DynamicAuthContext.tsx` — auth context: userId, user, isSignedIn, supabase (Dynamic JWT), walletAddress
+- `useDynamicWallet.tsx` — wallet hook with `signMessage()` support (critical for WS1 key derivation)
+- `DynamicSupabaseClient.ts` — Supabase client with Dynamic JWT injection
+- `DynamicSignIn.tsx` / `DynamicSignUp.tsx` — sign-in/sign-up pages using Dynamic auth modal
+- `ConnectButton.tsx` / `ProtectedRoute.tsx` / `UserButton.tsx` — auth UI components for Dynamic
+- `useOrganizationCompat.tsx` — compatibility shim for org hooks (Supabase-backed orgs in WS6)
+- Dynamic webhook handler with HMAC-SHA256 constant-time signature verification
+- Provider-agnostic `TransactionSigner` interface (replaces Crossmint-specific signer)
+- `PaymentProvider` type `'crypto'` (replaces `'crossmint'`)
+
+### Removed
+- `@clerk/clerk-react` package and all Clerk imports (52+ files modified)
+- `ClerkAuthContext.tsx`, `StandaloneAuthProvider.tsx`, `ClerkConnectButton.tsx`, `ClerkProtectedRoute.tsx`
+- `ClerkSupabaseClient.ts`, `clerkTheme.ts`, `SignIn.tsx`, `SignUp.tsx` (old Clerk pages)
+- `CrossmintProvider.tsx`, `useCrossmintWallet.tsx`, `crossmint.ts` config
+- `services/crossmint/` directory, `workers/crossmint-proxy/` directory
+- `supabase/functions/create-crossmint-wallet/`, `sync-crossmint-wallet/`, `_shared/crossmint.ts`
+- `supabase/functions/clerk-webhook/` (replaced by Dynamic webhook)
+- `derive-key-material` edge function (server-side key derivation vulnerability — replaced by client-side in WS1)
+- `/webhooks/clerk` backward-compat route
+- Dead backward-compat exports: `useClerkAuth`, `useCrossmintWallet`, `ClerkConnectButton`, `ClerkProtectedRoute`
+
+### Changed
+- All `useClerkAuth()` calls → `useDynamicAuth()` (same interface)
+- All `useCrossmintWallet()` calls → `useDynamicWallet()` (same interface + `signMessage`)
+- Supabase JWT verification updated for Dynamic JWT format (`sub` claim = Dynamic user ID)
+- Storage providers use `window.__dynamic_session` instead of `__clerk_session`
+- Webhook handler uses `x-dynamic-signature-256` HMAC-SHA256 instead of Svix `svix-signature`
+- CSP headers updated: removed clerk.dev/crossmint.com domains, added Dynamic SDK domains
+- 16 Supabase Edge Functions updated to verify Dynamic JWT instead of Clerk JWT
+- `create-checkout` edge function: provider-agnostic user ID handling
+- DB migration: `wallets` table (renamed from `crossmint_wallets`), `auth_provider_id` column
+
+### Fixed
+- Zero stale Clerk/Crossmint references remain in `src/`, `supabase/functions/`, or `workers/api-gateway/src/`
+- DocsContent section ID now matches DocsSidebar (`dynamic-auth-integration`)
+- Agent coding assistant config updated to reference Dynamic SDK
+
 ## [v1.2.0] - 2026-02-19
 
 ### Added
