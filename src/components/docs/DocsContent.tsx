@@ -2234,7 +2234,6 @@ const { criticalBytes, fileIv } = await ecdhKeyExchange
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-foreground">Recovery SDK</h1>
-            <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
           </div>
           <p className="text-lg text-muted-foreground mt-4">
             Open-source Python SDK for recovering files encrypted with BlockDrive, ensuring users are never locked in.
@@ -2275,25 +2274,23 @@ pip install blockdrive-recovery[filebase]`}
           </CardHeader>
           <CardContent>
             <CodeBlock id="sdk-usage">
-{`from blockdrive_recovery import BlockDriveRecovery, SecurityLevel
+{`from blockdrive import BlockDriveRecovery, SecurityLevel
 
-# Initialize recovery
-recovery = BlockDriveRecovery()
-
-# Derive key from wallet signature
-recovery.derive_key_from_signature(signature_bytes, SecurityLevel.STANDARD)
+# Initialize with wallet signature
+recovery = BlockDriveRecovery(
+    signatures={SecurityLevel.STANDARD: signature_bytes},
+)
 
 # Recover file using content CID and proof CID
-result = recovery.recover_file(content_cid, proof_cid, SecurityLevel.STANDARD)
+result = recovery.recover_file(
+    content_cid="bafybeig...",
+    proof_cid="proof-abc123",
+    security_level=SecurityLevel.STANDARD,
+)
 
-# With Solana on-chain verification
-from blockdrive_recovery.solana import SolanaVerifier
-verifier = SolanaVerifier(network="devnet")
-
-# With enterprise Filebase gateway
-from blockdrive_recovery import FilebaseClient
-filebase = FilebaseClient(dedicated_gateway="https://your-gateway.filebase.io")
-recovery = BlockDriveRecovery(filebase_client=filebase)`}
+if result.success:
+    with open("recovered.pdf", "wb") as f:
+        f.write(result.data)`}
             </CodeBlock>
           </CardContent>
         </Card>

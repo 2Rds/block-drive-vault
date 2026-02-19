@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "blockdrive-recovery"
+version = "1.0.0"
+description = "Open-source recovery tool for BlockDrive encrypted files"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "BlockDrive", email = "support@blockdrive.co" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: System :: Archiving",
+]
+keywords = [
+    "blockdrive", "encryption", "recovery", "ipfs",
+    "filebase", "solana", "web3", "decentralized-storage",
+]
+dependencies = [
+    "cryptography>=41.0.0",
+    "httpx>=0.24.0",
+]
+
+[project.optional-dependencies]
+solana = [
+    "solana>=0.30.0",
+    "solders>=0.20.0",
+]
+filebase = [
+    "boto3>=1.28.0",
+]
+full = [
+    "solana>=0.30.0",
+    "solders>=0.20.0",
+    "boto3>=1.28.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/blockdrive/recovery-sdk"
+Documentation = "https://docs.blockdrive.co/recovery-sdk"
+Issues = "https://github.com/blockdrive/recovery-sdk/issues"
+
+[project.scripts]
+blockdrive-recover = "blockdrive.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["blockdrive"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
