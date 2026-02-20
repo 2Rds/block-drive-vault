@@ -2,6 +2,37 @@
 
 All notable changes to BlockDrive Vault are documented here.
 
+## [v2.1.0] - 2026-02-19
+
+### Added
+- Client-side wallet signature key derivation (WS1) — `signatureKeyDerivation.ts` derives 3 independent AES-256-GCM keys from a single wallet signature via HKDF-SHA256
+- 64-byte Ed25519 signature validation with all-zero guard in `deriveKeysFromSignature`
+- In-flight promise deduplication (mutex) on `initializeKeys` — prevents concurrent signing races
+- Contextual error messages on `crypto.subtle.importKey` and `deriveKey` failures
+- `hasAttempted` guard in `CryptoSetupModal` to prevent infinite auto-retry loops
+- `InitResult` return type (`{ success, error }`) from `initializeKeys` — eliminates stale closure bugs
+
+### Removed
+- `supabase/functions/derive-key-material/` edge function — server-side key derivation eliminated
+- `sessionStorage` signature caching — root HKDF secret no longer persisted; module-level singleton is sufficient for SPA navigation
+- Old security-question types from `blockdriveCrypto.ts`
+
+### Changed
+- `useWalletCrypto` hook rewritten: module-level singleton key store with `useSyncExternalStore`, auto-restore removed (re-sign on page reload)
+- `CryptoSetupModal` simplified: auto-derives on open, shows real error messages, manual retry button
+- `keyDerivationService.ts` validates security level and wraps crypto ops with contextual errors
+- User-facing strings updated from "security question" to wallet signing language in 4 components
+
+### Fixed
+- Stale `state.error` closure in `CryptoSetupModal.deriveKeys` — now reads error from `InitResult`
+- Infinite retry loop when signing fails — `hasAttempted` flag prevents effect re-trigger
+- `getKey()` logs warning before re-signing on session expiry
+- ARCHITECTURE.md: fixed HKDF table (was `answer_hash`), heading (was "Security Question Based"), directory tree
+- SECURITY.md: fixed HKDF salt/info parameters in code example
+- DocsContent: fixed card title, legacy edge function label
+
+---
+
 ## [v2.0.0] - 2026-02-19
 
 ### Breaking Changes

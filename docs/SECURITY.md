@@ -1,6 +1,6 @@
 # BlockDrive Security Model
 
-> **Version**: 2.0.0
+> **Version**: 2.1.0
 > **Last Updated**: February 19, 2026
 > **Classification**: Technical Security Documentation
 
@@ -178,13 +178,13 @@ async function deriveEncryptionKeys(signMessage: (msg: Uint8Array) => Promise<Ui
   );
 
   // 3. Derive 3 AES-256-GCM keys via HKDF-SHA256 with distinct info strings
-  const infoStrings = ['blockdrive-level-1', 'blockdrive-level-2', 'blockdrive-level-3'];
+  const infoStrings = ['blockdrive-level-1-encryption', 'blockdrive-level-2-encryption', 'blockdrive-level-3-encryption'];
   const keys = await Promise.all(
     infoStrings.map(async (info) => {
       return crypto.subtle.deriveKey(
         {
           name: 'HKDF',
-          salt: new TextEncoder().encode('blockdrive-v2'),
+          salt: new TextEncoder().encode('BlockDrive-HKDF-Salt-v1'),
           info: new TextEncoder().encode(info),
           hash: 'SHA-256'
         },

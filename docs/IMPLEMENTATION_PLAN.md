@@ -1,10 +1,10 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: ACTIVE - v2.0.0 Released
+> **Status**: ACTIVE - v2.1.0 Released
 >
 > **Last Updated**: February 19, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets).
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets). v2.1.0 completes WS1: client-side wallet signature key derivation.
 
 ---
 
@@ -92,9 +92,9 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 - DB: `clerk_user_id` → `auth_provider_id`, `crossmint_wallets` → `wallets`
 - Webhook format: Svix → Dynamic HMAC-SHA256
 
-### Remaining Work (Post-v2.0.0)
-1. **WS1**: Client-side wallet signature key derivation (replaces server-side `derive-key-material`)
-2. **WS3**: Remove sessionStorage key caching (keys in memory only)
+### Remaining Work (Post-v2.1.0)
+1. ~~**WS1**: Client-side wallet signature key derivation~~ ✅ Complete in v2.1.0
+2. ~~**WS3**: Remove sessionStorage key caching~~ ✅ Resolved in v2.1.0 (sessionStorage caching removed entirely)
 3. **WS6**: Supabase-backed org management (replace org compatibility shim)
 4. **WS4**: Solana program deployment to mainnet
 5. **WS5**: ZK circuit trusted setup ceremony
@@ -2278,5 +2278,5 @@ All implementation phases are complete. The v1.0.0 release includes:
 ---
 
 **Last Updated**: February 19, 2026
-**Document Version**: 2.0.0
-**Status**: ACTIVE - v2.0.0 Released
+**Document Version**: 2.1.0
+**Status**: ACTIVE - v2.1.0 Released

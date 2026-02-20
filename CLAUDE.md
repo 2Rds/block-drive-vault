@@ -1,7 +1,7 @@
 # Block-Drive-Vault — Claude Code Instructions
 
 ## Project Context
-Web3 encrypted file storage platform (v2.0.0).
+Web3 encrypted file storage platform (v2.1.0).
 Dynamic authentication + Fireblocks TSS-MPC embedded Solana wallets. Supabase backend + Cloudflare Worker API Gateway.
 
 ## mem0 Memory

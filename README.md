@@ -1,4 +1,4 @@
-# BlockDrive v2.0.0
+# BlockDrive v2.1.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
@@ -204,6 +204,13 @@ with open("recovered.pdf", "wb") as f:
 ```
 
 ## Development Status
+
+**v2.1.0** — February 19, 2026
+
+- Client-side wallet signature key derivation (WS1) — replaces server-side `derive-key-material`
+- Wallet signs a deterministic message; HKDF-SHA256 derives 3 independent AES-256-GCM keys
+- Keys never leave the browser; no sessionStorage caching of secrets
+- Signature validation (64-byte Ed25519), mutex on concurrent derivation, contextual crypto errors
 
 **v2.0.0** — February 19, 2026
 
