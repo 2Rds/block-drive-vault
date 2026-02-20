@@ -92,16 +92,18 @@ src/
 │   │   ├── SubscriptionManager.tsx
 │   │   └── PricingCard.tsx
 │   ├── crypto/             # Cryptographic UI
-│   │   ├── SecurityQuestionSetup.tsx  # First-use security question
-│   │   └── SecurityQuestionVerify.tsx # Session re-authentication
+│   │   ├── CryptoSetupModal.tsx       # Wallet signature key derivation
+│   │   ├── SecurityQuestionSetup.tsx  # (legacy, unused)
+│   │   └── SecurityQuestionVerify.tsx # (legacy, unused)
 │   ├── integrations/       # Third-party integrations
 │   │   ├── BoxIntegration.tsx, GoogleDriveIntegration.tsx
 │   │   └── SlackIntegration.tsx
 │   └── ui/                 # Full shadcn/ui library
 ├── services/               # 49 service files
 │   ├── crypto/             # Cryptography (AES-256-GCM, ZK)
+│   │   ├── signatureKeyDerivation.ts # WS1 wallet signature → 3 HKDF keys
+│   │   ├── keyDerivationService.ts   # HKDF-SHA256 primitive
 │   │   ├── blockDriveCryptoService.ts
-│   │   ├── keyDerivationService.ts   # 3-level HKDF
 │   │   ├── zkProofService.ts         # Groth16 proofs
 │   │   └── metadataPrivacyService.ts # v2 encrypted metadata
 │   ├── storage/            # Multi-provider orchestration
@@ -120,7 +122,7 @@ src/
 │   └── blockDriveDownloadService.ts  # Verified download
 ├── hooks/                  # React state management
 │   ├── useDynamicWallet.tsx          # Embedded wallet
-│   ├── useWalletCrypto.tsx           # 3-level key derivation (security questions)
+│   ├── useWalletCrypto.tsx           # 3-level key derivation (wallet signature)
 │   ├── useOrganizations.tsx          # Org management
 │   ├── useOrgInviteCode.tsx          # Invite code validation
 │   ├── useOrgEmailVerification.tsx   # Email verification
@@ -387,11 +389,11 @@ UserVaultIndex (1 per user, O(1) lookup)
 
 | Level | Name | Key Derivation | Use Case |
 |-------|------|----------------|----------|
-| **1** | Standard | HKDF(answer_hash + "level1") | General files |
-| **2** | Sensitive | HKDF(answer_hash + "level2") | Personal documents |
-| **3** | Maximum | HKDF(answer_hash + "level3") | Financial/medical |
+| **1** | Standard | HKDF(wallet_sig, salt, "blockdrive-level-1-encryption") | General files |
+| **2** | Sensitive | HKDF(wallet_sig, salt, "blockdrive-level-2-encryption") | Personal documents |
+| **3** | Maximum | HKDF(wallet_sig, salt, "blockdrive-level-3-encryption") | Financial/medical |
 
-#### Key Derivation Process (Security Question Based)
+#### Key Derivation Process (Wallet Signature Based)
 
 Key derivation uses wallet signatures with HKDF-SHA256:
 

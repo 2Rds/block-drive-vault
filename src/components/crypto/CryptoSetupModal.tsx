@@ -20,6 +20,7 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
   const { state, initializeKeys } = useWalletCrypto();
   const [error, setError] = useState<string | null>(null);
   const [deriving, setDeriving] = useState(false);
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   // Short-circuit: if keys are already initialized, immediately complete
   useEffect(() => {
@@ -29,27 +30,35 @@ export function CryptoSetupModal({ isOpen, onClose, onComplete }: CryptoSetupMod
     }
   }, [isOpen, state.isInitialized, onComplete]);
 
-  // Auto-derive keys when modal opens
+  // Reset attempt flag when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasAttempted(false);
+      setError(null);
+    }
+  }, [isOpen]);
+
   const deriveKeys = useCallback(async () => {
     setDeriving(true);
     setError(null);
 
-    const success = await initializeKeys();
-    if (success) {
+    const result = await initializeKeys();
+    if (result.success) {
       onComplete();
     } else {
-      setError(state.error || 'Failed to derive encryption keys. Please try again.');
+      setError(result.error || 'Failed to derive encryption keys. Please try again.');
     }
     setDeriving(false);
-  }, [initializeKeys, onComplete, state.error]);
+  }, [initializeKeys, onComplete]);
 
-  // Start derivation when modal opens (if keys aren't ready)
+  // Auto-derive once when modal opens (if keys aren't ready)
   useEffect(() => {
     if (!isOpen) return;
     if (state.isInitialized) return;
-    if (deriving) return;
+    if (hasAttempted) return;
+    setHasAttempted(true);
     deriveKeys();
-  }, [isOpen, state.isInitialized, deriving, deriveKeys]);
+  }, [isOpen, state.isInitialized, hasAttempted, deriveKeys]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

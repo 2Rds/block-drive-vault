@@ -5,51 +5,19 @@ import {
   KeyDerivationSession
 } from '@/types/blockdriveCrypto';
 import { deriveKeysFromSignature, DERIVATION_MESSAGE } from '@/services/crypto/signatureKeyDerivation';
-import { bytesToHex, hexToBytes } from '@/services/crypto/cryptoUtils';
 import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 
 const SESSION_EXPIRY_MS = 4 * 60 * 60 * 1000;
-const SESSION_CACHE_KEY = 'bd_session_sig';
 
 // ── Module-level singleton key store (shared across all hook instances) ──
+// Survives SPA navigation; cleared on tab close or explicit clearKeys().
 
 let _keys: WalletDerivedKeys | null = null;
 let _session: KeyDerivationSession | null = null;
-let _version = 0; // bumped on every mutation so subscribers re-render
-let _autoRestoreAttempted = false;
+let _version = 0;
 
-// ── Cached signature (survives navigation within the same tab) ──
-// WS3 will remove this entirely; kept for now to avoid re-signing on every navigation
-
-interface CachedSignature {
-  /** Signature hex string */
-  s: string;
-  /** Wallet address */
-  w: string;
-  /** Expiry timestamp (ms) */
-  e: number;
-}
-
-function _getCachedSignature(): CachedSignature | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
-    if (!raw) return null;
-    const cached: CachedSignature = JSON.parse(raw);
-    if (Date.now() >= cached.e) {
-      sessionStorage.removeItem(SESSION_CACHE_KEY);
-      return null;
-    }
-    return cached;
-  } catch { return null; }
-}
-
-function _setCachedSignature(c: CachedSignature) {
-  try { sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(c)); } catch {}
-}
-
-function _clearCachedSignature() {
-  try { sessionStorage.removeItem(SESSION_CACHE_KEY); } catch {}
-}
+// In-flight dedup: prevents concurrent initializeKeys() calls from racing
+let _initPromise: Promise<InitResult> | null = null;
 
 const _listeners = new Set<() => void>();
 function _notify() {
@@ -62,7 +30,12 @@ function _subscribe(cb: () => void) {
 }
 function _getVersion() { return _version; }
 
-// ── Hook ──
+// ── Types ──
+
+export interface InitResult {
+  success: boolean;
+  error?: string;
+}
 
 interface WalletCryptoState {
   isInitialized: boolean;
@@ -74,13 +47,15 @@ interface WalletCryptoState {
 interface UseWalletCryptoReturn {
   state: WalletCryptoState;
   hasKey: (level: SecurityLevel) => boolean;
-  initializeKeys: () => Promise<boolean>;
+  initializeKeys: () => Promise<InitResult>;
   getKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   refreshKey: (level: SecurityLevel) => Promise<CryptoKey | null>;
   clearKeys: () => void;
   sessionExpiresAt: number | null;
   isSessionValid: boolean;
 }
+
+// ── Hook ──
 
 export function useWalletCrypto(): UseWalletCryptoReturn {
   const dynamicWallet = useDynamicWallet();
@@ -117,8 +92,7 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   const clearKeys = useCallback(() => {
     _keys = null;
     _session = null;
-    _autoRestoreAttempted = false;
-    _clearCachedSignature();
+    _initPromise = null;
     _notify();
     setState({
       isInitialized: false,
@@ -145,22 +119,9 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
   }, []);
 
   /**
-   * Derive encryption keys from wallet signature.
-   *
-   * Flow:
-   * 1. Check if keys are already initialized and valid → return true
-   * 2. Try cached signature from sessionStorage → derive without re-signing
-   * 3. Call signMessage(DERIVATION_MESSAGE) → get fresh signature → derive keys
-   *
-   * The server NEVER sees the signature or derived keys.
+   * Core derivation logic. Called only by initializeKeys() with dedup guard.
    */
-  const initializeKeys = useCallback(async (): Promise<boolean> => {
-    if (_keys?.initialized && _session && Date.now() < _session.expiresAt) {
-      setState(prev => ({ ...prev, isInitialized: true }));
-      return true;
-    }
-
-    // Read latest wallet state from ref (not stale closure)
+  const _doInitializeKeys = useCallback(async (): Promise<InitResult> => {
     const wallet = walletRef.current;
     const walletAddress = wallet.walletAddress;
 
@@ -171,31 +132,16 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
 
     if (!walletAddress) {
       console.warn('[useWalletCrypto] No wallet connected');
-      setState(prev => ({ ...prev, error: 'No wallet connected' }));
-      return false;
+      setState(prev => ({ ...prev, error: 'No wallet connected', isInitializing: false }));
+      return { success: false, error: 'No wallet connected' };
     }
 
     setState(prev => ({ ...prev, isInitializing: true, error: null }));
 
     try {
-      // Try cached signature first (avoids re-signing on navigation)
-      const cached = _getCachedSignature();
-      let signature: Uint8Array;
-      let expiresAt: number;
-
-      if (cached && cached.w === walletAddress && Date.now() < cached.e) {
-        signature = hexToBytes(cached.s);
-        expiresAt = cached.e;
-        console.log('[useWalletCrypto] Restored signature from cache');
-      } else {
-        // Sign the derivation message with the wallet
-        console.log('[useWalletCrypto] Signing derivation message...');
-        signature = await wallet.signMessage(DERIVATION_MESSAGE);
-        expiresAt = Date.now() + SESSION_EXPIRY_MS;
-
-        // Cache signature for session persistence across navigation (WS3 will remove this)
-        _setCachedSignature({ s: bytesToHex(signature), w: walletAddress, e: expiresAt });
-      }
+      console.log('[useWalletCrypto] Signing derivation message...');
+      const signature = await wallet.signMessage(DERIVATION_MESSAGE);
+      const expiresAt = Date.now() + SESSION_EXPIRY_MS;
 
       // Derive all 3 keys from the signature
       const derivedKeys = await deriveKeysFromSignature(signature);
@@ -231,11 +177,10 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         error: null,
       });
 
-      return true;
+      return { success: true };
     } catch (error) {
       _keys = null;
       _session = null;
-      _clearCachedSignature();
       _notify();
 
       const errorMessage = error instanceof Error ? error.message : 'Key initialization failed';
@@ -247,41 +192,57 @@ export function useWalletCrypto(): UseWalletCryptoReturn {
         error: errorMessage,
       });
 
-      return false;
+      return { success: false, error: errorMessage };
     }
   }, []);
 
-  // Auto-restore keys when wallet becomes available
-  useEffect(() => {
-    if (!hasAnyWallet) return;
-    if (_keys?.initialized && _session && Date.now() < _session.expiresAt) return;
-    if (_autoRestoreAttempted) return;
-
-    // Try restoring from cached signature (no signing prompt needed)
-    const cached = _getCachedSignature();
-    if (cached) {
-      _autoRestoreAttempted = true;
-      initializeKeys().then(success => {
-        if (!success) _autoRestoreAttempted = false;
-      });
+  /**
+   * Derive encryption keys from wallet signature.
+   *
+   * Flow:
+   * 1. Check if keys are already initialized and valid → return success
+   * 2. Deduplicate concurrent calls → return in-flight promise
+   * 3. Call signMessage(DERIVATION_MESSAGE) → derive keys via HKDF
+   *
+   * The server NEVER sees the signature or derived keys.
+   */
+  const initializeKeys = useCallback(async (): Promise<InitResult> => {
+    if (_keys?.initialized && _session && Date.now() < _session.expiresAt) {
+      setState(prev => ({ ...prev, isInitialized: true }));
+      return { success: true };
     }
-  }, [hasAnyWallet, initializeKeys]);
+
+    // Deduplicate: if another call is already in flight, return its promise
+    if (_initPromise) return _initPromise;
+
+    _initPromise = _doInitializeKeys();
+    try {
+      return await _initPromise;
+    } finally {
+      _initPromise = null;
+    }
+  }, [_doInitializeKeys]);
 
   const getKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
     if (!isSessionValid()) {
-      const success = await initializeKeys();
-      if (!success) return null;
+      console.warn(`[useWalletCrypto] Session expired; re-deriving keys for getKey(level=${level})`);
+      const result = await initializeKeys();
+      if (!result.success) {
+        console.error('[useWalletCrypto] getKey failed: could not re-initialize keys');
+        return null;
+      }
     }
 
     const cachedKey = _keys?.keys.get(Number(level) as SecurityLevel);
-    if (cachedKey) return cachedKey.key;
-
-    return null;
+    if (!cachedKey) {
+      console.error(`[useWalletCrypto] getKey: no key found for level ${level} despite successful init`);
+    }
+    return cachedKey?.key ?? null;
   }, [isSessionValid, initializeKeys]);
 
   const refreshKey = useCallback(async (level: SecurityLevel): Promise<CryptoKey | null> => {
-    const success = await initializeKeys();
-    if (!success) return null;
+    const result = await initializeKeys();
+    if (!result.success) return null;
     return _keys?.keys.get(level)?.key ?? null;
   }, [initializeKeys]);
 

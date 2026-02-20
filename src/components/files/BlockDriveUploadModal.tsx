@@ -262,7 +262,7 @@ export function BlockDriveUploadModal({
               <div className="flex-1">
                 <p className="text-sm text-amber-400 font-medium">Encryption Keys Required</p>
                 <p className="text-xs text-muted-foreground">
-                  Answer your security question to unlock encryption keys
+                  Sign with your wallet to unlock encryption keys
                 </p>
               </div>
               <Button

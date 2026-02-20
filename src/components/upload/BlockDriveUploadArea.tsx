@@ -165,7 +165,7 @@ export function BlockDriveUploadArea({
                 Set Up Your Encryption Keys
               </h3>
               <p className="text-muted-foreground mb-4">
-                Answer your security question to unlock your encryption keys. First time? You'll set one up.
+                Sign with your wallet to derive your encryption keys. Keys are generated client-side and never leave your device.
               </p>
               <Button 
                 onClick={() => setShowCryptoSetup(true)}

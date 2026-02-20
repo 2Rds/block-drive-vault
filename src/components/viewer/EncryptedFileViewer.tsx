@@ -241,7 +241,7 @@ export function EncryptedFileViewer({
                     <span className="font-medium">Decryption Keys Required</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Answer your security question to unlock your encryption keys.
+                    Sign with your wallet to unlock your encryption keys.
                   </p>
                   <Button
                     onClick={() => setCryptoSetupOpen(true)}

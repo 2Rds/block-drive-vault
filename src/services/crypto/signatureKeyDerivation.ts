@@ -26,11 +26,24 @@ const ALL_LEVELS = [SecurityLevel.STANDARD, SecurityLevel.SENSITIVE, SecurityLev
  * The same signature produces the same 3 keys every time (deterministic).
  * Level-specific HKDF info strings ensure cryptographic independence.
  *
- * @param signature - 64-byte ed25519 signature from wallet.signMessage()
+ * @param signature - 64-byte Ed25519 signature from Solana wallet.signMessage()
+ * @throws If signature is empty, wrong length, or all zeros
  */
 export async function deriveKeysFromSignature(
   signature: Uint8Array
 ): Promise<Map<SecurityLevel, DerivedEncryptionKey>> {
+  if (!signature || signature.length === 0) {
+    throw new Error('Cannot derive keys: wallet returned empty signature');
+  }
+  if (signature.length !== 64) {
+    throw new Error(
+      `Cannot derive keys: expected 64-byte Ed25519 signature, got ${signature.length} bytes`
+    );
+  }
+  if (signature.every(b => b === 0)) {
+    throw new Error('Cannot derive keys: wallet returned an all-zero signature');
+  }
+
   const keys = new Map<SecurityLevel, DerivedEncryptionKey>();
   for (const level of ALL_LEVELS) {
     keys.set(level, await deriveKeyFromMaterial(signature, level));

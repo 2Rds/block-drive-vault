@@ -218,7 +218,7 @@ import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                   2
                 </div>
-                <CardTitle>Set Up Your Security Question</CardTitle>
+                <CardTitle>Derive Your Encryption Keys</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1089,7 +1089,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
             <div className="grid gap-4">
               {[
                 { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS via Worker gateway with metadata storage" },
-                { name: "security-question", desc: "Get, set, and verify security questions (legacy)" },
+                { name: "security-question", desc: "Get, set, and verify security questions (legacy — not used in current key derivation)" },
                 { name: "auth-webhook", desc: "Handle user/org events, provision storage folders, sync profiles" },
                 { name: "check-subscription", desc: "Verify user subscription status and quotas" },
                 { name: "create-checkout", desc: "Process Stripe payments and subscriptions" },
