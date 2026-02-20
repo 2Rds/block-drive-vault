@@ -24,7 +24,7 @@ const HKDF_INFO = {
 /**
  * Derive an AES-256-GCM key from raw key material using HKDF
  *
- * @param material - 32 bytes of key material (from server HMAC or wallet signature)
+ * @param material - Key material bytes (64-byte ed25519 wallet signature)
  * @param level - Security level for context separation
  */
 export async function deriveKeyFromMaterial(

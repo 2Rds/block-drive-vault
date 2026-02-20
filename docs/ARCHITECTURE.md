@@ -151,8 +151,7 @@ supabase/functions/                 # 41 edge functions
 │   ├── send-auth-token/            # Email auth token generation
 │   └── authenticate-wallet/        # Wallet authentication flow
 ├── crypto/
-│   ├── security-question/          # Get/set/verify security questions
-│   └── derive-key-material/        # Derive key materials from answer hash
+│   └── security-question/          # Get/set/verify security questions (legacy)
 ├── wallet/
 │   ├── sync-dynamic-wallet/        # Dynamic wallet DB sync
 │   ├── create-dynamic-wallet/      # Dynamic embedded wallet creation
@@ -394,46 +393,28 @@ UserVaultIndex (1 per user, O(1) lookup)
 
 #### Key Derivation Process (Security Question Based)
 
-As of v1.0.0, key derivation uses security questions instead of wallet signatures:
+Key derivation uses wallet signatures with HKDF-SHA256:
 
-1. **First Use**: User sets a security question via `SecurityQuestionSetup` component
-2. **Answer Hash**: Answer is hashed and sent to the `derive-key-material` edge function
-3. **Server Response**: Server returns key material for all 3 security levels
-4. **Client Derivation**: Client derives AES-256-GCM CryptoKeys via HKDF-SHA256
-5. **Session Caching**: Answer hash cached in `sessionStorage` (survives page refresh, clears on tab close)
-6. **Session Expiry**: 4-hour session with auto-restore via module-level singleton (`useSyncExternalStore`)
+1. **Signing**: Wallet signs `"BlockDrive Key Derivation v1"` → 64-byte Ed25519 signature
+2. **HKDF Derivation**: Signature used as HKDF input with 3 level-specific info strings
+3. **Client-Only**: Keys exist only in browser memory — server never sees the signature or keys
+4. **Deterministic**: Same wallet + same message = same keys on any device
+5. **Session Expiry**: 4-hour session with auto-restore via module-level singleton (`useSyncExternalStore`)
 
 ```typescript
-// src/services/crypto/keyDerivationService.ts
+// src/services/crypto/signatureKeyDerivation.ts
 
-// 1. User answers security question
-const answerHash = await hashAnswer(answer);
+// 1. Wallet signs derivation message (automatic with Dynamic session)
+const signature = await wallet.signMessage("BlockDrive Key Derivation v1");
 
-// 2. Send to edge function for key material
-const response = await supabase.functions.invoke('derive-key-material', {
-  body: { answerHash }
-});
-const { keyMaterials } = response.data; // 3 levels
+// 2. Derive 3 independent AES-256-GCM keys via HKDF-SHA256
+const keys = await deriveKeysFromSignature(signature);
+// Each level uses different HKDF info for cryptographic independence:
+//   HKDF(sig, "BlockDrive-HKDF-Salt-v1", "blockdrive-level-1-encryption") → Standard
+//   HKDF(sig, "BlockDrive-HKDF-Salt-v1", "blockdrive-level-2-encryption") → Sensitive
+//   HKDF(sig, "BlockDrive-HKDF-Salt-v1", "blockdrive-level-3-encryption") → Maximum
 
-// 3. Derive AES-256-GCM keys client-side via HKDF
-for (const level of [1, 2, 3]) {
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: 'HKDF',
-      salt: new TextEncoder().encode(`blockdrive-level-${level}`),
-      info: new TextEncoder().encode('encryption-key'),
-      hash: 'SHA-256',
-    },
-    keyMaterials[level],
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt', 'decrypt']
-  );
-}
-
-// 4. Answer hash cached in sessionStorage for session persistence
-sessionStorage.setItem('bd-answer-hash', answerHash);
-// Auto-expires after 4 hours
+// 3. Keys stored in module-level singleton, never transmitted
 ```
 
 ### Programmed Incompleteness

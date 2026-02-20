@@ -17,7 +17,7 @@ export function useWebAuthnAuthentication() {
 
   /**
    * Direct WebAuthn authentication on current device.
-   * Returns an assertion_token that replaces answer_hash for derive-key-material.
+   * Returns an assertion_token for identity verification.
    */
   const authenticate = useCallback(async (): Promise<WebAuthnVerificationResult | null> => {
     setIsAuthenticating(true);

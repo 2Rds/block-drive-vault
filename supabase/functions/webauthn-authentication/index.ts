@@ -307,7 +307,7 @@ serve(async (req) => {
       const { error: deleteErr } = await supabase.from('webauthn_challenges').delete().eq('id', challengeRow.id);
       if (deleteErr) console.error('[webauthn-authentication] Challenge delete failed:', deleteErr);
 
-      // Generate assertion token (replaces answer_hash for derive-key-material)
+      // Generate assertion token for identity verification
       const assertionToken = crypto.randomUUID();
 
       const { error: tokenInsertErr } = await supabase.from('webauthn_assertion_tokens').insert({

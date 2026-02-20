@@ -12,13 +12,6 @@ export enum SecurityLevel {
   MAXIMUM = 3     // Level 3 - Maximum security
 }
 
-// Messages to sign for deriving encryption keys
-export const SECURITY_LEVEL_MESSAGES = {
-  [SecurityLevel.STANDARD]: "BlockDrive Security Level One - Standard Protection",
-  [SecurityLevel.SENSITIVE]: "BlockDrive Security Level Two - Sensitive Data Protection", 
-  [SecurityLevel.MAXIMUM]: "BlockDrive Security Level Three - Maximum Security"
-} as const;
-
 // Derived encryption key with metadata
 export interface DerivedEncryptionKey {
   level: SecurityLevel;
@@ -86,16 +79,9 @@ export interface FileRecord {
   updatedAt: number;
 }
 
-// Signature request for key derivation
-export interface SignatureRequest {
-  message: string;
-  level: SecurityLevel;
-}
-
 // Key derivation session state
 export interface KeyDerivationSession {
   walletAddress: string;
-  signatures: Map<SecurityLevel, Uint8Array>;
   keys: Map<SecurityLevel, CryptoKey>;
   isComplete: boolean;
   expiresAt: number;

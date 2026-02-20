@@ -223,9 +223,9 @@ import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Before uploading, you set a personal security question. Your answer is used to derive encryption keys
-                via HKDF — keys are generated client-side and never leave your device. You only need to answer once
-                per browser session; the answer hash is cached in sessionStorage and auto-restored on page refresh.
+                Before uploading, your wallet signs a message to derive encryption keys
+                via HKDF — keys are generated client-side and never leave your device. The signing happens
+                automatically when your Dynamic session is active.
               </p>
               <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
@@ -1089,8 +1089,7 @@ const { activeOrg, organizations, switchOrg } = useOrganizations();`}
             <div className="grid gap-4">
               {[
                 { name: "upload-to-ipfs", desc: "Handle file uploads to IPFS via Worker gateway with metadata storage" },
-                { name: "derive-key-material", desc: "Derive encryption key materials from security answer hash for all 3 security levels" },
-                { name: "security-question", desc: "Get, set, and verify security questions for encryption key derivation" },
+                { name: "security-question", desc: "Get, set, and verify security questions (legacy)" },
                 { name: "auth-webhook", desc: "Handle user/org events, provision storage folders, sync profiles" },
                 { name: "check-subscription", desc: "Verify user subscription status and quotas" },
                 { name: "create-checkout", desc: "Process Stripe payments and subscriptions" },
@@ -1257,25 +1256,25 @@ const uploadWithPI = async (file: File) => {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Encryption keys are derived from a security question answer via HKDF. The answer hash is sent to the
-              <code className="text-primary"> derive-key-material</code> edge function, which returns key material for all 3 security levels.
-              Keys are then derived client-side using HKDF-SHA256 into AES-256-GCM CryptoKeys.
+              Encryption keys are derived from a wallet signature via HKDF. The wallet signs a derivation message,
+              and the 64-byte signature is used as HKDF input with level-specific info strings to produce 3 independent
+              AES-256-GCM keys. The server never sees the signature or derived keys.
             </p>
             <CodeBlock id="aes-encrypt">
-{`// 1. User answers security question (once per session)
-// 2. Answer hash sent to derive-key-material edge function
-// 3. Server returns key materials for all 3 levels
-// 4. Client derives CryptoKeys via HKDF-SHA256
+{`// 1. Wallet signs derivation message (automatic when session active)
+// 2. Signature used as HKDF input with level-specific info strings
+// 3. 3 independent AES-256-GCM keys derived client-side
 
-const keyMaterials = await supabase.functions.invoke('derive-key-material', {
-  body: { answer_hash: answerHash }
-});
+const signature = await wallet.signMessage("BlockDrive Key Derivation v1");
+const keys = await deriveKeysFromSignature(signature);
+// keys: Map<SecurityLevel, DerivedEncryptionKey>
 
-// Derive AES-256-GCM CryptoKey for each level
-const key = await deriveKeyFromMaterial(material, SecurityLevel.MAXIMUM);
+// Each level uses different HKDF info for cryptographic independence:
+//   Standard:  HKDF(sig, salt, "blockdrive-level-1-encryption")
+//   Sensitive: HKDF(sig, salt, "blockdrive-level-2-encryption")
+//   Maximum:   HKDF(sig, salt, "blockdrive-level-3-encryption")
 
-// Keys never leave the browser - 4-hour session with auto-restore
-// Answer hash cached in sessionStorage (survives page refresh)`}
+// Keys never leave the browser - 4-hour session`}
             </CodeBlock>
           </CardContent>
         </Card>
@@ -2510,32 +2509,32 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-4">Key Derivation & Session Management</h1>
           <p className="text-lg text-muted-foreground">
-            BlockDrive derives encryption keys from a personal security question, with session persistence
-            so users only answer once per browser session.
+            BlockDrive derives encryption keys from a wallet signature via HKDF-SHA256. The server never sees
+            the signature or derived keys.
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Security Question Flow</CardTitle>
+            <CardTitle>Wallet Signature Key Derivation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <ol className="space-y-3 text-sm">
               <li className="flex gap-3">
                 <span className="font-bold text-primary shrink-0">1.</span>
-                <span><strong>First time:</strong> User chooses a security question and provides an answer. The question is stored server-side; the answer is hashed client-side (SHA-256) and never stored in plaintext.</span>
+                <span><strong>Signing:</strong> The wallet signs a fixed message (<code className="text-primary">"BlockDrive Key Derivation v1"</code>) using Ed25519. This produces a 64-byte signature.</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-primary shrink-0">2.</span>
-                <span><strong>On each session:</strong> User answers their security question. The answer hash is sent to the <code className="text-primary">derive-key-material</code> edge function.</span>
+                <span><strong>HKDF derivation:</strong> The signature is used as HKDF-SHA256 input with 3 level-specific info strings, producing 3 independent AES-256-GCM keys.</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-primary shrink-0">3.</span>
-                <span><strong>Server response:</strong> The edge function verifies the answer hash and returns key material (hex) for all 3 security levels (Standard, Sensitive, Maximum).</span>
+                <span><strong>Client-only:</strong> Keys exist only in browser memory. The server never sees the signature or keys.</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-primary shrink-0">4.</span>
-                <span><strong>Client derivation:</strong> Key materials are derived into AES-256-GCM CryptoKeys via HKDF-SHA256. Keys exist only in browser memory.</span>
+                <span><strong>Deterministic:</strong> The same wallet always produces the same signature for the same message, so the same keys are derived on any device.</span>
               </li>
             </ol>
           </CardContent>
@@ -2547,17 +2546,17 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              The answer hash is cached in <code className="text-primary">sessionStorage</code> (key: <code className="text-primary">bd_session_hash</code>)
-              so encryption keys can be silently re-derived on page refresh without re-prompting. This provides a seamless experience while maintaining security.
+              Keys are held in a module-level singleton shared across all React components via <code className="text-primary">useSyncExternalStore</code>.
+              Keys persist across route navigation without re-signing.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Auto-Restore</h4>
-                <p className="text-sm text-muted-foreground">When a wallet connects and a stored hash exists, keys are automatically derived in the background. If the CryptoSetupModal opens but keys are already initialized, it immediately completes.</p>
+                <p className="text-sm text-muted-foreground">When a wallet connects, keys are automatically derived in the background. If the CryptoSetupModal opens but keys are already initialized, it immediately completes.</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <h4 className="font-medium mb-2">Session Boundaries</h4>
-                <p className="text-sm text-muted-foreground">Keys expire after 4 hours. Closing the browser tab clears sessionStorage. Logging out explicitly clears all cached keys and the stored hash.</p>
+                <p className="text-sm text-muted-foreground">Keys expire after 4 hours. Closing the browser tab clears all keys. Logging out explicitly clears all cached keys.</p>
               </div>
             </div>
           </CardContent>
@@ -2577,12 +2576,11 @@ component main {public [commitment]} = CriticalBytesCommitment();`}
 {`// Module-level singleton (shared across all hook instances)
 let _keys: WalletDerivedKeys | null = null;
 let _session: KeyDerivationSession | null = null;
-let _answerHash: string | null = null;
 
 // All components using useWalletCrypto() share the same keys
 const { state, initializeKeys, getKey } = useWalletCrypto();
 
-// getKey() auto-refreshes expired sessions from cached hash
+// getKey() auto-refreshes expired sessions via wallet signature
 const cryptoKey = await getKey(SecurityLevel.MAXIMUM);`}
             </CodeBlock>
           </CardContent>
