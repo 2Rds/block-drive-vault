@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 2.0.0
-**Date**: February 19, 2026
-**Status**: ACTIVE - v2.0.0 Release
+**Version**: 2.2.0
+**Date**: February 20, 2026
+**Status**: ACTIVE - v2.2.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -59,7 +59,10 @@
 | **Storage** | Cloudflare R2 + IPFS + Arweave | Encrypted file storage |
 | **Blockchain** | Solana (SNS + Bubblegum V2 + MPL-Core) | On-chain identity & NFTs |
 | **Cryptography** | AES-256-GCM + Groth16 (snarkjs) | Encryption + ZK proofs |
-| **Payments** | Stripe | Fiat subscriptions |
+| **Payments** | Stripe + USDC (Base) | Fiat + crypto subscriptions |
+| **EVM** | viem + wagmi (Base chain) | USDC subscriptions, Aave yield, ENS |
+| **DeFi Yield** | Aave V3 (Base) + Kamino (Solana) | USDC supply/withdraw |
+| **Identity** | SNS + ENS (Namestone) | Dual-chain identity |
 | **Sharding** | Multi-PDA Sharding | 1000+ files per user |
 
 ---
@@ -806,6 +809,69 @@ import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 | Gas Sponsorship | Built-in gasless transactions |
 | MPC Security | Fireblocks TSS (Threshold Signature Scheme) |
 | Key Management | Non-custodial, distributed key shares |
+
+### Dual-Chain Architecture (v2.2.0)
+
+BlockDrive operates across two chains, each serving distinct purposes:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                     DUAL-CHAIN ARCHITECTURE (v2.2.0)                         │
+│                                                                              │
+│  SOLANA                                    EVM / BASE                        │
+│  ┌──────────────────────────────┐         ┌──────────────────────────────┐  │
+│  │ • SNS subdomains             │         │ • USDC subscriptions         │  │
+│  │ • Soulbound cNFTs            │         │   (ERC-20 approve + pull)    │  │
+│  │ • File registry (Anchor)     │         │ • Aave V3 USDC yield         │  │
+│  │ • Encryption key derivation  │         │ • ENS identity (Namestone)   │  │
+│  │ • Kamino USDC yield          │         │ • Gas-sponsored via CDP      │  │
+│  │ • Gas-sponsored via treasury │         │   Paymaster                  │  │
+│  └──────────────────────────────┘         └──────────────────────────────┘  │
+│                                                                              │
+│  SHARED INFRASTRUCTURE:                                                      │
+│  • Dynamic SDK (Fireblocks TSS-MPC) — single auth, both wallets             │
+│  • Supabase (user data, subscriptions, profiles)                             │
+│  • Cloudflare Workers (API gateway, subscription processor)                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Hooks**:
+- `useDynamicWallet()` — Solana wallet + `getEvmWalletClient()` for Base
+- `useCryptoBalance()` — Multi-chain USDC balances (Base + Solana)
+- `useCryptoSubscription()` — ERC-20 approve flow for USDC subscriptions
+- `useAaveYield()` — Aave V3 supply/withdraw on Base
+- `useKaminoYield()` — Kamino KLEND supply/withdraw on Solana
+- `useEnsIdentity()` — ENS subdomain registration via Namestone
+
+### Auto-Debit USDC Subscriptions (v2.2.0)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    CRYPTO SUBSCRIPTION FLOW                                   │
+│                                                                              │
+│  USER (once)                    PROCESSOR (recurring)                        │
+│  ┌─────────────────────┐       ┌──────────────────────────────┐             │
+│  │ 1. USDC.approve()   │       │ Cloudflare Worker cron        │             │
+│  │    on Base           │       │ (daily at 06:00 UTC)          │             │
+│  │                      │       │                                │             │
+│  │ 2. Edge Function     │       │ For each due subscription:    │             │
+│  │    activates sub     │       │  1. Check allowance           │             │
+│  │    in Supabase       │       │  2. Check balance             │             │
+│  └─────────────────────┘       │  3. USDC.transferFrom()       │             │
+│                                 │  4. Update next_billing_date  │             │
+│                                 │                                │             │
+│                                 │ On failure:                    │             │
+│                                 │  Retry at day 3, 7, 10        │             │
+│                                 │  Cancel after max retries      │             │
+│                                 └──────────────────────────────┘             │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Files**:
+- `src/hooks/useCryptoSubscription.ts` — Frontend approve flow
+- `supabase/functions/activate-crypto-subscription/` — Subscription activation + on-chain verification
+- `workers/subscription-processor/` — Daily cron for USDC pulls
 
 ---
 

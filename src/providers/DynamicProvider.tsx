@@ -6,17 +6,49 @@
  * - Passkey/email/social auth
  * - Global Identity (username.blockdrive.eth via Namestone)
  * - Global Wallet (cross-app ecosystem)
+ * - Wagmi provider for EVM on-chain interactions (Base)
  */
 
 import { type ReactNode } from 'react';
 import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
 import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
+import { WagmiProvider } from 'wagmi';
 import { dynamicConfig } from '@/config/dynamic';
+import { wagmiConfig } from '@/config/wagmi';
 
 interface DynamicProviderProps {
   children: ReactNode;
 }
+
+/**
+ * Vault Noir CSS overrides for Dynamic modals.
+ * Matches the dark theme used throughout the app.
+ */
+const vaultNoirCssOverrides = `
+  .dynamic-widget-inline-controls,
+  .dynamic-widget-modal {
+    --dynamic-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --dynamic-base-1: #0a0a0a;
+    --dynamic-base-2: #141414;
+    --dynamic-base-3: #1a1a1a;
+    --dynamic-base-4: #262626;
+    --dynamic-base-5: #333333;
+    --dynamic-text-primary: #fafafa;
+    --dynamic-text-secondary: #a1a1aa;
+    --dynamic-text-tertiary: #71717a;
+    --dynamic-brand-primary-color: #9333ea;
+    --dynamic-badge-primary-background: rgba(147, 51, 234, 0.15);
+    --dynamic-badge-primary-color: #a855f7;
+    --dynamic-border-radius: 0.75rem;
+    --dynamic-hover: rgba(147, 51, 234, 0.08);
+    --dynamic-connect-button-background: #9333ea;
+    --dynamic-connect-button-color: #ffffff;
+    --dynamic-shadow-down-1: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --dynamic-shadow-down-2: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    --dynamic-shadow-down-3: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  }
+`;
 
 export function DynamicProvider({ children }: DynamicProviderProps) {
   if (!dynamicConfig.environmentId) {
@@ -37,22 +69,44 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
       settings={{
         environmentId: dynamicConfig.environmentId,
         walletConnectors: [SolanaWalletConnectors, EthereumWalletConnectors],
+        walletConnectorsOrder: ['EmbeddedWallet', 'WalletConnect'],
+        appName: dynamicConfig.appName,
+        appLogoUrl: dynamicConfig.appLogoUrl,
+        overrides: {
+          evmNetworks: (networks) =>
+            networks.map((network) => {
+              if (network.chainId === dynamicConfig.baseChainId) {
+                return {
+                  ...network,
+                  rpcUrls: [dynamicConfig.baseRpcUrl],
+                };
+              }
+              return network;
+            }),
+        },
+        cssOverrides: vaultNoirCssOverrides,
         events: {
           onAuthSuccess: (args) => {
             console.log('[Dynamic] Auth success:', args.user?.email);
           },
+          onEmbeddedWalletCreated: (args) => {
+            console.log('[Dynamic] Embedded wallet created:', args);
+          },
           onLogout: () => {
             console.log('[Dynamic] User logged out');
-            // Clear any cached session markers
+            // Clear cached session markers and crypto keys
             try {
               sessionStorage.removeItem('blockdrive_session_active');
               sessionStorage.removeItem('blockdrive_tab_init');
+              sessionStorage.removeItem('blockdrive_derived_key');
             } catch { /* ignore */ }
           },
         },
       }}
     >
-      {children}
+      <WagmiProvider config={wagmiConfig}>
+        {children}
+      </WagmiProvider>
     </DynamicContextProvider>
   );
 }

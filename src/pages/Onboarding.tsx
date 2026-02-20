@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@/hooks/useOrganizationCompat';
 import { useUsernameNFT } from '@/hooks/useUsernameNFT';
 import { useDynamicWallet } from '@/hooks/useDynamicWallet';
+import { useEnsIdentity } from '@/hooks/useEnsIdentity';
 import { OrganizationJoinStep, OrganizationContext } from '@/components/onboarding/OrganizationJoinStep';
-import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ export default function Onboarding() {
   const { user } = useUser();
   const { hasUsernameNFT, isLoading: isLoadingNFT, mintUsername, isMinting } = useUsernameNFT();
   const { walletAddress, isLoading: isLoadingWallet, isInitialized: isWalletReady } = useDynamicWallet();
+  const { ensName, registerEns, isRegistering: isRegisteringEns } = useEnsIdentity();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('loading');
   const [mintAttempted, setMintAttempted] = useState(false);
@@ -114,6 +116,17 @@ export default function Onboarding() {
     if (result.success) {
       const fullDomain = getFullDomain();
       toast.success(`Successfully claimed ${fullDomain}!`);
+
+      // Auto-register ENS subdomain (non-blocking)
+      registerEns(effectiveUsername).then((ensResult) => {
+        if (ensResult.success) {
+          toast.success(`ENS identity: ${ensResult.name}`);
+        }
+        // ENS failure is non-blocking — user can still proceed
+      }).catch((err) => {
+        console.warn('[Onboarding] ENS registration failed (non-blocking):', err);
+      });
+
       setCurrentStep('complete');
       setTimeout(() => navigate('/dashboard'), REDIRECT_DELAY_MS);
     } else {
@@ -242,7 +255,7 @@ export default function Onboarding() {
         <StepDivider />
         <StepIndicator
           number={4}
-          label="NFT"
+          label="Identity"
           status={getStepStatus('minting', currentStep, hasUsernameNFT || currentStep === 'complete')}
         />
       </div>
@@ -379,13 +392,30 @@ export default function Onboarding() {
               <CheckCircle2 className="w-8 h-8 text-green-500" />
             </div>
             <h2 className="text-xl font-semibold">All Set!</h2>
+
+            {/* Dual Identity Display: SNS + ENS */}
             {effectiveUsername && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                <p className="font-mono text-green-500 font-semibold text-sm sm:text-base break-all">
-                  {getFullDomain()}
-                </p>
+              <div className="space-y-2">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                  <p className="font-mono text-green-500 font-semibold text-sm sm:text-base break-all">
+                    {getFullDomain()}
+                  </p>
+                </div>
+                {(ensName || isRegisteringEns) && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-center justify-center gap-2">
+                    <Globe className="w-4 h-4 text-blue-400" />
+                    {isRegisteringEns ? (
+                      <span className="text-sm text-blue-300">Registering ENS identity...</span>
+                    ) : (
+                      <p className="font-mono text-blue-400 font-semibold text-sm sm:text-base break-all">
+                        {ensName}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
+
             {organizationContext && (
               <div className="flex items-center justify-center gap-2 text-sm text-green-600">
                 <Building2 className="w-4 h-4" />

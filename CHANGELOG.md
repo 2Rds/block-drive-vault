@@ -2,6 +2,55 @@
 
 All notable changes to BlockDrive Vault are documented here.
 
+## [v2.2.0] - 2026-02-20
+
+### Added
+- **Dual-chain architecture**: EVM/Base support alongside Solana — wagmi + viem integration
+- **Auto-debit USDC subscriptions**: ERC-20 approve + pull model on Base — users approve once, subscription processor pulls monthly
+- **Subscription processor Worker**: Cloudflare Worker with daily cron trigger processes recurring USDC payments, handles retries and cancellations
+- **ENS global identity**: `username.blockdrive.eth` via Namestone API — registered during onboarding alongside SNS `.sol` domain
+- **Dual-chain USDC yield**: Aave V3 on Base (~3-5% APY) + Kamino KLEND on Solana (~4-6% APY) supply/withdraw
+- **Multi-chain USDC balance hook**: `useCryptoBalance` fetches USDC across Base and Solana in parallel
+- **Funding rails**: `FundWalletCard` dashboard CTA with per-chain balance display and Dynamic SDK funding widget
+- **NFT token gate**: `hasBlockDriveNFT` flag in auth context with fallback warning for users lacking soulbound cNFT
+- **Google Drive wallet backup status**: `WalletBackupStatus` settings component reads Dynamic SDK backup state
+- **Yield dashboard**: Tabbed UI (Base/Solana) with supply/withdraw controls, combined stats, idle USDC suggestions
+- **Yield summary card**: Compact dashboard card showing blended APY across both chains
+- New hooks: `useCryptoSubscription`, `useCryptoBalance`, `useAaveYield`, `useKaminoYield`, `useEnsIdentity`
+- New Edge Functions: `activate-crypto-subscription`, `register-ens-subdomain`
+- DB migration: `crypto_subscriptions` billing columns + `crypto_payment_history` enhancements
+
+### Changed
+- `DynamicProvider.tsx`: Added `WagmiProvider` wrapper, Vault Noir CSS overrides, EVM network config, embedded wallet priority
+- `DynamicAuthContext.tsx`: Added `ensName` and `hasBlockDriveNFT` to context, loads from Supabase on login
+- `dynamic.ts` config: Expanded with Base chain, EVM treasury, USDC/Aave contract addresses, ENS parent domain
+- `SecurityHeaders.tsx`: Added CSP domains for Base RPC, Banxa, Aave, Namestone, CDP
+- `paymentService.ts`: Replaced crypto stub with real ERC-20 subscription flow, fixed `subscribe()` method types
+- `useDynamicWallet.tsx`: Added `getEvmWalletClient()` method, fixed interface return types to `Promise<number | null>`
+- `Onboarding.tsx`: Added dual-identity display (SNS + ENS), auto-registers ENS after SNS mint
+- `DataDashboard.tsx`: Added YieldSummaryCard and FundWalletCard to dashboard layout
+- `CryptoCheckoutModal.tsx`: Integrated real approval flow with multi-chain balance display
+
+### Fixed
+- `useCryptoSubscription`: Used `evmWallet` (not `primaryWallet`) for `getWalletClient()` — was targeting wrong chain
+- `useCryptoSubscription`: Added `receipt.status` check after `waitForTransactionReceipt`
+- `activate-crypto-subscription`: Added on-chain verification of approval tx via Base RPC (receipt + allowance check)
+- Subscription processor: Added env var guards, wrapped per-subscription processing in try/catch (one failure no longer kills batch)
+- `useCryptoBalance`: Added `useEffect` auto-fetch on mount, per-chain error logging instead of silent $0
+- `useAaveYield`/`useKaminoYield`: Added `setError()` in refresh catch blocks, `chain: base` to writeContract calls
+- `useKaminoYield`: API failure no longer resets `supplied` to 0 — keeps cached values
+- Bare `catch {}` blocks replaced with `console.warn` logging in DynamicAuthContext and useEnsIdentity
+- Fragile `document.querySelector` DOM queries replaced with `setShowDynamicUserProfile` SDK method
+- Unhandled clipboard promises given `.catch()` handlers
+- Edge Function upsert results now checked and logged
+- ENS fire-and-forget promise in Onboarding given `.catch()` handler
+- Shared `copied` boolean in FundWalletCard split to per-address tracking
+- `PERIOD_MONTHS` constant simplified from 3 identical values to single `APPROVAL_MONTHS = 12`
+- `ApprovalResult` converted to discriminated union type
+- Worker `writeContract` given explicit `chain` and `account` params
+
+---
+
 ## [v2.1.0] - 2026-02-19
 
 ### Added

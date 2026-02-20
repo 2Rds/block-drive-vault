@@ -12,8 +12,8 @@ export const SecurityHeaders = () => {
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://widget.intercom.io https://*.dynamic.xyz https://app.dynamic.xyz;
         font-src 'self' https://fonts.gstatic.com https://widget.intercom.io;
         img-src 'self' data: https: blob:;
-        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.intercom.io https://challenges.cloudflare.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com wss://api.mainnet-beta.solana.com wss://api.devnet.solana.com https://*.dynamicauth.com https://app.dynamicauth.com https://*.dynamic.xyz https://*.coinbase.com https://cca-lite.coinbase.com wss://*.walletlink.org wss://www.walletlink.org https://*.walletconnect.com wss://*.walletconnect.com https://*.workers.dev https://ipfs.filebase.io;
-        frame-src 'self' https://widget.intercom.io https://challenges.cloudflare.com https://*.dynamicauth.com https://*.dynamic.xyz https://*.coinbase.com https://keys.coinbase.com;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.intercom.io https://challenges.cloudflare.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com wss://api.mainnet-beta.solana.com wss://api.devnet.solana.com https://*.dynamicauth.com https://app.dynamicauth.com https://*.dynamic.xyz https://*.coinbase.com https://cca-lite.coinbase.com wss://*.walletlink.org wss://www.walletlink.org https://*.walletconnect.com wss://*.walletconnect.com https://*.workers.dev https://ipfs.filebase.io https://mainnet.base.org https://sepolia.base.org https://*.base.org https://*.banxa.com https://*.aave.com https://app.aave.com https://namestone.xyz https://api.namestone.xyz https://*.cdp.coinbase.com;
+        frame-src 'self' https://widget.intercom.io https://challenges.cloudflare.com https://*.dynamicauth.com https://*.dynamic.xyz https://*.coinbase.com https://keys.coinbase.com https://*.banxa.com https://global.transak.com;
         worker-src 'self' blob:;
         object-src 'none';
         base-uri 'self';

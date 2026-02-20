@@ -6,7 +6,7 @@
  * setActiveOrganization.
  */
 
-import { createContext, useContext, type ReactNode, useMemo, useEffect } from 'react';
+import { createContext, useContext, type ReactNode, useMemo, useEffect, useState } from 'react';
 import {
   useDynamicContext,
   useIsLoggedIn,
@@ -47,6 +47,12 @@ interface DynamicAuthContextType {
 
   // Wallet address (from Dynamic embedded wallet)
   walletAddress: string | null;
+
+  // ENS identity — `username.blockdrive.eth`
+  ensName: string | null;
+
+  // NFT token gate status
+  hasBlockDriveNFT: boolean;
 
   // Organization state — stub until WS6 (Supabase orgs)
   activeOrganization: DynamicOrganization | null;
@@ -132,6 +138,64 @@ export const DynamicAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ENS name — loaded from user_profiles if available
+  const [ensName, setEnsName] = useState<string | null>(null);
+
+  // NFT token gate — check if user has BlockDrive soulbound cNFT
+  const [hasBlockDriveNFT, setHasBlockDriveNFT] = useState(false);
+
+  // Load ENS name and NFT status when user is logged in
+  useEffect(() => {
+    if (!isLoggedIn || !dynamicUser?.userId) {
+      setEnsName(null);
+      setHasBlockDriveNFT(false);
+      return;
+    }
+
+    const loadUserExtras = async () => {
+      try {
+        const client = isLoggedIn ? supabase : supabaseAnon;
+
+        // Load ENS name from user_profiles
+        const { data: profile } = await client
+          .from('user_profiles')
+          .select('ens_name')
+          .eq('user_id', dynamicUser.userId)
+          .single();
+
+        if (profile?.ens_name) {
+          setEnsName(profile.ens_name);
+        }
+
+        // Check for BlockDrive soulbound cNFT
+        const { data: nft } = await client
+          .from('username_nfts')
+          .select('id')
+          .eq('user_id', dynamicUser.userId)
+          .eq('status', 'active')
+          .limit(1)
+          .single();
+
+        const nftExists = !!nft;
+        setHasBlockDriveNFT(nftExists);
+
+        // Token gate fallback warning — user passed auth but lacks NFT
+        if (!nftExists) {
+          console.warn(
+            '[DynamicAuth] Token gate: user %s is authenticated but does not have a BlockDrive soulbound cNFT. ' +
+            'Features requiring NFT verification may be restricted.',
+            dynamicUser.userId,
+          );
+        }
+      } catch (err) {
+        // Non-fatal — ENS/NFT data is informational
+        console.warn('[DynamicAuth] Failed to load ENS/NFT data:', err);
+      }
+    };
+
+    loadUserExtras();
+  }, [isLoggedIn, dynamicUser?.userId, supabase]);
+
   // Stub org management — WS6 will replace with Supabase-backed context
   const handleSetActiveOrganization = async (_orgId: string | null) => {
     // No-op until WS6
@@ -158,6 +222,8 @@ export const DynamicAuthProvider = ({ children }: { children: ReactNode }) => {
     isSignedIn: isLoggedIn,
     user: mappedUser,
     walletAddress,
+    ensName,
+    hasBlockDriveNFT,
     // Organization stubs — WS6 replaces
     activeOrganization: null,
     organizations: [],

@@ -139,23 +139,97 @@ class PaymentService {
   }
 
   /**
-   * Subscribe using cryptocurrency
-   * Currently unavailable — will use Dynamic funding rails (Phase 2)
+   * Subscribe using cryptocurrency (ERC-20 approve + pull on Base).
+   *
+   * This is called AFTER the user has already approved USDC spending
+   * via useCryptoSubscription hook. It records the subscription and
+   * initiates the first charge via the activate-crypto-subscription Edge Function.
    */
-  async subscribeCrypto(_options: PaymentOptions): Promise<CryptoCheckoutResult> {
-    return {
-      success: false,
-      error: 'Crypto subscriptions are temporarily unavailable during our platform upgrade. Please use card payment.',
-      provider: 'crypto',
-    };
+  async subscribeCrypto(
+    options: PaymentOptions & {
+      approvalTxHash: string;
+      walletAddress: string;
+      supabase?: import('@supabase/supabase-js').SupabaseClient;
+    },
+  ): Promise<CryptoCheckoutResult> {
+    try {
+      const client = options.supabase ?? supabase;
+
+      const { data, error } = await client.functions.invoke(
+        'activate-crypto-subscription',
+        {
+          body: {
+            tier: options.tier,
+            billingPeriod: options.billingPeriod,
+            approvalTxHash: options.approvalTxHash,
+            walletAddress: options.walletAddress,
+            billingChain: 'base',
+          },
+        },
+      );
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message || 'Failed to activate crypto subscription',
+          provider: 'crypto',
+        };
+      }
+
+      return {
+        success: true,
+        provider: 'crypto',
+        subscriptionId: data?.subscriptionId,
+        transactionHash: data?.firstChargeTxHash,
+        subscription: data?.subscription
+          ? {
+              status: data.subscription.status,
+              tier: options.tier,
+              currentPeriodStart: data.subscription.current_period_start,
+              currentPeriodEnd: data.subscription.current_period_end,
+              nextChargeDate: data.subscription.next_billing_date,
+            }
+          : undefined,
+        payment: {
+          amountUsd: data?.chargedAmount ?? '0',
+          currency: 'USDC',
+          tier: options.tier,
+          billingPeriod: options.billingPeriod,
+          transactionHash: data?.firstChargeTxHash,
+        },
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Crypto subscription failed';
+      console.error('[PaymentService] Crypto subscription error:', error);
+      return {
+        success: false,
+        error: errorMessage,
+        provider: 'crypto',
+      };
+    }
   }
 
   /**
-   * Unified subscribe method - automatically routes to correct provider
+   * Unified subscribe method - automatically routes to correct provider.
+   * For crypto, callers must provide approvalTxHash and walletAddress.
    */
-  async subscribe(options: PaymentOptions, provider: PaymentProvider): Promise<CheckoutResult> {
+  async subscribe(
+    options: PaymentOptions & { approvalTxHash?: string; walletAddress?: string },
+    provider: PaymentProvider,
+  ): Promise<CheckoutResult> {
     if (provider === 'crypto') {
-      return this.subscribeCrypto(options);
+      if (!options.approvalTxHash || !options.walletAddress) {
+        return {
+          success: false,
+          error: 'Crypto subscriptions require approvalTxHash and walletAddress',
+          provider: 'crypto',
+        };
+      }
+      return this.subscribeCrypto({
+        ...options,
+        approvalTxHash: options.approvalTxHash,
+        walletAddress: options.walletAddress,
+      });
     }
     return this.subscribeFiat(options);
   }

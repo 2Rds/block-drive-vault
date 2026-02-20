@@ -32,8 +32,10 @@ interface DynamicWalletState {
   signTransaction: (transaction: any) => Promise<any>;
   /** Sign and send a transaction using the Dynamic wallet connector */
   signAndSendTransaction: (transaction: any) => Promise<string>;
-  getBalance: () => Promise<number>;
-  getUsdcBalance: () => Promise<number>;
+  getBalance: () => Promise<number | null>;
+  getUsdcBalance: () => Promise<number | null>;
+  /** Get the EVM wallet client from Dynamic (for viem/wagmi interactions on Base) */
+  getEvmWalletClient: () => Promise<any>;
 }
 
 
@@ -169,6 +171,15 @@ export function useDynamicWallet(): DynamicWalletState {
     }
   }, [walletAddress, connection]);
 
+  /** Get an EVM wallet client from the Dynamic EVM wallet (for Base interactions) */
+  const getEvmWalletClient = useCallback(async () => {
+    const evmWallet = userWallets.find((w) => w.chain === 'EVM');
+    if (!evmWallet) {
+      throw new Error('No EVM wallet available');
+    }
+    return (evmWallet as any).getWalletClient();
+  }, [userWallets]);
+
   return {
     walletAddress,
     chainAddresses,
@@ -181,5 +192,6 @@ export function useDynamicWallet(): DynamicWalletState {
     signAndSendTransaction,
     getBalance,
     getUsdcBalance,
+    getEvmWalletClient,
   };
 }

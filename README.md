@@ -1,4 +1,4 @@
-# BlockDrive v2.1.0
+# BlockDrive v2.2.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
@@ -37,7 +37,13 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 
 ### Payments
 - **Stripe Integration**: Fiat payments with Stripe Sync Engine
-- **Crypto Payments**: USDC via embedded wallet (Coming Soon)
+- **Auto-Debit USDC Subscriptions**: ERC-20 approve + pull on Base — user approves once, processor pulls monthly
+- **Dual-Chain USDC Yield**: Earn ~3-6% APY by supplying idle USDC to Aave V3 (Base) or Kamino (Solana)
+- **Exchange Funding**: Coinbase/Banxa on-ramps via Dynamic SDK funding widget
+
+### Global Identity
+- **SNS Domains**: `username.blockdrive.sol` on Solana
+- **ENS Domains**: `username.blockdrive.eth` on Ethereum via Namestone
 
 ### Storage Providers
 - **Filebase (Primary)**: Enterprise IPFS with 3x redundancy
@@ -57,7 +63,9 @@ BlockDrive is a next-generation cloud storage platform that combines encrypted s
 | API Gateway | Cloudflare Worker |
 | Storage | Filebase + R2 + Arweave |
 | Cryptography | AES-256-GCM + Groth16 |
-| Payments | Stripe |
+| Payments | Stripe + USDC (Base) |
+| EVM | viem + wagmi (Base chain) |
+| DeFi Yield | Aave V3 (Base) + Kamino (Solana) |
 
 ## Architecture Overview
 
@@ -135,7 +143,8 @@ block-drive-vault/
 │   ├── contexts/           # React contexts
 │   └── providers/          # DynamicProvider
 ├── workers/
-│   └── api-gateway/        # Cloudflare Worker API gateway
+│   ├── api-gateway/        # Cloudflare Worker API gateway
+│   └── subscription-processor/ # USDC subscription cron worker
 ├── supabase/
 │   ├── functions/          # Edge functions
 │   └── migrations/         # Database migrations
@@ -204,6 +213,15 @@ with open("recovered.pdf", "wb") as f:
 ```
 
 ## Development Status
+
+**v2.2.0** — February 20, 2026
+
+- Dynamic SDK full buildout: dual-chain (Solana + EVM/Base), wagmi/viem integration
+- Auto-debit USDC subscriptions on Base (ERC-20 approve + pull with cron processor worker)
+- ENS global identity: `username.blockdrive.eth` via Namestone alongside SNS `.sol` domains
+- Dual-chain USDC yield: Aave V3 on Base + Kamino on Solana
+- NFT token gate, Google Drive wallet backup status, funding rails
+- Subscription processor Cloudflare Worker with retry/cancel logic
 
 **v2.1.0** — February 19, 2026
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Wallet,
   RefreshCw,
@@ -19,6 +19,9 @@ import {
   Check
 } from 'lucide-react';
 import { PricingTier, BillingPeriod } from '@/types/pricing';
+import { useCryptoBalance } from '@/hooks/useCryptoBalance';
+import { useCryptoSubscription } from '@/hooks/useCryptoSubscription';
+import type { SubscriptionTier, BillingPeriod as ServiceBillingPeriod } from '@/services/paymentService';
 
 interface CryptoCheckoutModalProps {
   open: boolean;
@@ -32,7 +35,13 @@ interface CryptoCheckoutModalProps {
   onRefreshBalance: () => Promise<void>;
 }
 
-type CheckoutStatus = 'idle' | 'checking' | 'processing' | 'success' | 'error';
+type CheckoutStatus = 'idle' | 'checking' | 'approving' | 'processing' | 'success' | 'error';
+
+// Map pricing BillingPeriod to service BillingPeriod
+function toServicePeriod(period: BillingPeriod): ServiceBillingPeriod {
+  if (period === 'annual') return 'yearly';
+  return period as ServiceBillingPeriod;
+}
 
 export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
   open,
@@ -50,17 +59,23 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const hasSufficientBalance = walletBalance >= requiredAmount;
-  const shortfall = requiredAmount - walletBalance;
+  const { setShowDynamicUserProfile } = useDynamicContext();
+  const { baseUsdc, solanaUsdc, totalUsdc, refresh: refreshBalances, isLoading: isBalanceLoading } = useCryptoBalance();
+  const { approveSubscription, isApproving } = useCryptoSubscription();
+
+  // Use multi-chain balance: prefer Base USDC (since subscriptions are on Base)
+  const effectiveBalance = totalUsdc > 0 ? totalUsdc : walletBalance;
+  const hasSufficientBalance = effectiveBalance >= requiredAmount;
+  const shortfall = requiredAmount - effectiveBalance;
 
   const handleRefreshBalance = useCallback(async () => {
     setRefreshing(true);
     try {
-      await onRefreshBalance();
+      await Promise.all([onRefreshBalance(), refreshBalances()]);
     } finally {
       setRefreshing(false);
     }
-  }, [onRefreshBalance]);
+  }, [onRefreshBalance, refreshBalances]);
 
   const handleProceed = async () => {
     if (!hasSufficientBalance) {
@@ -68,11 +83,21 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
       return;
     }
 
-    setStatus('processing');
+    setStatus('approving');
     setError(null);
 
     try {
-      await onProceed();
+      // Approve USDC spending on Base — this also activates the subscription
+      // via the Edge Function (no need to call onProceed separately)
+      const result = await approveSubscription(
+        tier.name as SubscriptionTier,
+        toServicePeriod(billingPeriod),
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Approval failed');
+      }
+
       setStatus('success');
     } catch (err) {
       setStatus('error');
@@ -82,15 +107,17 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
 
   const handleCopyAddress = () => {
     if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
+      navigator.clipboard.writeText(walletAddress).catch((err) => {
+        console.warn('[CryptoCheckout] Clipboard write failed:', err);
+      });
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const openOnramp = () => {
-    // TODO: Replace with Dynamic funding rails (Banxa/Coinbase on-ramps) in Phase 2
-    console.warn('Crypto on-ramp not yet configured with Dynamic funding rails');
+  const openFunding = () => {
+    // Open Dynamic's user profile widget which contains the funding tab
+    setShowDynamicUserProfile(true);
   };
 
   // Reset state when modal opens
@@ -125,9 +152,9 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-400" />
             </div>
-            <DialogTitle className="text-xl text-foreground mb-2">Payment Successful!</DialogTitle>
+            <DialogTitle className="text-xl text-foreground mb-2">Subscription Active!</DialogTitle>
             <DialogDescription className="text-muted-foreground mb-6">
-              Your {tier.name} subscription is now active. You have access to all {tier.name} features.
+              Your {tier.name} subscription is now active. USDC will be charged automatically each {getPeriodLabel()} from your Base wallet.
             </DialogDescription>
             <Button onClick={onClose} className="w-full">
               Continue to Dashboard
@@ -147,7 +174,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
             Pay with USDC
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Complete your {tier.name} subscription payment
+            Approve automatic {billingPeriod} USDC payments from your Base wallet
           </DialogDescription>
         </DialogHeader>
 
@@ -162,31 +189,48 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
               <span className="text-muted-foreground">Billing</span>
               <span className="text-foreground capitalize">{billingPeriod}</span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Chain</span>
+              <span className="text-foreground">Base (USDC)</span>
+            </div>
             <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
               <span className="text-muted-foreground">Amount Due</span>
               <span className="text-foreground font-bold text-lg">${requiredAmount.toFixed(2)} USDC</span>
             </div>
           </div>
 
-          {/* Wallet Balance */}
+          {/* Multi-Chain Wallet Balance */}
           <div className="bg-card/80 rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-muted-foreground">Your Wallet Balance</span>
+              <span className="text-sm text-muted-foreground">Your USDC Balance</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefreshBalance}
-                disabled={refreshing}
+                disabled={refreshing || isBalanceLoading}
                 className="h-7 px-2 text-muted-foreground hover:text-foreground"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing || isBalanceLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
-            <div className="flex items-baseline gap-2">
+
+            {/* Per-chain breakdown */}
+            <div className="space-y-1 mb-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Base</span>
+                <span className="text-foreground">${baseUsdc.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Solana</span>
+                <span className="text-foreground">${solanaUsdc.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-2 border-t border-border pt-2">
               <span className={`text-2xl font-bold ${hasSufficientBalance ? 'text-green-400' : 'text-yellow-400'}`}>
-                ${walletBalance.toFixed(2)}
+                ${effectiveBalance.toFixed(2)}
               </span>
-              <span className="text-muted-foreground/70 text-sm">USDC</span>
+              <span className="text-muted-foreground/70 text-sm">total USDC</span>
             </div>
 
             {!hasSufficientBalance && (
@@ -194,7 +238,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                   <div className="text-yellow-200">
-                    You need <span className="font-semibold">${shortfall.toFixed(2)} more</span> USDC to complete this purchase.
+                    You need <span className="font-semibold">${shortfall.toFixed(2)} more</span> USDC on Base to complete this purchase.
                   </div>
                 </div>
               </div>
@@ -241,24 +285,29 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
           {hasSufficientBalance ? (
             <Button
               onClick={handleProceed}
-              disabled={status === 'processing'}
+              disabled={status === 'approving' || status === 'processing' || isApproving}
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
-              {status === 'processing' ? (
+              {status === 'approving' || isApproving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing Payment...
+                  Approving USDC...
+                </>
+              ) : status === 'processing' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Activating Subscription...
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Pay ${requiredAmount.toFixed(2)} USDC
+                  Approve & Subscribe — ${requiredAmount.toFixed(2)} USDC
                 </>
               )}
             </Button>
           ) : (
             <Button
-              onClick={openOnramp}
+              onClick={openFunding}
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
@@ -273,7 +322,7 @@ export const CryptoCheckoutModal: React.FC<CryptoCheckoutModalProps> = ({
 
         {/* Fee info */}
         <p className="text-xs text-muted-foreground/70 text-center mt-2">
-          Pay directly from your embedded Solana wallet with USDC
+          You'll approve USDC spending once. Payments are pulled automatically each {getPeriodLabel()} — no further action needed.
         </p>
       </DialogContent>
     </Dialog>

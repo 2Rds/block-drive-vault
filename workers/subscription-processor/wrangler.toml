@@ -1,0 +1,38 @@
+# BlockDrive Subscription Processor Worker
+# Runs daily via Cron Trigger to pull USDC payments from approved wallets on Base.
+
+name = "blockdrive-subscription-processor"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron trigger — runs daily at 06:00 UTC
+[triggers]
+crons = ["0 6 * * *"]
+
+# Environment variables (non-sensitive)
+[vars]
+SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co"
+BASE_RPC_URL = "https://mainnet.base.org"
+BASE_CHAIN_ID = "8453"
+USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+TREASURY_EVM_ADDRESS = ""
+# Retry schedule: initial fail → day 3 → day 7 → day 10 cancel
+RETRY_DAYS = "3,7,10"
+
+# Secrets set via `wrangler secret put`:
+#   SUPABASE_SERVICE_ROLE_KEY
+#   PROCESSOR_PRIVATE_KEY (hex-encoded EVM private key for CDP server wallet)
+
+# Development environment
+[env.dev]
+name = "blockdrive-subscription-processor-dev"
+[env.dev.vars]
+SUPABASE_URL = "https://uxwfbialyxqaduiartpu.supabase.co"
+BASE_RPC_URL = "https://sepolia.base.org"
+BASE_CHAIN_ID = "84532"
+USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+
+# Production environment
+[env.production]
+name = "blockdrive-subscription-processor"

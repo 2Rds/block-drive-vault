@@ -1,7 +1,7 @@
 # BlockDrive Security Model
 
-> **Version**: 2.1.0
-> **Last Updated**: February 19, 2026
+> **Version**: 2.2.0
+> **Last Updated**: February 20, 2026
 > **Classification**: Technical Security Documentation
 
 ---
@@ -634,6 +634,68 @@ pub mod membership_transfer_hook {
 
 ---
 
+## Dual-Chain Security (v2.2.0)
+
+### EVM/Base Chain Security
+
+v2.2.0 introduces EVM (Base chain) operations for USDC subscriptions, Aave V3 yield, and ENS identity. Security considerations:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              DUAL-CHAIN SECURITY MODEL                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  SOLANA (existing)              EVM / BASE (v2.2.0)                │
+│  ┌──────────────────┐          ┌──────────────────────┐            │
+│  │ • SNS subdomains │          │ • USDC subscriptions │            │
+│  │ • cNFT minting   │          │ • Aave V3 yield      │            │
+│  │ • File registry   │          │ • ENS identity       │            │
+│  │ • ZK commitments │          │ • ERC-20 approvals   │            │
+│  │ • Treasury-signed│          │ • Gas-sponsored      │            │
+│  └──────────────────┘          └──────────────────────┘            │
+│                                                                     │
+│  SHARED SECURITY:                                                   │
+│  • Both wallets managed by Fireblocks TSS-MPC (non-custodial)     │
+│  • Dynamic SDK provides unified auth across chains                 │
+│  • Keys derived client-side from Solana wallet signature           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### USDC Subscription Security
+
+The auto-debit subscription model uses ERC-20 `approve` + `transferFrom` on Base:
+
+| Security Control | Implementation |
+|-----------------|----------------|
+| **Approval cap** | User approves 12 months max; processor cannot exceed allowance |
+| **On-chain verification** | Edge Function verifies approval tx receipt + USDC allowance before activating |
+| **Receipt status check** | Frontend checks `receipt.status !== 'reverted'` after `waitForTransactionReceipt` |
+| **Processor isolation** | Subscription processor uses dedicated wallet (not treasury) |
+| **Retry limits** | Failed charges: retry day 3, day 7, then cancel — no infinite retries |
+| **Per-subscription error isolation** | One failed charge doesn't abort the batch |
+| **Env var guards** | Processor validates all required secrets before executing |
+
+### Yield Operations Security
+
+Aave V3 (Base) and Kamino (Solana) yield operations:
+
+- All `writeContract` calls include explicit `chain` and `account` parameters
+- Error states are properly surfaced (no silent failures in catch blocks)
+- Cached position values preserved on API failures (no reset to 0)
+- APY values clearly labeled as static estimates when live data unavailable
+
+### ENS Identity Security
+
+ENS subdomain registration via Namestone API:
+
+- Server-side registration only (via Edge Function with API key)
+- ENS name stored in Supabase `user_profiles` with upsert result verification
+- Fire-and-forget promises in onboarding have `.catch()` handlers
+- ENS registration failures are non-blocking (SNS is the primary identity)
+
+---
+
 ## Authentication & Authorization
 
 ### Dynamic Authentication Architecture
@@ -1033,6 +1095,11 @@ interface AuditLog {
 | Dynamic auth migration | ✅ Complete | P1 |
 | Stripe Sync Engine | ✅ Complete | P2 |
 | Python Recovery SDK | ✅ Complete | P2 |
+| Dual-chain architecture (Solana + EVM/Base) | ✅ Complete | P1 |
+| ERC-20 auto-debit USDC subscriptions | ✅ Complete | P1 |
+| On-chain approval verification | ✅ Complete | P1 |
+| ENS identity registration | ✅ Complete | P2 |
+| NFT token gate enforcement | ✅ Complete | P2 |
 
 ### Q2 2026
 

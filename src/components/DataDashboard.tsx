@@ -5,6 +5,8 @@ import { MetricsCards } from '@/components/dashboard/MetricsCards';
 import { ChartsSection } from '@/components/dashboard/ChartsSection';
 import { NetworkStatus } from '@/components/dashboard/NetworkStatus';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { YieldSummaryCard } from '@/components/yield/YieldSummaryCard';
+import { FundWalletCard } from '@/components/dashboard/FundWalletCard';
 
 export const DataDashboard = () => {
   const { userStats, loading } = useUserData();
@@ -20,6 +22,10 @@ export const DataDashboard = () => {
   return (
     <div className="space-y-8">
       <MetricsCards stats={userStats} loading={loading} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <YieldSummaryCard />
+        <FundWalletCard />
+      </div>
       <ChartsSection stats={userStats} />
       <NetworkStatus />
       <RecentActivity activities={userStats.recentActivity} />

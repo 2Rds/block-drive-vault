@@ -1,17 +1,18 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: ACTIVE - v2.1.0 Released
+> **Status**: ACTIVE - v2.2.0 Released
 >
-> **Last Updated**: February 19, 2026
+> **Last Updated**: February 20, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets). v2.1.0 completes WS1: client-side wallet signature key derivation.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets). v2.1.0 completes WS1: client-side wallet signature key derivation. v2.2.0 adds dual-chain architecture (EVM/Base), auto-debit USDC subscriptions, ENS identity, and DeFi yield.
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [v2.0.0 — Dynamic SDK Migration](#v200--dynamic-sdk-migration-february-19-2026)
+2. [v2.2.0 — Dynamic SDK Full Buildout](#v220--dynamic-sdk-full-buildout-february-20-2026)
+3. [v2.0.0 — Dynamic SDK Migration](#v200--dynamic-sdk-migration-february-19-2026)
 3. [v1.2.0 — Recovery SDK + Solana Native Minting](#v120--recovery-sdk--solana-native-minting-february-19-2026)
 4. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
 4. [v1.0.0 Implementation Phases Overview](#v100-implementation-phases-overview)
@@ -68,6 +69,56 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 
 ---
 
+## v2.2.0 — Dynamic SDK Full Buildout (February 20, 2026)
+
+### Completed ✅
+
+| Feature | Implementation | Status |
+|---------|---------------|--------|
+| **Dual-chain architecture** | `WagmiProvider` wrapper, Base chain config, EVM wallet client | ✅ Complete |
+| **Auto-debit USDC subscriptions** | ERC-20 approve + pull on Base, `useCryptoSubscription` hook | ✅ Complete |
+| **Subscription processor Worker** | Cloudflare Worker cron trigger, daily charge processing, retry/cancel | ✅ Complete |
+| **ENS global identity** | `username.blockdrive.eth` via Namestone API, `useEnsIdentity` hook | ✅ Complete |
+| **Dual-chain USDC yield** | Aave V3 on Base + Kamino KLEND on Solana, `useAaveYield`/`useKaminoYield` | ✅ Complete |
+| **Multi-chain USDC balance** | `useCryptoBalance` fetches across Base + Solana in parallel | ✅ Complete |
+| **Funding rails** | `FundWalletCard` with per-chain balance display, Dynamic SDK funding widget | ✅ Complete |
+| **NFT token gate** | `hasBlockDriveNFT` in auth context with fallback warning | ✅ Complete |
+| **Google Drive wallet backup** | `WalletBackupStatus` settings component reads Dynamic SDK backup state | ✅ Complete |
+| **Yield dashboard** | Tabbed UI (Base/Solana) with supply/withdraw, combined stats | ✅ Complete |
+| **Yield summary card** | Compact dashboard card with blended APY across both chains | ✅ Complete |
+| **On-chain approval verification** | Edge Function verifies tx receipt + USDC allowance before activation | ✅ Complete |
+| **DB migration** | `crypto_subscriptions` billing columns + `crypto_payment_history` enhancements | ✅ Complete |
+
+### New Files Created
+- `src/hooks/useCryptoSubscription.ts` — ERC-20 approval flow + subscription activation
+- `src/hooks/useCryptoBalance.ts` — Multi-chain USDC balance aggregation
+- `src/hooks/useAaveYield.ts` — Aave V3 supply/withdraw on Base
+- `src/hooks/useKaminoYield.ts` — Kamino KLEND supply/withdraw on Solana
+- `src/hooks/useEnsIdentity.ts` — ENS subdomain registration + resolution
+- `src/components/yield/YieldDashboard.tsx` — Dual-chain yield management UI
+- `src/components/yield/YieldSummaryCard.tsx` — Dashboard yield summary
+- `src/components/dashboard/FundWalletCard.tsx` — Wallet funding CTA
+- `src/components/settings/WalletBackupStatus.tsx` — Google Drive backup status
+- `supabase/functions/activate-crypto-subscription/index.ts` — Approval verification + first charge
+- `supabase/functions/register-ens-subdomain/index.ts` — Namestone ENS registration
+- `workers/subscription-processor/` — Cloudflare Worker with cron trigger
+
+### Key Architecture Decisions
+1. **EVM wallet selection**: Uses `evmWallet` (not `primaryWallet`) for `getWalletClient()` — Dynamic may set Solana as primary
+2. **Discriminated union types**: `ApprovalResult` uses `{ success: true; ... } | { success: false; error: string }` pattern
+3. **Per-subscription error isolation**: Subscription processor wraps each charge in try/catch
+4. **ENS non-blocking**: ENS registration is fire-and-forget during onboarding (SNS is primary)
+5. **Cached yield positions**: API failures don't reset supplied amounts to 0
+
+### Remaining Work (Post-v2.2.0)
+1. **WS6**: Supabase-backed org management (replace org compatibility shim)
+2. **WS4**: Solana program deployment to mainnet
+3. **WS5**: ZK circuit trusted setup ceremony
+4. **AgentKit integration**: AI-powered subscription retry decisions (optional enhancement)
+5. **Live APY feeds**: Replace static estimates with real-time Aave/Kamino APY data
+
+---
+
 ## v2.0.0 — Dynamic SDK Migration (February 19, 2026)
 
 ### Completed ✅
@@ -95,9 +146,10 @@ This eliminates the need for on-chain per-user gas credits accounting (GasCredit
 ### Remaining Work (Post-v2.1.0)
 1. ~~**WS1**: Client-side wallet signature key derivation~~ ✅ Complete in v2.1.0
 2. ~~**WS3**: Remove sessionStorage key caching~~ ✅ Resolved in v2.1.0 (sessionStorage caching removed entirely)
-3. **WS6**: Supabase-backed org management (replace org compatibility shim)
-4. **WS4**: Solana program deployment to mainnet
-5. **WS5**: ZK circuit trusted setup ceremony
+3. ~~**Dual-chain buildout**: EVM/Base subscriptions, yield, ENS~~ ✅ Complete in v2.2.0
+4. **WS6**: Supabase-backed org management (replace org compatibility shim)
+5. **WS4**: Solana program deployment to mainnet
+6. **WS5**: ZK circuit trusted setup ceremony
 
 ---
 
@@ -2277,6 +2329,6 @@ All implementation phases are complete. The v1.0.0 release includes:
 
 ---
 
-**Last Updated**: February 19, 2026
-**Document Version**: 2.1.0
-**Status**: ACTIVE - v2.1.0 Released
+**Last Updated**: February 20, 2026
+**Document Version**: 2.2.0
+**Status**: ACTIVE - v2.2.0 Released
