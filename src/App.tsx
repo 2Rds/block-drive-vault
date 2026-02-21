@@ -5,7 +5,7 @@ if (typeof globalThis.Buffer === 'undefined') globalThis.Buffer = Buffer;
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// QueryClientProvider is in DynamicProvider.tsx (must wrap WagmiProvider)
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, lazy, Suspense, startTransition } from 'react';
 import { DynamicAuthProvider } from '@/contexts/DynamicAuthContext';
@@ -35,21 +35,6 @@ const TeamSettings = lazy(() => import("./pages/TeamSettings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CreateTeamOnboarding = lazy(() => import("./pages/CreateTeamOnboarding"));
 const WebAuthnMobileVerify = lazy(() => import("./pages/WebAuthnMobileVerify"));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      networkMode: 'online'
-    },
-    mutations: {
-      retry: 1
-    }
-  }
-});
 
 function App() {
   useEffect(() => {
@@ -92,7 +77,6 @@ function App() {
 
   return (
     <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SecurityHeaders />
         <Toaster />
@@ -175,7 +159,6 @@ function App() {
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
     </ErrorBoundary>
   );
 }

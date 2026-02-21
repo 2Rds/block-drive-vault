@@ -1,17 +1,18 @@
 # BlockDrive Decentralized Storage Platform - Comprehensive Implementation Plan
 
-> **Status**: ACTIVE - v2.2.0 Released
+> **Status**: ACTIVE - v2.3.0 Released
 >
 > **Last Updated**: February 20, 2026
 >
-> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets). v2.1.0 completes WS1: client-side wallet signature key derivation. v2.2.0 adds dual-chain architecture (EVM/Base), auto-debit USDC subscriptions, ENS identity, and DeFi yield.
+> **Purpose**: This document outlines the complete phased build strategy for BlockDrive's core decentralized storage infrastructure. All phases are complete for the v1.0.0 release. v1.1.0 adds per-org NFT infrastructure and lifecycle management. v1.2.0 delivers the Python Recovery SDK and Solana native minting migration. v2.0.0 replaces Clerk + Crossmint with Dynamic SDK (Fireblocks TSS-MPC wallets). v2.1.0 completes WS1: client-side wallet signature key derivation. v2.2.0 adds dual-chain architecture (EVM/Base), auto-debit USDC subscriptions, ENS identity, and DeFi yield. v2.3.0 removes the free tier, adds mandatory subscription with 7-day trial, and streamlines auth UX.
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [v2.2.0 — Dynamic SDK Full Buildout](#v220--dynamic-sdk-full-buildout-february-20-2026)
+2. [v2.3.0 — Auth UX + Subscription Gate](#v230--auth-ux--subscription-gate-february-20-2026)
+3. [v2.2.0 — Dynamic SDK Full Buildout](#v220--dynamic-sdk-full-buildout-february-20-2026)
 3. [v2.0.0 — Dynamic SDK Migration](#v200--dynamic-sdk-migration-february-19-2026)
 3. [v1.2.0 — Recovery SDK + Solana Native Minting](#v120--recovery-sdk--solana-native-minting-february-19-2026)
 4. [v1.1.0 — Per-Org NFT Collections + Org Deletion](#v110--per-org-nft-collections--org-deletion-february-16-2026)
@@ -66,6 +67,52 @@ BlockDrive uses treasury wallet gas sponsorship for all user transactions:
 - **No Per-User Accounting**: Single BlockDrive operational wallet handles edge cases
 
 This eliminates the need for on-chain per-user gas credits accounting (GasCreditsAccount PDAs, USDC swaps, etc.), significantly simplifying the architecture.
+
+---
+
+## v2.3.0 — Auth UX + Subscription Gate (February 20, 2026)
+
+### Completed ✅
+
+| Feature | Implementation | Status |
+|---------|---------------|--------|
+| **Direct Dynamic auth modal** | `ConnectButton.tsx` — buttons call `setShowAuthFlow(true)` instead of navigating to `/sign-in` or `/sign-up` | ✅ Complete |
+| **Post-auth redirect** | `DynamicAuthContext.tsx` — auto-redirects to `/dashboard` (returning) or `/onboarding` (new) after login from public pages | ✅ Complete |
+| **Mandatory plan selection** | `Onboarding.tsx` — new "Choose Plan" step (Step 5) after identity minting redirects to Stripe Checkout with 7-day trial | ✅ Complete |
+| **Subscription gate** | `ProtectedRoute.tsx` — `pending` tier users redirected to `/pricing` on all protected routes (exempts `/onboarding`, `/account`, `/subscription-*`) | ✅ Complete |
+| **PENDING tier** | `constants.ts` — new tier with 0 storage/bandwidth; `auto-signup-from-dynamic` default changed from `free_trial` to `pending` | ✅ Complete |
+| **CTA text update** | `CTASection.tsx` — "No credit card required" → "7-day free trial, then $15/mo" | ✅ Complete |
+| **Escape hatch** | `Onboarding.tsx` — "I'll choose a plan later" link to `/pricing` | ✅ Complete |
+
+### Bug Fixes ✅
+
+| Fix | Details | Status |
+|-----|---------|--------|
+| Post-auth redirect race condition | Added `isExtrasLoaded` state; redirect waits for NFT/ENS lookup | ✅ Fixed |
+| Debug logging in production | `logLevel: 'DEBUG'` gated behind `import.meta.env.DEV` | ✅ Fixed |
+| ProtectedRoute loading flash | Shows `LoadingScreen` during `subLoading` | ✅ Fixed |
+| Error swallowing in useSubscriptionStatus | Preserved error messages instead of clearing | ✅ Fixed |
+| Onboarding refresh skipping subscribe | Checks subscription before completing | ✅ Fixed |
+| handleSelectPlan silent failures | Added toasts and null user guard | ✅ Fixed |
+| useUploadPermissions loading state | Consumes `subLoading` properly | ✅ Fixed |
+| link-wallet-to-email free_trial default | Changed to `pending` | ✅ Fixed |
+
+### Files Modified
+
+- `src/components/auth/ConnectButton.tsx` — Direct auth modal
+- `src/contexts/DynamicAuthContext.tsx` — Post-auth redirect + isExtrasLoaded
+- `src/components/auth/ProtectedRoute.tsx` — Subscription gate
+- `src/components/landing/CTASection.tsx` — CTA text
+- `src/pages/Onboarding.tsx` — Plan selection step
+- `src/pages/SubscriptionCancel.tsx` — Removed trial access messaging
+- `src/components/subscription/SubscriptionManager.tsx` — Removed dead isFreeTrial code
+- `src/hooks/useSubscriptionStatus.tsx` — Error handling
+- `src/hooks/useUploadPermissions.tsx` — Loading state
+- `src/providers/DynamicProvider.tsx` — Dev-only debug logging
+- `supabase/functions/auto-signup-from-dynamic/index.ts` — pending default
+- `supabase/functions/check-subscription/index.ts` — pending tier mapping
+- `supabase/functions/_shared/constants.ts` — PENDING tier
+- `supabase/functions/link-wallet-to-email/index.ts` — pending default
 
 ---
 
@@ -2330,5 +2377,5 @@ All implementation phases are complete. The v1.0.0 release includes:
 ---
 
 **Last Updated**: February 20, 2026
-**Document Version**: 2.2.0
-**Status**: ACTIVE - v2.2.0 Released
+**Document Version**: 2.3.0
+**Status**: ACTIVE - v2.3.0 Released

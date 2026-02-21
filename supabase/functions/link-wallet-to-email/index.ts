@@ -55,7 +55,7 @@ serve(async (req) => {
       wallet_address,
       blockchain_type,
       wallet_connected: true,
-      subscription_tier: existingSignup?.subscription_tier || 'free_trial',
+      subscription_tier: existingSignup?.subscription_tier || 'pending',
       full_name: existingSignup?.full_name || fullName || `${blockchain_type} User`,
       organization: existingSignup?.organization || 'BlockDrive',
       updated_at: new Date().toISOString(),

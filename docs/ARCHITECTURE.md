@@ -1,8 +1,8 @@
 # BlockDrive Technical Architecture
 
-**Version**: 2.2.0
+**Version**: 2.3.0
 **Date**: February 20, 2026
-**Status**: ACTIVE - v2.2.0 Release
+**Status**: ACTIVE - v2.3.0 Release
 **Prepared By**: BlockDrive Engineering Team
 
 ---
@@ -1117,31 +1117,34 @@ supabase/functions/
 └── verify-org-email-token/        # Verify magic link
 ```
 
-### Organization Onboarding Flow
+### Organization Onboarding Flow (v2.3.0)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                       5-STEP ONBOARDING FLOW                                     │
-│                                                                                 │
-│  ┌───────┐    ┌───────┐    ┌──────────┐    ┌────────┐    ┌───────┐            │
-│  │ STEP 1│───►│ STEP 2│───►│  STEP 3  │───►│ STEP 4 │───►│ STEP 5│            │
-│  │Sign Up│    │  Org  │    │ Username │    │ Wallet │    │  NFT  │            │
-│  └───────┘    └───────┘    └──────────┘    └────────┘    └───────┘            │
-│                   │                                                             │
-│                   ▼                                                             │
-│           ┌──────────────┐                                                      │
-│           │ Invite Code? │──Yes──► Validate → Join Org                         │
-│           │    or        │                                                      │
-│           │Business Email│──Yes──► Magic Link → Verify → Join Org              │
-│           │    or        │                                                      │
-│           │    Skip      │──────► Continue as individual user                  │
-│           └──────────────┘                                                      │
-│                                                                                 │
-│  RESULT:                                                                        │
-│  • Org user: username.organization.blockdrive.sol                              │
-│  • Individual: username.blockdrive.sol                                          │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                      5-STEP ONBOARDING FLOW (v2.3.0)                                │
+│                                                                                     │
+│  ┌───────┐   ┌──────────┐   ┌────────┐   ┌──────────┐   ┌──────────┐             │
+│  │ STEP 1│──►│  STEP 2  │──►│ STEP 3 │──►│  STEP 4  │──►│  STEP 5  │             │
+│  │  Org  │   │ Username │   │ Wallet │   │ Identity │   │  Plan    │             │
+│  └───────┘   └──────────┘   └────────┘   └──────────┘   └──────────┘             │
+│      │                                                        │                    │
+│      ▼                                                        ▼                    │
+│  ┌──────────────┐                                   ┌──────────────────┐           │
+│  │ Invite Code? │──Yes──► Validate → Join Org       │ Stripe Checkout  │           │
+│  │    or        │                                   │ (7-day trial for │           │
+│  │Business Email│──Yes──► Magic Link → Verify       │  Pro, or Scale)  │           │
+│  │    or        │                                   └──────────────────┘           │
+│  │    Skip      │──────► Continue as individual                                    │
+│  └──────────────┘                                                                  │
+│                                                                                     │
+│  SUBSCRIPTION GATE: Users with `pending` tier are redirected to /pricing           │
+│  on all protected routes (except /onboarding, /account, /subscription-*)           │
+│                                                                                     │
+│  RESULT:                                                                            │
+│  • Org user: username.organization.blockdrive.sol                                  │
+│  • Individual: username.blockdrive.sol                                              │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---

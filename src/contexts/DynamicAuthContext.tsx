@@ -6,7 +6,7 @@
  * setActiveOrganization.
  */
 
-import { createContext, useContext, type ReactNode, useMemo, useEffect, useState } from 'react';
+import { createContext, useContext, type ReactNode, useMemo, useEffect, useState, useRef } from 'react';
 import {
   useDynamicContext,
   useIsLoggedIn,
@@ -15,6 +15,7 @@ import {
 } from '@dynamic-labs/sdk-react-core';
 import { createDynamicSupabaseClient, supabaseAnon } from '@/integrations/dynamic/DynamicSupabaseClient';
 import { OptimizedIntercomMessenger } from '@/components/OptimizedIntercomMessenger';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Organization type — will be Supabase-backed in WS6.
@@ -144,11 +145,15 @@ export const DynamicAuthProvider = ({ children }: { children: ReactNode }) => {
   // NFT token gate — check if user has BlockDrive soulbound cNFT
   const [hasBlockDriveNFT, setHasBlockDriveNFT] = useState(false);
 
+  // Tracks whether the async ENS/NFT lookup has finished (success or error)
+  const [isExtrasLoaded, setIsExtrasLoaded] = useState(false);
+
   // Load ENS name and NFT status when user is logged in
   useEffect(() => {
     if (!isLoggedIn || !dynamicUser?.userId) {
       setEnsName(null);
       setHasBlockDriveNFT(false);
+      setIsExtrasLoaded(false);
       return;
     }
 
@@ -190,11 +195,46 @@ export const DynamicAuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err) {
         // Non-fatal — ENS/NFT data is informational
         console.warn('[DynamicAuth] Failed to load ENS/NFT data:', err);
+      } finally {
+        setIsExtrasLoaded(true);
       }
     };
 
     loadUserExtras();
   }, [isLoggedIn, dynamicUser?.userId, supabase]);
+
+  // Post-auth redirect: when user logs in from a public page, redirect appropriately.
+  // Waits for isExtrasLoaded so hasBlockDriveNFT is accurate before choosing destination.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const prevLoggedIn = useRef(isLoggedIn);
+  const hasRedirected = useRef(false);
+
+  useEffect(() => {
+    const wasLoggedOut = !prevLoggedIn.current;
+    prevLoggedIn.current = isLoggedIn;
+
+    // Reset redirect flag on logout
+    if (!isLoggedIn) {
+      hasRedirected.current = false;
+      return;
+    }
+
+    // Only redirect once per login transition, and only after extras are loaded
+    if (hasRedirected.current || !wasLoggedOut || !isExtrasLoaded) return;
+
+    // Only redirect from public pages (landing, pricing, docs, sign-in/sign-up)
+    const publicPaths = ['/', '/pricing', '/docs', '/sign-in', '/sign-up'];
+    if (!publicPaths.includes(location.pathname)) return;
+
+    hasRedirected.current = true;
+
+    if (hasBlockDriveNFT) {
+      navigate('/dashboard', { replace: true });
+    } else {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [isLoggedIn, isExtrasLoaded, hasBlockDriveNFT, navigate, location.pathname]);
 
   // Stub org management — WS6 will replace with Supabase-backed context
   const handleSetActiveOrganization = async (_orgId: string | null) => {

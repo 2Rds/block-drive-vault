@@ -1,6 +1,6 @@
 # BlockDrive Security Model
 
-> **Version**: 2.2.0
+> **Version**: 2.3.0
 > **Last Updated**: February 20, 2026
 > **Classification**: Technical Security Documentation
 
@@ -727,9 +727,10 @@ ENS subdomain registration via Namestone API:
 │     ┌──────────────────────────────────────────────────────────┐   │
 │     │  Layer 1: Cloudflare Zero Trust (network)                │   │
 │     │  Layer 2: Dynamic JWT verification (application)         │   │
-│     │  Layer 3: Supabase RLS (database + auth.jwt() ->> 'sub') │   │
-│     │  Layer 4: Solana PDA ownership (blockchain)              │   │
-│     │  Layer 5: Supabase RLS (team access)                     │   │
+│     │  Layer 3: Subscription gate (ProtectedRoute — v2.3.0)    │   │
+│     │  Layer 4: Supabase RLS (database + auth.jwt() ->> 'sub') │   │
+│     │  Layer 5: Solana PDA ownership (blockchain)              │   │
+│     │  Layer 6: Supabase RLS (team access)                     │   │
 │     └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```

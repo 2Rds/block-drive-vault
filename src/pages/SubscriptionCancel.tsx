@@ -28,13 +28,6 @@ function SubscriptionCancel(): JSX.Element {
             </p>
           </div>
 
-          <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
-            <h4 className="text-yellow-400 font-medium mb-2">Continue with Trial Access</h4>
-            <p className="text-sm text-yellow-300">
-              You can continue using BlockDrive with trial access while you decide.
-            </p>
-          </div>
-
           <div className="space-y-3">
             <Button onClick={() => navigate('/pricing')} className="w-full bg-blue-600 hover:bg-blue-700">
               <Crown className="w-4 h-4 mr-2" />

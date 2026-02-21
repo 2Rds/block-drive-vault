@@ -14,8 +14,24 @@ import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
 import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { dynamicConfig } from '@/config/dynamic';
 import { wagmiConfig } from '@/config/wagmi';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      networkMode: 'online',
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 interface DynamicProviderProps {
   children: ReactNode;
@@ -72,6 +88,7 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         walletConnectorsOrder: ['EmbeddedWallet', 'WalletConnect'],
         appName: dynamicConfig.appName,
         appLogoUrl: dynamicConfig.appLogoUrl,
+        ...(import.meta.env.DEV && { logLevel: 'DEBUG' }),
         overrides: {
           evmNetworks: (networks) =>
             networks.map((network) => {
@@ -104,9 +121,11 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         },
       }}
     >
-      <WagmiProvider config={wagmiConfig}>
-        {children}
-      </WagmiProvider>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={wagmiConfig}>
+          {children}
+        </WagmiProvider>
+      </QueryClientProvider>
     </DynamicContextProvider>
   );
 }

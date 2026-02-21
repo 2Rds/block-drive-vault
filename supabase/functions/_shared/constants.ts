@@ -35,6 +35,7 @@ export const SUBSCRIPTION_TIERS = {
   GROWTH: { storage: 500, bandwidth: 500, seats: 3 },   // Legacy
   SCALE: { storage: 1000, bandwidth: 1000, seats: 999 }, // 1 TB per seat
   FREE_TRIAL: { storage: 50, bandwidth: 50, seats: 1 },
+  PENDING: { storage: 0, bandwidth: 0, seats: 1 },
   DEFAULT: { storage: 1, bandwidth: 1, seats: 1 },
 } as const;
 

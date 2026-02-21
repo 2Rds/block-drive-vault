@@ -14,6 +14,7 @@ const TIER_LIMITS: Record<string, { storage: number; bandwidth: number; seats: n
   scale: SUBSCRIPTION_TIERS.SCALE,
   'free trial': SUBSCRIPTION_TIERS.FREE_TRIAL,
   free_trial: SUBSCRIPTION_TIERS.FREE_TRIAL,
+  pending: SUBSCRIPTION_TIERS.PENDING,
 };
 
 function getLimitsForTier(tier: string | null): { storage: number; bandwidth: number; seats: number } {

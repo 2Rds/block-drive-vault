@@ -1,6 +1,6 @@
 {
   "name": "blockdrive-api-gateway",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "BlockDrive API Gateway - Cloudflare Worker for rate limiting, CORS, and request routing",
   "main": "src/index.ts",

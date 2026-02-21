@@ -70,9 +70,8 @@ export const useSubscriptionStatus = () => {
       
       if (functionError) {
         console.error('Subscription function error:', functionError);
-        // Instead of throwing, gracefully handle the error
         setSubscriptionStatus(null);
-        setError(null); // Don't show error to user, just show unsubscribed state
+        setError(functionError.message || 'Subscription check failed');
         return;
       }
       
@@ -80,9 +79,8 @@ export const useSubscriptionStatus = () => {
       
     } catch (err: any) {
       console.error('Error checking subscription:', err);
-      // Gracefully handle network or other errors
       setSubscriptionStatus(null);
-      setError(null); // Don't show error to user, just show unsubscribed state
+      setError(err?.message || 'Subscription check failed');
     } finally {
       setLoading(false);
     }

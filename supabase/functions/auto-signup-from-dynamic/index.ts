@@ -33,7 +33,7 @@ serve(async (req) => {
       wallet_address: walletAddress,
       blockchain_type: blockchainType,
       wallet_connected: true,
-      subscription_tier: 'free_trial',
+      subscription_tier: 'pending',
       created_at: now,
       updated_at: now,
     };
@@ -83,8 +83,8 @@ serve(async (req) => {
 
     return jsonResponse({
       success: true,
-      message: "User automatically signed up with free trial",
-      subscription_tier: 'free_trial'
+      message: "User signed up — pending subscription",
+      subscription_tier: 'pending'
     });
 
   } catch (error) {

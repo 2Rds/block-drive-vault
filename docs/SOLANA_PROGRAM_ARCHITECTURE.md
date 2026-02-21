@@ -1,6 +1,6 @@
 # BlockDrive Solana Program Architecture
 
-> **Version**: v2.2.0 (February 2026)
+> **Version**: v2.3.0 (February 2026)
 
 ## Overview
 

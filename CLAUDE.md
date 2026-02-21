@@ -1,7 +1,7 @@
 # Block-Drive-Vault — Claude Code Instructions
 
 ## Project Context
-Web3 encrypted file storage platform (v2.2.0).
+Web3 encrypted file storage platform (v2.3.0).
 Dynamic authentication + Fireblocks TSS-MPC embedded Solana + EVM wallets. Dual-chain: Solana (files, SNS, cNFTs) + Base (USDC subscriptions, Aave yield, ENS). Supabase backend + Cloudflare Worker API Gateway.
 
 ## mem0 Memory
@@ -89,8 +89,12 @@ VITE_STRIPE_PUBLISHABLE_KEY=...   # Optional (payments)
 - Webhook handlers return 207 Multi-Status on partial failure
 - Auth hook: `useDynamicAuth()` provides userId, user, isSignedIn, supabase, signOut, walletAddress, ensName, hasBlockDriveNFT
 - Wallet hook: `useDynamicWallet()` provides address, signMessage(Uint8Array), getBalance(), getEvmWalletClient()
+- Auth buttons: Use `setShowAuthFlow(true)` from `useDynamicContext()` to open Dynamic auth modal directly (no page navigation)
 - EVM wallet: Use `evmWallet` (not `primaryWallet`) for `getWalletClient()` — Dynamic may set Solana as primary
 - Org management uses a compatibility shim (`useOrganizationCompat`) — full Supabase-backed orgs planned (WS6)
 - Supabase JWT: Dynamic JWT `sub` claim = user ID, used by all RLS policies
 - Dual identity: `username.blockdrive.sol` (SNS) + `username.blockdrive.eth` (ENS via Namestone)
+- Subscription gate: `ProtectedRoute` redirects `pending` tier users to `/pricing` (exempts `/onboarding`, `/account`, `/subscription-*`)
+- Default signup tier is `pending` (no free tier) — users must subscribe via Stripe Checkout (7-day Pro trial available)
+- Onboarding: 5 steps (Org → Username → Wallet → Identity → Plan) — plan selection is mandatory
 - Subscription processor: Cloudflare Worker cron (daily 06:00 UTC), wraps each charge in try/catch for isolation

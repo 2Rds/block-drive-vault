@@ -1,16 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth, useUser } from '@/hooks/useOrganizationCompat';
 import { useUsernameNFT } from '@/hooks/useUsernameNFT';
 import { useDynamicWallet } from '@/hooks/useDynamicWallet';
 import { useEnsIdentity } from '@/hooks/useEnsIdentity';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { OrganizationJoinStep, OrganizationContext } from '@/components/onboarding/OrganizationJoinStep';
-import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2, Globe } from 'lucide-react';
+import { Loader2, CheckCircle2, Wallet, Sparkles, AlertCircle, User, Building2, Globe, Crown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { pricingTiers } from '@/data/pricingTiers';
+import { paymentService } from '@/services/paymentService';
+import type { SubscriptionTier, BillingPeriod } from '@/services/paymentService';
 
-type OnboardingStep = 'loading' | 'organization' | 'username' | 'wallet' | 'minting' | 'complete' | 'error';
+type OnboardingStep = 'loading' | 'organization' | 'username' | 'wallet' | 'minting' | 'subscribe' | 'complete' | 'error';
 type StepStatus = 'pending' | 'current' | 'complete';
 
 const USERNAME_MIN_LENGTH = 3;
@@ -41,6 +45,7 @@ export default function Onboarding() {
   const { hasUsernameNFT, isLoading: isLoadingNFT, mintUsername, isMinting } = useUsernameNFT();
   const { walletAddress, isLoading: isLoadingWallet, isInitialized: isWalletReady } = useDynamicWallet();
   const { ensName, registerEns, isRegistering: isRegisteringEns } = useEnsIdentity();
+  const { subscriptionStatus } = useSubscriptionStatus();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('loading');
   const [mintAttempted, setMintAttempted] = useState(false);
@@ -54,6 +59,9 @@ export default function Onboarding() {
   const [inputUsername, setInputUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+
+  // Subscribe step state
+  const [subscribeLoading, setSubscribeLoading] = useState<string | null>(null);
 
   // Get the username from Dynamic auth or use the one entered in onboarding
   const authUsername = user?.username;
@@ -127,14 +135,57 @@ export default function Onboarding() {
         console.warn('[Onboarding] ENS registration failed (non-blocking):', err);
       });
 
-      setCurrentStep('complete');
-      setTimeout(() => navigate('/dashboard'), REDIRECT_DELAY_MS);
+      // Go to subscribe step instead of complete
+      setCurrentStep('subscribe');
     } else {
       console.error('[Onboarding] Mint failed:', result.error);
       setError(result.error || 'Failed to mint username NFT');
       setCurrentStep('error');
     }
-  }, [effectiveUsername, mintAttempted, isMinting, hasUsernameNFT, mintUsername, navigate, organizationContext, getFullDomain]);
+  }, [effectiveUsername, mintAttempted, isMinting, hasUsernameNFT, mintUsername, organizationContext, getFullDomain, registerEns]);
+
+  // Handle plan selection — redirect to Stripe Checkout with trial for Pro
+  const handleSelectPlan = useCallback(async (tierName: string) => {
+    const tier = pricingTiers.find((t) => t.name === tierName);
+    if (!tier) {
+      toast.error(`Plan "${tierName}" not found`);
+      return;
+    }
+
+    const monthlyOption = tier.pricing.find((p) => p.period === 'monthly');
+    if (!monthlyOption) {
+      toast.error(`No monthly pricing available for ${tierName}`);
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('Authentication required — please sign in again');
+      return;
+    }
+
+    setSubscribeLoading(tierName);
+
+    try {
+      const result = await paymentService.subscribeFiat({
+        tier: tierName as SubscriptionTier,
+        billingPeriod: 'monthly' as BillingPeriod,
+        priceId: monthlyOption.paymentLink,
+        authToken: user.id,
+      });
+
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Failed to create checkout session');
+      }
+
+      toast.success('Redirecting to checkout...');
+      window.location.href = result.url;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[Onboarding] Checkout error:', err);
+      toast.error(`Failed to start checkout: ${errorMessage}`);
+      setSubscribeLoading(null);
+    }
+  }, [user?.id]);
 
   // Handle organization step completion
   const handleOrgComplete = useCallback((orgContext: OrganizationContext | null) => {
@@ -150,8 +201,8 @@ export default function Onboarding() {
 
   // Determine current step based on state
   useEffect(() => {
-    // Don't change step while checking username or during mint
-    if (isCheckingUsername || isMinting) return;
+    // Don't change step while checking username, during mint, or during subscribe
+    if (isCheckingUsername || isMinting || currentStep === 'subscribe') return;
 
     if (!isLoaded || isLoadingNFT || isLoadingWallet) {
       setCurrentStep('loading');
@@ -163,8 +214,15 @@ export default function Onboarding() {
       return;
     }
 
-    // Already has NFT - go to dashboard
+    // Already has NFT — check subscription before completing
     if (hasUsernameNFT) {
+      const isSubscribed = subscriptionStatus?.subscribed;
+      const tier = subscriptionStatus?.subscription_tier;
+      if (!isSubscribed && (!tier || tier === 'pending')) {
+        // Has identity but no subscription — show plan selection
+        setCurrentStep('subscribe');
+        return;
+      }
       setCurrentStep('complete');
       setTimeout(() => navigate('/dashboard'), FAST_REDIRECT_DELAY_MS);
       return;
@@ -205,6 +263,8 @@ export default function Onboarding() {
     isMinting,
     isCheckingUsername,
     orgStepCompleted,
+    currentStep,
+    subscriptionStatus,
     handleAutoMint,
     navigate,
   ]);
@@ -215,14 +275,14 @@ export default function Onboarding() {
     setCurrentStep('loading');
   };
 
-  const handleSkip = () => {
-    navigate('/dashboard');
-  };
-
   // Redirect if not signed in
   if (isLoaded && !isSignedIn) {
-    return null;
+    return <Navigate to="/sign-in" replace />;
   }
+
+  // Step completion helpers for progress indicator
+  const isIdentityComplete = hasUsernameNFT || currentStep === 'subscribe' || currentStep === 'complete';
+  const isSubscribeComplete = currentStep === 'complete';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-background flex flex-col items-center justify-center p-8">
@@ -256,7 +316,13 @@ export default function Onboarding() {
         <StepIndicator
           number={4}
           label="Identity"
-          status={getStepStatus('minting', currentStep, hasUsernameNFT || currentStep === 'complete')}
+          status={getStepStatus('minting', currentStep, isIdentityComplete)}
+        />
+        <StepDivider />
+        <StepIndicator
+          number={5}
+          label="Plan"
+          status={getStepStatus('subscribe', currentStep, isSubscribeComplete)}
         />
       </div>
 
@@ -386,6 +452,116 @@ export default function Onboarding() {
           </div>
         )}
 
+        {currentStep === 'subscribe' && (
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <CreditCard className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold">Choose Your Plan</h2>
+              <p className="text-muted-foreground text-sm mt-2">
+                Select a plan to start using BlockDrive
+              </p>
+            </div>
+
+            {/* Identity success banner */}
+            {effectiveUsername && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
+                <p className="font-mono text-green-500 font-semibold text-sm break-all">
+                  {getFullDomain()}
+                </p>
+              </div>
+            )}
+
+            {/* Plan Cards */}
+            <div className="space-y-4">
+              {/* Pro */}
+              <div className="border border-border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-foreground flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-primary" />
+                      Pro
+                    </h3>
+                    <p className="text-xs text-muted-foreground">1 TB storage, 1 TB bandwidth</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground">$15<span className="text-sm text-muted-foreground">/mo</span></p>
+                  </div>
+                </div>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>Blockchain authentication & encryption</li>
+                  <li>File encryption & ZK proofs</li>
+                  <li>7-day free trial included</li>
+                </ul>
+                <Button
+                  onClick={() => handleSelectPlan('Pro')}
+                  disabled={subscribeLoading !== null}
+                  className="w-full"
+                >
+                  {subscribeLoading === 'Pro' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    'Start 7-Day Free Trial'
+                  )}
+                </Button>
+              </div>
+
+              {/* Scale */}
+              <div className="border border-primary/40 rounded-lg p-4 space-y-3 relative">
+                <div className="absolute -top-2.5 left-4">
+                  <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+                    Popular
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-foreground flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-primary" />
+                      Scale
+                    </h3>
+                    <p className="text-xs text-muted-foreground">2 TB storage per seat, teams 2-99</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground">$29<span className="text-sm text-muted-foreground">/seat/mo</span></p>
+                  </div>
+                </div>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>Everything in Pro, plus team collaboration</li>
+                  <li>Organizations & SSO</li>
+                  <li>24/7 priority support</li>
+                </ul>
+                <Button
+                  onClick={() => handleSelectPlan('Scale')}
+                  disabled={subscribeLoading !== null}
+                  variant="outline"
+                  className="w-full border-primary/40 hover:bg-primary/10"
+                >
+                  {subscribeLoading === 'Scale' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    'Subscribe'
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/pricing')}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-2"
+            >
+              I'll choose a plan later
+            </button>
+          </div>
+        )}
+
         {currentStep === 'complete' && (
           <div className="bg-card border border-border rounded-xl p-6 text-center space-y-4">
             <div className="w-16 h-16 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
@@ -439,9 +615,6 @@ export default function Onboarding() {
             <div className="flex gap-3 justify-center">
               <Button onClick={handleRetry} variant="default">
                 Try Again
-              </Button>
-              <Button onClick={handleSkip} variant="ghost">
-                Skip for Now
               </Button>
             </div>
           </div>

@@ -132,7 +132,7 @@ export function SubscriptionManager(): React.ReactElement {
               className="bg-primary hover:bg-primary/90"
             >
               <Crown className="w-4 h-4 mr-2" />
-              View Plans & Start Free Trial
+              View Plans
             </Button>
           </div>
 
@@ -158,7 +158,6 @@ export function SubscriptionManager(): React.ReactElement {
     ? Math.min(Math.round((userStats.totalStorage / (limits.storage * BYTES_PER_GB)) * 100), 100)
     : 0;
   const bandwidthUsagePercent = DEFAULT_BANDWIDTH_PERCENT;
-  const isFreeTrial = !subscribed && subscription_tier === 'Free Trial';
   const isUnlimitedSeats = limits.seats === UNLIMITED_SEATS;
   const isScaleTier = subscription_tier?.toLowerCase() === 'scale';
 
@@ -202,49 +201,21 @@ export function SubscriptionManager(): React.ReactElement {
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 {subscription_tier || 'No Subscription'}
                 {subscribed && <CheckCircle className="w-5 h-5 text-green-500" />}
-                {isFreeTrial && <CheckCircle className="w-5 h-5 text-blue-500" />}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {subscribed
                   ? `Active until ${new Date(subscription_end!).toLocaleDateString()}`
-                  : isFreeTrial
-                    ? 'Enjoying full access during your 7-day free trial'
-                    : 'No active subscription'
+                  : 'No active subscription'
                 }
               </p>
             </div>
             <Badge
-              variant={subscribed ? "default" : isFreeTrial ? "secondary" : "outline"}
-              className={
-                subscribed
-                  ? "bg-green-600 hover:bg-green-700"
-                  : isFreeTrial
-                    ? "bg-primary hover:bg-primary/90"
-                    : "bg-muted"
-              }
+              variant={subscribed ? "default" : "outline"}
+              className={subscribed ? "bg-green-600 hover:bg-green-700" : "bg-muted"}
             >
-              {subscribed ? 'Active' : isFreeTrial ? 'Free Trial' : 'Inactive'}
+              {subscribed ? 'Active' : 'Inactive'}
             </Badge>
           </div>
-
-          {/* Free Trial Benefits Notice */}
-          {isFreeTrial && (
-            <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-              <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
-                <Crown className="w-4 h-4" />
-                Free Trial Benefits
-              </h4>
-              <p className="text-sm text-primary/80 mb-3">
-                You have full access to your selected plan's features during the 7-day trial.
-              </p>
-              <ul className="text-sm text-primary/80 space-y-1">
-                <li>• Storage: {limits.storage} GB</li>
-                <li>• Bandwidth: {limits.bandwidth} GB/month</li>
-                <li>• {limits.seats > 1 ? `${limits.seats} team seats` : '1 user seat'}</li>
-                <li>• Blockchain auth & ZK proofs</li>
-              </ul>
-            </div>
-          )}
 
           {/* Usage Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -300,7 +271,7 @@ export function SubscriptionManager(): React.ReactElement {
                 className="bg-primary hover:bg-primary/90"
               >
                 <Crown className="w-4 h-4 mr-2" />
-                {isFreeTrial ? 'Upgrade to Keep Benefits' : 'Start Free Trial'}
+                View Plans
               </Button>
             )}
 
@@ -331,19 +302,19 @@ export function SubscriptionManager(): React.ReactElement {
           </div>
 
           {/* Subscription Features */}
-          {(subscribed || isFreeTrial) && (
+          {subscribed && (
             <div className="mt-6 p-4 bg-primary/10 border border-primary/30 rounded-lg">
               <h4 className="text-primary font-medium mb-2 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                {subscribed ? 'Active Subscription Benefits' : 'Free Trial Benefits'}
+                Active Subscription Benefits
               </h4>
               <ul className="text-sm text-primary/80 space-y-1">
                 <li>• Enhanced storage capacity: {limits.storage} GB</li>
                 <li>• Bandwidth allowance: {limits.bandwidth} GB/month</li>
                 <li>• Team seats: {isUnlimitedSeats ? 'Unlimited' : limits.seats}</li>
-                <li>• {subscribed ? 'Priority customer support' : 'Community support'}</li>
+                <li>• Priority customer support</li>
                 <li>• Advanced blockchain features</li>
-                {subscribed && <li>• Team collaboration tools</li>}
+                <li>• Team collaboration tools</li>
               </ul>
             </div>
           )}

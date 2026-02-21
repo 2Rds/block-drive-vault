@@ -2,6 +2,39 @@
 
 All notable changes to BlockDrive Vault are documented here.
 
+## [v2.3.0] - 2026-02-20
+
+### Added
+- **Direct Dynamic auth modal**: "Sign In" and "Start Free Trial" buttons now open Dynamic's auth flow directly via `setShowAuthFlow(true)` — eliminates extra page navigation
+- **Post-auth redirect**: Automatically redirects users to `/dashboard` (returning) or `/onboarding` (new) after authenticating from any public page
+- **Mandatory plan selection in onboarding**: New "Choose Plan" step after identity minting — users must subscribe (Stripe Checkout with 7-day trial) before accessing the platform
+- **Subscription gate in ProtectedRoute**: Unsubscribed (`pending` tier) users are redirected to `/pricing` when accessing protected routes
+- **PENDING subscription tier**: New tier with zero storage/bandwidth limits for users who haven't subscribed
+- **Onboarding escape hatch**: "I'll choose a plan later" link redirects to `/pricing` for users who want to browse plans first
+
+### Changed
+- Default signup tier changed from `free_trial` to `pending` in `auto-signup-from-dynamic` and `link-wallet-to-email`
+- CTA text updated: "No credit card required" → "7-day free trial, then $15/mo"
+- Onboarding flow expanded to 5 steps: Sign Up → Username → Wallet → Identity → **Plan**
+- "Continue with Trial Access" messaging removed from subscription cancel page
+
+### Fixed
+- **Post-auth redirect race condition**: Added `isExtrasLoaded` state flag — redirect now waits for NFT/ENS lookup to complete before choosing destination
+- **Debug logging in production**: `logLevel: 'DEBUG'` in DynamicProvider now gated behind `import.meta.env.DEV`
+- **ProtectedRoute loading flash**: Shows `LoadingScreen` while subscription status is loading (prevents brief redirect flicker)
+- **useSubscriptionStatus error swallowing**: Error messages now preserved instead of silently cleared
+- **Onboarding refresh skipping subscribe step**: Checks subscription status before marking onboarding complete
+- **handleSelectPlan silent failures**: Added toast notifications for missing tier/pricing data and null user guard
+- **useUploadPermissions loading state**: Now properly consumes `subLoading` from `useSubscriptionStatus`
+- **link-wallet-to-email free_trial default**: Changed fallback tier from `free_trial` to `pending`
+
+### Removed
+- Dead `isFreeTrial` code and JSX branches in SubscriptionManager
+- "Continue with Trial Access" button and messaging in SubscriptionCancel
+- Free tier upload permissions — only `subscribed: true` users can upload
+
+---
+
 ## [v2.2.0] - 2026-02-20
 
 ### Added

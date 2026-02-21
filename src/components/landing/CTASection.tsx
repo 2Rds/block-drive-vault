@@ -49,7 +49,7 @@ export const CTASection = () => {
         </h2>
 
         <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
-          Start with a 7-day free trial on Pro. No credit card required.
+          Start with a 7-day free trial on Pro, then $15/mo.
           Your files are encrypted with wallet-derived keys from the first upload.
         </p>
 

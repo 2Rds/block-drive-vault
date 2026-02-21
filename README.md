@@ -1,4 +1,4 @@
-# BlockDrive v2.2.0
+# BlockDrive v2.3.0
 
 **Decentralized Web3 Storage Platform with Zero-Knowledge Cryptography**
 
@@ -213,6 +213,14 @@ with open("recovered.pdf", "wb") as f:
 ```
 
 ## Development Status
+
+**v2.3.0** — February 20, 2026
+
+- Direct Dynamic auth modal: buttons open auth flow directly (no page navigation)
+- Mandatory plan selection in onboarding with Stripe Checkout 7-day trial
+- Subscription gate: unsubscribed users redirected to pricing on protected routes
+- Removed free tier — default signup tier is now `pending` (requires payment)
+- Fixed post-auth redirect race condition, loading flash, and error swallowing
 
 **v2.2.0** — February 20, 2026
 

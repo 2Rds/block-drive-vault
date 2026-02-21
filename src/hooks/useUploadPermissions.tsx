@@ -1,35 +1,21 @@
 // Simplified upload permissions hook for Dynamic auth
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 export const useUploadPermissions = () => {
   const { user, isSignedIn } = useAuth();
-  const { subscriptionStatus } = useSubscriptionStatus();
-  const [canUpload, setCanUpload] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { subscriptionStatus, loading: subLoading } = useSubscriptionStatus();
 
-  useEffect(() => {
-    const checkUploadPermissions = async () => {
-      if (!isSignedIn || !user) {
-        setCanUpload(false);
-        setLoading(false);
-        return;
-      }
+  const canUpload = (() => {
+    if (!isSignedIn || !user || subLoading) return false;
+    return (
+      subscriptionStatus?.subscribed ||
+      (subscriptionStatus?.subscription_tier != null &&
+        subscriptionStatus.subscription_tier !== 'pending')
+    ) ?? false;
+  })();
 
-      // With Dynamic, if user is signed in they can upload
-      // Subscription status can further restrict this if needed
-      const hasValidSubscription = 
-        subscriptionStatus?.subscribed || 
-        subscriptionStatus?.subscription_tier === 'free_trial' ||
-        true; // Allow all signed-in users to upload for now
-
-      setCanUpload(hasValidSubscription);
-      setLoading(false);
-    };
-
-    checkUploadPermissions();
-  }, [user, isSignedIn, subscriptionStatus]);
+  const loading = subLoading;
 
   return {
     canUpload,
